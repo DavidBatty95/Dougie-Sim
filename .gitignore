@@ -1,0 +1,77 @@
+# Local environment and machine-specific settings
+.env
+.env.*
+!.env.example
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ROS 2 / colcon generated outputs
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+ros2_ws/.colcon/
+
+# Runtime logs and generated diagnostics
+*.log
+*.bag
+*.db3
+*.mcap
+frames.pdf
+frames_*.pdf
+frames_*.gv
+ros2_ws/frames*.pdf
+ros2_ws/frames*.gv
+MJMODEL.TXT
+ros2_ws/MJMODEL.TXT
+
+# MJ Lab / training outputs
+vendor/mjlab/.venv/
+vendor/mjlab/logs/
+vendor/mjlab/wandb/
+vendor/mjlab/runs/
+vendor/mjlab/outputs/
+vendor/mjlab/.pytest_cache/
+vendor/mjlab/.ruff_cache/
+vendor/mjlab/.mypy_cache/
+vendor/mjlab/.cache/
+*.pt
+*.onnx
+*.pth
+events.out.tfevents.*
+
+# Vendored binary/build artifacts
+vendor/mujoco-*/
+vendor/*.tar.gz
+vendor/unitree_*_build/
+vendor/unitree_*_install/
+
+# CMake/build products that may appear outside colcon build dirs
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+
+# Editor/OS noise
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

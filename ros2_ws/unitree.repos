@@ -1,0 +1,13 @@
+repositories:
+  unitree_mujoco:
+    type: git
+    url: https://github.com/unitreerobotics/unitree_mujoco.git
+    version: main
+  unitree_ros2:
+    type: git
+    url: https://github.com/unitreerobotics/unitree_ros2.git
+    version: master
+  unitree_sdk2:
+    type: git
+    url: https://github.com/unitreerobotics/unitree_sdk2.git
+    version: main
