@@ -1,4 +1,7 @@
 import math
+import threading
+import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Sequence
 
@@ -123,6 +126,289 @@ def _quat_rotate(quat: Sequence[float], vec: Sequence[float]) -> List[float]:
     ]
 
 
+@dataclass(frozen=True)
+class PolicyInferenceCandidate:
+    obs_dim: int
+    action_dim: int
+    observation: tuple[float, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "observation", tuple(self.observation))
+
+
+@dataclass(frozen=True)
+class PolicyInferenceRequest:
+    generation: int
+    sequence: int
+    submitted_at: float
+    deadline: float
+    candidates: tuple[PolicyInferenceCandidate, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "candidates", tuple(self.candidates))
+
+
+@dataclass(frozen=True)
+class PolicyInferenceResult:
+    generation: int
+    sequence: int
+    submitted_at: float
+    completed_at: float
+    obs_dim: Optional[int] = None
+    action_dim: Optional[int] = None
+    actions: tuple[float, ...] = ()
+    error: Optional[str] = None
+    deadline_missed: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "actions", tuple(self.actions))
+
+
+@dataclass(frozen=True)
+class PolicyInferenceDiagnostics:
+    submitted: int
+    started: int
+    completed: int
+    succeeded: int
+    failed: int
+    expired: int
+    superseded: int
+    invalidated: int
+    discarded: int
+
+
+class PolicyInferenceWorker:
+    """Run one inference at a time without queueing stale observations."""
+
+    def __init__(self, policy) -> None:
+        self._policy = policy
+        self._condition = threading.Condition()
+        self._generation = 0
+        self._sequence = 0
+        self._pending: Optional[PolicyInferenceRequest] = None
+        self._active: Optional[PolicyInferenceRequest] = None
+        self._result: Optional[PolicyInferenceResult] = None
+        self._stopping = False
+        self._submitted = 0
+        self._started = 0
+        self._completed = 0
+        self._succeeded = 0
+        self._failed = 0
+        self._expired = 0
+        self._superseded = 0
+        self._invalidated = 0
+        self._discarded = 0
+        self._thread = threading.Thread(
+            target=self._run, name="g1-policy-inference", daemon=True
+        )
+        self._thread.start()
+
+    @property
+    def thread(self) -> threading.Thread:
+        return self._thread
+
+    def submit(
+        self, candidates: Sequence[PolicyInferenceCandidate], deadline: float
+    ) -> Optional[PolicyInferenceRequest]:
+        with self._condition:
+            if self._stopping:
+                raise RuntimeError("Policy inference worker is shut down")
+            if self._pending is not None or self._active is not None or self._result is not None:
+                return None
+            self._sequence += 1
+            request = PolicyInferenceRequest(
+                generation=self._generation,
+                sequence=self._sequence,
+                submitted_at=time.monotonic(),
+                deadline=float(deadline),
+                candidates=tuple(candidates),
+            )
+            self._pending = request
+            self._submitted += 1
+            self._condition.notify()
+            return request
+
+    def take_result(self) -> Optional[PolicyInferenceResult]:
+        with self._condition:
+            result = self._result
+            self._result = None
+            return result
+
+    def deadline_missed(self, now: Optional[float] = None) -> bool:
+        current = time.monotonic() if now is None else now
+        with self._condition:
+            requests = (self._active, self._pending)
+            return any(
+                request is not None
+                and request.generation == self._generation
+                and current > request.deadline
+                for request in requests
+            )
+
+    def invalidate_expired(self, now: Optional[float] = None) -> bool:
+        current = time.monotonic() if now is None else now
+        with self._condition:
+            requests = (self._active, self._pending)
+            if not any(
+                request is not None
+                and request.generation == self._generation
+                and current > request.deadline
+                for request in requests
+            ):
+                return False
+            self._generation += 1
+            self._pending = None
+            self._result = None
+            self._expired += 1
+            self._invalidated += 1
+            return True
+
+    def invalidate(self) -> int:
+        with self._condition:
+            self._generation += 1
+            self._pending = None
+            self._result = None
+            self._invalidated += 1
+            return self._generation
+
+    def diagnostics(self) -> PolicyInferenceDiagnostics:
+        with self._condition:
+            return PolicyInferenceDiagnostics(
+                submitted=self._submitted,
+                started=self._started,
+                completed=self._completed,
+                succeeded=self._succeeded,
+                failed=self._failed,
+                expired=self._expired,
+                superseded=self._superseded,
+                invalidated=self._invalidated,
+                discarded=self._discarded,
+            )
+
+    def shutdown(self, timeout: float = 1.0) -> bool:
+        with self._condition:
+            if not self._stopping:
+                self._stopping = True
+                self._generation += 1
+                self._pending = None
+                self._result = None
+                self._invalidated += 1
+                self._condition.notify_all()
+        self._thread.join(max(0.0, timeout))
+        return not self._thread.is_alive()
+
+    def _run(self) -> None:
+        while True:
+            with self._condition:
+                while self._pending is None and not self._stopping:
+                    self._condition.wait()
+                if self._stopping:
+                    return
+                request = self._pending
+                self._pending = None
+                self._active = request
+                self._started += 1
+
+            assert request is not None
+            result = self._infer(request)
+            with self._condition:
+                self._active = None
+                self._completed += 1
+                if self._stopping or request.generation != self._generation:
+                    self._discarded += 1
+                    continue
+                if result.deadline_missed:
+                    self._expired += 1
+                    self._generation += 1
+                    self._pending = None
+                    self._invalidated += 1
+                elif result.error is not None:
+                    self._failed += 1
+                    self._generation += 1
+                    self._pending = None
+                    self._invalidated += 1
+                else:
+                    self._succeeded += 1
+                if self._result is not None:
+                    self._superseded += 1
+                self._result = result
+
+    def _infer(self, request: PolicyInferenceRequest) -> PolicyInferenceResult:
+        if time.monotonic() > request.deadline:
+            return self._deadline_result(request)
+
+        last_error: Optional[Exception] = None
+        for candidate in request.candidates:
+            if time.monotonic() > request.deadline:
+                return self._deadline_result(request)
+            try:
+                observation = np.asarray(
+                    [candidate.observation], dtype=np.float32
+                )
+                if observation.shape != (1, candidate.obs_dim):
+                    raise ValueError(
+                        f"Observation shape {observation.shape} does not match "
+                        f"(1, {candidate.obs_dim})"
+                    )
+                actions = self._normalize_actions(
+                    self._policy(observation), candidate.action_dim
+                )
+                completed_at = time.monotonic()
+                if completed_at > request.deadline:
+                    return self._deadline_result(request, completed_at)
+                return PolicyInferenceResult(
+                    generation=request.generation,
+                    sequence=request.sequence,
+                    submitted_at=request.submitted_at,
+                    completed_at=completed_at,
+                    obs_dim=candidate.obs_dim,
+                    action_dim=candidate.action_dim,
+                    actions=actions,
+                )
+            except Exception as exc:  # noqa: BLE001 - try the alternate shape.
+                last_error = exc
+
+        if time.monotonic() > request.deadline:
+            return self._deadline_result(request)
+        return PolicyInferenceResult(
+            generation=request.generation,
+            sequence=request.sequence,
+            submitted_at=request.submitted_at,
+            completed_at=time.monotonic(),
+            error=str(last_error or "No policy inference candidates"),
+        )
+
+    @staticmethod
+    def _deadline_result(
+        request: PolicyInferenceRequest, completed_at: Optional[float] = None
+    ) -> PolicyInferenceResult:
+        return PolicyInferenceResult(
+            generation=request.generation,
+            sequence=request.sequence,
+            submitted_at=request.submitted_at,
+            completed_at=time.monotonic() if completed_at is None else completed_at,
+            error="Policy inference deadline missed",
+            deadline_missed=True,
+        )
+
+    @staticmethod
+    def _normalize_actions(action, action_dim: int) -> tuple[float, ...]:
+        if isinstance(action, (tuple, list)):
+            action = action[0]
+        if torch is not None and isinstance(action, torch.Tensor):
+            values = action.detach().to("cpu").reshape(-1).tolist()
+        else:
+            values = np.asarray(action).reshape(-1).tolist()
+        if len(values) < action_dim:
+            raise ValueError(
+                f"Policy returned {len(values)} actions, expected {action_dim}"
+            )
+        normalized = tuple(float(value) for value in values[:action_dim])
+        if not all(math.isfinite(value) for value in normalized):
+            raise ValueError("Policy returned non-finite actions")
+        return normalized
+
+
 class G1PolicyCmdVelController(Node):
     def __init__(self) -> None:
         super().__init__("g1_policy_cmd_vel_controller")
@@ -143,6 +429,7 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("action_rate_limit", 0.0)
         self.declare_parameter("policy_obs_dim", 0)
         self.declare_parameter("policy_action_dim", 0)
+        self.declare_parameter("policy_inference_deadline_sec", 0.1)
         self.declare_parameter("policy_command_height", 0.84)
         self.declare_parameter("stand_still_on_timeout", True)
         self.declare_parameter("startup_blend_time", 0.0)
@@ -217,6 +504,11 @@ class G1PolicyCmdVelController(Node):
         }
         self._apply_policy_metadata()
         self._log_policy_configuration()
+        self.policy_worker = PolicyInferenceWorker(self.policy)
+        self.policy_inference_deadline = max(
+            0.001,
+            float(self.get_parameter("policy_inference_deadline_sec").value),
+        )
 
         self.body_pub = self.create_publisher(
             Float64MultiArray,
@@ -243,6 +535,7 @@ class G1PolicyCmdVelController(Node):
         )
 
         period = 1.0 / float(self.get_parameter("rate_hz").value)
+        self.control_period = period
         self.create_timer(period, self._control_tick)
         self.create_timer(2.0, self._diagnostics)
         self.get_logger().info("G1 policy /cmd_vel controller ready")
@@ -420,6 +713,7 @@ class G1PolicyCmdVelController(Node):
                     f"Tilt guard holding stable joint pose (tilt={self.last_tilt:.2f} rad)",
                     throttle_duration_sec=1.0,
                 )
+                self.policy_worker.invalidate()
             self.tilt_guard_active = True
             self.tilt_guard_clear_since = None
             self.filtered_command = [0.0, 0.0, 0.0]
@@ -490,6 +784,7 @@ class G1PolicyCmdVelController(Node):
 
     def _reset_controller_state(self, joint_positions: Sequence[float], reason: str) -> None:
         now = self.get_clock().now()
+        self.policy_worker.invalidate()
         self.first_lowstate_time = now
         self.initial_positions = list(joint_positions)
         self.last_stable_positions = list(joint_positions)
@@ -581,33 +876,66 @@ class G1PolicyCmdVelController(Node):
             self._publish_targets(self._safe_hold_positions())
             return
 
-        candidates = [self.policy_obs_dim] if self.policy_obs_dim is not None else [80, 82, 97, 99]
-        last_error: Optional[Exception] = None
-        for obs_dim in candidates:
-            if obs_dim is None:
-                continue
-            action_dim = self.policy_action_dim or (12 if obs_dim in (80, 82) else 29)
-            obs = self._build_observation(command, action_dim)
-            try:
-                action = self.policy(obs)
-                self.policy_obs_dim = obs_dim
-                if self.first_policy_time is None:
-                    self.first_policy_time = now
-                self.control_state = "policy"
-                ramp_time = max(0.0, float(self.get_parameter("policy_action_ramp_time").value))
-                if ramp_time > 0.0:
-                    ramp = min(1.0, (now - self.first_policy_time).nanoseconds * 1e-9 / ramp_time)
-                else:
-                    ramp = 1.0
-                self._publish_action(action, action_dim, dt, ramp)
-                return
-            except Exception as exc:  # noqa: BLE001 - retry alternate policy shape.
-                last_error = exc
+        result = self.policy_worker.take_result()
+        if result is not None and (result.error is not None or result.deadline_missed):
+            self.get_logger().error(
+                result.error or "Policy inference deadline missed",
+                throttle_duration_sec=2.0,
+            )
+            state = "policy_deadline_hold" if result.deadline_missed else "policy_error_hold"
+            self._policy_safe_hold(state)
+            return
+        if self.policy_worker.invalidate_expired():
+            self.get_logger().error(
+                "Policy inference deadline missed", throttle_duration_sec=2.0
+            )
+            self._policy_safe_hold("policy_deadline_hold")
+            return
 
-        self.get_logger().error(
-            f"Policy inference failed: {last_error}", throttle_duration_sec=2.0
+        if result is not None:
+            assert result.obs_dim is not None and result.action_dim is not None
+            self.policy_obs_dim = result.obs_dim
+            self.policy_action_dim = result.action_dim
+            if self.first_policy_time is None:
+                self.first_policy_time = now
+            self.control_state = "policy"
+            ramp_time = max(
+                0.0, float(self.get_parameter("policy_action_ramp_time").value)
+            )
+            if ramp_time > 0.0:
+                ramp = min(
+                    1.0,
+                    (now - self.first_policy_time).nanoseconds * 1e-9 / ramp_time,
+                )
+            else:
+                ramp = 1.0
+            try:
+                self._publish_action(
+                    np.asarray(result.actions, dtype=np.float32),
+                    result.action_dim,
+                    dt,
+                    ramp,
+                )
+            except Exception as exc:  # noqa: BLE001 - hold safely on output handling errors.
+                self.policy_worker.invalidate()
+                self.get_logger().error(
+                    f"Policy action handling failed: {exc}",
+                    throttle_duration_sec=2.0,
+                )
+                self._policy_safe_hold("policy_error_hold")
+                return
+
+        candidates = self._build_inference_candidates(command)
+        self.policy_worker.submit(
+            candidates, deadline=time.monotonic() + self.policy_inference_deadline
         )
-        self.control_state = "policy_error_hold"
+        if result is None:
+            self.control_state = "policy_wait"
+            if self.first_policy_time is None:
+                self._publish_targets(self._safe_hold_positions())
+
+    def _policy_safe_hold(self, state: str) -> None:
+        self.control_state = state
         self.filtered_command = [0.0, 0.0, 0.0]
         self.last_actions = {
             12: [0.0] * len(self.lower_joint_indexes),
@@ -616,6 +944,29 @@ class G1PolicyCmdVelController(Node):
         self.last_action_norm = 0.0
         self.first_policy_time = None
         self._publish_targets(self._safe_hold_positions())
+
+    def _build_inference_candidates(
+        self, command: Sequence[float]
+    ) -> tuple[PolicyInferenceCandidate, ...]:
+        obs_dims = (
+            (self.policy_obs_dim,)
+            if self.policy_obs_dim is not None
+            else (80, 82, 97, 99)
+        )
+        candidates = []
+        for obs_dim in obs_dims:
+            action_dim = self.policy_action_dim or (
+                12 if obs_dim in (80, 82) else 29
+            )
+            observation = self._build_observation(command, action_dim, obs_dim)
+            candidates.append(
+                PolicyInferenceCandidate(
+                    obs_dim=obs_dim,
+                    action_dim=action_dim,
+                    observation=tuple(float(value) for value in observation.reshape(-1)),
+                )
+            )
+        return tuple(candidates)
 
     def _startup_active(self) -> bool:
         if self.first_lowstate_time is None:
@@ -667,6 +1018,7 @@ class G1PolicyCmdVelController(Node):
 
     def _diagnostics(self) -> None:
         cmd_age = (self.get_clock().now() - self.last_cmd_time).nanoseconds * 1e-9
+        inference = self.policy_worker.diagnostics()
         self.get_logger().info(
             "policy status: "
             f"state={self.control_state} lowstate={self.lowstate_count} cmd_vel={self.cmd_vel_count} "
@@ -674,11 +1026,18 @@ class G1PolicyCmdVelController(Node):
             f"tilt={self.last_tilt:.2f} "
             f"cmd=({self.last_active_command[0]:+.2f}, "
             f"{self.last_active_command[1]:+.2f}, {self.last_active_command[2]:+.2f}) "
-            f"action_norm={self.last_action_norm:.3f}",
+            f"action_norm={self.last_action_norm:.3f} "
+            f"inference=(submitted={inference.submitted} started={inference.started} "
+            f"completed={inference.completed} "
+            f"ok={inference.succeeded} failed={inference.failed} expired={inference.expired} "
+            f"superseded={inference.superseded} invalidated={inference.invalidated} "
+            f"discarded={inference.discarded})",
             throttle_duration_sec=2.0,
         )
 
-    def _build_observation(self, command: Sequence[float], action_dim: int):
+    def _build_observation(
+        self, command: Sequence[float], action_dim: int, obs_dim: Optional[int] = None
+    ):
         assert self.last_lowstate is not None
         joint_pos = [float(state.q) for state in self.last_lowstate.motor_state[:29]]
         joint_vel = [float(state.dq) for state in self.last_lowstate.motor_state[:29]]
@@ -697,16 +1056,17 @@ class G1PolicyCmdVelController(Node):
         values.extend(joint_pos_rel)
         values.extend(joint_vel)
         values.extend(self.last_actions[action_dim])
-        if self._uses_height_command():
+        if self._uses_height_command(obs_dim):
             values.append(float(self.get_parameter("policy_command_height").value))
         else:
             values.extend(command)
         return np.asarray([values], dtype=np.float32)
 
-    def _uses_height_command(self) -> bool:
+    def _uses_height_command(self, obs_dim: Optional[int] = None) -> bool:
         if self.policy_command_names:
             return self.policy_command_names == ["height"]
-        return self.policy_obs_dim in (80, 97)
+        dimension = self.policy_obs_dim if obs_dim is None else obs_dim
+        return dimension in (80, 97)
 
     def _publish_action(self, action, action_dim: int, dt: float, ramp: float = 1.0) -> None:
         if isinstance(action, (tuple, list)):
@@ -755,6 +1115,11 @@ class G1PolicyCmdVelController(Node):
         msg.data = list(targets)
         self.body_pub.publish(msg)
         self.body_command_count += 1
+
+    def destroy_node(self):
+        if hasattr(self, "policy_worker"):
+            self.policy_worker.shutdown(timeout=1.0)
+        return super().destroy_node()
 
 
 class OnnxPolicy:
