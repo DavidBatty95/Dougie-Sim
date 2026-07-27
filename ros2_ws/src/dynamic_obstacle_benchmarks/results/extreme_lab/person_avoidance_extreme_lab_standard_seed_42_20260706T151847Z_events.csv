@@ -1,0 +1,3 @@
+time_s,type,person_id,distance_m,ttc_s
+5.2291682889990625,near_miss,2,0.984083687235286,
+5.679312649001076,collision,2,0.765602558150402,

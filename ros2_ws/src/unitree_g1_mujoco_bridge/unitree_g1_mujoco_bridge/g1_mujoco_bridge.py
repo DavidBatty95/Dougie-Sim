@@ -4,6 +4,7 @@ from typing import Iterable, List
 import rclpy
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 from unitree_hg.msg import HandCmd, LowCmd, LowState
@@ -20,6 +21,13 @@ from .g1_constants import (
     G1_MJLAB_BODY_KD,
     G1_MJLAB_BODY_KP,
     G1_RVIZ_JOINTS,
+)
+
+
+LATEST_RELIABLE_QOS = QoSProfile(
+    history=QoSHistoryPolicy.KEEP_LAST,
+    depth=1,
+    reliability=QoSReliabilityPolicy.RELIABLE,
 )
 
 
@@ -41,10 +49,10 @@ class G1MujocoBridge(Node):
         self.declare_parameter("body_kd", 2.5)
         self.declare_parameter("base_height_offset", 0.182)
         self.declare_parameter("use_mjlab_body_gains", True)
-        self.declare_parameter("lock_waist", True)
+        self.declare_parameter("lock_waist", False)
         self.declare_parameter("waist_lock_kp", 120.0)
         self.declare_parameter("waist_lock_kd", 8.0)
-        self.declare_parameter("balance_waist", True)
+        self.declare_parameter("balance_waist", False)
         self.declare_parameter("waist_balance_p", 0.35)
         self.declare_parameter("waist_balance_i", 0.0)
         self.declare_parameter("waist_balance_d", 0.06)
@@ -55,6 +63,7 @@ class G1MujocoBridge(Node):
         self.declare_parameter("fall_damping_kd", 8.0)
         self.declare_parameter("fall_damping_waist_kd", 12.0)
         self.declare_parameter("fall_damping_reset_grace_time", 3.0)
+        self.declare_parameter("startup_fall_damping_grace_time", 5.0)
         self.declare_parameter("hand_kp", 1.5)
         self.declare_parameter("hand_kd", 0.1)
         self.declare_parameter("body_command_topic", "/g1/body_position_commands")
@@ -78,9 +87,11 @@ class G1MujocoBridge(Node):
         self.fall_damping_kd = float(self.get_parameter("fall_damping_kd").value)
         self.fall_damping_waist_kd = float(self.get_parameter("fall_damping_waist_kd").value)
         self.fall_damping_reset_grace_time = float(self.get_parameter("fall_damping_reset_grace_time").value)
+        self.startup_fall_damping_grace_time = float(self.get_parameter("startup_fall_damping_grace_time").value)
         self.fallen = False
         self.fall_damping_count = 0
         self.fall_damping_grace_until = None
+        self.started_at = self.get_clock().now()
         self.waist_integral_roll = 0.0
         self.waist_integral_pitch = 0.0
         self.waist_joint_indexes = [
@@ -110,31 +121,41 @@ class G1MujocoBridge(Node):
         self.lowstate_count = 0
         self.body_command_count = 0
 
-        self.joint_state_pub = self.create_publisher(JointState, "/joint_states", 10)
-        self.lowcmd_pub = self.create_publisher(LowCmd, "/lowcmd", 10)
-        self.lowcmd_rt_pub = self.create_publisher(LowCmd, "rt/lowcmd", 10)
-        self.left_hand_pub = self.create_publisher(HandCmd, "/dex3/left/cmd", 10)
-        self.right_hand_pub = self.create_publisher(HandCmd, "/dex3/right/cmd", 10)
+        self.joint_state_pub = self.create_publisher(
+            JointState, "/joint_states", LATEST_RELIABLE_QOS
+        )
+        self.lowcmd_pub = self.create_publisher(LowCmd, "/lowcmd", LATEST_RELIABLE_QOS)
+        self.lowcmd_rt_pub = self.create_publisher(LowCmd, "rt/lowcmd", LATEST_RELIABLE_QOS)
+        self.left_hand_pub = self.create_publisher(
+            HandCmd, "/dex3/left/cmd", LATEST_RELIABLE_QOS
+        )
+        self.right_hand_pub = self.create_publisher(
+            HandCmd, "/dex3/right/cmd", LATEST_RELIABLE_QOS
+        )
 
-        self.create_subscription(LowState, "/lowstate", self._lowstate_callback, 10)
-        self.create_subscription(LowState, "rt/lowstate", self._lowstate_callback, 10)
+        self.create_subscription(
+            LowState, "/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
+        )
+        self.create_subscription(
+            LowState, "rt/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
+        )
         self.create_subscription(
             Float64MultiArray,
             str(self.get_parameter("body_command_topic").value),
             self._body_command_callback,
-            10,
+            LATEST_RELIABLE_QOS,
         )
         self.create_subscription(
             Float64MultiArray,
             str(self.get_parameter("left_hand_command_topic").value),
             lambda msg: self._hand_command_callback(msg, "left"),
-            10,
+            LATEST_RELIABLE_QOS,
         )
         self.create_subscription(
             Float64MultiArray,
             str(self.get_parameter("right_hand_command_topic").value),
             lambda msg: self._hand_command_callback(msg, "right"),
-            10,
+            LATEST_RELIABLE_QOS,
         )
         self.create_timer(1.0 / 60.0, self._publish_joint_states)
         self.create_timer(2.0, self._diagnostics)
@@ -142,13 +163,37 @@ class G1MujocoBridge(Node):
         self.get_logger().info("G1 Mujoco ROS 2 bridge ready")
 
     def _lowstate_callback(self, msg: LowState) -> None:
+        if len(msg.motor_state) < len(G1_29DOF_JOINTS):
+            self.get_logger().warn(
+                f"Ignoring short lowstate with {len(msg.motor_state)} motor states",
+                throttle_duration_sec=2.0,
+            )
+            return
+        if len(msg.imu_state.rpy) < 3 or len(msg.imu_state.gyroscope) < 3:
+            self.get_logger().warn(
+                "Ignoring lowstate with incomplete IMU data", throttle_duration_sec=2.0
+            )
+            return
+
+        positions = [float(state.q) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
+        velocities = [float(state.dq) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
+        efforts = [float(state.tau_est) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
+        imu_rpy = [float(value) for value in msg.imu_state.rpy[:3]]
+        imu_gyro = [float(value) for value in msg.imu_state.gyroscope[:3]]
+        state_values = positions + velocities + efforts + imu_rpy + imu_gyro
+        if not all(math.isfinite(value) for value in state_values):
+            self.get_logger().warn(
+                "Ignoring lowstate containing non-finite values", throttle_duration_sec=2.0
+            )
+            return
+
         self.lowstate_count += 1
-        self.body_position = [float(state.q) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
-        self.body_velocity = [float(state.dq) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
-        self.body_effort = [float(state.tau_est) for state in msg.motor_state[: len(G1_29DOF_JOINTS)]]
+        self.body_position = positions
+        self.body_velocity = velocities
+        self.body_effort = efforts
         self.base_height = self._estimate_base_height(self.body_position)
-        self.imu_rpy = [float(value) for value in msg.imu_state.rpy]
-        self.imu_gyro = [float(value) for value in msg.imu_state.gyroscope]
+        self.imu_rpy = imu_rpy
+        self.imu_gyro = imu_gyro
         self._update_fallen_state()
 
     def _publish_joint_states(self) -> None:
@@ -194,6 +239,12 @@ class G1MujocoBridge(Node):
                 throttle_duration_sec=2.0,
             )
             return
+        if not all(math.isfinite(float(value)) for value in msg.data):
+            self.get_logger().warn(
+                "Ignoring body command containing non-finite values",
+                throttle_duration_sec=2.0,
+            )
+            return
 
         cmd = LowCmd()
         cmd.mode_pr = 0
@@ -228,6 +279,9 @@ class G1MujocoBridge(Node):
             self.fallen = False
             return
         now = self.get_clock().now()
+        if (now - self.started_at).nanoseconds * 1e-9 < self.startup_fall_damping_grace_time:
+            self.fallen = False
+            return
         if self.fall_damping_grace_until is not None:
             if (self.fall_damping_grace_until - now).nanoseconds > 0:
                 self.fallen = False
@@ -317,6 +371,12 @@ class G1MujocoBridge(Node):
         if len(msg.data) != len(BRAINCO_HAND_JOINTS):
             self.get_logger().warn(
                 f"Expected {len(BRAINCO_HAND_JOINTS)} {side} hand positions, got {len(msg.data)}",
+                throttle_duration_sec=2.0,
+            )
+            return
+        if not all(math.isfinite(float(value)) for value in msg.data):
+            self.get_logger().warn(
+                f"Ignoring {side} hand command containing non-finite values",
                 throttle_duration_sec=2.0,
             )
             return

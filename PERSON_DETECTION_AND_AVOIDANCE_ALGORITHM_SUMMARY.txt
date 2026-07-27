@@ -1,0 +1,455 @@
+Current person detection and avoidance methods
+==============================================
+
+Scope
+-----
+
+This repository implements a simulation-first ROS 2 / MuJoCo stack for Unitree G1 pedestrian-aware navigation using a Livox-style 3D LiDAR. Runtime person perception remains LiDAR-based. The tracker does not use MuJoCo body IDs, pedestrian names, or ground-truth pedestrian identities. Ground truth is only appropriate for offline evaluation.
+
+The current method is a reliability-oriented cluster-and-track pipeline plus a proactive human-aware motion layer: Livox preprocessing, range-adaptive denoising, range-adaptive clustering, explainable person-shape gating, Kalman-filtered multi-track association, explicit track lifecycle management, short-horizon constant-velocity prediction, Nav2 costmap marking, sampled human-aware velocity planning, and a final velocity-level human-collision safety filter.
+
+Default simulation world
+------------------------
+
+The default launch scene is now `scene_29dof_extreme_lab.xml`. Running `./scripts/bringup_full_sim.sh` starts the Extreme Lab environment unless `mujoco_scene:=...` is overridden.
+
+Primary ROS data flow
+---------------------
+
+1. MuJoCo simulates the Unitree G1, static scene geometry, and animated pedestrian-like obstacles.
+2. `g1_sim_sensors.py` publishes Livox-style point clouds on `/livox/lidar` and `/livox/lidar_world`.
+3. `livox_to_scan.py` projects `/livox/lidar` into `/scan_raw`.
+4. `dynamic_obstacle_tracker.py` consumes `/livox/lidar_world` and publishes detection/tracking outputs.
+5. `scan_dynamic_filter.py` removes confirmed dynamic people from `/scan_raw` and publishes `/scan` for SLAM/Nav2.
+6. Nav2 consumes `/scan`, `/tracked_dynamic_obstacles`, and `/predicted_dynamic_obstacles` in local/global costmaps.
+7. A command source publishes raw `/cmd_vel`. By default this is Nav2 waypoint exploration, which sends successive `NavigateToPose` goals and publishes the current goal for RViz. The simple fixed-waypoint patrol source remains available as an optional fallback.
+8. `human_aware_motion_planner.py` samples candidate velocities, scores them against human risk, and publishes `/cmd_vel_human_aware`.
+9. `human_collision_avoidance.py` remains the hard safety layer and filters `/cmd_vel_human_aware` into `/cmd_vel_safe`.
+10. `g1_policy_cmd_vel_controller.py` converts `/cmd_vel_safe` into learned-policy joint targets.
+11. `g1_mujoco_bridge.py` converts joint targets into Unitree-style low-level MuJoCo motor commands.
+
+Tracker outputs
+---------------
+
+- `/dynamic_obstacles`: RViz marker visualization of candidates, confirmed tracks, predictions, and labels.
+- `/tracked_dynamic_obstacles`: PointCloud2 footprints for live CONFIRMED tracks only.
+- `/predicted_dynamic_obstacles`: PointCloud2 predicted human-risk occupancy for confirmed tracks only under normal settings.
+- `/tentative_dynamic_obstacles`: separate caution/debug topic for tentative predictions; not consumed by Nav2 by default.
+- `/human_safety_grid`: optional debug occupancy grid.
+- `/dynamic_obstacle_tracker/debug_tracks`: JSON diagnostic strings with cluster/track state and rejection reasons.
+
+Human-aware planner outputs
+---------------------------
+
+- `/cmd_vel_human_aware`: proactive socially aware velocity command selected from sampled candidates.
+- `/human_avoidance_state`: current behaviour state as a string.
+- `/human_avoidance_debug`: JSON diagnostics for selected candidate, score, rejected candidates, minimum human distance, TCPA, and side commitment.
+- `/human_social_risk_grid`: local social risk occupancy grid for debugging.
+- `/human_avoidance_markers`: RViz candidate trajectories, selected trajectory, rejected trajectories, and behaviour state labels.
+
+Livox-aware preprocessing
+-------------------------
+
+The tracker first rejects invalid or physically irrelevant returns before clustering:
+
+- Drops NaN/inf points.
+- Drops points outside configurable min/max range.
+- Drops points outside configured height limits.
+- Applies a configurable ground rejection band.
+- Applies a local tracking radius around the robot.
+- Applies robot self-filtering around the base footprint.
+- Uses Livox tag fields when present to reject likely weak/noisy returns.
+- Does not reject solely on intensity.
+
+The current launch defaults use a short accumulation window rather than single-frame-only tracking:
+
+- `point_accumulation_time`: 0.20 s.
+- `voxel_leaf_size`: 0.05 m.
+- `max_accumulated_points`: 5000.
+
+The short window improves sparse Livox consistency while strict timestamp expiry prevents long ghost trails.
+
+Range-adaptive denoising
+------------------------
+
+Before clustering, points are voxel-downsampled and passed through range-adaptive neighbor filtering:
+
+- Near points use a smaller neighbor radius and lower neighbor requirement.
+- Far points use a larger neighbor radius and higher neighbor requirement.
+- Current launch defaults are `near_noise_radius: 0.15`, `far_noise_radius: 0.35`, `min_neighbors_near: 3`, and `min_neighbors_far: 4`.
+
+This suppresses isolated LiDAR points, sparse Livox scan-pattern fragments, dust/noise-like returns, and single-frame artifacts before they can form tracks.
+
+Range-adaptive clustering
+-------------------------
+
+Clusters are built with grid-accelerated breadth-first search in XY and a Z-separation gate. XY connectivity is range-adaptive:
+
+`epsilon_xy = clamp(cluster_epsilon_base + cluster_epsilon_per_meter * range, cluster_epsilon_min, cluster_epsilon_max)`
+
+Current launch defaults:
+
+- `cluster_epsilon_base`: 0.16 m.
+- `cluster_epsilon_per_meter`: 0.025.
+- `cluster_epsilon_min`: 0.14 m.
+- `cluster_epsilon_max`: 0.38 m.
+- `cluster_z_distance`: 0.90 m.
+
+Each cluster stores quality information used by scoring and diagnostics:
+
+- point count
+- range
+- density
+- width/depth/height
+- vertical layer count
+- centroid height
+- approximate bounding-box volume
+- compactness
+- aspect ratio
+- static-cell fraction
+- noise fraction
+- rejection reason
+
+A second tighter person-focused clustering pass is still used to separate human-sized fragments from nearby wall/furniture edges. Nearby fragments are merged only when the merged cluster remains human-sized.
+
+Static-background suppression
+-----------------------------
+
+The tracker maintains a simple static-cell memory. Repeatedly observed static cells suppress clusters that are likely walls, furniture, lab fixtures, or other persistent non-human objects.
+
+New tracks are hard-rejected if their static-cell fraction is too high unless they are already associated with a confirmed person track. The current launch default is `max_static_cell_fraction_new_track: 0.35`.
+
+Person-shape scoring and hard gates
+-----------------------------------
+
+The tracker now uses hard rejection gates before applying a weighted person score. A cluster can be rejected for:
+
+- too few points after denoising
+- too many points
+- Livox scan-pattern artifact shape
+- impossible speed
+- excessive noise-tag fraction
+- excessive XY extent
+- implausible height
+- insufficient vertical layers
+- implausible centroid height
+- excessive static-cell fraction for a new track
+- excessive aspect ratio
+
+If a cluster passes hard gates, the weighted score rewards:
+
+- person-like radius
+- compact XY extent
+- plausible height
+- plausible centroid height
+- sufficient point count
+- sufficient vertical layers
+- acceptable aspect ratio
+- low static fraction
+- compactness
+
+This makes false positives harder to confirm and makes debug output explain why a cluster was rejected.
+
+Track lifecycle
+---------------
+
+Tracks now have explicit states:
+
+- `TENTATIVE`: created from a plausible cluster but not yet confirmed.
+- `CONFIRMED`: sufficiently persistent and person-like to publish as a person.
+- `OCCLUDED`: confirmed track missed briefly but retained with decaying confidence.
+- `STALE`: tentative or old track that is no longer reliable.
+- `DELETED`: removed track, with delete markers published.
+
+Confirmation is deliberately conservative. A tentative track must satisfy M-of-N persistence before becoming confirmed:
+
+- `tentative_confirm_min_hits`: 3.
+- `tentative_confirm_window`: 5.
+- `min_confirm_age`: 0.50 s.
+
+Tracks must also satisfy confidence, person-score, person-observation, speed, and either motion evidence, optional ML evidence, or stronger stationary-person shape persistence.
+
+Tentative tracks are deleted quickly after misses. Confirmed tracks may coast briefly through occlusion, but confidence decays and stale tracks stop publishing risk.
+
+Track association and filtering
+-------------------------------
+
+Each track uses a constant-velocity Kalman filter with state:
+
+`[x, y, vx, vy]`
+
+Association uses a deterministic global minimum-cost assignment pass rather than simple greedy nearest-neighbor matching. The assignment cost includes:
+
+- Mahalanobis distance to the Kalman-predicted position
+- Euclidean distance
+- shape mismatch penalty
+- static-fraction penalty
+- noise-fraction penalty
+- continuity preference for confirmed tracks
+
+Associations are gated by:
+
+- configurable Mahalanobis threshold
+- maximum track-match distance
+- tighter jump gate for confirmed tracks
+- maximum human speed
+- maximum human acceleration
+
+The launch defaults cap humans at `max_human_speed: 2.5 m/s` and `max_human_accel: 3.5 m/s^2`.
+
+This reduces ID switches, track jumps, and tentative clusters stealing confirmed identities.
+
+Prediction method
+-----------------
+
+Confirmed tracks can produce predicted human-risk occupancy. The prediction model remains short-horizon constant velocity:
+
+- Current filtered state: x, y, vx, vy.
+- Prediction horizon: 3.0 s.
+- Prediction step: 0.35 s.
+
+For each predicted center, the tracker emits a lattice of points around the body/personal-space footprint. Risk radius is increased when the predicted person trajectory approaches the robot.
+
+Publication discipline is strict:
+
+- `/tracked_dynamic_obstacles` includes only live CONFIRMED tracks.
+- `/predicted_dynamic_obstacles` normally includes only CONFIRMED tracks that pass confidence/score/observation gates.
+- `publish_tentative_predictions` defaults to false.
+- Tentative/caution output is separated onto `/tentative_dynamic_obstacles`.
+- Empty PointCloud2 messages are published when no confirmed tracks exist so downstream consumers can expire old observations.
+
+Proactive human-aware motion planning
+-------------------------------------
+
+`human_aware_motion_planner.py` is inserted between raw `/cmd_vel` and the hard safety filter. It does not replace Nav2 and does not replace the low-level safety monitor. Its role is to choose smoother, earlier, more predictable human-aware velocity commands before emergency avoidance is needed.
+
+Inputs:
+
+- raw `/cmd_vel`
+- `/dynamic_obstacle_tracker/debug_tracks`
+- `/tentative_dynamic_obstacles`
+- `/scan`
+- TF from `world` to `base_footprint`
+
+The planner uses confirmed and recently occluded tracks from the tracker debug JSON. Each track includes ID, state, position, velocity, confidence, person score, missed count, and Kalman covariance diagonal terms. Tentative points are used only as soft caution.
+
+Candidate commands:
+
+- raw limited command
+- slow forward
+- creep
+- yield/stop
+- committed-side sidestep
+- left/right sidestep
+- left/right arc
+- left/right turn
+- retreat
+
+Each candidate is forward-simulated over a 2.5 s horizon with 0.2 s time steps. The planner hard-rejects candidates that enter a confirmed human physical safety radius or collide with nearby scan obstacles. Remaining candidates are scored using:
+
+- progress along the raw command direction
+- path alignment
+- static obstacle proximity
+- personal-space field cost
+- time-to-collision / closest-point-of-approach cost
+- cutting-in-front penalty for crossing pedestrians
+- yield penalty when a person blocks the forward corridor
+- smoothness and command-change penalties
+- side-switch / legibility penalty
+- deadlock recovery term
+
+The planner maintains a short side commitment so it does not switch left/right avoidance every cycle. Behaviour state is currently selected from:
+
+- `NORMAL_NAVIGATION`
+- `HUMAN_CAUTION`
+- `YIELD_TO_HUMAN`
+- `PASS_BEHIND`
+- `EMERGENCY_STOP`
+
+The first implementation is intentionally conservative. It prefers slowing/yielding/consistent side motion over aggressive lateral motion.
+
+The planner also adds an arc-shaped soft risk field in front of each moving person. This models uncertainty in the person's near-future path and discourages the robot from cutting through the person's forward arc. The current arc is centered 1.5 m in front of the person and spans 30 degrees to either side of the person's direction of travel. The front arc is not a hard obstacle; it is a social/comfort cost that biases the selected trajectory toward moving away, slowing, yielding, or passing behind.
+
+The current command limits were raised because the learned G1 policy needs sufficiently large velocity commands to start walking. The human-aware planner now allows up to about 0.35 m/s forward, 0.16 m/s lateral, 0.10 m/s reverse, and 0.55 rad/s yaw before the lower safety filter applies final checks.
+
+Default waypoint exploration
+----------------------------
+
+The default launch now starts Nav2 and `g1_waypoint_explorer.py`:
+
+- `run_nav2:=true`
+- `run_waypoint_explorer:=true`
+- `run_waypoint_patrol:=false`
+
+`g1_waypoint_explorer.py` sends random reachable people-aware `NavigateToPose` goals to Nav2. It rejects goals near predicted/tracked dynamic obstacles and republishes the active target for visualization.
+
+RViz displays:
+
+- `/exploration_goal` as the current Nav2 goal pose.
+- `/exploration_goal_marker` as the visible goal marker.
+- `/plan` as the Nav2 global path.
+- `/local_plan` as the local plan.
+- `/human_avoidance_markers` as sampled human-aware candidate trajectories.
+
+Optional waypoint patrol
+------------------------
+
+`g1_waypoint_patrol.py` is a lightweight command source for testing movement without requiring Nav2 goals. It uses TF from `world` to `base_footprint`, drives toward a sequence of fixed waypoints, and advances to the next waypoint when the robot reaches the current one.
+
+Default waypoint loop:
+
+- `(-2.2, -1.2)`
+- `(1.8, -1.2)`
+- `(2.0, 1.2)`
+- `(-1.8, 1.4)`
+- `(0.0, 0.0)`
+
+The patrol publishes raw `/cmd_vel`, which is then shaped by `human_aware_motion_planner.py` and finally checked by `human_collision_avoidance.py`. If the patrol is enabled, Nav2 waypoint exploration should be disabled with `run_waypoint_explorer:=false` to avoid two raw command sources.
+
+Optional LiDAR BEV detector
+---------------------------
+
+`lidar_person_detector.py` is optional and disabled by default. When enabled, it builds a robot-centered bird's-eye-view tensor from `/livox/lidar_world` and runs an ONNX model if a model path is supplied.
+
+Expected model output is `[x, y, confidence, radius]` in robot-local metres. Detections are published on `/lidar_person_detections`. The main tracker can use these as confidence boosts, but runtime tracking remains LiDAR-based and does not require RGB semantics or MuJoCo ground truth.
+
+SLAM scan filtering
+-------------------
+
+`scan_dynamic_filter.py` removes confirmed tracked people from `/scan_raw` before publishing `/scan`:
+
+- Each confirmed person point is transformed into the scan frame if necessary.
+- The corresponding scan angle/range is computed.
+- Bins around the person are set to infinity.
+- A small range padding clears immediate background behind the person to avoid mapping smear.
+
+This helps keep dynamic people out of SLAM occupancy maps and Nav2 LaserScan obstacle processing.
+
+Nav2 costmap integration
+------------------------
+
+Nav2 is configured in `ros2_ws/src/unitree_g1_sim_bringup/config/nav2_livox.yaml`.
+
+Planning/control:
+
+- Global planner: `nav2_navfn_planner/NavfnPlanner` with A* enabled.
+- Local planner: DWB local planner.
+- Conservative forward velocity limits are used at Nav2 level.
+
+Costmap sources:
+
+- `/scan`: LaserScan source with marking and clearing enabled.
+- `/tracked_dynamic_obstacles`: PointCloud2 source with marking enabled and clearing disabled.
+- `/predicted_dynamic_obstacles`: PointCloud2 source with marking enabled and clearing disabled.
+
+Dynamic person sources are marking-only because they represent explicit tracked/predicted human occupancy. Persistence is intentionally short to reduce ghost obstacles:
+
+- Local predicted persistence: 0.6 s.
+- Local tracked persistence: 0.4 s.
+- Global predicted persistence: 0.8 s.
+- Global tracked persistence: 0.5 s.
+
+The local costmap inflation radius is 1.15 m and the global inflation radius is 1.25 m.
+
+Velocity-level safety filter
+----------------------------
+
+`human_collision_avoidance.py` now acts below the proactive planner. It filters `/cmd_vel_human_aware` into `/cmd_vel_safe`.
+
+Inputs:
+
+- `/cmd_vel_human_aware`
+- `/predicted_dynamic_obstacles`
+- `/tracked_dynamic_obstacles`
+- `/scan`
+- TF from world to `base_footprint`
+
+The node simulates the currently commanded trajectory over a short horizon and checks whether tracked/predicted person-risk points fall inside a danger radius or trajectory corridor. If risk is active, it overrides the velocity command for a hold period.
+
+Safety behavior:
+
+- Publishes the original command when no risk is active.
+- Stops/turns away for strong front or side human risk.
+- Chooses an escape command by scoring short simulated candidate motions when risk is less direct.
+- Adds small wall/person repulsion as an open-space bias when no hard override is active.
+- Ignores stale person clouds using `person_cloud_timeout`.
+- Logs which source/point triggered each override.
+
+If tracker data becomes stale, the safety filter stops using stale ghost tracks for aggressive avoidance turns.
+
+Debugging and evaluation
+------------------------
+
+Runtime debug:
+
+- RViz markers show tentative, confirmed, coasting/deleted tracks and labels.
+- Human-aware planner markers show candidate trajectories, selected trajectory, rejected trajectories, and current behaviour state.
+- Labels include track ID, state, age, hit count, confidence, person score, detection count, missed count, association distance, speed, and rejection reason.
+- `/dynamic_obstacle_tracker/debug_tracks` publishes JSON diagnostics for offline inspection.
+
+Offline evaluation:
+
+- `scripts/evaluate_person_tracking_offline.py` can process ROS 2 bags.
+- It reports false positive confirmed tracks per minute, false predicted-risk publications per minute, missed person frames, track fragmentation, track jumps, stale prediction duration, and false `/cmd_vel_safe` override samples.
+- Optional ground-truth CSV is supported only for offline simulation metrics.
+
+Additional navigation metrics to add around the planner include minimum human-robot distance, predicted TTC, time inside comfort zone, stop/yield count, side-switch count, command jerk, pass-behind versus cut-in-front rate, and emergency override rate.
+
+Key tuning parameters
+---------------------
+
+Important launch-exposed parameters include:
+
+- `point_accumulation_time`
+- `voxel_leaf_size`
+- `use_livox_tag_filter`
+- `near_noise_radius`
+- `far_noise_radius`
+- `min_neighbors_near`
+- `min_neighbors_far`
+- `cluster_epsilon_base`
+- `cluster_epsilon_per_meter`
+- `cluster_epsilon_min`
+- `cluster_epsilon_max`
+- `min_person_height`
+- `max_person_height`
+- `min_vertical_layers`
+- `max_static_cell_fraction_new_track`
+- `tentative_confirm_min_hits`
+- `tentative_confirm_window`
+- `min_confirm_age`
+- `confirmed_keep_missed_time`
+- `tentative_delete_missed_time`
+- `max_human_speed`
+- `max_human_accel`
+- `mahalanobis_gate`
+- `publish_tentative_predictions`
+- `stale_track_timeout`
+- `debug_markers_enabled`
+
+Current limitations
+-------------------
+
+- Runtime perception is LiDAR-cluster based, not semantic RGB detection.
+- Prediction is constant velocity, not human intent prediction.
+- Social behavior is implemented through predicted occupancy, costmap inflation, goal rejection/cancellation, and velocity safety filtering, not a custom social planner.
+- The high-level Nav2 DWB configuration is still differential-drive-like with no lateral velocity, while the learned G1 policy and safety filter can command small lateral motion.
+- Real Livox hardware needs additional calibration, timestamp validation, bag-based tuning, and safety validation.
+- Quantitative before/after metrics require recorded bags or controlled simulation runs.
+
+Key files
+---------
+
+- `ros2_ws/src/unitree_g1_sim_bringup/launch/g1_sim.launch.py`
+- `ros2_ws/src/unitree_g1_sim_bringup/config/nav2_livox.yaml`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/dynamic_obstacle_tracker.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_collision_avoidance.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/g1_waypoint_patrol.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/scan_dynamic_filter.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/lidar_person_detector.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/g1_waypoint_explorer.py`
+- `ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/g1_policy_cmd_vel_controller.py`
+- `scripts/evaluate_person_tracking_offline.py`
+- `ros2_ws/src/unitree_mujoco/simulate/src/main.cc`
+- `ros2_ws/src/unitree_mujoco/unitree_robots/g1/scene_29dof_extreme_lab.xml`

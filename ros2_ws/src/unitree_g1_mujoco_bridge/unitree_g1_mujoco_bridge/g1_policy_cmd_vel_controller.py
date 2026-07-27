@@ -5,7 +5,9 @@ from typing import List, Optional, Sequence
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from std_msgs.msg import Float64MultiArray
 from unitree_hg.msg import LowState
 
@@ -36,6 +38,12 @@ LOWER_BODY_JOINTS = [
     "right_ankle_pitch_joint",
     "right_ankle_roll_joint",
 ]
+
+LATEST_RELIABLE_QOS = QoSProfile(
+    history=QoSHistoryPolicy.KEEP_LAST,
+    depth=1,
+    reliability=QoSReliabilityPolicy.RELIABLE,
+)
 
 DEFAULT_JOINT_POS = {
     ".*_hip_pitch_joint": -0.312,
@@ -122,6 +130,7 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("policy_path", "")
         self.declare_parameter("rate_hz", 50.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("body_command_topic", "/g1/body_position_commands")
         self.declare_parameter("cmd_vel_timeout", 0.5)
         self.declare_parameter("max_lin_vel_x", 0.5)
@@ -134,9 +143,20 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("action_rate_limit", 0.0)
         self.declare_parameter("policy_obs_dim", 0)
         self.declare_parameter("policy_action_dim", 0)
+        self.declare_parameter("policy_command_height", 0.84)
         self.declare_parameter("stand_still_on_timeout", True)
-        self.declare_parameter("startup_blend_time", 1.5)
-        self.declare_parameter("startup_hold_time", 1.0)
+        self.declare_parameter("startup_blend_time", 0.0)
+        self.declare_parameter("startup_hold_time", 0.0)
+        self.declare_parameter("startup_current_pose_hold_time", 0.0)
+        self.declare_parameter("startup_require_upright", False)
+        self.declare_parameter("startup_upright_tilt_threshold", 0.35)
+        self.declare_parameter("startup_max_recovery_time", 8.0)
+        self.declare_parameter("policy_action_ramp_time", 0.0)
+        self.declare_parameter("tilt_guard_enable", True)
+        self.declare_parameter("tilt_guard_enter", 0.65)
+        self.declare_parameter("tilt_guard_exit", 0.35)
+        self.declare_parameter("tilt_guard_hold_time", 0.8)
+        self.declare_parameter("pre_lowstate_stand_enable", False)
         self.declare_parameter("detect_robot_reset", True)
         self.declare_parameter("reset_joint_delta_threshold", 0.75)
         self.declare_parameter("reset_joint_total_delta_threshold", 4.0)
@@ -146,31 +166,41 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("device", "cpu")
 
         self.device = str(self.get_parameter("device").value)
-        self.policy = self._load_policy(str(self.get_parameter("policy_path").value))
+        self.policy_path = self._resolve_policy_path(str(self.get_parameter("policy_path").value))
+        self.policy = self._load_policy(self.policy_path)
         self.policy_obs_dim: Optional[int] = None
         self.policy_action_dim: Optional[int] = None
         policy_obs_dim = int(self.get_parameter("policy_obs_dim").value)
         policy_action_dim = int(self.get_parameter("policy_action_dim").value)
-        if policy_obs_dim in (82, 99):
+        if policy_obs_dim in (80, 82, 97, 99):
             self.policy_obs_dim = policy_obs_dim
         if policy_action_dim in (12, 29):
             self.policy_action_dim = policy_action_dim
+        self.policy_command_names: list[str] = []
         self.last_lowstate: Optional[LowState] = None
         self.previous_joint_positions: Optional[List[float]] = None
+        self.last_stable_positions: Optional[List[float]] = None
         self.previous_tilt: Optional[float] = None
         self.first_lowstate_time = None
         self.initial_positions: Optional[List[float]] = None
+        self.upright_since = None
         self.last_reset_time = None
+        self.tilt_guard_active = False
+        self.tilt_guard_clear_since = None
         self.reset_count = 0
         self.last_cmd_time = self.get_clock().now()
         self.command = [0.0, 0.0, 0.0]
         self.filtered_command = [0.0, 0.0, 0.0]
         self.last_control_time = self.get_clock().now()
+        self.first_policy_time = None
         self.cmd_vel_count = 0
         self.lowstate_count = 0
         self.body_command_count = 0
         self.last_action_norm = 0.0
         self.last_active_command = [0.0, 0.0, 0.0]
+        self.last_tilt = 0.0
+        self.control_state = "waiting_lowstate"
+        self.base_lin_vel = [0.0, 0.0, 0.0]
         self.body_joint_names = list(G1_29DOF_JOINTS)
         self.lower_joint_indexes = [
             self.body_joint_names.index(j) for j in LOWER_BODY_JOINTS
@@ -186,20 +216,47 @@ class G1PolicyCmdVelController(Node):
             29: [0.0] * len(self.body_joint_names),
         }
         self._apply_policy_metadata()
+        self._log_policy_configuration()
 
         self.body_pub = self.create_publisher(
-            Float64MultiArray, str(self.get_parameter("body_command_topic").value), 10
+            Float64MultiArray,
+            str(self.get_parameter("body_command_topic").value),
+            LATEST_RELIABLE_QOS,
         )
-        self.create_subscription(LowState, "/lowstate", self._lowstate_callback, 10)
-        self.create_subscription(LowState, "rt/lowstate", self._lowstate_callback, 10)
         self.create_subscription(
-            Twist, str(self.get_parameter("cmd_vel_topic").value), self._cmd_vel_callback, 10
+            LowState, "/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
+        )
+        self.create_subscription(
+            LowState, "rt/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
+        )
+        self.create_subscription(
+            Twist,
+            str(self.get_parameter("cmd_vel_topic").value),
+            self._cmd_vel_callback,
+            LATEST_RELIABLE_QOS,
+        )
+        self.create_subscription(
+            Odometry,
+            str(self.get_parameter("odom_topic").value),
+            self._odom_callback,
+            LATEST_RELIABLE_QOS,
         )
 
         period = 1.0 / float(self.get_parameter("rate_hz").value)
         self.create_timer(period, self._control_tick)
         self.create_timer(2.0, self._diagnostics)
         self.get_logger().info("G1 policy /cmd_vel controller ready")
+
+    def _log_policy_configuration(self) -> None:
+        command_mode = "height" if self._uses_height_command() else "velocity"
+        action_scope = "lower-body" if self.policy_action_dim == 12 else "whole-body" if self.policy_action_dim == 29 else "unknown"
+        self.get_logger().info(
+            "Loaded G1 policy: "
+            f"path={self.policy_path} obs_dim={self.policy_obs_dim} "
+            f"action_dim={self.policy_action_dim} action_scope={action_scope} command_mode={command_mode} "
+            f"command_names={self.policy_command_names or 'unknown'} "
+            f"target_height={float(self.get_parameter('policy_command_height').value):.3f}"
+        )
 
     def _load_policy(self, policy_path: str):
         if not policy_path:
@@ -234,6 +291,39 @@ class G1PolicyCmdVelController(Node):
             )
         return TorchPolicy(policy, self.device)
 
+    def _resolve_policy_path(self, policy_path: str) -> str:
+        path = policy_path.strip()
+        if path and path.lower() not in ("latest", "auto"):
+            return path
+
+        roots = [
+            Path("/workspace/vendor/mjlab/logs/rsl_rl/g1_velocity"),
+            Path.cwd() / "vendor/mjlab/logs/rsl_rl/g1_velocity",
+        ]
+        preferred: list[Path] = []
+        fallback: list[Path] = []
+        for root in roots:
+            if not root.exists():
+                continue
+            preferred.extend(root.glob("*g1_flat_locomotion/*.onnx"))
+            preferred.extend(root.glob("*flat_locomotion/*.onnx"))
+            fallback.extend(root.glob("*g1_flat_lower_body_locomotion/*.onnx"))
+            fallback.extend(root.glob("*lower_body_locomotion/*.onnx"))
+
+        candidates = [candidate for candidate in preferred if candidate.is_file()]
+        if not candidates:
+            candidates = [candidate for candidate in fallback if candidate.is_file()]
+        if candidates:
+            latest = max(candidates, key=lambda candidate: candidate.stat().st_mtime)
+            self.get_logger().info(f"Resolved latest G1 walking policy: {latest}")
+            return str(latest)
+
+        raise FileNotFoundError(
+            "No G1 walking policy ONNX was found. Train/export a lower-body locomotion "
+            "policy into vendor/mjlab/logs/rsl_rl/g1_velocity, or launch with "
+            "policy_path:=/workspace/path/to/policy.onnx."
+        )
+
     def _apply_policy_metadata(self) -> None:
         metadata = getattr(self.policy, "metadata", {})
         if not metadata:
@@ -242,38 +332,125 @@ class G1PolicyCmdVelController(Node):
         default_joint_pos = _parse_float_csv(metadata.get("default_joint_pos", ""))
         action_scale = _parse_float_csv(metadata.get("action_scale", ""))
         joint_names = _parse_str_csv(metadata.get("joint_names", ""))
-        if joint_names and joint_names != self.body_joint_names:
+        self.policy_command_names = _parse_str_csv(metadata.get("command_names", ""))
+        if joint_names and joint_names != self.body_joint_names and joint_names != LOWER_BODY_JOINTS:
             self.get_logger().warn(
                 "Policy joint metadata order differs from bridge order; using bridge order",
                 throttle_duration_sec=5.0,
             )
         if len(default_joint_pos) == len(self.body_joint_names):
             self.default_positions = default_joint_pos
+        elif len(default_joint_pos) == len(self.lower_joint_indexes):
+            if joint_names and len(joint_names) == len(default_joint_pos):
+                for name, value in zip(joint_names, default_joint_pos):
+                    if name in self.body_joint_names:
+                        self.default_positions[self.body_joint_names.index(name)] = value
+            else:
+                for value, joint_index in zip(default_joint_pos, self.lower_joint_indexes):
+                    self.default_positions[joint_index] = value
         if len(action_scale) == len(self.lower_joint_indexes):
-            for action_index, joint_index in enumerate(self.lower_joint_indexes):
-                self.scales[joint_index] = action_scale[action_index]
+            if joint_names and len(joint_names) == len(action_scale):
+                for name, value in zip(joint_names, action_scale):
+                    if name in self.body_joint_names:
+                        self.scales[self.body_joint_names.index(name)] = value
+            else:
+                for action_index, joint_index in enumerate(self.lower_joint_indexes):
+                    self.scales[joint_index] = action_scale[action_index]
         elif len(action_scale) == len(self.body_joint_names):
             self.scales = action_scale
 
         obs_dim = getattr(self.policy, "obs_dim", None)
         action_dim = getattr(self.policy, "action_dim", None)
-        if self.policy_obs_dim is None and obs_dim in (82, 99):
+        if self.policy_obs_dim is None and obs_dim in (80, 82, 97, 99):
             self.policy_obs_dim = int(obs_dim)
         if self.policy_action_dim is None and action_dim in (12, 29):
             self.policy_action_dim = int(action_dim)
 
     def _lowstate_callback(self, msg: LowState) -> None:
-        self.lowstate_count += 1
+        if len(msg.motor_state) < len(self.body_joint_names):
+            self.get_logger().warn(
+                f"Ignoring short lowstate with {len(msg.motor_state)} motor states",
+                throttle_duration_sec=2.0,
+            )
+            return
+        if (
+            len(msg.imu_state.rpy) < 2
+            or len(msg.imu_state.quaternion) < 4
+            or len(msg.imu_state.gyroscope) < 3
+        ):
+            self.get_logger().warn(
+                "Ignoring lowstate with incomplete IMU data", throttle_duration_sec=2.0
+            )
+            return
         joint_positions = [float(state.q) for state in msg.motor_state[:29]]
+        joint_velocities = [float(state.dq) for state in msg.motor_state[:29]]
+        imu_values = [float(value) for value in msg.imu_state.rpy[:2]]
+        imu_values.extend(float(value) for value in msg.imu_state.quaternion[:4])
+        imu_values.extend(float(value) for value in msg.imu_state.gyroscope[:3])
+        if not all(math.isfinite(value) for value in joint_positions + joint_velocities + imu_values):
+            self.get_logger().warn(
+                "Ignoring lowstate containing non-finite values", throttle_duration_sec=2.0
+            )
+            return
+        self.lowstate_count += 1
         tilt = self._lowstate_tilt(msg)
+        self.last_tilt = tilt
         if self._detect_robot_reset(joint_positions, tilt):
             self._reset_controller_state(joint_positions, "reset/upright transition")
         if self.first_lowstate_time is None:
             self.first_lowstate_time = self.get_clock().now()
             self.initial_positions = list(joint_positions)
+        if tilt < float(self.get_parameter("startup_upright_tilt_threshold").value):
+            self.last_stable_positions = list(joint_positions)
+        self._update_upright_state(tilt)
         self.previous_joint_positions = list(joint_positions)
         self.previous_tilt = tilt
         self.last_lowstate = msg
+
+    def _tilt_guard_holding(self) -> bool:
+        if not bool(self.get_parameter("tilt_guard_enable").value):
+            return False
+        now = self.get_clock().now()
+        enter = float(self.get_parameter("tilt_guard_enter").value)
+        exit_threshold = float(self.get_parameter("tilt_guard_exit").value)
+        hold_time = float(self.get_parameter("tilt_guard_hold_time").value)
+        if self.last_tilt >= enter:
+            if not self.tilt_guard_active:
+                self.get_logger().warn(
+                    f"Tilt guard holding stable joint pose (tilt={self.last_tilt:.2f} rad)",
+                    throttle_duration_sec=1.0,
+                )
+            self.tilt_guard_active = True
+            self.tilt_guard_clear_since = None
+            self.filtered_command = [0.0, 0.0, 0.0]
+            self.first_policy_time = None
+            self.last_actions = {
+                12: [0.0] * len(self.lower_joint_indexes),
+                29: [0.0] * len(self.body_joint_names),
+            }
+            self.last_action_norm = 0.0
+            return True
+        if not self.tilt_guard_active:
+            return False
+        if self.last_tilt <= exit_threshold:
+            if self.tilt_guard_clear_since is None:
+                self.tilt_guard_clear_since = now
+            stable_time = (now - self.tilt_guard_clear_since).nanoseconds * 1e-9
+            if stable_time >= hold_time:
+                self.tilt_guard_active = False
+                self.tilt_guard_clear_since = None
+                self.first_policy_time = None
+                return False
+        else:
+            self.tilt_guard_clear_since = None
+        return True
+
+    def _update_upright_state(self, tilt: float) -> None:
+        if tilt < float(self.get_parameter("startup_upright_tilt_threshold").value):
+            if self.upright_since is None:
+                self.upright_since = self.get_clock().now()
+        else:
+            self.upright_since = None
 
     def _detect_robot_reset(self, joint_positions: Sequence[float], tilt: float) -> bool:
         if not bool(self.get_parameter("detect_robot_reset").value):
@@ -315,9 +492,12 @@ class G1PolicyCmdVelController(Node):
         now = self.get_clock().now()
         self.first_lowstate_time = now
         self.initial_positions = list(joint_positions)
+        self.last_stable_positions = list(joint_positions)
+        self.upright_since = None
         self.filtered_command = [0.0, 0.0, 0.0]
         self.last_active_command = [0.0, 0.0, 0.0]
         self.last_control_time = now
+        self.first_policy_time = None
         self.last_actions = {
             12: [0.0] * len(self.lower_joint_indexes),
             29: [0.0] * len(self.body_joint_names),
@@ -331,13 +511,28 @@ class G1PolicyCmdVelController(Node):
         )
 
     def _cmd_vel_callback(self, msg: Twist) -> None:
+        values = [float(msg.linear.x), float(msg.linear.y), float(msg.angular.z)]
+        if not all(math.isfinite(value) for value in values):
+            self.get_logger().warn(
+                "Ignoring cmd_vel containing non-finite values", throttle_duration_sec=2.0
+            )
+            return
         self.cmd_vel_count += 1
         self.last_cmd_time = self.get_clock().now()
         self.command = [
-            _clamp(float(msg.linear.x), float(self.get_parameter("max_lin_vel_x").value)),
-            _clamp(float(msg.linear.y), float(self.get_parameter("max_lin_vel_y").value)),
-            _clamp(float(msg.angular.z), float(self.get_parameter("max_ang_vel_z").value)),
+            _clamp(values[0], float(self.get_parameter("max_lin_vel_x").value)),
+            _clamp(values[1], float(self.get_parameter("max_lin_vel_y").value)),
+            _clamp(values[2], float(self.get_parameter("max_ang_vel_z").value)),
         ]
+
+    def _odom_callback(self, msg: Odometry) -> None:
+        values = [
+            float(msg.twist.twist.linear.x),
+            float(msg.twist.twist.linear.y),
+            float(msg.twist.twist.linear.z),
+        ]
+        if all(math.isfinite(value) for value in values):
+            self.base_lin_vel = values
 
     def _active_command(self) -> List[float]:
         age = (self.get_clock().now() - self.last_cmd_time).nanoseconds * 1e-9
@@ -364,8 +559,11 @@ class G1PolicyCmdVelController(Node):
 
     def _control_tick(self) -> None:
         if self.last_lowstate is None:
+            if bool(self.get_parameter("pre_lowstate_stand_enable").value):
+                self._publish_targets(self.default_positions)
             self.get_logger().warn(
-                "Waiting for /lowstate before running policy", throttle_duration_sec=2.0
+                "Waiting for /lowstate before releasing MuJoCo startup hold",
+                throttle_duration_sec=2.0,
             )
             return
 
@@ -375,20 +573,33 @@ class G1PolicyCmdVelController(Node):
         command = self._filtered_active_command(self._active_command(), dt)
         self.last_active_command = command
         if self._startup_active():
+            self.control_state = "startup_hold"
             self._publish_startup_pose()
             return
+        if self._tilt_guard_holding():
+            self.control_state = "tilt_guard_hold"
+            self._publish_targets(self._safe_hold_positions())
+            return
 
-        candidates = [self.policy_obs_dim] if self.policy_obs_dim is not None else [82, 99]
+        candidates = [self.policy_obs_dim] if self.policy_obs_dim is not None else [80, 82, 97, 99]
         last_error: Optional[Exception] = None
         for obs_dim in candidates:
             if obs_dim is None:
                 continue
-            action_dim = self.policy_action_dim or (12 if obs_dim == 82 else 29)
+            action_dim = self.policy_action_dim or (12 if obs_dim in (80, 82) else 29)
             obs = self._build_observation(command, action_dim)
             try:
                 action = self.policy(obs)
                 self.policy_obs_dim = obs_dim
-                self._publish_action(action, action_dim, dt)
+                if self.first_policy_time is None:
+                    self.first_policy_time = now
+                self.control_state = "policy"
+                ramp_time = max(0.0, float(self.get_parameter("policy_action_ramp_time").value))
+                if ramp_time > 0.0:
+                    ramp = min(1.0, (now - self.first_policy_time).nanoseconds * 1e-9 / ramp_time)
+                else:
+                    ramp = 1.0
+                self._publish_action(action, action_dim, dt, ramp)
                 return
             except Exception as exc:  # noqa: BLE001 - retry alternate policy shape.
                 last_error = exc
@@ -396,19 +607,48 @@ class G1PolicyCmdVelController(Node):
         self.get_logger().error(
             f"Policy inference failed: {last_error}", throttle_duration_sec=2.0
         )
+        self.control_state = "policy_error_hold"
+        self.filtered_command = [0.0, 0.0, 0.0]
+        self.last_actions = {
+            12: [0.0] * len(self.lower_joint_indexes),
+            29: [0.0] * len(self.body_joint_names),
+        }
+        self.last_action_norm = 0.0
+        self.first_policy_time = None
+        self._publish_targets(self._safe_hold_positions())
 
     def _startup_active(self) -> bool:
         if self.first_lowstate_time is None:
             return True
         elapsed = (self.get_clock().now() - self.first_lowstate_time).nanoseconds * 1e-9
-        startup_time = float(self.get_parameter("startup_blend_time").value)
+        startup_time = float(self.get_parameter("startup_current_pose_hold_time").value)
+        startup_time += float(self.get_parameter("startup_blend_time").value)
         startup_time += float(self.get_parameter("startup_hold_time").value)
-        return elapsed < startup_time
+        if elapsed < startup_time:
+            return True
+        if not bool(self.get_parameter("startup_require_upright").value):
+            return False
+        max_recovery = float(self.get_parameter("startup_max_recovery_time").value)
+        if max_recovery > 0.0 and elapsed > max_recovery:
+            return False
+        if self.upright_since is None:
+            self.get_logger().warn(
+                "Holding stable joint pose until robot is upright before enabling policy inference",
+                throttle_duration_sec=1.0,
+            )
+            return True
+        stable_time = (self.get_clock().now() - self.upright_since).nanoseconds * 1e-9
+        return stable_time < float(self.get_parameter("startup_hold_time").value)
 
     def _publish_startup_pose(self) -> None:
         if self.first_lowstate_time is None or self.initial_positions is None:
             return
         elapsed = (self.get_clock().now() - self.first_lowstate_time).nanoseconds * 1e-9
+        current_hold = max(0.0, float(self.get_parameter("startup_current_pose_hold_time").value))
+        if elapsed < current_hold:
+            self._publish_targets(self._safe_hold_positions())
+            return
+        elapsed -= current_hold
         blend_time = max(float(self.get_parameter("startup_blend_time").value), 1e-6)
         alpha = min(1.0, max(0.0, elapsed / blend_time))
         alpha = alpha * alpha * (3.0 - 2.0 * alpha)
@@ -416,17 +656,22 @@ class G1PolicyCmdVelController(Node):
             (1.0 - alpha) * start + alpha * target
             for start, target in zip(self.initial_positions, self.default_positions)
         ]
-        msg = Float64MultiArray()
-        msg.data = targets
-        self.body_pub.publish(msg)
-        self.body_command_count += 1
+        self._publish_targets(targets)
+
+    def _safe_hold_positions(self) -> List[float]:
+        if self.last_stable_positions is not None:
+            return list(self.last_stable_positions)
+        if self.initial_positions is not None:
+            return list(self.initial_positions)
+        return list(self.default_positions)
 
     def _diagnostics(self) -> None:
         cmd_age = (self.get_clock().now() - self.last_cmd_time).nanoseconds * 1e-9
         self.get_logger().info(
             "policy status: "
-            f"lowstate={self.lowstate_count} cmd_vel={self.cmd_vel_count} "
+            f"state={self.control_state} lowstate={self.lowstate_count} cmd_vel={self.cmd_vel_count} "
             f"body_cmd={self.body_command_count} resets={self.reset_count} cmd_age={cmd_age:.2f}s "
+            f"tilt={self.last_tilt:.2f} "
             f"cmd=({self.last_active_command[0]:+.2f}, "
             f"{self.last_active_command[1]:+.2f}, {self.last_active_command[2]:+.2f}) "
             f"action_norm={self.last_action_norm:.3f}",
@@ -446,16 +691,24 @@ class G1PolicyCmdVelController(Node):
         joint_pos_rel = [q - d for q, d in zip(joint_pos, self.default_positions)]
 
         values: list[float] = []
-        values.extend([0.0, 0.0, 0.0])
+        values.extend(self.base_lin_vel)
         values.extend(float(v) for v in imu.gyroscope)
         values.extend(projected_gravity)
         values.extend(joint_pos_rel)
         values.extend(joint_vel)
         values.extend(self.last_actions[action_dim])
-        values.extend(command)
+        if self._uses_height_command():
+            values.append(float(self.get_parameter("policy_command_height").value))
+        else:
+            values.extend(command)
         return np.asarray([values], dtype=np.float32)
 
-    def _publish_action(self, action, action_dim: int, dt: float) -> None:
+    def _uses_height_command(self) -> bool:
+        if self.policy_command_names:
+            return self.policy_command_names == ["height"]
+        return self.policy_obs_dim in (80, 97)
+
+    def _publish_action(self, action, action_dim: int, dt: float, ramp: float = 1.0) -> None:
         if isinstance(action, (tuple, list)):
             action = action[0]
         if torch is not None and isinstance(action, torch.Tensor):
@@ -467,8 +720,13 @@ class G1PolicyCmdVelController(Node):
                 f"Policy returned {len(action_values)} actions, expected {action_dim}"
             )
         action_values = action_values[:action_dim]
+        if not all(math.isfinite(float(value)) for value in action_values):
+            raise ValueError("Policy returned non-finite actions")
         clip = float(self.get_parameter("action_clip").value)
         action_values = [_clamp(float(value), clip) for value in action_values]
+        ramp = max(0.0, min(1.0, ramp))
+        if ramp < 1.0:
+            action_values = [value * ramp for value in action_values]
         rate_limit = max(0.0, float(self.get_parameter("action_rate_limit").value))
         if rate_limit > 0.0:
             max_delta = rate_limit * dt
@@ -490,8 +748,11 @@ class G1PolicyCmdVelController(Node):
             for joint_index, value in enumerate(action_values):
                 targets[joint_index] += value * self.scales[joint_index]
 
+        self._publish_targets(targets)
+
+    def _publish_targets(self, targets: Sequence[float]) -> None:
         msg = Float64MultiArray()
-        msg.data = targets
+        msg.data = list(targets)
         self.body_pub.publish(msg)
         self.body_command_count += 1
 

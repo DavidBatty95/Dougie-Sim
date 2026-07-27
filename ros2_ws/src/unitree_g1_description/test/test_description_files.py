@@ -1,0 +1,25 @@
+import unittest
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import yaml
+
+
+PACKAGE_ROOT = Path(__file__).parents[1]
+
+
+class DescriptionFileTests(unittest.TestCase):
+    def test_urdf_and_package_xml_parse(self) -> None:
+        for relative_path in ["package.xml", "urdf/g1_29dof_mode_15_brainco_hand.urdf"]:
+            ET.parse(PACKAGE_ROOT / relative_path)
+
+    def test_joint_config_contains_nonempty_joint_map(self) -> None:
+        path = PACKAGE_ROOT / "config" / "g1_29dof_brainco_joints.yaml"
+        data = yaml.safe_load(path.read_text())
+
+        self.assertIsInstance(data, dict)
+        self.assertTrue(data)
+
+
+if __name__ == "__main__":
+    unittest.main()

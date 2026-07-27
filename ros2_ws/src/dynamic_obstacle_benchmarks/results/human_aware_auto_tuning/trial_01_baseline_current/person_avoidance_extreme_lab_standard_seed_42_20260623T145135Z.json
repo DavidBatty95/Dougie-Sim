@@ -1,0 +1,80 @@
+{
+  "benchmark_name": "person_avoidance_benchmark",
+  "timestamp": "2026-06-23T14:52:41.803167+00:00",
+  "seed": 42,
+  "mode": "standard",
+  "backend": "mujoco",
+  "environment": "mujoco",
+  "people_count": 2,
+  "goals_requested": 4,
+  "goals_reached": 0,
+  "success": false,
+  "failure_reason": "collision",
+  "total_time_s": 32.441,
+  "actual_path_length_m": 0.0,
+  "ideal_path_length_m": 5.543,
+  "efficiency": 0.0,
+  "average_speed_mps": 0.0,
+  "collisions": 1,
+  "fallen": false,
+  "no_movement": true,
+  "near_misses": 1,
+  "critical_near_misses": 0,
+  "minimum_separation_m": 0.768,
+  "minimum_ttc_s": null,
+  "time_below_warning_distance_s": 8.011,
+  "time_below_near_miss_distance_s": 0.819,
+  "time_below_critical_distance_s": 0.0,
+  "emergency_stops": 0,
+  "safety_score": 34.357,
+  "task_score": 0.0,
+  "speed_score": 22.782,
+  "efficiency_score": 0.0,
+  "hard_penalties": 0.0,
+  "final_score": 0.0,
+  "goals": [
+    {
+      "index": 0,
+      "goal_pose": {
+        "x": 1.254841186120954,
+        "y": -4.274903202995998,
+        "yaw": -1.4135324813693264
+      },
+      "reached": false,
+      "failure_reason": "collision",
+      "time_s": 32.439643155998056,
+      "path_length_m": 0.0,
+      "minimum_separation_m": 0.7676081176972313,
+      "near_misses": 1,
+      "critical_near_misses": 0,
+      "collisions": 1
+    }
+  ],
+  "events": [
+    {
+      "time_s": 31.652098169000965,
+      "type": "near_miss",
+      "person_id": 2,
+      "distance_m": 0.9971736149136263,
+      "ttc_s": null,
+      "robot_pose": {
+        "x": 1.51667404249481,
+        "y": 1.2593923708001307,
+        "yaw": -0.26493050138153873
+      }
+    },
+    {
+      "time_s": 32.441043025999534,
+      "type": "collision",
+      "person_id": 2,
+      "distance_m": 0.7676081176972313,
+      "ttc_s": null,
+      "robot_pose": {
+        "x": 1.5167773416524262,
+        "y": 1.2592110625791535,
+        "yaw": -0.26435313664817217
+      }
+    }
+  ],
+  "scenario_file": "/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/human_aware_auto_tuning/trial_01_baseline_current/person_avoidance_extreme_lab_standard_seed_42_20260623T145135Z_scenario.yaml"
+}

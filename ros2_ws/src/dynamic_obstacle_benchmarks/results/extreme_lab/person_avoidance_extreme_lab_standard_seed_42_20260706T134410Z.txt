@@ -1,0 +1,11 @@
+Extreme Lab Person Avoidance Benchmark
+======================================
+Timestamp UTC: 20260706T134410Z
+Seed: 42
+People: 6
+Goals: 6
+Mode: standard
+Backend: mujoco
+MuJoCo scene: scene_29dof_extreme_lab.xml
+Note: benchmark scoring uses live /odom and /mujoco/pedestrians state and sends Nav2 NavigateToPose goals.
+

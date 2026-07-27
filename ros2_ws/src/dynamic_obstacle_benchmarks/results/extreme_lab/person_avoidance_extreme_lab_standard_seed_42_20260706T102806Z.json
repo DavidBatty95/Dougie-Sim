@@ -1,0 +1,149 @@
+{
+  "benchmark_name": "person_avoidance_benchmark",
+  "timestamp": "2026-07-06T10:34:44.701841+00:00",
+  "seed": 42,
+  "mode": "standard",
+  "backend": "mujoco",
+  "environment": "mujoco",
+  "record_rosbag": true,
+  "people_count": 2,
+  "goals_requested": 6,
+  "goals_reached": 0,
+  "success": false,
+  "failure_reason": "goal_timeout",
+  "total_time_s": 362.502,
+  "actual_path_length_m": 36.267,
+  "ideal_path_length_m": 35.793,
+  "efficiency": 0.987,
+  "average_speed_mps": 0.1,
+  "collisions": 0,
+  "fallen": false,
+  "no_movement": false,
+  "near_misses": 0,
+  "critical_near_misses": 0,
+  "minimum_separation_m": 2.414,
+  "minimum_ttc_s": 0.576,
+  "time_below_warning_distance_s": 0.0,
+  "time_below_near_miss_distance_s": 0.0,
+  "time_below_critical_distance_s": 0.0,
+  "emergency_stops": 0,
+  "safety_score": 90.0,
+  "task_score": 0.0,
+  "speed_score": 13.165,
+  "efficiency_score": 98.694,
+  "hard_penalties": 0.0,
+  "final_score": 69.686,
+  "goals": [
+    {
+      "index": 0,
+      "goal_pose": {
+        "x": 1.254841186120954,
+        "y": -4.274903202995998,
+        "yaw": -1.4135324813693264
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.00170313000035,
+      "path_length_m": 8.46263296215152,
+      "minimum_separation_m": 2.5212688163754833,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    },
+    {
+      "index": 1,
+      "goal_pose": {
+        "x": -2.491103356660595,
+        "y": 2.128240927476112,
+        "yaw": 1.1102356231618007
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.00849514099991,
+      "path_length_m": 9.400841263370882,
+      "minimum_separation_m": 2.830401146263168,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    },
+    {
+      "index": 2,
+      "goal_pose": {
+        "x": 3.5296161093436087,
+        "y": -3.7175505063352547,
+        "yaw": -0.49057967536482705
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.0070344199994,
+      "path_length_m": 10.051021943511065,
+      "minimum_separation_m": 2.4139215222838737,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    },
+    {
+      "index": 3,
+      "goal_pose": {
+        "x": -4.231825025057367,
+        "y": -2.5322582267675697,
+        "yaw": 0.0336482675267602
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.00742210000044,
+      "path_length_m": 2.0340691770256596,
+      "minimum_separation_m": 3.8113634723055294,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    },
+    {
+      "index": 4,
+      "goal_pose": {
+        "x": 0.40447332542894987,
+        "y": -2.5160344016337297,
+        "yaw": 0.5608728333644475
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.007308215000194,
+      "path_length_m": 3.4465084439203326,
+      "minimum_separation_m": 3.6650886946974377,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    },
+    {
+      "index": 5,
+      "goal_pose": {
+        "x": 2.78487411010044,
+        "y": -4.44151116289745,
+        "yaw": 1.921519029768552
+      },
+      "reached": false,
+      "failure_reason": "goal_timeout",
+      "time_s": 60.00772088099984,
+      "path_length_m": 2.87157357420985,
+      "minimum_separation_m": 3.460072380392571,
+      "near_misses": 0,
+      "critical_near_misses": 0,
+      "collisions": 0
+    }
+  ],
+  "events": [
+    {
+      "time_s": 115.00226295700031,
+      "type": "critical_ttc",
+      "person_id": 1,
+      "distance_m": 6.395070744985102,
+      "ttc_s": 0.5756774805328794,
+      "robot_pose": {
+        "x": 5.192330229213012,
+        "y": -4.079539680702434,
+        "yaw": -0.039146101493919026
+      }
+    }
+  ],
+  "scenario_file": "/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T102806Z_scenario.yaml"
+}

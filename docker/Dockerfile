@@ -40,6 +40,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-rosidl-generator-dds-idl \
     ros-humble-ros2-control \
     ros-humble-ros2-controllers \
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    ros-humble-slam-toolbox \
     ros-humble-robot-state-publisher \
     ros-humble-joint-state-publisher \
     ros-humble-xacro \

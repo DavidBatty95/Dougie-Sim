@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_NAME="${MJLAB_RUN_NAME:-g1_flat_locomotion}"
 LOG_ROOT_HOST="${MJLAB_LOG_ROOT_HOST:-${SCRIPT_DIR}/../vendor/mjlab/logs/rsl_rl/g1_velocity}"
 LOG_ROOT_CONTAINER="${MJLAB_LOG_ROOT_CONTAINER:-/workspace/vendor/mjlab/logs/rsl_rl/g1_velocity}"
-PLAY_NUM_ENVS="${MJLAB_PLAY_NUM_ENVS:-1}"
+PLAY_NUM_ENVS="${MJLAB_PLAY_NUM_ENVS:-256}"
 PLAY_VIEWER="${MJLAB_PLAY_VIEWER:-viser}"
 
 if [ "$#" -gt 0 ] && [ "$1" != "latest" ]; then

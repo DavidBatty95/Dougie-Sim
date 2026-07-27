@@ -1,0 +1,2 @@
+index,reached,failure_reason,time_s,path_length_m,minimum_separation_m,near_misses,critical_near_misses,collisions
+0,False,goal_timeout,60.001815506999264,4.000011604847781,1.754688222864654,0,0,0

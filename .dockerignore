@@ -6,6 +6,9 @@
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
+build/
+install/
+log/
 
 vendor/mjlab/.venv/
 vendor/mjlab/logs/
@@ -41,5 +44,6 @@ events.out.tfevents.*
 
 .vscode/
 .idea/
+*.bak
 .DS_Store
 Thumbs.db

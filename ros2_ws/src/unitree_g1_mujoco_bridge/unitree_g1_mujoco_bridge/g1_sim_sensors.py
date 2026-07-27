@@ -1,5 +1,6 @@
 import math
 import os
+import json
 import socket
 import struct
 import xml.etree.ElementTree as ET
@@ -12,9 +13,10 @@ from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReli
 from rclpy.time import Time
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import CameraInfo, Image, Imu, PointCloud2, PointField
-from std_msgs.msg import Float32, Header
+from std_msgs.msg import Float32, Header, String
 from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
 from unitree_go.msg import SportModeState
 
@@ -36,9 +38,9 @@ class G1SimSensors(Node):
         self.declare_parameter("pointcloud_rate_hz", 0.2)
         self.declare_parameter("publish_depth_pointcloud", False)
         self.declare_parameter("imu_rate_hz", 100.0)
-        self.declare_parameter("lidar_rate_hz", 8.0)
+        self.declare_parameter("lidar_rate_hz", 10.0)
         self.declare_parameter("livox_point_rate", 200000)
-        self.declare_parameter("livox_scan_points", 2500)
+        self.declare_parameter("livox_scan_points", 2400)
         self.declare_parameter("camera_render_step", 16)
         self.declare_parameter("livox_object_surface_samples", 0)
         self.declare_parameter("livox_floor_samples", 0)
@@ -48,14 +50,19 @@ class G1SimSensors(Node):
         self.declare_parameter("livox_max_range", 40.0)
         self.declare_parameter("livox_horizontal_min_deg", 0.0)
         self.declare_parameter("livox_horizontal_max_deg", 360.0)
-        self.declare_parameter("livox_vertical_min_deg", -7.0)
-        self.declare_parameter("livox_vertical_max_deg", 52.0)
+        self.declare_parameter("livox_vertical_min_deg", -12.0)
+        self.declare_parameter("livox_vertical_max_deg", 18.0)
         self.declare_parameter("use_mujoco_raycast_lidar", True)
         self.declare_parameter("mujoco_lidar_socket", "/tmp/unitree_g1_mujoco_lidar.sock")
+        self.declare_parameter("mujoco_pedestrian_socket", "/tmp/unitree_g1_mujoco_pedestrians.sock")
         self.declare_parameter("publish_lidar_tf", True)
         self.declare_parameter("use_mujoco_lidar_pose", True)
         self.declare_parameter("use_cmd_vel_lidar_fallback", False)
         self.declare_parameter("require_exact_lidar_pose", False)
+        self.declare_parameter("suppress_lidar_when_fallen", True)
+        self.declare_parameter("fallen_tilt_threshold", 0.95)
+        self.declare_parameter("upright_tilt_threshold", 0.45)
+        self.declare_parameter("lidar_resume_delay", 2.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("mujoco_state_topic", "rt/sportmodestate")
         self.declare_parameter("livox_base_offset_x", 0.10)
@@ -94,10 +101,15 @@ class G1SimSensors(Node):
         self.livox_vertical_max = math.radians(float(self.get_parameter("livox_vertical_max_deg").value))
         self.use_mujoco_raycast_lidar = bool(self.get_parameter("use_mujoco_raycast_lidar").value)
         self.mujoco_lidar_socket = str(self.get_parameter("mujoco_lidar_socket").value)
+        self.mujoco_pedestrian_socket = str(self.get_parameter("mujoco_pedestrian_socket").value)
         self.publish_lidar_tf = bool(self.get_parameter("publish_lidar_tf").value)
         self.use_mujoco_lidar_pose = bool(self.get_parameter("use_mujoco_lidar_pose").value)
         self.use_cmd_vel_lidar_fallback = bool(self.get_parameter("use_cmd_vel_lidar_fallback").value)
         self.require_exact_lidar_pose = bool(self.get_parameter("require_exact_lidar_pose").value)
+        self.suppress_lidar_when_fallen = bool(self.get_parameter("suppress_lidar_when_fallen").value)
+        self.fallen_tilt_threshold = float(self.get_parameter("fallen_tilt_threshold").value)
+        self.upright_tilt_threshold = float(self.get_parameter("upright_tilt_threshold").value)
+        self.lidar_resume_delay = float(self.get_parameter("lidar_resume_delay").value)
         self.livox_base_offset = (
             float(self.get_parameter("livox_base_offset_x").value),
             float(self.get_parameter("livox_base_offset_y").value),
@@ -117,11 +129,19 @@ class G1SimSensors(Node):
         self.last_mujoco_pose = None
         self.last_mujoco_pose_time = None
         self.last_base_pose = ((0.0, 0.0, 0.0), self._identity_matrix())
+        self.last_base_yaw = 0.0
+        self.last_odom_pose = None
+        self.last_odom_time = None
+        self.current_odom_twist = (0.0, 0.0, 0.0)
+        self.mapping_lidar_fallen = False
+        self.mapping_lidar_resume_time = None
+        self.mapping_lidar_suppressed_count = 0
         self.mujoco_pose_count = 0
         self.cmd_vel_count = 0
         self.mujoco_lidar_count = 0
         self.mujoco_lidar_socket_rx = None
         self.mujoco_camera_socket_rx = None
+        self.mujoco_pedestrian_socket_rx = None
         self.latest_mujoco_lidar_packet = None
         self.latest_mujoco_lidar_world_packet = None
         self.latest_mujoco_lidar_time = None
@@ -140,6 +160,7 @@ class G1SimSensors(Node):
         self.scene_boxes, self.scene_planes = self._load_mujoco_scene_geometry()
         if self.use_mujoco_raycast_lidar:
             self._open_mujoco_lidar_socket()
+        self._open_mujoco_pedestrian_socket()
         if self.publish_camera and self.use_mujoco_raycast_camera:
             self._open_mujoco_camera_socket()
         if self.publish_camera:
@@ -192,6 +213,8 @@ class G1SimSensors(Node):
         self.lidar_world_pub = self.create_publisher(PointCloud2, "/livox/lidar_world", sensor_qos)
         self.livox_imu_pub = self.create_publisher(Imu, "/livox/imu", sensor_qos)
         self.livox_head_height_pub = self.create_publisher(Float32, "/livox/ground_to_head_top", sensor_qos)
+        self.odom_pub = self.create_publisher(Odometry, "/odom", 10)
+        self.mujoco_pedestrians_pub = self.create_publisher(String, "/mujoco/pedestrians", 10)
         self.create_subscription(JointState, "/joint_states", self._joint_state_callback, sensor_qos)
         if self.use_mujoco_lidar_pose:
             self.create_subscription(
@@ -214,6 +237,7 @@ class G1SimSensors(Node):
             self.create_timer(1.0 / self.pointcloud_rate_hz, self._publish_depth_pointcloud)
         self.create_timer(1.0 / float(self.get_parameter("imu_rate_hz").value), self._publish_imu)
         self.create_timer(1.0 / self.lidar_rate_hz, self._publish_lidar)
+        self.create_timer(1.0 / 20.0, self._publish_mujoco_pedestrians)
         self.create_timer(1.0 / 30.0, self._publish_base_tf)
         self.create_timer(2.0, self._diagnostics)
         self.get_logger().info(
@@ -246,6 +270,19 @@ class G1SimSensors(Node):
             self.mujoco_camera_socket_rx = None
             self.get_logger().warning(f"Could not open MuJoCo camera socket: {exc}")
 
+    def _open_mujoco_pedestrian_socket(self) -> None:
+        try:
+            if os.path.exists(self.mujoco_pedestrian_socket):
+                os.unlink(self.mujoco_pedestrian_socket)
+            self.mujoco_pedestrian_socket_rx = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+            self.mujoco_pedestrian_socket_rx.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 262144)
+            self.mujoco_pedestrian_socket_rx.bind(self.mujoco_pedestrian_socket)
+            self.mujoco_pedestrian_socket_rx.setblocking(False)
+            self.get_logger().info(f"Receiving MuJoCo pedestrian states on {self.mujoco_pedestrian_socket}")
+        except OSError as exc:
+            self.mujoco_pedestrian_socket_rx = None
+            self.get_logger().warning(f"Could not open MuJoCo pedestrian socket: {exc}")
+
     def destroy_node(self) -> bool:
         if self.mujoco_lidar_socket_rx is not None:
             self.mujoco_lidar_socket_rx.close()
@@ -253,6 +290,9 @@ class G1SimSensors(Node):
         if self.mujoco_camera_socket_rx is not None:
             self.mujoco_camera_socket_rx.close()
             self.mujoco_camera_socket_rx = None
+        if self.mujoco_pedestrian_socket_rx is not None:
+            self.mujoco_pedestrian_socket_rx.close()
+            self.mujoco_pedestrian_socket_rx = None
         if self.use_mujoco_raycast_lidar and os.path.exists(self.mujoco_lidar_socket):
             try:
                 os.unlink(self.mujoco_lidar_socket)
@@ -263,7 +303,44 @@ class G1SimSensors(Node):
                 os.unlink(self.mujoco_camera_socket)
             except OSError:
                 pass
+        if os.path.exists(self.mujoco_pedestrian_socket):
+            try:
+                os.unlink(self.mujoco_pedestrian_socket)
+            except OSError:
+                pass
         return super().destroy_node()
+
+    def _publish_mujoco_pedestrians(self) -> None:
+        if self.mujoco_pedestrian_socket_rx is None:
+            return
+        latest = None
+        while True:
+            try:
+                latest = self.mujoco_pedestrian_socket_rx.recv(8192)
+            except BlockingIOError:
+                break
+            except OSError as exc:
+                self.get_logger().warning(f"MuJoCo pedestrian socket read failed: {exc}", throttle_duration_sec=2.0)
+                return
+        if not latest:
+            return
+        if len(latest) < 16:
+            return
+        magic, count, sim_time = struct.unpack_from("<IId", latest, 0)
+        if magic != 0x31444550:
+            return
+        offset = 16
+        people = []
+        entry_size = struct.calcsize("<iddddd")
+        for _ in range(min(count, 64)):
+            if offset + entry_size > len(latest):
+                break
+            person_id, x, y, vx, vy, radius = struct.unpack_from("<iddddd", latest, offset)
+            offset += entry_size
+            people.append({"id": person_id, "x": x, "y": y, "vx": vx, "vy": vy, "radius_m": radius})
+        msg = String()
+        msg.data = json.dumps({"stamp": self.get_clock().now().nanoseconds * 1e-9, "sim_time": sim_time, "people": people})
+        self.mujoco_pedestrians_pub.publish(msg)
 
     def _mujoco_state_callback(self, msg: SportModeState) -> None:
         self.mujoco_pose_count += 1
@@ -277,14 +354,55 @@ class G1SimSensors(Node):
         self.last_mujoco_pose = self._lidar_pose_from_base_pose(origin, rotation)
         self.last_mujoco_pose_time = self.get_clock().now()
         self.last_base_pose = (origin, rotation)
+        self._update_odometry_state(origin, rotation)
+        self._update_mapping_lidar_state(rotation)
         if self.publish_lidar_tf:
             self._publish_lidar_tf(*self.last_mujoco_pose)
 
     def _publish_base_tf(self) -> None:
         self._publish_base_footprint_tf(*self.last_base_pose)
+        self._publish_odometry(*self.last_base_pose)
+
+    def _update_odometry_state(self, base_origin: tuple, base_rotation: tuple) -> None:
+        now = self.get_clock().now()
+        yaw = self._stable_base_yaw(base_rotation)
+        if self.last_odom_pose is not None and self.last_odom_time is not None:
+            dt = (now - self.last_odom_time).nanoseconds * 1e-9
+            if dt > 1e-4:
+                prev_x, prev_y, prev_yaw = self.last_odom_pose
+                dx = base_origin[0] - prev_x
+                dy = base_origin[1] - prev_y
+                world_vx = dx / dt
+                world_vy = dy / dt
+                body_vx = math.cos(yaw) * world_vx + math.sin(yaw) * world_vy
+                body_vy = -math.sin(yaw) * world_vx + math.cos(yaw) * world_vy
+                wz = self._wrap_pi(yaw - prev_yaw) / dt
+                self.current_odom_twist = (body_vx, body_vy, wz)
+        self.last_odom_pose = (base_origin[0], base_origin[1], yaw)
+        self.last_odom_time = now
+
+    def _publish_odometry(self, base_origin: tuple, base_rotation: tuple) -> None:
+        yaw = self._stable_base_yaw(base_rotation)
+        yaw_rotation = self._yaw_to_matrix(yaw)
+        qx, qy, qz, qw = self._matrix_to_quat_xyzw(yaw_rotation)
+        odom = Odometry()
+        odom.header.stamp = self.get_clock().now().to_msg()
+        odom.header.frame_id = "world"
+        odom.child_frame_id = "base_footprint"
+        odom.pose.pose.position.x = float(base_origin[0])
+        odom.pose.pose.position.y = float(base_origin[1])
+        odom.pose.pose.position.z = 0.0
+        odom.pose.pose.orientation.x = qx
+        odom.pose.pose.orientation.y = qy
+        odom.pose.pose.orientation.z = qz
+        odom.pose.pose.orientation.w = qw
+        odom.twist.twist.linear.x = self.current_odom_twist[0]
+        odom.twist.twist.linear.y = self.current_odom_twist[1]
+        odom.twist.twist.angular.z = self.current_odom_twist[2]
+        self.odom_pub.publish(odom)
 
     def _publish_base_footprint_tf(self, base_origin: tuple, base_rotation: tuple) -> None:
-        yaw = math.atan2(base_rotation[1][0], base_rotation[0][0])
+        yaw = self._stable_base_yaw(base_rotation)
         yaw_rotation = self._yaw_to_matrix(yaw)
         transform = TransformStamped()
         transform.header.stamp = self.get_clock().now().to_msg()
@@ -299,6 +417,63 @@ class G1SimSensors(Node):
         transform.transform.rotation.z = qz
         transform.transform.rotation.w = qw
         self.tf_broadcaster.sendTransform(transform)
+
+    def _stable_base_yaw(self, base_rotation: tuple) -> float:
+        if not self.mapping_lidar_fallen and self._base_tilt(base_rotation) < self.fallen_tilt_threshold:
+            self.last_base_yaw = math.atan2(base_rotation[1][0], base_rotation[0][0])
+        return self.last_base_yaw
+
+    @staticmethod
+    def _wrap_pi(value: float) -> float:
+        return math.atan2(math.sin(value), math.cos(value))
+
+    def _update_mapping_lidar_state(self, base_rotation: tuple) -> None:
+        if not self.suppress_lidar_when_fallen:
+            self.mapping_lidar_fallen = False
+            self.mapping_lidar_resume_time = None
+            return
+        tilt = self._base_tilt(base_rotation)
+        now = self.get_clock().now()
+        if not self.mapping_lidar_fallen and tilt > self.fallen_tilt_threshold:
+            self.mapping_lidar_fallen = True
+            self.mapping_lidar_resume_time = None
+            self._drop_cached_lidar_packets()
+            self.get_logger().warn(
+                f"Robot tilt {tilt:.2f} rad; pausing LiDAR mapping to protect SLAM occupancy grid",
+                throttle_duration_sec=1.0,
+            )
+            return
+        if self.mapping_lidar_fallen and tilt < self.upright_tilt_threshold:
+            self.mapping_lidar_fallen = False
+            self.mapping_lidar_resume_time = now + Duration(seconds=self.lidar_resume_delay)
+            self._drop_cached_lidar_packets()
+            self.get_logger().info(
+                f"Robot upright again; waiting {self.lidar_resume_delay:.1f}s before resuming LiDAR mapping"
+            )
+
+    def _mapping_lidar_suppressed(self) -> bool:
+        if not self.suppress_lidar_when_fallen:
+            return False
+        if self.mapping_lidar_fallen:
+            return True
+        if self.mapping_lidar_resume_time is None:
+            return False
+        if (self.mapping_lidar_resume_time - self.get_clock().now()).nanoseconds > 0:
+            return True
+        self.mapping_lidar_resume_time = None
+        self._drop_cached_lidar_packets()
+        self.get_logger().info("Resuming LiDAR mapping after fall recovery stabilization")
+        return False
+
+    def _drop_cached_lidar_packets(self) -> None:
+        self.latest_mujoco_lidar_packet = None
+        self.latest_mujoco_lidar_world_packet = None
+        self.latest_mujoco_lidar_time = None
+
+    @staticmethod
+    def _base_tilt(base_rotation: tuple) -> float:
+        up_z = max(-1.0, min(1.0, base_rotation[2][2]))
+        return math.acos(up_z)
 
     def _lidar_pose_from_base_pose(self, base_origin: tuple, base_rotation: tuple) -> tuple:
         offset = self._rotate(base_rotation, self.livox_base_offset)
@@ -343,7 +518,7 @@ class G1SimSensors(Node):
                 throttle_duration_sec=5.0,
             )
         self.get_logger().info(
-            f"LiDAR pose status: raycast_packets={self.mujoco_lidar_count} dropped_stale={self.dropped_mujoco_lidar_packets} sport_pose={self.mujoco_pose_count} cmd_vel={self.cmd_vel_count} frame={self.lidar_frame}",
+            f"LiDAR pose status: raycast_packets={self.mujoco_lidar_count} dropped_stale={self.dropped_mujoco_lidar_packets} suppressed={self.mapping_lidar_suppressed_count} fallen={self.mapping_lidar_fallen} sport_pose={self.mujoco_pose_count} cmd_vel={self.cmd_vel_count} frame={self.lidar_frame}",
             throttle_duration_sec=5.0,
         )
 
@@ -574,6 +749,14 @@ class G1SimSensors(Node):
     def _publish_lidar(self) -> None:
         started = self.get_clock().now()
         cloud_data = self._latest_mujoco_lidar_packet()
+        if self._mapping_lidar_suppressed():
+            self.mapping_lidar_suppressed_count += 1
+            self._drop_cached_lidar_packets()
+            self.get_logger().warn(
+                "LiDAR mapping paused during fall/get-up recovery; not publishing scan source clouds",
+                throttle_duration_sec=2.0,
+            )
+            return
         if cloud_data is None and self.use_mujoco_lidar_pose and self.last_mujoco_pose is None:
             if self.require_exact_lidar_pose:
                 self.get_logger().warn(
@@ -679,6 +862,7 @@ class G1SimSensors(Node):
         self.last_mujoco_pose = (origin, rotation)
         self.last_mujoco_pose_time = self.get_clock().now()
         self.last_base_pose = self._base_pose_from_lidar_pose(origin, rotation)
+        self._update_mapping_lidar_state(self.last_base_pose[1])
         if self.publish_lidar_tf:
             self._publish_lidar_tf(origin, rotation)
             self._publish_base_footprint_tf(*self.last_base_pose)

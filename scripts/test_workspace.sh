@@ -35,7 +35,7 @@ docker compose run --rm unitree-g1-sim \
 
 if [ "${MODE}" = "smoke" ]; then
   echo "[test] bounded full simulation topic smoke test"
-  ./scripts/bringup_full_sim.sh run_rviz:=false run_clamp_button:=false mujoco_scene:=scene_29dof_room.xml >/tmp/g1_workspace_smoke_launch.log 2>&1 &
+  ./scripts/bringup_full_sim.sh run_rviz:=false run_clamp_button:=false publish_camera:=true mujoco_scene:=scene_29dof_room.xml >/tmp/g1_workspace_smoke_launch.log 2>&1 &
   launch_pid=$!
   cleanup() {
     kill "${launch_pid}" >/dev/null 2>&1 || true

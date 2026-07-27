@@ -7,4 +7,9 @@ install(DIRECTORY launch config rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(${PROJECT_NAME}_launch test/test_launch_description.py)
+endif()
+
 ament_package()

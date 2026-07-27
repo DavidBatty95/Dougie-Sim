@@ -1,0 +1,40 @@
+seed: 42
+mode: standard
+backend: mujoco
+robot_start:
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+goals:
+- index: 0
+  pose:
+    x: 1.254841186120954
+    y: -4.274903202995998
+    yaw: -1.4135324813693264
+people:
+- id: 1
+  pose:
+    x: -0.6029816119307402
+    y: -0.8965497622203131
+    yaw: 0.0
+  velocity:
+    x: -0.4182101098606883
+    y: -0.16250954727701217
+    yaw: 0.0
+  radius_m: 0.42
+  behaviour: mujoco
+  speed_mps: 0.44867476967829206
+  waypoints: []
+- id: 2
+  pose:
+    x: 2.3877489620691015
+    y: 0.8761941054727147
+    yaw: 0.0
+  velocity:
+    x: 0.4838678298141996
+    y: 0.11939731875770354
+    yaw: 0.0
+  radius_m: 0.42
+  behaviour: mujoco
+  speed_mps: 0.4983811758640488
+  waypoints: []

@@ -10,10 +10,16 @@
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>rviz2</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>unitree_g1_description</exec_depend>
+  <exec_depend>unitree_g1_mujoco_bridge</exec_depend>
   <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -1,0 +1,93 @@
+{
+  "benchmark_name": "person_avoidance_benchmark",
+  "timestamp": "2026-07-06T09:52:40.473999+00:00",
+  "seed": 42,
+  "mode": "standard",
+  "backend": "mujoco",
+  "environment": "mujoco",
+  "record_rosbag": true,
+  "people_count": 2,
+  "goals_requested": 6,
+  "goals_reached": 0,
+  "success": false,
+  "failure_reason": "collision",
+  "total_time_s": 38.784,
+  "actual_path_length_m": 1.487,
+  "ideal_path_length_m": 6.899,
+  "efficiency": 1.0,
+  "average_speed_mps": 0.038,
+  "collisions": 1,
+  "fallen": false,
+  "no_movement": false,
+  "near_misses": 1,
+  "critical_near_misses": 1,
+  "minimum_separation_m": 0.74,
+  "minimum_ttc_s": 1.433,
+  "time_below_warning_distance_s": 3.638,
+  "time_below_near_miss_distance_s": 0.545,
+  "time_below_critical_distance_s": 0.038,
+  "emergency_stops": 0,
+  "safety_score": 11.903,
+  "task_score": 0.0,
+  "speed_score": 23.719,
+  "efficiency_score": 100.0,
+  "hard_penalties": 0.0,
+  "final_score": 0.0,
+  "goals": [
+    {
+      "index": 0,
+      "goal_pose": {
+        "x": 1.254841186120954,
+        "y": -4.274903202995998,
+        "yaw": -1.4135324813693264
+      },
+      "reached": false,
+      "failure_reason": "collision",
+      "time_s": 38.7839477309999,
+      "path_length_m": 1.4867964495469042,
+      "minimum_separation_m": 0.7402265492034582,
+      "near_misses": 1,
+      "critical_near_misses": 1,
+      "collisions": 1
+    }
+  ],
+  "events": [
+    {
+      "time_s": 38.28181798100013,
+      "type": "near_miss",
+      "person_id": 2,
+      "distance_m": 0.9764560497895788,
+      "ttc_s": null,
+      "robot_pose": {
+        "x": 3.694063518959028,
+        "y": 1.4198948908152484,
+        "yaw": 1.6686524520903903
+      }
+    },
+    {
+      "time_s": 38.7839477309999,
+      "type": "critical_near_miss",
+      "person_id": 2,
+      "distance_m": 0.7402265492034582,
+      "ttc_s": null,
+      "robot_pose": {
+        "x": 3.7062047284575304,
+        "y": 1.4054465912798415,
+        "yaw": 1.6686524520903903
+      }
+    },
+    {
+      "time_s": 38.7839477309999,
+      "type": "collision",
+      "person_id": 2,
+      "distance_m": 0.7402265492034582,
+      "ttc_s": null,
+      "robot_pose": {
+        "x": 3.7062047284575304,
+        "y": 1.4054465912798415,
+        "yaw": 1.6686524520903903
+      }
+    }
+  ],
+  "scenario_file": "/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T095117Z_scenario.yaml"
+}

@@ -34,7 +34,7 @@ ARGS=(
 if [ "${SHOW_GUI}" = "1" ]; then
   ARGS+=(
     --show-gui True
-    --env.viewer.max-extra-envs 0
+    --env.viewer.max-extra-envs 1000
   )
 fi
 

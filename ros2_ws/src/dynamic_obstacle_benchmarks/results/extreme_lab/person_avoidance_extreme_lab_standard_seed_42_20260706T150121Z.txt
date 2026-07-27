@@ -1,0 +1,43 @@
+Extreme Lab Person Avoidance Benchmark
+======================================
+Timestamp UTC: 20260706T150121Z
+Seed: 42
+People: 6
+Goals: 1
+Mode: standard
+Backend: mujoco
+MuJoCo scene: scene_29dof_extreme_lab.xml
+Note: benchmark scoring uses live /odom and /mujoco/pedestrians state and sends Nav2 NavigateToPose goals.
+
+Person Avoidance Benchmark
+--------------------------
+Seed: 42
+Backend: mujoco
+People: 2
+Goals requested: 1
+Goals reached: 0
+Total time: 0.0 s
+Actual path length: 0.00 m
+Ideal path length: 4.38 m
+Efficiency: 0.00
+Collisions: 0
+Near misses: 0
+Critical near misses: 0
+Minimum separation: None m
+Minimum TTC: None s
+Safety score: 100.0
+Task score: 0.0
+Speed score: 0.0
+Efficiency score: 0.0
+Final score: 0.0 / 100
+Result file: /workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z.json
+
+Artifacts
+---------
+Score report: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z.txt
+JSON result: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z.json
+Scenario replay: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z_scenario.yaml
+Per-goal CSV: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z_goals.csv
+Safety events CSV: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z_events.csv
+Human-aware JSONL: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z_human_aware.jsonl
+Simulation log: /home/david/unitree_g1_ros2_mujoco/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab/person_avoidance_extreme_lab_standard_seed_42_20260706T150121Z_sim.log

@@ -1,0 +1,598 @@
+Unitree G1 ROS 2 MuJoCo Workspace Breakdown
+Generated: 2026-06-24
+
+Purpose
+-------
+This repository builds a simulation-first Unitree G1 ROS 2 workspace around MuJoCo. It combines robot description assets, Unitree DDS/MuJoCo bridging, learned locomotion policy execution, simulated sensors, SLAM/Nav2 bringup, dynamic-person tracking, human-aware collision avoidance, and benchmark tooling for person-avoidance experiments.
+
+The stack is intended for simulation and development. It should not be treated as a hardware-ready safety stack without separate validation.
+
+
+Top-Level Layout
+----------------
+README.md
+  Main user guide with Docker setup, build commands, simulation launch commands, locomotion troubleshooting, and navigation/person-avoidance workflow notes.
+
+docker-compose.yml
+  Docker Compose definition for the development/simulation container.
+
+docker/Dockerfile
+  Container image definition for ROS 2 Humble, Unitree dependencies, MuJoCo/MJLab tooling, Python dependencies, and simulation build tooling.
+
+ros2_ws/
+  ROS 2 workspace. Contains local packages plus vendored Unitree packages and MuJoCo assets.
+
+scripts/
+  Host/container helper scripts for building, launching, training policies, replaying policies, benchmarking, and tuning.
+
+vendor/mjlab/
+  MJLab reinforcement-learning/training code and exported policy source tree used by the locomotion workflow. This is a vendor/submodule-style dependency rather than a local ROS package.
+
+
+Local ROS 2 Packages
+--------------------
+1. unitree_g1_description
+  Path: ros2_ws/src/unitree_g1_description
+  Build type: ament_cmake
+  Purpose: Unitree G1 robot description package for ROS visualization and TF publishing.
+
+  Main contents:
+  - urdf/g1_29dof_brainco.urdf.xacro
+    Xacro description for the 29-DOF G1 with BrainCo hand assets.
+  - urdf/g1_29dof_mode_15_brainco_hand.urdf
+    Generated/static URDF variant.
+  - meshes/*.STL
+    Visual/collision mesh assets for pelvis, torso, legs, arms, wrists, head, D455 camera, hands, and fingers.
+  - config/g1_29dof_brainco_joints.yaml
+    Joint metadata/configuration for the 29-DOF BrainCo hand model.
+  - test/test_description_files.py
+    Tests that description files and YAML metadata are present/valid.
+
+  Runtime dependencies:
+  - joint_state_publisher
+  - robot_state_publisher
+  - xacro
+
+
+2. unitree_g1_mujoco_bridge
+  Path: ros2_ws/src/unitree_g1_mujoco_bridge
+  Build type: ament_python
+  Purpose: Runtime ROS 2 nodes that connect MuJoCo/Unitree DDS state to ROS topics, publish simulated sensors, execute learned locomotion policies, generate navigation commands, detect/track people, and apply human-aware safety filters.
+
+  Console executables:
+  - g1_mujoco_bridge
+  - g1_cmd_vel_teleop
+  - g1_hold_pose_controller
+  - g1_policy_cmd_vel_controller
+  - g1_random_explorer
+  - g1_waypoint_patrol
+  - g1_waypoint_explorer
+  - g1_point_goal
+  - g1_frontier_explorer
+  - g1_slam_reset_monitor
+  - g1_locomotion_diagnostics
+  - g1_clamp_button
+  - g1_sim_sensors
+  - livox_to_scan
+  - lidar_person_detector
+  - scan_dynamic_filter
+  - dynamic_obstacle_tracker
+  - human_aware_motion_planner
+  - human_collision_avoidance
+
+  Node/module breakdown:
+  - g1_mujoco_bridge.py
+    Bridges Unitree HG low-state data and low-level motor commands between MuJoCo/Unitree DDS and ROS. Publishes robot state/odometry-style outputs, accepts body position commands, applies motor gains, supports waist locking/balancing, and includes fall damping/startup grace behavior.
+
+  - g1_policy_cmd_vel_controller.py
+    Loads a TorchScript/ONNX locomotion policy and converts velocity commands into G1 body joint position commands. Handles policy observation/action dimensions, command velocity limits, startup blend/hold, upright gating, action ramping, policy stand pose behavior, pre-lowstate stand commands, and cmd_vel timeout safety.
+
+  - g1_hold_pose_controller.py
+    Publishes fixed/hold pose commands for basic robot pose holding.
+
+  - g1_cmd_vel_teleop.py
+    Simple keyboard/manual cmd_vel teleoperation helper.
+
+  - g1_clamp_button.py
+    GUI/service helper for clamping/holding robot pose during sensor or visualization testing.
+
+  - g1_sim_sensors.py
+    Publishes simulated RealSense/Livox-style sensor topics from MuJoCo or a Python scene approximation. Supports Livox point clouds, world clouds, camera topics, sensor TF, raycast lidar settings, dead-zone/self filtering, fallen-state suppression, and command-velocity fallback for synthetic motion.
+
+  - livox_to_scan.py
+    Projects Livox/point-cloud data into a 2D LaserScan for SLAM/Nav2.
+
+  - scan_dynamic_filter.py
+    Filters dynamic/tracked obstacle ranges out of LaserScan data before mapping/navigation.
+
+  - pointcloud.py
+    Shared point cloud packing/parsing helpers used by sensor and filtering tests.
+
+  - dynamic_obstacle_tracker.py
+    Clusters Livox/world point clouds, tracks dynamic obstacles/people, scores person-like clusters, predicts future positions, publishes marker/debug topics and tracked/predicted point clouds, and optionally publishes safety-grid information.
+
+  - lidar_person_detector.py
+    Optional LiDAR BEV person detector wrapper with ONNX-model path support and fallback geometric clustering. Publishes person detections used by tracking.
+
+  - human_aware_motion_planner.py
+    Samples/scorers local velocity commands using tracked/predicted people, static obstacles, personal-space costs, time-to-collision costs, front-arc social constraints, smoothness/jerk costs, yielding/deadlock behavior, and optional risk-grid visualization.
+
+  - human_collision_avoidance.py
+    Hard safety filter for cmd_vel. Consumes predicted/tracked dynamic obstacles and scan data, limits/reverses/laterally biases commands near people, applies emergency stop and corridor checks, and publishes a safe cmd_vel for the locomotion policy.
+
+  - g1_random_explorer.py
+    Publishes simple random obstacle-aware velocity commands for exploration tests.
+
+  - g1_waypoint_patrol.py
+    Publishes velocity commands to move through a fixed list of waypoints without Nav2 goals.
+
+  - g1_waypoint_explorer.py
+    Sends randomized NavigateToPose goals to Nav2 for autonomous exploration.
+
+  - g1_point_goal.py
+    Sends explicit NavigateToPose goals from launch parameters or /g1/point_goal. Can validate the requested goal against the global costmap before sending it.
+
+  - g1_frontier_explorer.py
+    Frontier-style exploration helper that selects map-frontier goals from occupancy data.
+
+  - g1_slam_reset_monitor.py
+    Monitors fall/upright state and resets SLAM/Nav2 mapping after fall transitions as configured.
+
+  - g1_locomotion_diagnostics.py
+    Publishes /g1/locomotion_diagnostics to localize command-path and motion failures. Reports states such as waiting for raw commands, missing safe commands, missing policy body commands, safety filter stopping, command sent but no odom motion, and moving/ready.
+
+  - g1_constants.py
+    Shared G1 joint names, indices, default positions, and related constants used by controllers/bridge code.
+
+  Tests:
+  - test/test_pointcloud.py
+  - test/test_scan_dynamic_filter.py
+
+  Runtime dependencies:
+  - rclpy
+  - geometry_msgs
+  - nav_msgs
+  - nav2_msgs
+  - sensor_msgs
+  - std_msgs
+  - std_srvs
+  - tf2_ros
+  - visualization_msgs
+  - unitree_go
+  - unitree_hg
+  - python3-numpy
+
+
+3. unitree_g1_sim_bringup
+  Path: ros2_ws/src/unitree_g1_sim_bringup
+  Build type: ament_cmake
+  Purpose: Main launch/config package for running the full G1 MuJoCo simulation stack with ROS 2, sensors, SLAM, Nav2, dynamic obstacle tracking, person-aware planning, RViz, and diagnostics.
+
+  Main launch file:
+  - launch/g1_sim.launch.py
+    Starts the complete simulation graph. Major components include:
+    - MuJoCo simulator process via /workspace/scripts/run_mujoco_g1.sh
+    - g1_mujoco_bridge
+    - g1_policy_cmd_vel_controller
+    - optional clamp button
+    - g1_sim_sensors
+    - livox_to_scan
+    - scan_dynamic_filter
+    - slam_toolbox
+    - Nav2 navigation_launch.py
+    - lidar_person_detector
+    - dynamic_obstacle_tracker
+    - human_aware_motion_planner
+    - human_collision_avoidance
+    - g1_locomotion_diagnostics
+    - random explorer
+    - waypoint patrol
+    - waypoint explorer
+    - point goal sender
+    - frontier explorer
+    - SLAM reset monitor
+    - robot_state_publisher
+    - RViz
+
+  Important launch arguments/defaults:
+  - run_sim: start/skip MuJoCo process.
+  - run_bridge: start/skip Unitree DDS bridge.
+  - run_policy: start/skip learned locomotion policy controller.
+  - policy_path: default latest exported lower-body walking ONNX policy.
+  - policy_obs_dim/policy_action_dim: default 0, infer from policy metadata/shape.
+  - policy_command_height: target torso height for height-command policies.
+  - raw_cmd_vel_topic: default /cmd_vel.
+  - cmd_vel_topic: default /cmd_vel_safe.
+  - startup_blend_time: default 3.0 seconds.
+  - startup_hold_time: default 2.0 seconds.
+  - startup_require_upright: default true.
+  - startup_max_recovery_time: default 0.0, wait indefinitely until upright before policy inference.
+  - policy_action_ramp_time: default 2.0 seconds.
+  - mujoco_startup_hold_enable: default true.
+  - mujoco_startup_hold_timeout: default 0.0, wait indefinitely for first motor command.
+  - mujoco_reset_on_controller_start: default false.
+  - lock_waist: default true.
+  - balance_waist: default false.
+  - mujoco_scene: default scene_29dof_extreme_lab.xml.
+  - mujoco_pedestrians_enable: default true.
+  - mujoco_pedestrians_count: default 8.
+  - run_slam: default true.
+  - run_nav2: default true.
+  - run_dynamic_obstacle_tracker: default true.
+  - run_human_aware_motion_planner: default true.
+  - run_human_collision_avoidance: default true.
+  - run_locomotion_diagnostics: default true.
+  - run_waypoint_explorer: default false.
+  - run_point_goal: default false.
+
+  Config files:
+  - config/slam_toolbox_livox.yaml
+    slam_toolbox configuration for Livox-derived /scan mapping.
+  - config/nav2_livox.yaml
+    Nav2 configuration for LiDAR scan navigation, costmaps, planners/controllers, recovery behaviors, and robot footprint/radius assumptions.
+  - config/g1_control_topics.yaml
+    Topic mapping/control-topic reference config.
+
+  RViz:
+  - rviz/g1_sim.rviz
+    RViz display configuration for robot model, TF, camera, Livox data, map/navigation, and dynamic obstacle visualization.
+
+  Tests:
+  - test/test_launch_description.py
+    Verifies key launch arguments and delayed launch entities are present.
+
+  Runtime dependencies:
+  - launch
+  - launch_ros
+  - nav2_bringup
+  - robot_state_publisher
+  - rviz2
+  - slam_toolbox
+  - tf2_ros
+  - unitree_g1_description
+  - unitree_g1_mujoco_bridge
+  - xacro
+
+
+4. dynamic_obstacle_benchmarks
+  Path: ros2_ws/src/dynamic_obstacle_benchmarks
+  Build type: ament_python
+  Purpose: Deterministic dynamic-obstacle/person-avoidance benchmark package for testing navigation behavior around moving people in simulation.
+
+  Console executable:
+  - person_avoidance_benchmark
+
+  Launch file:
+  - launch/person_avoidance_benchmark.launch.py
+    Starts a benchmark scenario using configured person motion, navigation goals, scoring, and result writing.
+
+  Config files:
+  - config/person_avoidance_benchmark.yaml
+    Benchmark-level parameters such as scenario, trial duration, robot/navigation topics, scoring thresholds, and output settings.
+  - config/person_scenarios.yaml
+    Person-motion scenario definitions and presets.
+
+  Module breakdown:
+  - person_avoidance_benchmark.py
+    Main ROS 2 benchmark node/entry point.
+  - benchmark_runner.py
+    Coordinates benchmark lifecycle, goals, people, metrics, and result generation.
+  - config.py
+    Loads and validates benchmark configuration.
+  - geometry.py
+    Geometry utilities for distances, segments, projections, and collision/social-distance calculations.
+  - goal_sampler.py
+    Goal selection/sampling utilities for navigation trials.
+  - people_manager.py
+    Publishes/manages moving people or person states in benchmark scenarios.
+  - person_motion_models.py
+    Deterministic person trajectory/motion model implementations.
+  - metrics.py
+    Runtime metric collection for path, speed, clearance, collisions, goal success, and related measurements.
+  - scoring.py
+    Converts metrics into pass/fail and weighted benchmark scores.
+  - result_writer.py
+    Writes benchmark outputs, summaries, and scenario snapshots.
+
+  Tests:
+  - test/test_config_validation.py
+  - test/test_geometry.py
+  - test/test_goal_sampler.py
+  - test/test_person_avoidance_launch.py
+  - test/test_person_motion_models.py
+  - test/test_result_writer.py
+  - test/test_scoring.py
+
+  Runtime dependencies:
+  - geometry_msgs
+  - nav_msgs
+  - rclpy
+  - std_msgs
+  - python3-yaml
+
+
+Vendored/External Source Trees
+-----------------------------
+ros2_ws/src/unitree_mujoco
+  Unitree MuJoCo simulator source and assets. Includes simulator implementation, Python bridge examples, terrain tools, robot XML assets, and G1 scenes.
+
+  Important G1 MuJoCo assets:
+  - unitree_robots/g1/g1_29dof.xml
+  - unitree_robots/g1/g1_23dof.xml
+  - unitree_robots/g1/scene.xml
+  - unitree_robots/g1/scene_23dof.xml
+  - unitree_robots/g1/scene_29dof.xml
+  - unitree_robots/g1/scene_29dof_empty.xml
+  - unitree_robots/g1/scene_29dof_room.xml
+  - unitree_robots/g1/scene_29dof_obstacles.xml
+  - unitree_robots/g1/scene_29dof_steps.xml
+  - unitree_robots/g1/scene_29dof_pedestrians.xml
+  - unitree_robots/g1/scene_29dof_extreme_lab.xml
+  - unitree_robots/g1/g1_joint_index_dds.md
+
+ros2_ws/src/unitree_ros2
+  Unitree ROS 2 message and example workspace, including unitree_go, unitree_hg, and unitree_api message packages used by the bridge.
+
+ros2_ws/src/unitree_sdk2
+  Unitree SDK2 source used by simulator and DDS integration.
+
+vendor/mjlab
+  Reinforcement-learning environment/training code and asset zoo used for G1 locomotion policy training/export/playback. The local scripts wrap this for G1 flat, rough, lower-body, crouch-stand, and getup policy workflows.
+
+
+Main Runtime Graph
+------------------
+The default full simulation path is:
+1. Host script starts Docker/container launch.
+2. g1_sim.launch.py starts MuJoCo using run_mujoco_g1.sh.
+3. MuJoCo publishes/receives Unitree DDS low-state and low-command data.
+4. g1_mujoco_bridge converts Unitree/MuJoCo state and motor commands into ROS-facing topics.
+5. g1_policy_cmd_vel_controller consumes safe cmd_vel and lowstate, runs the learned policy, and publishes /g1/body_position_commands.
+6. g1_mujoco_bridge sends those body commands back to MuJoCo/Unitree DDS motor command channels.
+7. g1_sim_sensors publishes simulated camera/Livox sensor topics.
+8. livox_to_scan converts Livox clouds into /scan_raw.
+9. scan_dynamic_filter removes tracked dynamic obstacles from scans and publishes /scan.
+10. slam_toolbox builds/publishes /map from /scan.
+11. Nav2 plans/control navigation using /map, /scan, odometry, and TF.
+12. dynamic_obstacle_tracker tracks/predicts people from point clouds and detections.
+13. human_aware_motion_planner modifies raw Nav2/explorer cmd_vel for social navigation.
+14. human_collision_avoidance applies hard safety filtering to produce /cmd_vel_safe.
+15. g1_locomotion_diagnostics reports whether commands and robot motion are flowing correctly.
+16. RViz visualizes robot, TF, map, sensors, trajectories, people, and diagnostics markers.
+
+
+Important Topics
+----------------
+Velocity command path:
+  /cmd_vel -> /cmd_vel_human_aware -> /cmd_vel_safe -> g1_policy_cmd_vel_controller
+
+Low-level locomotion command path:
+  /cmd_vel_safe -> policy inference -> /g1/body_position_commands -> g1_mujoco_bridge -> Unitree DDS/MuJoCo motor commands
+
+Diagnostics:
+  /g1/locomotion_diagnostics
+
+Robot state/navigation:
+  /lowstate
+  /odom
+  /tf
+  /tf_static
+  /map
+  /scan_raw
+  /scan
+
+Sensor/perception:
+  /livox/lidar
+  /livox/lidar_world
+  /lidar_person_detections
+  /dynamic_obstacles
+  /tracked_dynamic_obstacles
+  /predicted_dynamic_obstacles
+  /tentative_dynamic_obstacles
+  /dynamic_obstacle_tracker/debug_tracks
+  /human_safety_grid
+
+Navigation goals:
+  /g1/point_goal
+  /exploration_goal
+  Nav2 NavigateToPose action
+
+
+Host and Container Scripts
+--------------------------
+Build/setup:
+  scripts/setup_sources.sh
+    Fetches/prepares source dependencies.
+  scripts/setup_mjlab.sh
+    Sets up MJLab dependency/workflow pieces.
+  scripts/build_unitree_mujoco.sh
+    Builds Unitree MuJoCo simulator components.
+  scripts/build_ws.sh
+    Builds the ROS 2 workspace inside the container.
+  scripts/test_workspace.sh
+    Runs workspace-level tests/checks from host/container wrapper context.
+  scripts/test_workspace_inside.sh
+    Runs workspace tests inside the container.
+
+Container/runtime shell:
+  scripts/run_shell.sh
+    Opens an interactive development container shell.
+  scripts/run_mjlab.sh
+    Runs MJLab tooling in the configured environment.
+  scripts/run_mjlab_docker.sh
+    Docker wrapper for MJLab tooling.
+
+Simulation bringup:
+  scripts/run_mujoco_g1.sh
+    Starts the Unitree G1 MuJoCo simulator. Consumes environment variables set by the launch file for scene, pedestrians, lidar, camera, startup hold, and reset behavior.
+  scripts/bringup_g1_ros2.sh
+    Container-side ROS 2 launch wrapper for g1_sim.launch.py. Includes guards for stale installs/missing optional executables.
+  scripts/bringup_full_sim.sh
+    Host-side wrapper for full Dockerized simulation bringup.
+  scripts/bringup_full_sim_rviz.sh
+    Variant/shortcut for full sim with RViz-oriented setup.
+  scripts/teleop_cmd_vel.sh
+    Helper for manual cmd_vel teleoperation.
+
+MJLab training/playback:
+  scripts/mjlab_list_envs.sh
+    Lists available MJLab environments.
+  scripts/mjlab_train_g1_smoke.sh
+    Short smoke-test training run.
+  scripts/mjlab_train_g1_flat.sh
+    Trains G1 flat-ground locomotion policy.
+  scripts/mjlab_train_g1_flat_lower_body.sh
+    Trains lower-body flat-ground G1 locomotion policy.
+  scripts/mjlab_train_g1_rough.sh
+    Trains rough-terrain G1 policy.
+  scripts/mjlab_train_g1_rough_lower_body.sh
+    Trains lower-body rough-terrain G1 policy.
+  scripts/mjlab_train_g1_crouch_stand.sh
+    Trains crouch/stand behavior.
+  scripts/mjlab_train_g1_getup.sh
+    Trains getup behavior.
+  scripts/mjlab_play_g1_flat.sh
+    Plays/evaluates flat-ground policy.
+  scripts/mjlab_play_g1_flat_lower_body.sh
+    Plays/evaluates lower-body flat-ground policy.
+  scripts/mjlab_play_g1_rough_lower_body.sh
+    Plays/evaluates lower-body rough-terrain policy.
+  scripts/mjlab_play_g1_crouch_stand.sh
+    Plays/evaluates crouch/stand policy.
+  scripts/mjlab_play_g1_getup.sh
+    Plays/evaluates getup policy.
+
+Benchmark/tuning/evaluation:
+  scripts/run_person_avoidance_benchmark.sh
+    Runs person-avoidance benchmark scenarios.
+  scripts/run_extreme_lab_person_avoidance_benchmark.sh
+    Runs benchmark using the extreme-lab scene/scenario setup.
+  scripts/tune_extreme_lab_survival.py
+    Tuning helper for survival/person-avoidance behavior in extreme-lab scenarios.
+  scripts/auto_tune_human_aware_navigation.py
+    Automated tuning helper for human-aware navigation parameters.
+  scripts/evaluate_person_tracking_offline.py
+    Offline person-tracking evaluation helper.
+
+
+Simulation Scenes and Sensors
+-----------------------------
+Default scene:
+  scene_29dof_extreme_lab.xml
+
+Other G1 scenes included:
+  scene.xml
+  scene_23dof.xml
+  scene_29dof.xml
+  scene_29dof_empty.xml
+  scene_29dof_room.xml
+  scene_29dof_obstacles.xml
+  scene_29dof_steps.xml
+  scene_29dof_pedestrians.xml
+  scene_29dof_extreme_lab.xml
+
+Simulated sensors:
+  Livox-style point cloud/raycast lidar.
+  Livox world-frame cloud.
+  LaserScan derived from Livox clouds.
+  RealSense D435i-style camera topics.
+  TF frames for robot, sensors, and map/odom frames.
+
+MuJoCo environment controls used by launch/run_mujoco_g1.sh include:
+  UNITREE_MUJOCO_SCENE
+  UNITREE_MUJOCO_PEDESTRIANS_ENABLE
+  UNITREE_MUJOCO_PEDESTRIANS_COUNT
+  UNITREE_MUJOCO_PEDESTRIAN_SOCKET
+  UNITREE_MUJOCO_LIDAR_ENABLE
+  UNITREE_MUJOCO_LIDAR_RATE_HZ
+  UNITREE_MUJOCO_LIDAR_POINTS
+  UNITREE_MUJOCO_LIDAR_HORIZONTAL_MIN_DEG
+  UNITREE_MUJOCO_LIDAR_HORIZONTAL_MAX_DEG
+  UNITREE_MUJOCO_LIDAR_VERTICAL_MIN_DEG
+  UNITREE_MUJOCO_LIDAR_VERTICAL_MAX_DEG
+  UNITREE_MUJOCO_LIDAR_DEAD_ZONE_RADIUS
+  UNITREE_MUJOCO_LIDAR_DEAD_ZONE_HEIGHT
+  UNITREE_MUJOCO_LIDAR_SOCKET
+  UNITREE_MUJOCO_CAMERA_ENABLE
+  UNITREE_MUJOCO_STARTUP_HOLD_ENABLE
+  UNITREE_MUJOCO_STARTUP_HOLD_TIMEOUT
+  UNITREE_MUJOCO_RESET_ON_CONTROLLER_START
+
+
+Current Locomotion Startup Safety Defaults
+------------------------------------------
+The current launch defaults are conservative for debugging immediate falls:
+  pre_lowstate_stand_enable: true
+  startup_blend_time: 3.0
+  startup_hold_time: 2.0
+  startup_require_upright: true
+  startup_max_recovery_time: 0.0
+  policy_action_ramp_time: 2.0
+  mujoco_startup_hold_enable: true
+  mujoco_startup_hold_timeout: 0.0
+  mujoco_reset_on_controller_start: false
+  lock_waist: true
+  balance_waist: false
+
+These are designed to publish a stable trained stand pose before releasing into policy inference, avoid invalidating the first stand command with a MuJoCo reset, and ramp policy actions in gradually.
+
+
+Common Commands
+---------------
+Build container workspace:
+  ./scripts/run_shell.sh
+  /workspace/scripts/build_ws.sh
+
+Run isolated locomotion test:
+  ./scripts/bringup_full_sim.sh run_slam:=false run_nav2:=false run_dynamic_obstacle_tracker:=false run_human_aware_motion_planner:=false run_human_collision_avoidance:=false cmd_vel_topic:=/cmd_vel
+
+Run full simulation:
+  ./scripts/bringup_full_sim.sh
+
+Run full simulation with explicit point goal support:
+  ./scripts/bringup_full_sim.sh run_point_goal:=true point_goal_x:=1.0 point_goal_y:=0.0 point_goal_yaw:=0.0
+
+Run launch-file unit test:
+  python3 -m pytest ros2_ws/src/unitree_g1_sim_bringup/test/test_launch_description.py
+
+Run bridge utility tests from package directory:
+  cd ros2_ws/src/unitree_g1_mujoco_bridge
+  python3 -m pytest test/test_pointcloud.py test/test_scan_dynamic_filter.py
+
+
+Known Build/Runtime Notes
+-------------------------
+Docker/container install state can become stale if new Python console scripts are added but /workspace/ros2_ws/install is not rebuilt. Rebuild with /workspace/scripts/build_ws.sh inside the container.
+
+The host workspace may contain Docker-generated build metadata that points at /workspace paths. If host-side colcon builds fail with build-time path errors, build inside the container or clean/recreate build/install/log directories intentionally.
+
+The launch wrapper has compatibility guards for optional executables that may be missing in stale installs, but the correct fix is still to rebuild the container workspace.
+
+Some tests should be run package-by-package to avoid Python test package import collisions from multiple package-level test/__init__.py files.
+
+
+Verification Recently Run
+-------------------------
+The following checks have been run successfully during recent work:
+  python3 -m py_compile ros2_ws/src/unitree_g1_sim_bringup/launch/g1_sim.launch.py
+  python3 -m pytest ros2_ws/src/unitree_g1_sim_bringup/test/test_launch_description.py
+  python3 -m pytest test/test_pointcloud.py test/test_scan_dynamic_filter.py from ros2_ws/src/unitree_g1_mujoco_bridge
+  colcon build --packages-up-to unitree_g1_mujoco_bridge unitree_g1_sim_bringup using temporary build/install/log paths
+  bash -n scripts/bringup_g1_ros2.sh
+
+
+Reference Summary
+-----------------
+In short, this repository builds:
+  1. A Unitree G1 ROS description package.
+  2. A MuJoCo/DDS-to-ROS bridge.
+  3. A learned policy cmd_vel locomotion controller.
+  4. Simulated Livox/camera sensor publishing.
+  5. Livox-to-LaserScan conversion and scan filtering.
+  6. SLAM and Nav2 launch integration.
+  7. Dynamic obstacle/person detection, tracking, prediction, and visualization.
+  8. Human-aware local motion planning and hard collision-avoidance cmd_vel filtering.
+  9. Explicit point goals, waypoint/random/frontier exploration helpers.
+  10. Locomotion diagnostics and SLAM reset monitoring.
+  11. Deterministic person-avoidance benchmark tooling.
+  12. Dockerized setup/build/launch/training/benchmark helper scripts.

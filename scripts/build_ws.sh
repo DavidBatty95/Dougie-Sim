@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -euo pipefail
 
 WORKSPACE="${WORKSPACE:-/workspace/ros2_ws}"
 
+set +u
 source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+set -u
 
 cd "${WORKSPACE}"
 

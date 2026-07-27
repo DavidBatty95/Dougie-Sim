@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -euo pipefail
 
 WORKSPACE="${WORKSPACE:-/workspace/ros2_ws}"
 MUJOCO_SRC="${WORKSPACE}/src/unitree_mujoco"
 MUJOCO_SIM="${MUJOCO_SRC}/simulate"
 MUJOCO_BUILD="${MUJOCO_SIM}/build"
 
+set +u
 source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
 if [ -f "${WORKSPACE}/install/setup.bash" ]; then
   source "${WORKSPACE}/install/setup.bash"
 fi
+set -u
 
 export LD_LIBRARY_PATH="/workspace/vendor/unitree_sdk2_install/lib:${LD_LIBRARY_PATH:-}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
@@ -25,13 +27,13 @@ for bin in "${candidate_bins[@]}"; do
   if [ -n "${bin}" ] && [ -x "${bin}" ]; then
     if [ -f "${MUJOCO_SIM}/config.yaml" ]; then
       cp "${MUJOCO_SIM}/config.yaml" "${MUJOCO_SIM}/config.yaml.bak"
-      UNITREE_MUJOCO_INTERFACE="${UNITREE_MUJOCO_INTERFACE:-lo}" UNITREE_MUJOCO_DOMAIN_ID="${UNITREE_MUJOCO_DOMAIN_ID:-${ROS_DOMAIN_ID:-42}}" python3 - <<'PY'
+      UNITREE_MUJOCO_CONFIG="${MUJOCO_SIM}/config.yaml" UNITREE_MUJOCO_INTERFACE="${UNITREE_MUJOCO_INTERFACE:-lo}" UNITREE_MUJOCO_DOMAIN_ID="${UNITREE_MUJOCO_DOMAIN_ID:-${ROS_DOMAIN_ID:-42}}" python3 - <<'PY'
 import os
 from pathlib import Path
 
-path = Path('/workspace/ros2_ws/src/unitree_mujoco/simulate/config.yaml')
+path = Path(os.environ['UNITREE_MUJOCO_CONFIG'])
 lines = path.read_text().splitlines()
-scene = os.environ.get("UNITREE_MUJOCO_SCENE", "scene_29dof.xml")
+scene = os.environ.get("UNITREE_MUJOCO_SCENE", "scene_29dof_extreme_lab.xml")
 settings = {
     'robot': 'robot: "g1"  # Robot name, "go2", "b2", "b2w", "h1", "go2w", "g1"',
     'robot_scene': f'robot_scene: "{scene}" # Robot scene, /unitree_robots/[robot]/scene.xml',

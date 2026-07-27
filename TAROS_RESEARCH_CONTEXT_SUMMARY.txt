@@ -1,0 +1,105 @@
+TAROS abstract research-context summary: socially aware path planning for Unitree G1 in MuJoCo
+
+Overall project aim
+- The repository is a Dockerized ROS 2 Humble and MuJoCo workspace for simulating the Unitree G1 humanoid, bridging Unitree DDS low-level interfaces into ROS 2, publishing simulated Livox/RealSense-like sensors, running SLAM/Nav2, and testing navigation around static and moving pedestrian-like obstacles.
+- For a TAROS abstract, the most accurate framing is: a simulation-first stack for socially aware navigation experiments with a Unitree G1 humanoid in MuJoCo, using LiDAR-only dynamic pedestrian tracking, prediction, Nav2 costmap integration, and a velocity-level human-collision-avoidance filter.
+- Avoid claiming a fully novel planner or validated social-navigation results unless additional experiments are performed.
+
+What has actually been implemented so far
+- ROS 2 launch stack: `ros2_ws/src/unitree_g1_sim_bringup/launch/g1_sim.launch.py` starts MuJoCo, the G1 bridge, an ONNX/Torch locomotion policy controller, simulated sensors, Livox-to-LaserScan projection, slam_toolbox, optional Nav2, dynamic obstacle tracking, human collision avoidance, random waypoint/frontier exploration, fall reset monitoring, robot_state_publisher, and RViz.
+- Unitree bridge: `unitree_g1_mujoco_bridge/g1_mujoco_bridge.py` converts `/g1/body_position_commands` into Unitree `LowCmd` on `/lowcmd` and `rt/lowcmd`, publishes `/joint_states`, relays hand commands, estimates base height, locks/balances waist joints, and switches to damping-only motor commands after fall detection.
+- Locomotion policy controller: `unitree_g1_mujoco_bridge/g1_policy_cmd_vel_controller.py` consumes `/cmd_vel_safe` by default, filters/limits velocity commands, builds policy observations from `/lowstate`, runs an ONNX/Torch policy, and publishes 29-DOF joint targets. It supports 12-action lower-body policies and 29-action full-body policies.
+- Simulated sensing: `unitree_g1_mujoco_bridge/g1_sim_sensors.py` publishes `/livox/lidar`, `/livox/lidar_world`, `/scan` input clouds, `/camera/...` RGB/depth topics when enabled, IMU-like topics, TF for `world`, `base_footprint`, `mujoco_livox_frame`, and camera frames. It can receive exact MuJoCo raycast LiDAR/camera packets from Unix sockets.
+- Dynamic-obstacle handling: `dynamic_obstacle_tracker.py` clusters LiDAR points, filters likely static background, scores person-like clusters, tracks position/velocity, predicts future occupied points, and publishes `/dynamic_obstacles`, `/tracked_dynamic_obstacles`, and `/predicted_dynamic_obstacles`.
+- Human collision avoidance: `human_collision_avoidance.py` reads `/predicted_dynamic_obstacles` and overrides raw `/cmd_vel` with `/cmd_vel_safe` if predicted human-risk points enter a danger radius.
+- Exploration helpers: `g1_waypoint_explorer.py`, `g1_frontier_explorer.py`, and `g1_random_explorer.py` provide random Nav2 goals, frontier goals from `/map`, and obstacle-aware random velocity commands respectively.
+
+MuJoCo setup
+- Main G1 model: `ros2_ws/src/unitree_mujoco/unitree_robots/g1/g1_29dof.xml`.
+- The model defines a free floating pelvis base, 29 actuated body joints, mesh assets for pelvis/legs/waist/torso/head/arms/hands, motor actuators for legs/waist/arms/wrists, joint position/velocity/torque sensors, IMU sensors, and sensor sites `livox_site` and `d435i_color_site` on the torso/head area.
+- Important sites/sensors: `imu`, `secondary_imu`, `livox_site`, `d435i_color_site`, `livox_pos`, `livox_quat`, IMU gyro/accelerometer, joint sensors, actuator force sensors.
+- Scene/world XML files under `ros2_ws/src/unitree_mujoco/unitree_robots/g1/` include:
+- `scene_29dof_pedestrians.xml`: large plaza/road scene with buildings, curbs, crosswalks, benches, trees, bus stop, parked cars, fountain, planters, kiosk, bollards, trash bins, and six mocap pedestrians with capsule collision bodies and RenderPeople-style animated mesh frames.
+- `scene_29dof_room.xml`: default enclosed room with walls, doorway, furniture, boxes, shelf, column, bin, pedestal.
+- `scene_29dof_empty.xml`: flat empty floor.
+- `scene_29dof_obstacles.xml`: bars/platform/ramp/pillars/box scenario.
+- `scene_29dof_steps.xml`: step sequence.
+- `scene_29dof.xml`: upstream flat default.
+- `scene_29dof_extreme_lab.xml`: GLB-derived Extreme Lab visual mesh with simple collision/LiDAR proxies.
+- Pedestrian animation is implemented in `ros2_ws/src/unitree_mujoco/simulate/src/main.cc` in `KinematicPedestrians`. It finds `ped*_torso`, `ped*_head`, limb mocap bodies, animates them along waypoint paths, avoids configured static obstacles and other pedestrians, updates walking mesh frames, and can be disabled with `UNITREE_MUJOCO_PEDESTRIANS_ENABLE=0`.
+- MuJoCo raycast LiDAR and depth camera are also implemented in `simulate/src/main.cc` through `MujocoLidarRaycaster` and `MujocoDepthCameraRaycaster`, using `mj_ray`/`mj_multiRay` and Unix datagram sockets. Launch passes socket paths and ray parameters via environment variables.
+- Default launch scene is `scene_29dof_room.xml`, but the README recommends `scene_29dof_pedestrians.xml` for SLAM/dynamic-obstacle tests.
+
+Planner and social-aware navigation behavior
+- Global planner: Nav2 `NavfnPlanner` configured in `ros2_ws/src/unitree_g1_sim_bringup/config/nav2_livox.yaml`, with `use_astar: true`, `allow_unknown: true`, and tolerance `0.7`.
+- Local planner/controller: Nav2 DWB local planner configured in the same file with critics `RotateToGoal`, `Oscillation`, `BaseObstacle`, `GoalAlign`, `PathAlign`, `PathDist`, and `GoalDist`. Velocity limits are conservative: max x speed `0.25 m/s`, no lateral velocity in Nav2 (`max_vel_y: 0.0`), max yaw `0.8 rad/s`, sim time `1.7 s`.
+- Social cost terms are not implemented as a custom social-force or proxemic planner. The social behavior is implemented through dynamic human prediction and costmap inflation plus a safety velocity override.
+- Dynamic/pedestrian cost terms: `dynamic_obstacle_tracker.py` uses `personal_space_radius`, `robot_avoidance_radius`, `robot_risk_inflation_radius`, `prediction_horizon`, and `prediction_dt` to generate predicted obstacle point clouds around tracked/predicted pedestrians.
+- Nav2 costmap social integration: local and global costmaps include `/predicted_dynamic_obstacles` as a `PointCloud2` observation source with marking enabled and clearing disabled. Inflation radii are `1.15 m` local and `1.25 m` global, so predicted human occupancy is inflated into planning costs.
+- Human representation: pedestrians are MuJoCo mocap bodies in the scene, but the tracker does not use MuJoCo body names/IDs. It treats people as LiDAR-only point clusters, scores them by size/height/centroid/count/speed, tracks motion, and predicts constant-velocity future footprints.
+- Obstacle handling: static obstacles enter `/scan` from the 360-degree Livox projection and are used by slam_toolbox/Nav2 costmaps. Dynamic people are published as predicted point clouds for costmaps and as confirmed tracked clouds for scan filtering.
+- SLAM dynamic filtering: `scan_dynamic_filter.py` removes scan bins near confirmed tracked people from `/scan_raw` to produce `/scan`, reducing dynamic-person contamination of the occupancy map.
+- Goal selection: `g1_waypoint_explorer.py` chooses random goals in a hard-coded walkable region, rejects goals and route segments near current predicted/tracked dynamic-obstacle points, and cancels/replans when a dynamic obstacle moves into the active route. `g1_frontier_explorer.py` chooses frontier cells from `/map` for unknown-space exploration. Both send Nav2 `NavigateToPose` goals and publish `/exploration_goal`.
+
+Robot control
+- The stack uses high-level velocity navigation commands converted into locomotion through a learned G1 policy, not a footstep planner.
+- `g1_policy_cmd_vel_controller.py` consumes `/cmd_vel_safe`, applies velocity clamps and acceleration filtering, builds observations from G1 joint states/velocities, IMU gyroscope, projected gravity, previous actions, and command velocities, then outputs joint target offsets.
+- The default policy path in launch/README is an ONNX lower-body velocity policy: `/workspace/vendor/mjlab/logs/rsl_rl/g1_velocity/2026-05-05_19-54-01_g1_flat_lower_body_locomotion/2026-05-05_19-54-01_g1_flat_lower_body_locomotion.onnx` with `policy_obs_dim:=82` and `policy_action_dim:=12`.
+- Path-to-motion conversion: Nav2 produces `/cmd_vel`; `human_collision_avoidance.py` filters it to `/cmd_vel_safe`; the policy controller maps that velocity command into joint position targets; `g1_mujoco_bridge.py` converts targets into Unitree low-level motor commands for MuJoCo.
+- Balance/stability details: launch locks waist yaw/roll/pitch by default and enables dynamic waist balance. `g1_mujoco_bridge.py` applies waist roll/pitch corrections from torso roll/pitch and angular velocity, and damping-only fall mode if roll/pitch exceeds `fall_damping_enter_angle`.
+- Startup/reset stability: the policy controller publishes a trained standing pose before `/lowstate`, blends from current pose to default standing pose, waits until upright before policy inference, detects resets/fall-upright transitions, and restarts startup blending.
+- Constraints to mention: high-level Nav2 has no lateral velocity, max forward `0.25 m/s`; the policy controller itself can accept lateral `cmd_vel` up to `0.25 m/s`, and the human-collision filter may command small lateral motion up to `0.10 m/s`, but Nav2 DWB is configured as differential-drive-like.
+
+Experiments and results
+- Implemented scenarios available for testing: empty floor, room/furniture, obstacle course, steps, Extreme Lab mesh/proxies, and pedestrian plaza.
+- Supported run modes: default simulation/SLAM/dynamic tracker; pedestrian plaza with SLAM; Nav2 waypoint exploration; Nav2 frontier exploration; random velocity exploration; camera optional.
+- Baselines in code: there is no formal baseline evaluation script. Possible baseline toggles are `run_human_collision_avoidance:=false`, `run_dynamic_obstacle_tracker:=false`, `UNITREE_MUJOCO_PEDESTRIANS_ENABLE=0`, `run_nav2:=true` without predicted obstacle cost source only if config is edited, and random explorer vs Nav2 waypoint/frontier exploration.
+- Metrics in code/config: no experiment metrics logger for success rate, collision count, path length, clearance, social discomfort, time-to-goal, or map coverage was found. Tests under `vendor/mjlab/tests` are mostly MJ Lab/unit tests and not social-navigation evaluations.
+- Results: no quantitative results or completed evaluation tables were found in the repository. Do not claim success rates, collision reduction, planning-time improvements, or user/social comfort results unless measured separately.
+
+Key files and functions/classes
+- `README.md`: setup, launch commands, scene list, sensor topics, Nav2/dynamic-obstacle description, limitations warning.
+- `ros2_ws/src/unitree_g1_sim_bringup/launch/g1_sim.launch.py`: main launch graph and parameters for MuJoCo, bridge, policy controller, sensors, SLAM, Nav2, dynamic obstacle tracker, collision avoidance, exploration nodes.
+- `ros2_ws/src/unitree_g1_sim_bringup/config/nav2_livox.yaml`: Nav2 planner/controller/costmap parameters, DWB critics, predicted-obstacle observation sources, inflation radii, velocity smoother.
+- `ros2_ws/src/unitree_mujoco/unitree_robots/g1/g1_29dof.xml`: robot model, joints, actuators, sensors, Livox/camera sites.
+- `ros2_ws/src/unitree_mujoco/unitree_robots/g1/scene_29dof_pedestrians.xml`: pedestrian plaza environment and six mocap pedestrian bodies.
+- `ros2_ws/src/unitree_mujoco/simulate/src/main.cc`: `MujocoLidarRaycaster`, `MujocoDepthCameraRaycaster`, `StartupHoldGate`, `KinematicPedestrians`, pedestrian path/animation logic.
+- `unitree_g1_mujoco_bridge/g1_mujoco_bridge.py`: `G1MujocoBridge`, `_body_command_callback`, `_apply_waist_balance`, `_update_fallen_state`, `_fill_fall_damping_command`.
+- `unitree_g1_mujoco_bridge/g1_policy_cmd_vel_controller.py`: `G1PolicyCmdVelController`, `_cmd_vel_callback`, `_filtered_active_command`, `_build_observation`, `_publish_action`, `OnnxPolicy`, `TorchPolicy`.
+- `unitree_g1_mujoco_bridge/g1_sim_sensors.py`: `G1SimSensors`, `_publish_lidar`, `_decode_mujoco_lidar_packet`, `_publish_camera`, `_decode_mujoco_camera_packet`, `_build_livox_scan_rays`.
+- `unitree_g1_mujoco_bridge/livox_to_scan.py`: `LivoxToScan`, `_cloud_callback`, `_fill_circular_gaps`.
+- `unitree_g1_mujoco_bridge/scan_dynamic_filter.py`: `ScanDynamicFilter`, `_scan_callback`, `_remove_dynamic_return`.
+- `unitree_g1_mujoco_bridge/dynamic_obstacle_tracker.py`: `DynamicObstacleTracker`, `_clusters`, `_match_track`, `_person_score`, `_is_confirmed_person`, `_prediction_points`, `_trajectory_near_robot`.
+- `unitree_g1_mujoco_bridge/human_collision_avoidance.py`: `HumanCollisionAvoidance`, `_cloud_callback`, `_timer_callback`, `_home_hold_cmd`.
+- `unitree_g1_mujoco_bridge/g1_waypoint_explorer.py`: `G1WaypointExplorer`, `_choose_goal`, `_near_dynamic_obstacle`, `_segment_near_dynamic`, `_dynamic_route_blocked`.
+- `unitree_g1_mujoco_bridge/g1_frontier_explorer.py`: `G1FrontierExplorer`, `_choose_frontier_goal`, `_is_frontier_cell`, `_collect_frontier`.
+- `unitree_g1_mujoco_bridge/g1_random_explorer.py`: `G1RandomExplorer`, `_scan_callback`, `_tick`, `_choose_new_command`.
+
+Useful commands
+- Build/setup inside container: `/workspace/scripts/setup_sources.sh`, `/workspace/scripts/build_ws.sh`, `/workspace/scripts/build_unitree_mujoco.sh`.
+- Default full sim from host: `./scripts/bringup_full_sim.sh`.
+- Pedestrian plaza with SLAM/dynamic tracking: `./scripts/bringup_full_sim.sh mujoco_scene:=scene_29dof_pedestrians.xml`.
+- Nav2 waypoint exploration in pedestrian plaza: `./scripts/bringup_full_sim.sh mujoco_scene:=scene_29dof_pedestrians.xml run_nav2:=true run_waypoint_explorer:=true`.
+- Frontier exploration: `./scripts/bringup_full_sim.sh mujoco_scene:=scene_29dof_pedestrians.xml run_nav2:=true run_frontier_explorer:=true`.
+- Disable pedestrian motion: `UNITREE_MUJOCO_PEDESTRIANS_ENABLE=0 ./scripts/bringup_full_sim.sh mujoco_scene:=scene_29dof_pedestrians.xml`.
+- Disable dynamic tracker: `./scripts/bringup_full_sim.sh run_dynamic_obstacle_tracker:=false`.
+- Disable SLAM: `./scripts/bringup_full_sim.sh run_slam:=false`.
+- Enable camera: `./scripts/bringup_full_sim.sh publish_camera:=true`.
+- Teleop: `./scripts/teleop_cmd_vel.sh` or publish `geometry_msgs/msg/Twist` to `/cmd_vel`.
+- Tests mentioned by README: `./scripts/test_workspace.sh fast`, `./scripts/test_workspace.sh precommit`, `./scripts/test_workspace.sh smoke`.
+
+Limitations and TODOs / claims not to make
+- Do not claim a new optimal/social path-planning algorithm is implemented. The repository uses Nav2 A*/Navfn plus DWB, with social awareness added through predicted pedestrian costmap points and a velocity safety filter.
+- Do not claim human-aware intent prediction beyond short-horizon constant-velocity extrapolation from LiDAR cluster tracks.
+- Do not claim semantic pedestrian detection or ground-truth people tracking. The tracker is LiDAR-only and explicitly does not use MuJoCo pedestrian IDs or scene metadata.
+- Do not claim real-robot deployment. README says this is simulation-first and warns not to move gains/policies to hardware without safety procedures.
+- Do not claim footstep planning, ZMP/MPC balance control, whole-body trajectory optimization, or dynamic humanoid contact planning. Locomotion is through a learned velocity policy and low-level joint position targets.
+- Do not claim quantitative performance improvements, statistical validation, comfort/user-study results, or benchmark comparisons. No such results were found.
+- Current social behavior is largely reactive/pre-emptive obstacle avoidance rather than full social navigation: it inflates predicted people, filters unsafe velocity commands, and rejects/cancels goals near dynamic obstacles.
+- Goal generation in `g1_waypoint_explorer.py` has hard-coded walkable bounds/obstacles that appear tailored to a lab/room-like coordinate region, not necessarily the full plaza; this should be described cautiously.
+- The DWB local planner is configured without lateral velocity, while the learned policy and safety filter can use small lateral commands. This mismatch should be considered in experiments.
+- Camera simulation exists but is disabled by default for performance and is raycast geometry-color/depth, not photorealistic rendering.
+- No automated evaluation harness for TAROS metrics was found. Suggested future metrics: collision count, minimum human clearance, time-to-goal, path length, number of replans/cancellations, false positive/negative pedestrian tracks, map contamination, robot falls/resets, and success rate across scenes/seeds.
+
+Concise abstract-safe phrasing
+- "We present a MuJoCo/ROS 2 simulation stack for socially aware navigation of a Unitree G1 humanoid, integrating a learned velocity-conditioned locomotion policy with LiDAR-only pedestrian tracking and short-horizon prediction. Predicted pedestrian occupancy is injected into Nav2 costmaps and a velocity-level safety filter overrides commands when humans enter a near-field risk region. The platform includes animated mocap pedestrian obstacles, 360-degree MuJoCo raycast Livox sensing, SLAM, Nav2 planning/control, and multiple indoor/plaza scenarios. Current work is a simulation prototype; quantitative social-navigation evaluation remains future work."
