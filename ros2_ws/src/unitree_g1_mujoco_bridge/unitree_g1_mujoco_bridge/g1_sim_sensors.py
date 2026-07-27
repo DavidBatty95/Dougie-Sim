@@ -20,6 +20,8 @@ from std_msgs.msg import Float32, Header, String
 from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
 from unitree_go.msg import SportModeState
 
+from .sensor_packets import decode_camera_packet, decode_lidar_packet
+
 
 class G1SimSensors(Node):
     def __init__(self) -> None:
@@ -146,11 +148,14 @@ class G1SimSensors(Node):
         self.latest_mujoco_lidar_world_packet = None
         self.latest_mujoco_lidar_time = None
         self.latest_mujoco_lidar_sim_time = None
+        self.latest_mujoco_lidar_acquisition_stamp = None
         self.dropped_mujoco_lidar_packets = 0
         self.latest_mujoco_color_data = None
         self.latest_mujoco_depth_data = None
         self.latest_mujoco_camera_time = None
         self.latest_mujoco_camera_sim_time = None
+        self.latest_mujoco_camera_acquisition_stamp = None
+        self.camera_data_stamp = None
         self.lidar_dead_reckon_x = 0.0
         self.lidar_dead_reckon_y = 0.0
         self.lidar_dead_reckon_yaw = 0.0
@@ -165,7 +170,11 @@ class G1SimSensors(Node):
             self._open_mujoco_camera_socket()
         if self.publish_camera:
             data = self._latest_mujoco_camera_images()
-            self.color_data, self.depth_data = data if data is not None else self._render_camera(self.camera_frame)
+            if data is not None:
+                self.color_data, self.depth_data, self.camera_data_stamp = data
+            else:
+                self.color_data, self.depth_data = self._render_camera(self.camera_frame)
+                self.camera_data_stamp = self.get_clock().now().to_msg()
         else:
             self.color_data = b""
             self.depth_data = b""
@@ -327,9 +336,17 @@ class G1SimSensors(Node):
         if len(latest) < 16:
             return
         magic, count, sim_time = struct.unpack_from("<IId", latest, 0)
-        if magic != 0x31444550:
+        if magic == 0x32444550:
+            if len(latest) < 24:
+                return
+            acquisition_time_ns = struct.unpack_from("<q", latest, 16)[0]
+            offset = 24
+            stamp = acquisition_time_ns * 1e-9
+        elif magic == 0x31444550:
+            offset = 16
+            stamp = self.get_clock().now().nanoseconds * 1e-9
+        else:
             return
-        offset = 16
         people = []
         entry_size = struct.calcsize("<iddddd")
         for _ in range(min(count, 64)):
@@ -339,7 +356,7 @@ class G1SimSensors(Node):
             offset += entry_size
             people.append({"id": person_id, "x": x, "y": y, "vx": vx, "vy": vy, "radius_m": radius})
         msg = String()
-        msg.data = json.dumps({"stamp": self.get_clock().now().nanoseconds * 1e-9, "sim_time": sim_time, "people": people})
+        msg.data = json.dumps({"stamp": stamp, "sim_time": sim_time, "people": people})
         self.mujoco_pedestrians_pub.publish(msg)
 
     def _mujoco_state_callback(self, msg: SportModeState) -> None:
@@ -401,11 +418,11 @@ class G1SimSensors(Node):
         odom.twist.twist.angular.z = self.current_odom_twist[2]
         self.odom_pub.publish(odom)
 
-    def _publish_base_footprint_tf(self, base_origin: tuple, base_rotation: tuple) -> None:
+    def _publish_base_footprint_tf(self, base_origin: tuple, base_rotation: tuple, stamp=None) -> None:
         yaw = self._stable_base_yaw(base_rotation)
         yaw_rotation = self._yaw_to_matrix(yaw)
         transform = TransformStamped()
-        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.stamp = stamp if stamp is not None else self.get_clock().now().to_msg()
         transform.header.frame_id = "world"
         transform.child_frame_id = "base_footprint"
         transform.transform.translation.x = base_origin[0]
@@ -469,6 +486,7 @@ class G1SimSensors(Node):
         self.latest_mujoco_lidar_packet = None
         self.latest_mujoco_lidar_world_packet = None
         self.latest_mujoco_lidar_time = None
+        self.latest_mujoco_lidar_acquisition_stamp = None
 
     @staticmethod
     def _base_tilt(base_rotation: tuple) -> float:
@@ -522,9 +540,9 @@ class G1SimSensors(Node):
             throttle_duration_sec=5.0,
         )
 
-    def _publish_lidar_tf(self, origin: tuple, rotation: tuple) -> None:
+    def _publish_lidar_tf(self, origin: tuple, rotation: tuple, stamp=None) -> None:
         transform = TransformStamped()
-        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.stamp = stamp if stamp is not None else self.get_clock().now().to_msg()
         transform.header.frame_id = "world"
         transform.child_frame_id = self.lidar_frame
         transform.transform.translation.x = origin[0]
@@ -537,9 +555,9 @@ class G1SimSensors(Node):
         transform.transform.rotation.w = qw
         self.tf_broadcaster.sendTransform(transform)
 
-    def _header(self, frame_id: str) -> Header:
+    def _header(self, frame_id: str, stamp=None) -> Header:
         header = Header()
-        header.stamp = self.get_clock().now().to_msg()
+        header.stamp = stamp if stamp is not None else self.get_clock().now().to_msg()
         header.frame_id = frame_id
         return header
 
@@ -560,8 +578,12 @@ class G1SimSensors(Node):
 
     def _publish_camera(self) -> None:
         data = self._latest_mujoco_camera_images()
-        self.color_data, self.depth_data = data if data is not None else self._render_camera(self.camera_frame)
-        stamp = self.get_clock().now().to_msg()
+        if data is not None:
+            self.color_data, self.depth_data, stamp = data
+        else:
+            self.color_data, self.depth_data = self._render_camera(self.camera_frame)
+            stamp = self.get_clock().now().to_msg()
+        self.camera_data_stamp = stamp
         color_header = Header()
         color_header.stamp = stamp
         color_header.frame_id = self.camera_frame
@@ -622,7 +644,10 @@ class G1SimSensors(Node):
         if latest_packet is not None:
             decoded = self._decode_mujoco_camera_packet(latest_packet)
             if decoded is not None:
-                self.latest_mujoco_color_data, self.latest_mujoco_depth_data = decoded
+                color, depth, acquisition_stamp = decoded
+                self.latest_mujoco_color_data = color
+                self.latest_mujoco_depth_data = depth
+                self.latest_mujoco_camera_acquisition_stamp = acquisition_stamp
                 self.latest_mujoco_camera_time = self.get_clock().now()
 
         if self.latest_mujoco_color_data is None or self.latest_mujoco_camera_time is None:
@@ -631,45 +656,39 @@ class G1SimSensors(Node):
         age = (self.get_clock().now() - self.latest_mujoco_camera_time).nanoseconds * 1e-9
         if age > 0.5:
             return None
-        return self.latest_mujoco_color_data, self.latest_mujoco_depth_data
+        return (
+            self.latest_mujoco_color_data,
+            self.latest_mujoco_depth_data,
+            self.latest_mujoco_camera_acquisition_stamp,
+        )
 
     def _decode_mujoco_camera_packet(self, packet: bytes):
-        header_format = "<IIId"
-        pose_header_format = "<IIId3f4f"
-        header_size = struct.calcsize(header_format)
-        pose_header_size = struct.calcsize(pose_header_format)
-        if len(packet) < header_size:
+        decoded = decode_camera_packet(packet)
+        if decoded is None:
             return None
-        magic, width, height, _sim_time = struct.unpack_from(header_format, packet)
-        if magic != 0x52434A4D:
-            return None
-        if int(width) != self.width or int(height) != self.height:
+        if decoded.width != self.width or decoded.height != self.height:
             self.get_logger().warning(
-                f"Ignoring MuJoCo camera frame {width}x{height}; ROS camera is {self.width}x{self.height}",
+                f"Ignoring MuJoCo camera frame {decoded.width}x{decoded.height}; ROS camera is {self.width}x{self.height}",
                 throttle_duration_sec=5.0,
             )
             return None
         color_size = self.width * self.height * 3
         depth_size = self.width * self.height * 2
-        has_pose = len(packet) >= pose_header_size + color_size + depth_size
-        if has_pose:
-            _, _, _, sim_time, ox, oy, oz, qw, qx, qy, qz = struct.unpack_from(pose_header_format, packet)
-            origin = (ox, oy, oz)
-            rotation = self._quat_wxyz_to_matrix((qw, qx, qy, qz))
-            if self.latest_mujoco_camera_sim_time is not None and sim_time + 1e-9 < self.latest_mujoco_camera_sim_time:
+        receipt_time = self.get_clock().now()
+        acquisition_stamp = self._acquisition_stamp(decoded.acquisition_time_ns, receipt_time)
+        if decoded.origin:
+            rotation = self._quat_wxyz_to_matrix(decoded.quaternion_wxyz)
+            if self.latest_mujoco_camera_sim_time is not None and decoded.simulation_time + 1e-9 < self.latest_mujoco_camera_sim_time:
                 self.get_logger().info("MuJoCo camera sim time reset detected; using newest camera pose")
-            self.latest_mujoco_camera_sim_time = sim_time
-            self._publish_camera_tf(origin, rotation)
-            header_size = pose_header_size
-        elif len(packet) < header_size + color_size + depth_size:
-            return None
-        color = packet[header_size:header_size + color_size]
-        depth = packet[header_size + color_size:header_size + color_size + depth_size]
-        return color, depth
+            self.latest_mujoco_camera_sim_time = decoded.simulation_time
+            self._publish_camera_tf(decoded.origin, rotation, acquisition_stamp)
+        color = decoded.payload[:color_size]
+        depth = decoded.payload[color_size:color_size + depth_size]
+        return color, depth, acquisition_stamp
 
-    def _publish_camera_tf(self, origin: tuple, rotation: tuple) -> None:
+    def _publish_camera_tf(self, origin: tuple, rotation: tuple, stamp=None) -> None:
         transform = TransformStamped()
-        transform.header.stamp = self.get_clock().now().to_msg()
+        transform.header.stamp = stamp if stamp is not None else self.get_clock().now().to_msg()
         transform.header.frame_id = "world"
         transform.child_frame_id = self.camera_frame
         transform.transform.translation.x = origin[0]
@@ -687,7 +706,7 @@ class G1SimSensors(Node):
             return
         self.depth_pointcloud_data = self._build_depth_pointcloud_from_depth()
         cloud = PointCloud2()
-        cloud.header = self._header(self.camera_frame)
+        cloud.header = self._header(self.camera_frame, self.camera_data_stamp)
         cloud.height = self.height
         cloud.width = self.width
         cloud.fields = self.depth_pointcloud_fields
@@ -749,6 +768,7 @@ class G1SimSensors(Node):
     def _publish_lidar(self) -> None:
         started = self.get_clock().now()
         cloud_data = self._latest_mujoco_lidar_packet()
+        acquisition_stamp = self.latest_mujoco_lidar_acquisition_stamp if cloud_data is not None else None
         if self._mapping_lidar_suppressed():
             self.mapping_lidar_suppressed_count += 1
             self._drop_cached_lidar_packets()
@@ -769,7 +789,7 @@ class G1SimSensors(Node):
         if cloud_data is None:
             cloud_data = self._build_livox_mid360_packet(self.livox_points_per_packet)
         cloud = PointCloud2()
-        cloud.header = self._header(self.lidar_output_frame)
+        cloud.header = self._header(self.lidar_output_frame, acquisition_stamp)
         cloud.height = 1
         cloud.width = len(cloud_data) // 16
         cloud.fields = self.livox_fields
@@ -779,9 +799,13 @@ class G1SimSensors(Node):
         cloud.is_dense = True
         cloud.data = cloud_data
         self.lidar_pub.publish(cloud)
-        if self.latest_mujoco_lidar_world_packet is not None and self.lidar_world_pub.get_subscription_count() > 0:
+        if (
+            acquisition_stamp is not None
+            and self.latest_mujoco_lidar_world_packet is not None
+            and self.lidar_world_pub.get_subscription_count() > 0
+        ):
             world_cloud = PointCloud2()
-            world_cloud.header = self._header("world")
+            world_cloud.header = self._header("world", acquisition_stamp)
             world_cloud.height = 1
             world_cloud.width = len(self.latest_mujoco_lidar_world_packet) // 16
             world_cloud.fields = self.livox_fields
@@ -839,37 +863,31 @@ class G1SimSensors(Node):
         return self.latest_mujoco_lidar_packet
 
     def _decode_mujoco_lidar_packet(self, packet: bytes):
-        header_format = "<IId3f4f"
-        header_size = struct.calcsize(header_format)
-        if len(packet) < header_size:
+        decoded = decode_lidar_packet(packet)
+        if decoded is None:
             return None
-
-        magic, count, sim_time, ox, oy, oz, qw, qx, qy, qz = struct.unpack_from(header_format, packet)
-        if magic != 0x524C4A4D:
-            return None
-
-        payload_size = int(count) * 16
-        if len(packet) < header_size + payload_size:
-            return None
-
-        payload = packet[header_size:header_size + payload_size]
-        origin = (ox, oy, oz)
-        rotation = self._quat_wxyz_to_matrix((qw, qx, qy, qz))
-        if self.latest_mujoco_lidar_sim_time is not None and sim_time + 1e-9 < self.latest_mujoco_lidar_sim_time:
+        payload = decoded.payload
+        origin = decoded.origin
+        ox, oy, oz = origin
+        rotation = self._quat_wxyz_to_matrix(decoded.quaternion_wxyz)
+        receipt_time = self.get_clock().now()
+        acquisition_stamp = self._acquisition_stamp(decoded.acquisition_time_ns, receipt_time)
+        if self.latest_mujoco_lidar_sim_time is not None and decoded.simulation_time + 1e-9 < self.latest_mujoco_lidar_sim_time:
             self.latest_mujoco_lidar_world_packet = None
             self.get_logger().info("MuJoCo LiDAR sim time reset detected; dropped stale world-frame packet")
-        self.latest_mujoco_lidar_sim_time = sim_time
+        self.latest_mujoco_lidar_sim_time = decoded.simulation_time
+        self.latest_mujoco_lidar_acquisition_stamp = acquisition_stamp
         self.last_mujoco_pose = (origin, rotation)
-        self.last_mujoco_pose_time = self.get_clock().now()
+        self.last_mujoco_pose_time = receipt_time
         self.last_base_pose = self._base_pose_from_lidar_pose(origin, rotation)
         self._update_mapping_lidar_state(self.last_base_pose[1])
         if self.publish_lidar_tf:
-            self._publish_lidar_tf(origin, rotation)
-            self._publish_base_footprint_tf(*self.last_base_pose)
+            self._publish_lidar_tf(origin, rotation, acquisition_stamp)
+            self._publish_base_footprint_tf(*self.last_base_pose, acquisition_stamp)
         publish_world = self.lidar_output_frame == "world" or self.lidar_world_pub.get_subscription_count() > 0
         if publish_world:
-            world_packet = bytearray(payload_size)
-            for index in range(int(count)):
+            world_packet = bytearray(decoded.count * 16)
+            for index in range(decoded.count):
                 offset = index * 16
                 local_x, local_y, local_z, intensity = struct.unpack_from("<ffff", payload, offset)
                 world_x, world_y, world_z = self._rotate(rotation, (local_x, local_y, local_z))
@@ -888,6 +906,12 @@ class G1SimSensors(Node):
         else:
             self.latest_mujoco_lidar_world_packet = None
         return payload
+
+    @staticmethod
+    def _acquisition_stamp(acquisition_time_ns, receipt_time: Time):
+        if acquisition_time_ns is None or acquisition_time_ns <= 0:
+            return receipt_time.to_msg()
+        return Time(nanoseconds=int(acquisition_time_ns)).to_msg()
 
     def _build_livox_mid360_packet(self, count: int) -> bytes:
         # MID-360 is a non-repetitive scanner. This deterministic low-discrepancy
