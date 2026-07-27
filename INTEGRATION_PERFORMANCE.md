@@ -23,8 +23,9 @@ Run on 2026-07-27 in the project container:
 | --- | --- |
 | MuJoCo release build | Passed |
 | MuJoCo debug build | Passed |
+| Fresh full ROS workspace build | 9 packages passed |
 | C++ CTest | 3/3 passed |
-| Bridge Python tests | 35 passed |
+| Bridge Python tests | 36 passed |
 | Policy worker tests | 7 passed |
 | Sensor packet tests | 4 passed |
 | Python syntax and diff checks | Passed |
