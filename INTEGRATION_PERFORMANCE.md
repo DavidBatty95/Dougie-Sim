@@ -53,6 +53,13 @@ Enabling all simulated sensors reduced observed low-state throughput by 8.4%,
 within the 10% acceptance threshold. The enabled run delivered 105 LiDAR
 packets with zero stale packet drops.
 
+The initial asynchronous implementation still allocated an `mjData` snapshot
+for every sensor frame. After replacing those allocations with a reusable
+three-slot pool, a repeated sensor-enabled interval delivered 8,430 low-state
+packets, approximately 843 Hz. Absolute rates vary with host scheduling, but
+the pooled run removed the measured sensor throughput penalty and delivered
+130 LiDAR packets while keeping the worker queue bounded.
+
 A longer sensor-enabled reset test processed three asynchronous resets without
 a crash. Low-state publication continued beyond 20,000 packets. The LiDAR
 worker reported 252 submitted jobs, zero replacements, 251 completed jobs, and
@@ -63,9 +70,6 @@ worker reported 252 submitted jobs, zero replacements, 251 completed jobs, and
 - Automated UI model drag/drop reload was not available in the headless test.
   The reload path builds and no longer leaves the bridge holding MuJoCo
   pointers, but repeated interactive reload should still be tested.
-- Snapshot creation currently allocates private `mjData` at each scheduled
-  sensor capture. Raycasting is decoupled, but pooling these snapshots may
-  further reduce the observed 8.4% sensor overhead.
 - The neutral hold controller did not maintain an upright G1 in these tests.
   This is controller/policy tuning, not a bridge race, but it prevents claiming
   improved locomotion stability from integration changes alone.
