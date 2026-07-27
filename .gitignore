@@ -27,6 +27,7 @@ ros2_ws/.colcon/
 *.bag
 *.db3
 *.mcap
+ros2_ws/src/dynamic_obstacle_benchmarks/results/
 frames.pdf
 frames_*.pdf
 frames_*.gv

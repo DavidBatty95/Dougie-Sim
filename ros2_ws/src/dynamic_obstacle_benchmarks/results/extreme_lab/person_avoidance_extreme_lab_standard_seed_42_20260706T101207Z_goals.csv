@@ -1,2 +1,0 @@
-index,reached,failure_reason,time_s,path_length_m,minimum_separation_m,near_misses,critical_near_misses,collisions
-0,False,collision,11.939041378000184,0.32029193279330775,0.7401366683567251,1,1,1
