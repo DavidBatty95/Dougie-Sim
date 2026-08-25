@@ -45,7 +45,7 @@ jobs:
             --env CYCLONEDDS_URI=file:///workspace/ros2_ws/config/cyclonedds.xml \
             --volume "${{ github.workspace }}:/workspace" \
             unitree-g1-verification:humble \
-            bash -lc "/workspace/scripts/test_workspace_inside.sh ci"
+            bash -lc "/workspace/scripts/setup_sources.sh && /workspace/scripts/test_workspace_inside.sh ci"
 
       - name: Upload test results
         if: always()
