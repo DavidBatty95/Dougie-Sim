@@ -10,7 +10,20 @@ if [ ! -f "${WORKSPACE}/unitree.repos" ]; then
   exit 1
 fi
 
-vcs import "${WORKSPACE}/src" < "${WORKSPACE}/unitree.repos"
+unitree_repositories=(unitree_mujoco unitree_ros2 unitree_sdk2)
+existing_repositories=0
+for repository in "${unitree_repositories[@]}"; do
+  if git -C "${WORKSPACE}/src/${repository}" rev-parse --git-dir >/dev/null 2>&1; then
+    existing_repositories=$((existing_repositories + 1))
+  fi
+done
+
+if [ "${existing_repositories}" -eq 0 ]; then
+  vcs import "${WORKSPACE}/src" < "${WORKSPACE}/unitree.repos"
+elif [ "${existing_repositories}" -ne "${#unitree_repositories[@]}" ]; then
+  echo "Unitree sources are partially populated. Run git submodule update --init --recursive from the repository root." >&2
+  exit 1
+fi
 
 if [ ! -d "/workspace/vendor/mjlab/.git" ]; then
   git clone https://github.com/mujocolab/mjlab.git "/workspace/vendor/mjlab"
