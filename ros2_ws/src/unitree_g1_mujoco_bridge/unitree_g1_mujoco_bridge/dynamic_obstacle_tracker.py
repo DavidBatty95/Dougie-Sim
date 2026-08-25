@@ -15,6 +15,13 @@ from sensor_msgs.msg import LaserScan, PointCloud2, PointField
 from std_msgs.msg import ColorRGBA, String
 from tf2_ros import Buffer, TransformException, TransformListener
 from visualization_msgs.msg import Marker, MarkerArray
+from unitree_social_navigation_msgs.msg import (
+    PredictedTrajectories,
+    PredictedTrajectory,
+    PredictedTrajectoryPoint,
+    TrackedPerson,
+    TrackedPersons,
+)
 
 from .pointcloud import iter_xyz
 
@@ -107,6 +114,65 @@ def _iter_detections(msg: PointCloud2) -> Iterable[tuple[float, float, float, fl
             yield x, y, z, confidence, radius
 
 
+def _split_seconds(value: float) -> tuple[int, int]:
+    """Return a normalized ROS seconds/nanoseconds pair."""
+    sec = math.floor(value)
+    nanosec = round((value - sec) * 1e9)
+    if nanosec >= 1_000_000_000:
+        sec += 1
+        nanosec -= 1_000_000_000
+    return int(sec), int(nanosec)
+
+
+def _position_covariance_at(kf_p: list[list[float]], offset: float) -> tuple[float, float, float, float]:
+    """Propagate the x/y covariance of a [x, y, vx, vy] constant-velocity state."""
+    t = max(0.0, offset)
+    xx = kf_p[0][0] + t * (kf_p[0][2] + kf_p[2][0]) + t * t * kf_p[2][2]
+    xy = kf_p[0][1] + t * (kf_p[0][3] + kf_p[2][1]) + t * t * kf_p[2][3]
+    yx = kf_p[1][0] + t * (kf_p[1][2] + kf_p[3][0]) + t * t * kf_p[3][2]
+    yy = kf_p[1][1] + t * (kf_p[1][3] + kf_p[3][1]) + t * t * kf_p[3][3]
+    return max(0.0, xx), xy, yx, max(0.0, yy)
+
+
+def _constant_velocity_covariance(kf_p: list[list[float]], offset: float) -> list[list[float]]:
+    t = max(0.0, offset)
+    transition = (
+        (1.0, 0.0, t, 0.0),
+        (0.0, 1.0, 0.0, t),
+        (0.0, 0.0, 1.0, 0.0),
+        (0.0, 0.0, 0.0, 1.0),
+    )
+    return [
+        [
+            sum(transition[row][i] * kf_p[i][j] * transition[col][j] for i in range(4) for j in range(4))
+            for col in range(4)
+        ]
+        for row in range(4)
+    ]
+
+
+def _typed_track_state(state: str) -> int:
+    if state == "CONFIRMED":
+        return TrackedPerson.TRACK_STATE_CONFIRMED
+    if state == "OCCLUDED":
+        return TrackedPerson.TRACK_STATE_LOST
+    if state == "TENTATIVE":
+        return TrackedPerson.TRACK_STATE_TENTATIVE
+    return TrackedPerson.TRACK_STATE_UNKNOWN
+
+
+def _track_should_expire(
+    track: Track,
+    age: float,
+    drop_confidence_threshold: float,
+    tentative_timeout: float,
+    confirmed_timeout: float,
+) -> bool:
+    if track.confirmed:
+        return track.confidence < drop_confidence_threshold or age > confirmed_timeout
+    return age > tentative_timeout
+
+
 class DynamicObstacleTracker(Node):
     def __init__(self) -> None:
         super().__init__("dynamic_obstacle_tracker")
@@ -120,6 +186,8 @@ class DynamicObstacleTracker(Node):
         self.declare_parameter("tracked_cloud_topic", "/tracked_dynamic_obstacles")
         self.declare_parameter("tentative_prediction_cloud_topic", "/tentative_dynamic_obstacles")
         self.declare_parameter("debug_tracks_topic", "/dynamic_obstacle_tracker/debug_tracks")
+        self.declare_parameter("tracked_persons_topic", "/tracked_persons")
+        self.declare_parameter("predicted_trajectories_topic", "/predicted_person_trajectories")
         self.declare_parameter("safety_grid_topic", "/human_safety_grid")
         self.declare_parameter("use_ml_person_detections", True)
         self.declare_parameter("person_detection_topic", "/lidar_person_detections")
@@ -434,6 +502,12 @@ class DynamicObstacleTracker(Node):
             PointCloud2, str(self.get_parameter("tentative_prediction_cloud_topic").value), 10
         )
         self.debug_pub = self.create_publisher(String, str(self.get_parameter("debug_tracks_topic").value), 10)
+        self.tracked_persons_pub = self.create_publisher(
+            TrackedPersons, str(self.get_parameter("tracked_persons_topic").value), 10
+        )
+        self.predicted_trajectories_pub = self.create_publisher(
+            PredictedTrajectories, str(self.get_parameter("predicted_trajectories_topic").value), 10
+        )
         self.safety_grid_pub = self.create_publisher(
             OccupancyGrid, str(self.get_parameter("safety_grid_topic").value), 10
         )
@@ -472,10 +546,11 @@ class DynamicObstacleTracker(Node):
 
     def _person_detection_callback(self, msg: PointCloud2) -> None:
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        query_time = rclpy.time.Time.from_msg(msg.header.stamp)
         transform = None
         if msg.header.frame_id and msg.header.frame_id != self.target_frame:
             try:
-                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, query_time)
             except TransformException as exc:
                 self.get_logger().warn(
                     f"No transform {self.target_frame} <- {msg.header.frame_id}: {exc}",
@@ -532,15 +607,16 @@ class DynamicObstacleTracker(Node):
 
     def _scan_callback(self, msg: LaserScan) -> None:
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        query_time = rclpy.time.Time.from_msg(msg.header.stamp)
         try:
-            transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, rclpy.time.Time())
+            transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, query_time)
         except TransformException as exc:
             self.get_logger().warn(f"No transform {self.target_frame} <- {msg.header.frame_id}: {exc}", throttle_duration_sec=2.0)
             return
 
         points = []
         angles = self._scan_angles(msg)
-        robot_xy = self._lookup_robot_xy()
+        robot_xy = self._lookup_robot_xy(query_time)
         for index, distance in enumerate(msg.ranges):
             if not math.isfinite(distance) or distance < msg.range_min or distance > msg.range_max:
                 continue
@@ -567,18 +643,19 @@ class DynamicObstacleTracker(Node):
 
     def _cloud_callback(self, msg: PointCloud2) -> None:
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        query_time = rclpy.time.Time.from_msg(msg.header.stamp)
         points = []
         transform = None
         if msg.header.frame_id and msg.header.frame_id != self.target_frame:
             try:
-                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, query_time)
             except TransformException as exc:
                 self.get_logger().warn(
                     f"No transform {self.target_frame} <- {msg.header.frame_id}: {exc}",
                     throttle_duration_sec=2.0,
                 )
                 return
-        robot_xy = self._lookup_robot_xy()
+        robot_xy = self._lookup_robot_xy(query_time)
         for x, y, z, is_noise in self._iter_cloud_points(msg):
             if transform is not None:
                 x, y, z = self._transform_point(transform, x, y, z)
@@ -727,7 +804,7 @@ class DynamicObstacleTracker(Node):
         stamp: float,
         frame_id: str,
     ) -> None:
-        robot_xy = self._lookup_robot_xy()
+        robot_xy = self._lookup_robot_xy(rclpy.time.Time(nanoseconds=max(0, int(stamp * 1e9))))
         raw_clusters = self._clusters(points, robot_xy=robot_xy)
         self.last_cluster_count = len(raw_clusters)
         if self.use_object_motion_detection:
@@ -744,17 +821,8 @@ class DynamicObstacleTracker(Node):
             clusters = self._dedupe_clusters(raw_clusters + self._clusters(foreground_points, robot_xy=robot_xy) + person_clusters)
         if self.mujoco_people_authoritative:
             clusters = self._mujoco_authoritative_clusters(clusters, stamp)
-        markers = MarkerArray()
-        predicted_points: list[tuple[float, float, float]] = []
-        tentative_points: list[tuple[float, float, float]] = []
-        tracked_points: list[tuple[float, float, float]] = []
-        seen_ids = set()
-        visible_ids = set()
-        deleted_ids = set()
-        candidate_count = 0
-        confirmed_count = 0
-        assignments = self._global_track_assignments(clusters, stamp)
-        for cluster_index, cluster in enumerate(clusters):
+        eligible_clusters = []
+        for cluster in clusters:
             self._annotate_cluster_quality(cluster, robot_xy)
             if self._is_robot_self_cluster(cluster, robot_xy):
                 self.debug_events.append(self._cluster_debug_event(cluster, "rejected", "robot_self"))
@@ -767,13 +835,27 @@ class DynamicObstacleTracker(Node):
                 continue
             if (
                 not self.use_object_motion_detection
-                and
-                self._is_static_background(cluster)
+                and self._is_static_background(cluster)
                 and not self._near_confirmed_track(cluster, stamp)
                 and self._cluster_detection_confidence(cluster, stamp) <= 0.0
             ):
                 self.debug_events.append(self._cluster_debug_event(cluster, "static_suppressed", "static_background"))
                 continue
+            eligible_clusters.append(cluster)
+        clusters = eligible_clusters
+        markers = MarkerArray()
+        predicted_points: list[tuple[float, float, float]] = []
+        tentative_points: list[tuple[float, float, float]] = []
+        tracked_points: list[tuple[float, float, float]] = []
+        typed_tracks: list[tuple[int, Track]] = []
+        typed_predictions: list[tuple[int, Track]] = []
+        seen_ids = set()
+        visible_ids = set()
+        deleted_ids = set()
+        candidate_count = 0
+        confirmed_count = 0
+        assignments = self._global_track_assignments(clusters, stamp)
+        for cluster_index, cluster in enumerate(clusters):
             track_id, track = self._match_track(cluster, stamp, seen_ids, assignments.get(cluster_index))
             seen_ids.add(track_id)
             if not track.confirmed or track.person_observations < max(1, self.min_person_observations - 1):
@@ -800,6 +882,9 @@ class DynamicObstacleTracker(Node):
             confirmed_count += 1
             visible_ids.add(track_id)
             self._append_track_outputs(markers, predicted_points, tracked_points, track_id, track, frame_id, robot_xy, coasting=False)
+            typed_tracks.append((track_id, track))
+            if self._should_publish_prediction(track, False, 0.0):
+                typed_predictions.append((track_id, track))
 
         for track_id, track in list(self.tracks.items()):
             if track_id not in seen_ids:
@@ -840,6 +925,8 @@ class DynamicObstacleTracker(Node):
                         confidence_stamp=track.confidence_stamp,
                         person_score=track.person_score,
                         detection_confidence=track.detection_confidence,
+                        state="OCCLUDED",
+                        kf_p=_constant_velocity_covariance(track.kf_p, coast_time),
                         history=track.history,
                     )
                     if coasted.confidence >= self.drop_confidence_threshold:
@@ -855,11 +942,16 @@ class DynamicObstacleTracker(Node):
                             coasting=True,
                             coast_time=coast_time,
                         )
-            if (
-                (track.confirmed and track.confidence < self.drop_confidence_threshold)
-                or (not track.confirmed and stamp - track.stamp > self.tentative_delete_missed_time)
-                or stamp - track.stamp > self.stale_track_timeout
-                or stamp - track.stamp > self.max_lost_persistence
+                        typed_tracks.append((track_id, coasted))
+                        if self._should_publish_prediction(coasted, True, coast_time):
+                            typed_predictions.append((track_id, coasted))
+            track_age = stamp - track.stamp
+            if _track_should_expire(
+                track,
+                track_age,
+                self.drop_confidence_threshold,
+                min(self.tentative_delete_missed_time, self.stale_track_timeout),
+                self.max_lost_persistence,
             ):
                 deleted_ids.add(track_id)
                 track.state = "DELETED"
@@ -871,9 +963,13 @@ class DynamicObstacleTracker(Node):
         self.last_confirmed_count = confirmed_count
         self.last_predicted_point_count = len(predicted_points)
         self.pub.publish(self._stable_marker_array(markers, stamp))
-        self.prediction_pub.publish(self._prediction_cloud(predicted_points, frame_id))
-        self.tracked_pub.publish(self._prediction_cloud(tracked_points, frame_id))
-        self.tentative_prediction_pub.publish(self._prediction_cloud(tentative_points, frame_id))
+        self.prediction_pub.publish(self._prediction_cloud(predicted_points, frame_id, stamp))
+        self.tracked_pub.publish(self._prediction_cloud(tracked_points, frame_id, stamp))
+        self.tentative_prediction_pub.publish(self._prediction_cloud(tentative_points, frame_id, stamp))
+        self.tracked_persons_pub.publish(self._tracked_persons_message(typed_tracks, frame_id, stamp))
+        self.predicted_trajectories_pub.publish(
+            self._predicted_trajectories_message(typed_predictions, frame_id, stamp)
+        )
         self._publish_debug_tracks(stamp)
         if self.publish_safety_grid:
             self.safety_grid_pub.publish(
@@ -997,9 +1093,13 @@ class DynamicObstacleTracker(Node):
                 result.append(cluster)
         return result
 
-    def _lookup_robot_xy(self) -> tuple[float, float] | None:
+    def _lookup_robot_xy(self, query_time=None) -> tuple[float, float] | None:
         try:
-            transform = self.tf_buffer.lookup_transform(self.target_frame, self.robot_frame, rclpy.time.Time())
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                self.robot_frame,
+                query_time if query_time is not None else rclpy.time.Time(),
+            )
         except TransformException:
             return None
         return transform.transform.translation.x, transform.transform.translation.y
@@ -1878,6 +1978,16 @@ class DynamicObstacleTracker(Node):
             marker.points.append(Point(x=track.x + vx * t, y=track.y + vy * t, z=0.08))
         return marker
 
+    def _trajectory_corridor_marker(self, track_id: int, track: Track, frame_id: str) -> Marker:
+        marker = self._trajectory_marker(track_id, track, frame_id)
+        marker.ns = "tracked_people_danger_corridors"
+        marker.id = track_id
+        marker.scale.x = 2.0 * max(self.personal_space_radius, track.radius + 0.35)
+        marker.color = ColorRGBA(r=1.0, g=0.08, b=0.02, a=0.22)
+        for point in marker.points:
+            point.z = 0.035
+        return marker
+
     def _path_marker(self, track_id: int, track: Track, frame_id: str) -> Marker:
         marker = Marker()
         marker.header.frame_id = frame_id
@@ -1955,6 +2065,7 @@ class DynamicObstacleTracker(Node):
             predicted_points.extend(
                 self._prediction_points(track.x, track.y, 0.6, vx, vy, track.radius, robot_xy)
             )
+            markers.markers.append(self._trajectory_corridor_marker(track_id, track, frame_id))
             markers.markers.append(self._trajectory_marker(track_id, track, frame_id))
         if not coasting and track.state == "CONFIRMED":
             tracked_points.extend(self._footprint_points(track.x, track.y, 0.6, track.radius))
@@ -1972,7 +2083,10 @@ class DynamicObstacleTracker(Node):
         return dx / displacement * fallback_speed, dy / displacement * fallback_speed
 
     def _should_publish_prediction(self, track: Track, coasting: bool, coast_time: float) -> bool:
-        if track.confidence < self.prediction_min_confidence:
+        # A confirmed lost track remains safety-relevant until the lower drop
+        # threshold expires it; do not retract its trajectory on the stricter
+        # new-prediction confidence threshold during a brief occlusion.
+        if not coasting and track.confidence < self.prediction_min_confidence:
             return False
         if track.person_score < self.prediction_min_person_score:
             return False
@@ -1987,6 +2101,66 @@ class DynamicObstacleTracker(Node):
         if coasting and coast_time > self.max_prediction_coast_time:
             return False
         return track.speed <= self.max_person_speed
+
+    @staticmethod
+    def _set_header(message, frame_id: str, stamp: float) -> None:
+        message.header.frame_id = frame_id
+        message.header.stamp.sec, message.header.stamp.nanosec = _split_seconds(stamp)
+
+    def _tracked_persons_message(
+        self, tracks: list[tuple[int, Track]], frame_id: str, stamp: float
+    ) -> TrackedPersons:
+        message = TrackedPersons()
+        self._set_header(message, frame_id, stamp)
+        for track_id, track in tracks:
+            person = TrackedPerson()
+            person.track_id = track_id
+            person.pose.pose.position.x = track.x
+            person.pose.pose.position.y = track.y
+            person.pose.pose.orientation.w = 1.0
+            person.pose.covariance[0] = max(0.0, track.kf_p[0][0])
+            person.pose.covariance[1] = track.kf_p[0][1]
+            person.pose.covariance[6] = track.kf_p[1][0]
+            person.pose.covariance[7] = max(0.0, track.kf_p[1][1])
+            person.velocity.twist.linear.x = track.vx
+            person.velocity.twist.linear.y = track.vy
+            person.velocity.covariance[0] = max(0.0, track.kf_p[2][2])
+            person.velocity.covariance[1] = track.kf_p[2][3]
+            person.velocity.covariance[6] = track.kf_p[3][2]
+            person.velocity.covariance[7] = max(0.0, track.kf_p[3][3])
+            person.confidence = max(0.0, min(1.0, track.confidence))
+            person.body_radius = max(0.0, track.radius)
+            person.track_state = _typed_track_state(track.state)
+            message.persons.append(person)
+        return message
+
+    def _predicted_trajectories_message(
+        self, tracks: list[tuple[int, Track]], frame_id: str, stamp: float
+    ) -> PredictedTrajectories:
+        message = PredictedTrajectories()
+        self._set_header(message, frame_id, stamp)
+        steps = max(1, int(self.prediction_horizon / max(self.prediction_dt, 1e-3)))
+        for track_id, track in tracks:
+            trajectory = PredictedTrajectory()
+            trajectory.track_id = track_id
+            vx, vy = self._prediction_velocity(track)
+            for step in range(steps + 1):
+                offset = step * self.prediction_dt
+                point = PredictedTrajectoryPoint()
+                point.time_offset.sec, point.time_offset.nanosec = _split_seconds(offset)
+                point.position.x = track.x + vx * offset
+                point.position.y = track.y + vy * offset
+                point.velocity.x = vx
+                point.velocity.y = vy
+                xx, xy, yx, yy = _position_covariance_at(track.kf_p, offset)
+                point.position_covariance[0] = xx
+                point.position_covariance[1] = xy
+                point.position_covariance[3] = yx
+                point.position_covariance[4] = yy
+                point.confidence = max(0.0, min(1.0, track.confidence))
+                trajectory.points.append(point)
+            message.trajectories.append(trajectory)
+        return message
 
     def _append_candidate_marker(self, markers: MarkerArray, track_id: int, cluster: Cluster, frame_id: str) -> None:
         marker = Marker()
@@ -2100,10 +2274,12 @@ class DynamicObstacleTracker(Node):
     ) -> bool:
         return any((px - x) * (px - x) + (py - y) * (py - y) <= radius_sq for px, py in points)
 
-    def _prediction_cloud(self, points: list[tuple[float, float, float]], frame_id: str) -> PointCloud2:
+    def _prediction_cloud(
+        self, points: list[tuple[float, float, float]], frame_id: str, stamp: float
+    ) -> PointCloud2:
         cloud = PointCloud2()
         cloud.header.frame_id = frame_id
-        cloud.header.stamp = self.get_clock().now().to_msg()
+        cloud.header.stamp.sec, cloud.header.stamp.nanosec = _split_seconds(stamp)
         cloud.height = 1
         cloud.width = len(points)
         cloud.fields = [

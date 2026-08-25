@@ -17,9 +17,31 @@ export LD_LIBRARY_PATH="/workspace/vendor/unitree_sdk2_install/lib:${LD_LIBRARY_
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
 export CYCLONEDDS_URI="${CYCLONEDDS_URI:-file://${WORKSPACE}/config/cyclonedds.xml}"
 
+default_bin="${MUJOCO_BUILD}/unitree_mujoco"
+if [ -z "${UNITREE_MUJOCO_BIN:-}" ]; then
+  rebuild=0
+  if [ ! -x "${default_bin}" ]; then
+    rebuild=1
+  elif [ "${MUJOCO_SIM}/CMakeLists.txt" -nt "${default_bin}" ]; then
+    rebuild=1
+  else
+    while IFS= read -r source; do
+      if [ "${source}" -nt "${default_bin}" ]; then
+        rebuild=1
+        break
+      fi
+    done < <(find "${MUJOCO_SIM}/src" -type f \( -name '*.cc' -o -name '*.cpp' -o -name '*.h' \))
+  fi
+
+  if [ "${rebuild}" = "1" ]; then
+    echo "Unitree Mujoco sources changed; rebuilding the simulator before launch."
+    /workspace/scripts/build_unitree_mujoco.sh
+  fi
+fi
+
 candidate_bins=(
   "${UNITREE_MUJOCO_BIN:-}"
-  "${MUJOCO_BUILD}/unitree_mujoco"
+  "${default_bin}"
   "${MUJOCO_BUILD}/bin/unitree_mujoco"
 )
 

@@ -39,6 +39,9 @@ class GoalSampler:
             return self._crossing_goals(start, people)
         return self._random_goals(start, people)
 
+    def sample_random_goal(self, index: int, start: Pose2D, people: list[PersonState]) -> Goal:
+        return Goal(index, self._sample_valid_pose(start, people))
+
     def _fixed_goals(self) -> list[Goal]:
         if len(self.config.fixed_goals) < self.config.goals_count:
             raise ValueError("fixed goal mode requires at least goals.count entries")
@@ -48,9 +51,9 @@ class GoalSampler:
         goals: list[Goal] = []
         previous = start
         for index in range(self.config.goals_count):
-            goal_pose = self._sample_valid_pose(previous, people)
-            goals.append(Goal(index, goal_pose))
-            previous = goal_pose
+            goal = self.sample_random_goal(index, previous, people)
+            goals.append(goal)
+            previous = goal.pose
         return goals
 
     def _curriculum_goals(self, start: Pose2D, people: list[PersonState]) -> list[Goal]:

@@ -45,6 +45,7 @@ class BenchmarkConfig:
     min_goal_distance_m: float = 2.0
     min_distance_from_walls_m: float = 0.5
     max_sampling_attempts: int = 1000
+    path_validation_timeout_s: float = 5.0
     people_speed_min_mps: float = 0.2
     people_speed_max_mps: float = 1.2
     behaviours: list[str] = field(default_factory=lambda: ["straight_line_crossing", "random_waypoint", "opposing_flow", "stop_start"])
@@ -83,6 +84,8 @@ class BenchmarkConfig:
     def validate(self) -> None:
         if self.people_count < 0 or self.goals_count < 1:
             raise ValueError("people_count must be >= 0 and goals_count must be >= 1")
+        if self.max_sampling_attempts < 1:
+            raise ValueError("max_sampling_attempts must be >= 1")
         if self.bounds.x_min >= self.bounds.x_max or self.bounds.y_min >= self.bounds.y_max:
             raise ValueError("environment bounds are invalid")
         positive = {
@@ -92,6 +95,7 @@ class BenchmarkConfig:
             "max_speed_mps": self.max_speed_mps,
             "goal_tolerance_m": self.goal_tolerance_m,
             "dt_s": self.dt_s,
+            "path_validation_timeout_s": self.path_validation_timeout_s,
         }
         for name, value in positive.items():
             if value <= 0.0:
@@ -157,6 +161,9 @@ def _apply_mapping(cfg: BenchmarkConfig, data: dict[str, Any]) -> None:
     cfg.min_goal_distance_m = float(goals.get("min_distance_between_goals_m", cfg.min_goal_distance_m))
     cfg.min_distance_from_walls_m = float(goals.get("min_distance_from_walls_m", cfg.min_distance_from_walls_m))
     cfg.max_sampling_attempts = int(goals.get("max_sampling_attempts", cfg.max_sampling_attempts))
+    cfg.path_validation_timeout_s = float(
+        goals.get("path_validation_timeout_s", cfg.path_validation_timeout_s)
+    )
     cfg.warning_margin_m = float(safety.get("warning_margin_m", cfg.warning_margin_m))
     cfg.near_miss_margin_m = float(safety.get("near_miss_margin_m", cfg.near_miss_margin_m))
     cfg.critical_margin_m = float(safety.get("critical_margin_m", cfg.critical_margin_m))

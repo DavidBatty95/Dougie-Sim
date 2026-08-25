@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, TimerAction
 from launch.conditions import IfCondition
@@ -6,6 +8,16 @@ from launch.substitutions import Command, FindExecutable, LaunchConfiguration, P
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
+
+
+DEFAULT_SOCIAL_NAVIGATION_PARAMS_FILE = str(
+    Path(__file__).parents[1] / "config" / "social_navigation_perception_only_v1.yaml"
+)
+DEFAULT_POLICY_PATH = (
+    "/workspace/vendor/mjlab/logs/rsl_rl/g1_stand_creep_stop/"
+    "2026-08-05_10-32-24_g1_navigation_finetune_from_model_5796/"
+    "2026-08-05_10-32-24_g1_navigation_finetune_from_model_5796.onnx"
+)
 
 
 def generate_launch_description():
@@ -28,6 +40,8 @@ def generate_launch_description():
     run_waypoint_patrol = LaunchConfiguration("run_waypoint_patrol")
     run_waypoint_explorer = LaunchConfiguration("run_waypoint_explorer")
     run_point_goal = LaunchConfiguration("run_point_goal")
+    run_base_approach = LaunchConfiguration("run_base_approach")
+    base_approach_params_file = LaunchConfiguration("base_approach_params_file")
     run_frontier_explorer = LaunchConfiguration("run_frontier_explorer")
     run_locomotion_diagnostics = LaunchConfiguration("run_locomotion_diagnostics")
     run_slam_reset_monitor = LaunchConfiguration("run_slam_reset_monitor")
@@ -49,6 +63,7 @@ def generate_launch_description():
     startup_fall_damping_grace_time = LaunchConfiguration("startup_fall_damping_grace_time")
     base_height_offset = LaunchConfiguration("base_height_offset")
     policy_path = LaunchConfiguration("policy_path")
+    policy_profile = LaunchConfiguration("policy_profile")
     policy_obs_dim = LaunchConfiguration("policy_obs_dim")
     policy_action_dim = LaunchConfiguration("policy_action_dim")
     policy_command_height = LaunchConfiguration("policy_command_height")
@@ -56,16 +71,31 @@ def generate_launch_description():
     raw_cmd_vel_topic = LaunchConfiguration("raw_cmd_vel_topic")
     cmd_vel_topic = LaunchConfiguration("cmd_vel_topic")
     cmd_vel_timeout = LaunchConfiguration("cmd_vel_timeout")
+    lowstate_timeout = LaunchConfiguration("lowstate_timeout")
+    odom_timeout = LaunchConfiguration("odom_timeout")
+    cmd_vel_deadband = LaunchConfiguration("cmd_vel_deadband")
+    axis_exclusive_cmd_vel = LaunchConfiguration("axis_exclusive_cmd_vel")
+    axis_exclusive_yaw_threshold = LaunchConfiguration("axis_exclusive_yaw_threshold")
+    turning_arc_min_forward_speed = LaunchConfiguration(
+        "turning_arc_min_forward_speed"
+    )
+    turning_arc_min_yaw_speed = LaunchConfiguration("turning_arc_min_yaw_speed")
+    allow_reverse_cmd_vel = LaunchConfiguration("allow_reverse_cmd_vel")
     max_lin_vel_x = LaunchConfiguration("max_lin_vel_x")
     max_lin_vel_y = LaunchConfiguration("max_lin_vel_y")
     max_ang_vel_z = LaunchConfiguration("max_ang_vel_z")
+    cmd_accel_x = LaunchConfiguration("cmd_accel_x")
+    cmd_accel_y = LaunchConfiguration("cmd_accel_y")
+    cmd_accel_yaw = LaunchConfiguration("cmd_accel_yaw")
     startup_current_pose_hold_time = LaunchConfiguration("startup_current_pose_hold_time")
     startup_blend_time = LaunchConfiguration("startup_blend_time")
     startup_hold_time = LaunchConfiguration("startup_hold_time")
     startup_require_upright = LaunchConfiguration("startup_require_upright")
     startup_max_recovery_time = LaunchConfiguration("startup_max_recovery_time")
     policy_action_ramp_time = LaunchConfiguration("policy_action_ramp_time")
+    policy_action_rate_limit = LaunchConfiguration("policy_action_rate_limit")
     mujoco_startup_hold_enable = LaunchConfiguration("mujoco_startup_hold_enable")
+    mujoco_initial_keyframe = LaunchConfiguration("mujoco_initial_keyframe")
     mujoco_startup_hold_timeout = LaunchConfiguration("mujoco_startup_hold_timeout")
     mujoco_reset_on_controller_start = LaunchConfiguration("mujoco_reset_on_controller_start")
     robot_description_file = LaunchConfiguration("robot_description_file")
@@ -104,6 +134,7 @@ def generate_launch_description():
     pelvis_to_livox_z = LaunchConfiguration("pelvis_to_livox_z")
     slam_params_file = LaunchConfiguration("slam_params_file")
     nav2_params_file = LaunchConfiguration("nav2_params_file")
+    social_navigation_params_file = LaunchConfiguration("social_navigation_params_file")
     lidar_person_model_path = LaunchConfiguration("lidar_person_model_path")
     tracker_use_object_motion_detection = LaunchConfiguration("tracker_use_object_motion_detection")
     tracker_immediate_person_risk = LaunchConfiguration("tracker_immediate_person_risk")
@@ -147,6 +178,7 @@ def generate_launch_description():
         parameters=[
             {
                 "use_mjlab_body_gains": True,
+                "body_gain_profile": policy_profile,
                 "lock_waist": lock_waist,
                 "waist_lock_kp": waist_lock_kp,
                 "waist_lock_kd": waist_lock_kd,
@@ -182,6 +214,7 @@ def generate_launch_description():
         parameters=[
             {
                 "policy_path": policy_path,
+                "policy_profile": policy_profile,
                 "policy_obs_dim": policy_obs_dim,
                 "policy_action_dim": policy_action_dim,
                 "policy_command_height": policy_command_height,
@@ -189,19 +222,29 @@ def generate_launch_description():
                 "cmd_vel_topic": cmd_vel_topic,
                 "odom_topic": "/odom",
                 "cmd_vel_timeout": cmd_vel_timeout,
+                "lowstate_timeout": lowstate_timeout,
+                "odom_timeout": odom_timeout,
+                "cmd_vel_deadband": cmd_vel_deadband,
+                "cmd_vel_deadband_hysteresis": 0.01,
+                "axis_exclusive_cmd_vel": axis_exclusive_cmd_vel,
+                "axis_exclusive_yaw_threshold": axis_exclusive_yaw_threshold,
+                "turning_arc_min_forward_speed": turning_arc_min_forward_speed,
+                "turning_arc_min_yaw_speed": turning_arc_min_yaw_speed,
+                "allow_reverse_cmd_vel": allow_reverse_cmd_vel,
                 "max_lin_vel_x": max_lin_vel_x,
                 "max_lin_vel_y": max_lin_vel_y,
                 "max_ang_vel_z": max_ang_vel_z,
-                "cmd_accel_x": 0.22,
-                "cmd_accel_y": 0.16,
-                "cmd_accel_yaw": 0.35,
-                "action_clip": 4.0,
-                "action_rate_limit": 8.0,
+                "cmd_accel_x": cmd_accel_x,
+                "cmd_accel_y": cmd_accel_y,
+                "cmd_accel_yaw": cmd_accel_yaw,
+                "action_clip": 1.0,
+                "action_rate_limit": policy_action_rate_limit,
+                "policy_inference_deadline_sec": 0.05,
                 "startup_current_pose_hold_time": startup_current_pose_hold_time,
                 "startup_blend_time": startup_blend_time,
                 "startup_hold_time": startup_hold_time,
                 "startup_require_upright": startup_require_upright,
-                "startup_upright_tilt_threshold": 0.80,
+                "startup_upright_tilt_threshold": 0.35,
                 "startup_max_recovery_time": startup_max_recovery_time,
                 "policy_action_ramp_time": policy_action_ramp_time,
                 "tilt_guard_enable": True,
@@ -412,11 +455,11 @@ def generate_launch_description():
                 "static_cell_observations": 4,
                 "coast_confirmed_tracks": True,
                 "max_coast_time": 2.0,
-                "max_lost_persistence": 4.0,
+                "max_lost_persistence": 6.0,
                 "max_visible_confirmed_tracks": 8,
                 "confirm_confidence_threshold": tracker_confirm_confidence_threshold,
                 "drop_confidence_threshold": 0.08,
-                "confidence_decay_per_second": 0.08,
+                "confidence_decay_per_second": 0.04,
                 "immediate_person_risk": tracker_immediate_person_risk,
                 "candidate_person_min_age": 2,
                 "candidate_person_min_confidence": 0.45,
@@ -426,15 +469,15 @@ def generate_launch_description():
                 "personal_space_radius": 1.25,
                 "robot_avoidance_radius": 2.00,
                 "robot_risk_inflation_radius": 1.90,
-                "prediction_horizon": 3.0,
-                "prediction_dt": 0.35,
+                "prediction_horizon": 6.0,
+                "prediction_dt": 0.40,
                 "publish_candidate_predictions": tracker_publish_candidate_predictions,
                 "publish_tentative_predictions": False,
                 "tentative_prediction_radius_scale": 0.45,
                 "prediction_min_confidence": 0.50,
                 "prediction_min_person_score": 0.52,
                 "prediction_min_dynamic_observations": 1,
-                "max_prediction_coast_time": 2.0,
+                "max_prediction_coast_time": 6.0,
                 "min_prediction_speed": 0.10,
                 # Livox-style scans are sparse; tune these with bags before real hardware use.
                 "point_accumulation_time": 0.20,
@@ -459,19 +502,20 @@ def generate_launch_description():
                 "tentative_confirm_min_hits": 2,
                 "tentative_confirm_window": 5,
                 "min_confirm_age": 0.20,
-                "confirmed_keep_missed_time": 2.00,
+                "confirmed_keep_missed_time": 6.00,
                 "tentative_delete_missed_time": 0.25,
                 "stale_track_timeout": 1.0,
                 "mahalanobis_gate": 7.8,
                 "debug_markers_enabled": True,
-                "marker_lifetime": 60.0,
-                "candidate_marker_lifetime": 15.0,
-                "marker_display_hold_time": 3.0,
+                "marker_lifetime": 1.0,
+                "candidate_marker_lifetime": 0.5,
+                "marker_display_hold_time": 0.5,
                 "safety_grid_size": 10.0,
                 "safety_grid_resolution": 0.25,
                 "safety_grid_danger_radius": 0.90,
                 "safety_grid_caution_radius": 1.80,
-            }
+            },
+            social_navigation_params_file,
         ],
     )
     lidar_person_detector_node = Node(
@@ -494,7 +538,7 @@ def generate_launch_description():
                 "min_confidence": 0.45,
                 "default_radius": 0.45,
                 "max_detections": 6,
-                "fallback_detection": True,
+                "fallback_detection": False,
                 "fallback_cluster_distance": 0.32,
                 "fallback_min_points": 4,
                 "fallback_max_points": 260,
@@ -531,9 +575,14 @@ def generate_launch_description():
                 "target_frame": "world",
                 "robot_frame": "base_footprint",
                 "rate_hz": 12.0,
-                "local_safe_space_enabled": False,
-                "prediction_horizon": 2.5,
-                "simulation_dt": 0.2,
+                "local_safe_space_enabled": True,
+                "local_danger_radius": 4.0,
+                "predicted_danger_radius": 1.25,
+                "safe_space_max_speed": 0.05,
+                "safe_space_max_lateral": 0.0,
+                "safe_space_max_yaw": 0.08,
+                "prediction_horizon": 5.0,
+                "simulation_dt": 0.25,
                 "max_person_cloud_age": 1.4,
                 "robot_radius": 0.38,
                 "human_body_radius": 0.35,
@@ -577,7 +626,8 @@ def generate_launch_description():
                 "publish_risk_grid": True,
                 "risk_grid_size": 8.0,
                 "risk_grid_resolution": 0.20,
-            }
+            },
+            social_navigation_params_file,
         ],
     )
     human_collision_avoidance_node = Node(
@@ -598,8 +648,8 @@ def generate_launch_description():
                 "robot_frame": "base_footprint",
                 "danger_radius": avoidance_danger_radius,
                 "critical_radius": avoidance_critical_radius,
-                "trajectory_horizon": 4.0,
-                "trajectory_dt": 0.2,
+                "trajectory_horizon": 5.0,
+                "trajectory_dt": 0.25,
                 "corridor_width": avoidance_corridor_width,
                 "corridor_critical_width": avoidance_corridor_critical_width,
                 "corridor_min_length": 1.6,
@@ -627,13 +677,13 @@ def generate_launch_description():
                 "wall_repulsion_max_linear": 0.12,
                 "wall_repulsion_max_angular": 0.35,
                 "people_repulsion_range": 3.0,
-                "predicted_repulsion_range": 2.4,
+                "predicted_repulsion_range": 4.0,
                 "predicted_repulsion_corridor_width": 1.35,
                 "predicted_repulsion_forward_scale": 0.25,
                 "people_repulsion_gain": avoidance_people_repulsion_gain,
                 "people_repulsion_max_linear": 0.08,
                 "people_repulsion_max_angular": 0.25,
-                "local_risk_radius": 3.2,
+                "local_risk_radius": 6.0,
                 "max_repulsion_points": 24,
                 "escape_search_horizon": 2.0,
                 "escape_search_dt": 0.2,
@@ -642,7 +692,8 @@ def generate_launch_description():
                 "repulsion_timeout": 1.2,
                 "startup_grace_time": 2.0,
                 "person_cloud_timeout": 0.8,
-            }
+            },
+            social_navigation_params_file,
         ],
     )
     human_aware_run_logger_node = Node(
@@ -711,7 +762,7 @@ def generate_launch_description():
             {
                 "frame_id": "map",
                 "startup_delay": 3.0,
-                "goal_timeout": 45.0,
+                "goal_timeout": 90.0,
                 "require_known_free_goal": False,
             }
         ],
@@ -812,6 +863,14 @@ def generate_launch_description():
             }
         ],
     )
+    base_approach_node = Node(
+        condition=IfCondition(run_base_approach),
+        package="g1_locomotion",
+        executable="g1_base_approach",
+        name="g1_base_approach",
+        output="screen",
+        parameters=[base_approach_params_file],
+    )
 
     return LaunchDescription(
         [
@@ -841,9 +900,29 @@ def generate_launch_description():
                 description="Start the trained policy controller that consumes /cmd_vel.",
             ),
             DeclareLaunchArgument(
+                "run_base_approach",
+                default_value="false",
+                description=(
+                    "Start Grove-G1 object approach/retreat actions. Enable only with an "
+                    "/objects Detection3DArray source and no other raw command source."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "base_approach_params_file",
+                default_value=PathJoinSubstitution(
+                    [FindPackageShare("g1_locomotion"), "config", "g1_base_approach.yaml"]
+                ),
+                description="Parameters for the Grove-G1 base approach action server.",
+            ),
+            DeclareLaunchArgument(
                 "policy_path",
-                default_value="latest",
-                description="TorchScript/ONNX policy file for G1 locomotion, or 'latest' to use the newest exported lower-body walking ONNX.",
+                default_value=DEFAULT_POLICY_PATH,
+                description="TorchScript/ONNX policy file for G1 locomotion. Defaults to the validated model_6595 navigation export.",
+            ),
+            DeclareLaunchArgument(
+                "policy_profile",
+                default_value="mjlab",
+                description="Policy deployment contract and matching bridge gains: mjlab or unitree_rl_lab_g1_29dof.",
             ),
             DeclareLaunchArgument(
                 "policy_obs_dim",
@@ -877,8 +956,48 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "cmd_vel_timeout",
-                default_value="0.5",
+                default_value="0.4",
                 description="Seconds before stale /cmd_vel commands are replaced with zero velocity.",
+            ),
+            DeclareLaunchArgument(
+                "lowstate_timeout",
+                default_value="0.1",
+                description="Maximum lowstate arrival age before policy inference is invalidated and held.",
+            ),
+            DeclareLaunchArgument(
+                "odom_timeout",
+                default_value="0.2",
+                description="Maximum odometry arrival age before observed base velocity is zeroed.",
+            ),
+            DeclareLaunchArgument(
+                "cmd_vel_deadband",
+                default_value="0.05",
+                description="Low-speed command stop threshold; release uses an additional 0.01 hysteresis.",
+            ),
+            DeclareLaunchArgument(
+                "axis_exclusive_cmd_vel",
+                default_value="false",
+                description="Execute yaw or translation, never both, for policies trained on axis-isolated commands.",
+            ),
+            DeclareLaunchArgument(
+                "axis_exclusive_yaw_threshold",
+                default_value="0.05",
+                description="Absolute requested yaw rate that switches axis-exclusive control into rotate-in-place mode.",
+            ),
+            DeclareLaunchArgument(
+                "turning_arc_min_forward_speed",
+                default_value="0.0",
+                description="Forward command floor applied to yaw commands for policies trained to turn in arcs.",
+            ),
+            DeclareLaunchArgument(
+                "turning_arc_min_yaw_speed",
+                default_value="0.0",
+                description="Absolute yaw command floor applied during arc turns.",
+            ),
+            DeclareLaunchArgument(
+                "allow_reverse_cmd_vel",
+                default_value="true",
+                description="Allow negative longitudinal commands to reach the locomotion policy.",
             ),
             DeclareLaunchArgument(
                 "max_lin_vel_x",
@@ -887,13 +1006,28 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "max_lin_vel_y",
-                default_value="0.18",
+                default_value="0.12",
                 description="Absolute y velocity limit passed to the policy.",
             ),
             DeclareLaunchArgument(
                 "max_ang_vel_z",
-                default_value="0.45",
+                default_value="0.35",
                 description="Absolute yaw velocity limit passed to the policy.",
+            ),
+            DeclareLaunchArgument(
+                "cmd_accel_x",
+                default_value="0.22",
+                description="Policy-side longitudinal command acceleration limit.",
+            ),
+            DeclareLaunchArgument(
+                "cmd_accel_y",
+                default_value="0.16",
+                description="Policy-side lateral command acceleration limit.",
+            ),
+            DeclareLaunchArgument(
+                "cmd_accel_yaw",
+                default_value="0.35",
+                description="Policy-side yaw command acceleration limit.",
             ),
             DeclareLaunchArgument(
                 "startup_current_pose_hold_time",
@@ -902,7 +1036,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "startup_blend_time",
-                default_value="0.2",
+                default_value="0.0",
                 description="Seconds to move from current pose to the trained standing pose before policy inference.",
             ),
             DeclareLaunchArgument(
@@ -917,18 +1051,28 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "startup_max_recovery_time",
-                default_value="0.5",
-                description="Maximum seconds to hold the trained standing pose while tilted before policy inference. 0 waits until upright.",
+                default_value="0.0",
+                description="Tilted startup timeout reserved for hold/fault reporting. Policy never releases until upright; 0 waits indefinitely.",
             ),
             DeclareLaunchArgument(
                 "policy_action_ramp_time",
-                default_value="0.5",
+                default_value="0.0",
                 description="Seconds to ramp policy actions in from the trained standing pose after startup.",
+            ),
+            DeclareLaunchArgument(
+                "policy_action_rate_limit",
+                default_value="8.0",
+                description="Maximum raw policy action change per second; zero disables deployment-only slew limiting.",
             ),
             DeclareLaunchArgument(
                 "mujoco_startup_hold_enable",
                 default_value="true",
                 description="Freeze MuJoCo physics until first low-level motor command arrives.",
+            ),
+            DeclareLaunchArgument(
+                "mujoco_initial_keyframe",
+                default_value="policy_stand",
+                description="Named MuJoCo keyframe applied at startup and reset.",
             ),
             DeclareLaunchArgument(
                 "mujoco_startup_hold_timeout",
@@ -967,8 +1111,8 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "run_lidar_person_detector",
-                default_value="true",
-                description="Run LiDAR BEV/fallback person detector so sparse clusters can reinforce tracker confirmation.",
+                default_value="false",
+                description="Run the optional ONNX LiDAR person detector. Keep disabled without a validated model.",
             ),
             DeclareLaunchArgument(
                 "lidar_person_model_path",
@@ -997,7 +1141,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("tracker_use_object_motion_detection", default_value="false"),
             DeclareLaunchArgument("tracker_immediate_person_risk", default_value="true"),
-            DeclareLaunchArgument("tracker_publish_candidate_predictions", default_value="true"),
+            DeclareLaunchArgument("tracker_publish_candidate_predictions", default_value="false"),
             DeclareLaunchArgument("tracker_candidate_person_score_threshold", default_value="0.58"),
             DeclareLaunchArgument("tracker_confirmed_person_score_threshold", default_value="0.52"),
             DeclareLaunchArgument("tracker_confirm_confidence_threshold", default_value="0.50"),
@@ -1080,6 +1224,15 @@ def generate_launch_description():
                     [FindPackageShare("unitree_g1_sim_bringup"), "config", "nav2_livox.yaml"]
                 ),
                 description="Nav2 parameter file for Livox scan navigation.",
+            ),
+            DeclareLaunchArgument(
+                "social_navigation_params_file",
+                default_value=DEFAULT_SOCIAL_NAVIGATION_PARAMS_FILE,
+                description=(
+                    "Versioned parameter profile applied last to the social-navigation tracker, planner, "
+                    "and safety filter. Defaults to perception-only sensing; the oracle profile is only "
+                    "a simulator-truth upper-bound ablation."
+                ),
             ),
             DeclareLaunchArgument(
                 "lock_waist",
@@ -1365,6 +1518,7 @@ def generate_launch_description():
                     "UNITREE_MUJOCO_CAMERA_HEIGHT": camera_height,
                     "UNITREE_MUJOCO_CAMERA_RATE_HZ": camera_rate_hz,
                     "UNITREE_MUJOCO_CAMERA_SOCKET": mujoco_camera_socket,
+                    "UNITREE_MUJOCO_INITIAL_KEYFRAME": mujoco_initial_keyframe,
                     "UNITREE_MUJOCO_STARTUP_HOLD_ENABLE": mujoco_startup_hold_enable,
                     "UNITREE_MUJOCO_STARTUP_HOLD_TIMEOUT": mujoco_startup_hold_timeout,
                     "UNITREE_MUJOCO_RESET_ON_CONTROLLER_START": mujoco_reset_on_controller_start,
@@ -1388,6 +1542,7 @@ def generate_launch_description():
                     human_collision_avoidance_node,
                     human_aware_run_logger_node,
                     locomotion_diagnostics_node,
+                    base_approach_node,
                     random_explorer_node,
                     waypoint_patrol_node,
                     frontier_explorer_node,

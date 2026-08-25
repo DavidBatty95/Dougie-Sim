@@ -62,9 +62,9 @@ controller_server:
   ros__parameters:
     use_sim_time: false
     controller_frequency: 10.0
-    min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.001
+    min_x_velocity_threshold: 0.05
+    min_y_velocity_threshold: 0.05
+    min_theta_velocity_threshold: 0.05
     failure_tolerance: 0.4
     progress_checker_plugin: progress_checker
     goal_checker_plugins: [general_goal_checker]
@@ -81,27 +81,27 @@ controller_server:
     FollowPath:
       plugin: dwb_core::DWBLocalPlanner
       debug_trajectory_details: false
-      min_vel_x: -0.08
+      min_vel_x: 0.0
       min_vel_y: 0.0
-      max_vel_x: 0.42
+      max_vel_x: 0.35
       max_vel_y: 0.0
-      max_vel_theta: 1.0
+      max_vel_theta: 0.45
       min_speed_xy: 0.0
-      max_speed_xy: 0.42
+      max_speed_xy: 0.35
       min_speed_theta: 0.0
-      acc_lim_x: 0.55
+      acc_lim_x: 0.22
       acc_lim_y: 0.0
-      acc_lim_theta: 1.5
-      decel_lim_x: -0.65
+      acc_lim_theta: 0.35
+      decel_lim_x: -0.22
       decel_lim_y: 0.0
-      decel_lim_theta: -1.7
+      decel_lim_theta: -0.35
       vx_samples: 12
       vy_samples: 1
       vtheta_samples: 20
       sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
-      transform_tolerance: 0.2
+      transform_tolerance: 1.0
       xy_goal_tolerance: 0.45
       trans_stopped_velocity: 0.05
       short_circuit_trajectory_evaluation: true
@@ -133,7 +133,9 @@ local_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: scan predicted_obstacles tracked_obstacles
+        # Time-indexed predictions are evaluated by the social motion planner.
+        # Flattening an entire horizon here makes future occupancy simultaneous.
+        observation_sources: scan tracked_obstacles
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -145,19 +147,6 @@ local_costmap:
           raytrace_min_range: 0.15
           obstacle_max_range: 7.0
           obstacle_min_range: 0.15
-        predicted_obstacles:
-          topic: /predicted_dynamic_obstacles
-          max_obstacle_height: 2.2
-          min_obstacle_height: 0.0
-          # Predicted people are marking-only so LaserScan clearing does not erase human risk.
-          # Keep persistence short to prevent stale false positives from becoming ghosts.
-          clearing: false
-          marking: true
-          data_type: PointCloud2
-          observation_persistence: 0.6
-          expected_update_rate: 0.5
-          obstacle_max_range: 12.0
-          obstacle_min_range: 0.0
         tracked_obstacles:
           topic: /tracked_dynamic_obstacles
           max_obstacle_height: 2.2
@@ -195,7 +184,9 @@ global_costmap:
       obstacle_layer:
         plugin: nav2_costmap_2d::ObstacleLayer
         enabled: true
-        observation_sources: scan predicted_obstacles tracked_obstacles
+        # Global planning uses current confirmed people only. Prediction remains
+        # a local, time-synchronized planning concern.
+        observation_sources: scan tracked_obstacles
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -207,18 +198,6 @@ global_costmap:
           raytrace_min_range: 0.15
           obstacle_max_range: 8.0
           obstacle_min_range: 0.15
-        predicted_obstacles:
-          topic: /predicted_dynamic_obstacles
-          max_obstacle_height: 2.2
-          min_obstacle_height: 0.0
-          # Mark predicted human occupancy, but expire quickly to avoid persistent ghosts.
-          clearing: false
-          marking: true
-          data_type: PointCloud2
-          observation_persistence: 0.8
-          expected_update_rate: 0.5
-          obstacle_max_range: 14.0
-          obstacle_min_range: 0.0
         tracked_obstacles:
           topic: /tracked_dynamic_obstacles
           max_obstacle_height: 2.2
@@ -287,7 +266,7 @@ behavior_server:
       plugin: nav2_behaviors/Wait
     global_frame: world
     robot_base_frame: base_footprint
-    transform_tolerance: 0.2
+    transform_tolerance: 1.0
     use_sim_time: false
 
 waypoint_follower:
@@ -307,11 +286,11 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: OPEN_LOOP
-    max_velocity: [0.25, 0.0, 0.8]
-    min_velocity: [-0.05, 0.0, -0.8]
-    max_accel: [0.3, 0.0, 1.2]
-    max_decel: [-0.4, 0.0, -1.4]
+    max_velocity: [0.35, 0.0, 0.45]
+    min_velocity: [0.0, 0.0, -0.45]
+    max_accel: [0.22, 0.0, 0.35]
+    max_decel: [-0.22, 0.0, -0.35]
     odom_topic: /odom
     odom_duration: 0.1
-    deadband_velocity: [0.0, 0.0, 0.0]
-    velocity_timeout: 1.0
+    deadband_velocity: [0.05, 0.0, 0.05]
+    velocity_timeout: 0.3

@@ -1,0 +1,58 @@
+name: Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-benchmark:
+    name: Build, test, and benchmark
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate shell and Compose configuration
+        run: |
+          bash -n scripts/*.sh docker/scripts/*.sh
+          docker compose config --quiet
+
+      - name: Build verification image
+        run: |
+          docker build \
+            --build-arg USER_UID="$(id -u)" \
+            --build-arg USER_GID="$(id -g)" \
+            --tag unitree-g1-verification:humble \
+            --file docker/Dockerfile .
+
+      - name: Run build, tests, and deterministic benchmark
+        run: |
+          docker run --rm \
+            --network host \
+            --env ROS_DOMAIN_ID=77 \
+            --env RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+            --env CYCLONEDDS_URI=file:///workspace/ros2_ws/config/cyclonedds.xml \
+            --volume "${{ github.workspace }}:/workspace" \
+            unitree-g1-verification:humble \
+            bash -lc "/workspace/scripts/test_workspace_inside.sh ci"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-test-results
+          path: |
+            ros2_ws/.verification/build/**/*.xml
+            ros2_ws/.verification/log/latest_test/**
+          if-no-files-found: ignore
+          retention-days: 14

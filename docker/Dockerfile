@@ -36,14 +36,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep \
     python3-venv \
     python3-vcstool \
+    ros-humble-ament-cmake-gmock \
+    ros-humble-ament-lint-common \
     ros-humble-rmw-cyclonedds-cpp \
     ros-humble-rosidl-generator-dds-idl \
     ros-humble-ros2-control \
     ros-humble-ros2-controllers \
     ros-humble-navigation2 \
     ros-humble-nav2-bringup \
+    ros-humble-diagnostic-updater \
     ros-humble-slam-toolbox \
     ros-humble-robot-state-publisher \
+    ros-humble-vision-msgs \
     ros-humble-joint-state-publisher \
     ros-humble-xacro \
     sudo \

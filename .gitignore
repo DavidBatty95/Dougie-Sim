@@ -21,6 +21,7 @@ ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
 ros2_ws/.colcon/
+ros2_ws/.verification/
 
 # Runtime logs and generated diagnostics
 *.log
@@ -52,6 +53,7 @@ vendor/mjlab/.cache/
 events.out.tfevents.*
 
 # Vendored binary/build artifacts
+vendor/grove-g1/
 vendor/mujoco-*/
 vendor/*.tar.gz
 vendor/*.zip

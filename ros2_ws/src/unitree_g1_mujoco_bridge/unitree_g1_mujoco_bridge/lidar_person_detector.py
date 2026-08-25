@@ -45,7 +45,7 @@ class LidarPersonDetector(Node):
         self.declare_parameter("min_confidence", 0.45)
         self.declare_parameter("default_radius", 0.45)
         self.declare_parameter("max_detections", 16)
-        self.declare_parameter("fallback_detection", True)
+        self.declare_parameter("fallback_detection", False)
         self.declare_parameter("fallback_cluster_distance", 0.32)
         self.declare_parameter("fallback_min_points", 4)
         self.declare_parameter("fallback_max_points", 260)
@@ -135,7 +135,8 @@ class LidarPersonDetector(Node):
         if stamp_seconds - self.last_processed_stamp < self.processing_period:
             return
         self.last_processed_stamp = stamp_seconds
-        robot_pose = self._robot_pose()
+        query_time = rclpy.time.Time.from_msg(stamp)
+        robot_pose = self._robot_pose(query_time)
         if robot_pose is None:
             self.pub.publish(self._detection_cloud([], self.target_frame, stamp))
             return
@@ -143,7 +144,7 @@ class LidarPersonDetector(Node):
         transform = None
         if msg.header.frame_id and msg.header.frame_id != self.target_frame:
             try:
-                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, query_time)
             except TransformException as exc:
                 self.get_logger().warn(
                     f"No transform {self.target_frame} <- {msg.header.frame_id}: {exc}",
@@ -151,7 +152,7 @@ class LidarPersonDetector(Node):
                 )
                 return
 
-        local_points = []
+        world_points = []
         for x, y, z in iter_xyz(msg):
             if transform is not None:
                 x, y, z = self._transform_point(transform, x, y, z)
@@ -165,9 +166,12 @@ class LidarPersonDetector(Node):
                 continue
             if abs(local_x) > self.grid_size * 0.5 or abs(local_y) > self.grid_size * 0.5:
                 continue
-            local_points.append((local_x, local_y, z))
+            world_points.append((x, y, z))
 
-        accumulated_points = self._downsample_points(self._accumulated_points(local_points, stamp_seconds))
+        accumulated_world = self._accumulated_points(world_points, stamp_seconds)
+        accumulated_points = self._downsample_points(
+            self._world_to_local_points(accumulated_world, robot_x, robot_y, yaw, self.grid_size)
+        )
         if self.session is None:
             detections = self._fallback_detections(accumulated_points, robot_x, robot_y, yaw)
         else:
@@ -349,7 +353,7 @@ class LidarPersonDetector(Node):
     def _diagnostics(self) -> None:
         self.get_logger().info(
             f"LiDAR person detector: points={self.last_point_count} detections={self.last_detection_count} "
-            f"mode={'onnx' if self.session is not None else 'cluster_fallback'}",
+            f"mode={'onnx' if self.session is not None else 'cluster_fallback' if self.fallback_detection else 'disabled'}",
             throttle_duration_sec=2.0,
         )
 
@@ -399,9 +403,13 @@ class LidarPersonDetector(Node):
                 break
         return detections
 
-    def _robot_pose(self) -> tuple[float, float, float] | None:
+    def _robot_pose(self, query_time=None) -> tuple[float, float, float] | None:
         try:
-            transform = self.tf_buffer.lookup_transform(self.target_frame, self.robot_frame, rclpy.time.Time())
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                self.robot_frame,
+                query_time if query_time is not None else rclpy.time.Time(),
+            )
         except TransformException:
             return None
         return (
@@ -409,6 +417,25 @@ class LidarPersonDetector(Node):
             transform.transform.translation.y,
             self._yaw_from_quat(transform.transform.rotation),
         )
+
+    @staticmethod
+    def _world_to_local_points(
+        points: list[tuple[float, float, float]],
+        robot_x: float,
+        robot_y: float,
+        yaw: float,
+        grid_size: float,
+    ) -> list[tuple[float, float, float]]:
+        local_points = []
+        half_grid = grid_size * 0.5
+        for x, y, z in points:
+            dx = x - robot_x
+            dy = y - robot_y
+            local_x = math.cos(yaw) * dx + math.sin(yaw) * dy
+            local_y = -math.sin(yaw) * dx + math.cos(yaw) * dy
+            if abs(local_x) <= half_grid and abs(local_y) <= half_grid:
+                local_points.append((local_x, local_y, z))
+        return local_points
 
     @staticmethod
     def _transform_point(transform, x: float, y: float, z: float) -> tuple[float, float, float]:

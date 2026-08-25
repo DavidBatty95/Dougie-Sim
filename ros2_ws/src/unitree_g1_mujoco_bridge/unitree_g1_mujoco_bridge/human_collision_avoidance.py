@@ -2,7 +2,7 @@ import json
 import math
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -10,6 +10,13 @@ from sensor_msgs.msg import LaserScan, PointCloud2
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformException, TransformListener
 
+from .bridge_safety import (
+    clamp_velocity,
+    scan_is_fresh,
+    stop_velocity,
+    trajectory_makes_target_progress,
+    trajectory_static_cost,
+)
 from .pointcloud import iter_xyz
 
 
@@ -19,6 +26,8 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("input_cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("output_cmd_vel_topic", "/cmd_vel_safe")
         self.declare_parameter("debug_topic", "/human_collision_avoidance_debug")
+        self.declare_parameter("planner_state_topic", "/human_avoidance_state")
+        self.declare_parameter("safe_patch_topic", "/human_avoidance_safe_patch")
         self.declare_parameter("predicted_cloud_topic", "/predicted_dynamic_obstacles")
         self.declare_parameter("tracked_cloud_topic", "/tracked_dynamic_obstacles")
         self.declare_parameter("mujoco_people_topic", "/mujoco/pedestrians")
@@ -74,6 +83,8 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("repulsion_timeout", 0.8)
         self.declare_parameter("startup_grace_time", 2.0)
         self.declare_parameter("person_cloud_timeout", 0.8)
+        self.declare_parameter("scan_timeout", 0.6)
+        self.declare_parameter("static_escape_clearance", 0.48)
 
         self.target_frame = str(self.get_parameter("target_frame").value)
         self.robot_frame = str(self.get_parameter("robot_frame").value)
@@ -125,6 +136,8 @@ class HumanCollisionAvoidance(Node):
         self.repulsion_timeout = float(self.get_parameter("repulsion_timeout").value)
         self.startup_grace_time = float(self.get_parameter("startup_grace_time").value)
         self.person_cloud_timeout = float(self.get_parameter("person_cloud_timeout").value)
+        self.scan_timeout = float(self.get_parameter("scan_timeout").value)
+        self.static_escape_clearance = float(self.get_parameter("static_escape_clearance").value)
         rate_hz = max(1.0, float(self.get_parameter("rate_hz").value))
         if self.critical_radius > self.danger_radius:
             raise ValueError("critical_radius must be less than or equal to danger_radius")
@@ -143,6 +156,7 @@ class HumanCollisionAvoidance(Node):
         self.home_pose = None
         self.wall_force = (0.0, 0.0)
         self.wall_force_time = None
+        self.scan_obstacles = []
         self.people_forces = {}
         self.person_cloud_times = {}
         self.last_risk_source = "none"
@@ -152,6 +166,10 @@ class HumanCollisionAvoidance(Node):
         self.avoid_side_until = self.get_clock().now()
         self.started_at = self.get_clock().now()
         self.forward_escape_until = self.get_clock().now()
+        self.planner_state = ""
+        self.planner_state_time = None
+        self.safe_patch: tuple[float, float] | None = None
+        self.safe_patch_time = None
 
         input_topic = str(self.get_parameter("input_cmd_vel_topic").value)
         output_topic = str(self.get_parameter("output_cmd_vel_topic").value)
@@ -162,6 +180,18 @@ class HumanCollisionAvoidance(Node):
             Twist,
             input_topic,
             self._cmd_callback,
+            10,
+        )
+        self.create_subscription(
+            String,
+            str(self.get_parameter("planner_state_topic").value),
+            self._planner_state_callback,
+            10,
+        )
+        self.create_subscription(
+            PoseStamped,
+            str(self.get_parameter("safe_patch_topic").value),
+            self._safe_patch_callback,
             10,
         )
         self.create_subscription(
@@ -196,18 +226,32 @@ class HumanCollisionAvoidance(Node):
         self.latest_cmd = msg
         self.latest_cmd_time = self.get_clock().now()
 
+    def _planner_state_callback(self, msg: String) -> None:
+        self.planner_state = msg.data
+        self.planner_state_time = self.get_clock().now()
+
+    def _safe_patch_callback(self, msg: PoseStamped) -> None:
+        if msg.header.frame_id and msg.header.frame_id != self.target_frame:
+            return
+        self.safe_patch = (float(msg.pose.position.x), float(msg.pose.position.y))
+        self.safe_patch_time = self.get_clock().now()
+
     def _scan_callback(self, msg: LaserScan) -> None:
         fx = 0.0
         fy = 0.0
         considered = 0
+        obstacles = []
         max_range = max(0.0, self.wall_repulsion_range)
         clearance = max(1e-3, self.wall_repulsion_clearance)
         for index, distance in enumerate(msg.ranges):
             if not math.isfinite(distance) or distance <= msg.range_min:
                 continue
-            if distance > max_range or distance > clearance:
+            if distance > max_range:
                 continue
             angle = msg.angle_min + index * msg.angle_increment
+            obstacles.append((distance * math.cos(angle), distance * math.sin(angle)))
+            if distance > clearance:
+                continue
             strength = ((clearance - distance) / clearance) ** 2
             fx -= math.cos(angle) * strength
             fy -= math.sin(angle) * strength
@@ -217,6 +261,7 @@ class HumanCollisionAvoidance(Node):
             fy /= considered
         self.wall_force = (fx, fy)
         self.wall_force_time = self.get_clock().now()
+        self.scan_obstacles = obstacles
 
     def _cloud_callback(self, msg: PointCloud2, source: str) -> None:
         msg_stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
@@ -341,10 +386,20 @@ class HumanCollisionAvoidance(Node):
             self.last_avoid_reason = "inactive_input_observe_only"
             return
 
-        if self.stop_on_human_risk and nearest <= self.emergency_stop_radius:
-            self.avoid_cmd = self._best_escape_cmd(cmd, local_risk_points, 1.0, True)
+        if self.stop_on_human_risk:
+            if self._safe_patch_command_is_valid(cmd):
+                self.avoid_cmd = cmd
+                self.avoid_until = self.get_clock().now() + Duration(seconds=min(0.2, self.hold_time))
+                self.last_avoid_reason = "validated_safe_patch"
+                return
+            if nearest <= self.emergency_stop_radius:
+                self.avoid_cmd = self._twist_from_velocity(stop_velocity())
+                self.avoid_until = self.get_clock().now() + Duration(seconds=self.hold_time)
+                self.last_avoid_reason = "emergency_stop_radius"
+                return
+            self.avoid_cmd = self._twist_from_velocity(stop_velocity())
             self.avoid_until = self.get_clock().now() + Duration(seconds=self.hold_time)
-            self.last_avoid_reason = "emergency_stop_radius"
+            self.last_avoid_reason = "trajectory_risk_stop"
             return
 
         cmd = self._best_escape_cmd(cmd, local_risk_points, urgency, has_radius_risk)
@@ -354,6 +409,42 @@ class HumanCollisionAvoidance(Node):
             self.avoid_cmd = self._apply_open_space_bias(cmd)
         self.avoid_until = self.get_clock().now() + Duration(seconds=self.hold_time)
         self.last_avoid_reason = "trajectory_risk"
+
+    def _safe_patch_command_is_valid(
+        self,
+        cmd: Twist,
+    ) -> bool:
+        if self.planner_state != "LOCAL_SAFE_SPACE" or self.planner_state_time is None:
+            return False
+        state_age = (self.get_clock().now() - self.planner_state_time).nanoseconds * 1e-9
+        if self.safe_patch is None or self.safe_patch_time is None:
+            return False
+        patch_age = (self.get_clock().now() - self.safe_patch_time).nanoseconds * 1e-9
+        if state_age < 0.0 or state_age > 0.5 or patch_age < 0.0 or patch_age > 0.5 or not self._scan_fresh():
+            return False
+        vx = float(cmd.linear.x)
+        vy = float(cmd.linear.y)
+        wz = float(cmd.angular.z)
+        if math.hypot(vx, vy) + abs(wz) < self.min_input_speed_for_avoidance:
+            return False
+        if self._escape_hits_static(vx, vy, wz):
+            return False
+        robot_pose = self._robot_pose()
+        if robot_pose is None:
+            return False
+        dx = self.safe_patch[0] - robot_pose[0]
+        dy = self.safe_patch[1] - robot_pose[1]
+        local_patch_x = math.cos(robot_pose[2]) * dx + math.sin(robot_pose[2]) * dy
+        local_patch_y = -math.sin(robot_pose[2]) * dx + math.cos(robot_pose[2]) * dy
+        return trajectory_makes_target_progress(
+            vx,
+            vy,
+            wz,
+            local_patch_x,
+            local_patch_y,
+            self.escape_search_horizon,
+            self.escape_search_dt,
+        )
 
     def _mujoco_people_callback(self, msg: String) -> None:
         try:
@@ -455,9 +546,16 @@ class HumanCollisionAvoidance(Node):
             self.avoid_until = now
             self.last_avoid_reason = "mujoco_inactive_input_observe_only"
             return
-        if self.stop_on_human_risk and nearest <= self.emergency_stop_radius:
-            self.avoid_cmd = self._best_escape_cmd(cmd, local_risk_points, 1.0, True)
-            self.last_avoid_reason = "mujoco_emergency_stop_radius"
+        if self.stop_on_human_risk:
+            if self._safe_patch_command_is_valid(cmd):
+                self.avoid_cmd = cmd
+                self.last_avoid_reason = "mujoco_validated_safe_patch"
+            elif nearest <= self.emergency_stop_radius:
+                self.avoid_cmd = self._twist_from_velocity(stop_velocity())
+                self.last_avoid_reason = "mujoco_emergency_stop_radius"
+            else:
+                self.avoid_cmd = self._twist_from_velocity(stop_velocity())
+                self.last_avoid_reason = "mujoco_trajectory_risk_stop"
         else:
             self.avoid_cmd = self._best_escape_cmd(cmd, local_risk_points, urgency, has_radius_risk)
             self.last_avoid_reason = "mujoco_trajectory_risk"
@@ -526,6 +624,8 @@ class HumanCollisionAvoidance(Node):
     ) -> Twist:
         if not risk_points:
             return base_cmd
+        if not self._scan_fresh():
+            return Twist()
 
         base_x = float(base_cmd.linear.x)
         base_y = float(base_cmd.linear.y)
@@ -578,8 +678,10 @@ class HumanCollisionAvoidance(Node):
         candidates.append((base_x, base_y, base_yaw))
 
         best_score = -math.inf
-        best = (base_x, base_y, base_yaw)
+        best = None
         for vx, vy, wz in candidates:
+            if self._escape_hits_static(vx, vy, wz):
+                continue
             score = self._escape_score(vx, vy, wz, risk_points)
             score += self.escape_progress_weight * max(0.0, vx)
             score += 0.35 * max(0.0, -vy * obstacle_side)
@@ -589,16 +691,50 @@ class HumanCollisionAvoidance(Node):
                 best_score = score
                 best = (vx, vy, wz)
 
+        if best is None:
+            return Twist()
+        forced = None
         if has_radius_risk and mean_x > -0.35 and best[0] > reverse_escape * 0.5:
-            best = (reverse_escape, best[1] if abs(best[1]) > 1e-3 else away_lateral, best[2] if abs(best[2]) > 1e-3 else away_yaw)
+            forced = (reverse_escape, best[1] if abs(best[1]) > 1e-3 else away_lateral, best[2] if abs(best[2]) > 1e-3 else away_yaw)
         elif has_radius_risk and mean_x <= -0.35 and min_clearance < self.emergency_stop_radius and best[0] < forward_escape * 0.5:
-            best = (forward_escape, best[1] if abs(best[1]) > 1e-3 else away_lateral, best[2] if abs(best[2]) > 1e-3 else away_yaw)
+            forced = (forward_escape, best[1] if abs(best[1]) > 1e-3 else away_lateral, best[2] if abs(best[2]) > 1e-3 else away_yaw)
+        if forced is not None and not self._escape_hits_static(*forced):
+            best = forced
 
         cmd = Twist()
-        cmd.linear.x = best[0]
-        cmd.linear.y = best[1]
-        cmd.angular.z = best[2]
+        vx, vy, wz = clamp_velocity(
+            best[0], best[1], best[2], self.max_avoid_linear,
+            self.max_reverse_linear, self.max_lateral_linear, self.max_avoid_angular,
+        )
+        cmd.linear.x = vx
+        cmd.linear.y = vy
+        cmd.angular.z = wz
         return cmd
+
+    def _scan_fresh(self) -> bool:
+        stamp = None if self.wall_force_time is None else self.wall_force_time.nanoseconds * 1e-9
+        return scan_is_fresh(stamp, self.get_clock().now().nanoseconds * 1e-9, self.scan_timeout)
+
+    @staticmethod
+    def _twist_from_velocity(velocity: tuple[float, float, float]) -> Twist:
+        cmd = Twist()
+        cmd.linear.x, cmd.linear.y, cmd.angular.z = velocity
+        return cmd
+
+    def _escape_hits_static(self, vx: float, vy: float, wz: float) -> bool:
+        dt = max(0.05, self.escape_search_dt)
+        steps = max(1, int(max(0.2, self.escape_search_horizon) / dt))
+        x = y = heading = 0.0
+        trajectory = [(x, y, heading)]
+        for _ in range(steps):
+            x += (math.cos(heading) * vx - math.sin(heading) * vy) * dt
+            y += (math.sin(heading) * vx + math.cos(heading) * vy) * dt
+            heading += wz * dt
+            trajectory.append((x, y, heading))
+        return trajectory_static_cost(
+            trajectory, self.scan_obstacles, self.static_escape_clearance,
+            max(self.static_escape_clearance, self.wall_repulsion_range),
+        )[1]
 
     def _turn_only_escape_cmd(self, risk_points: list[tuple[float, float, str]], urgency: float) -> Twist:
         weighted_y = 0.0
@@ -648,6 +784,11 @@ class HumanCollisionAvoidance(Node):
     def _timer_callback(self) -> None:
         now = self.get_clock().now()
         self._expire_stale_people_forces(now)
+        if self._robot_pose() is None:
+            cmd = Twist()
+            self.pub.publish(cmd)
+            self._publish_debug("missing_tf_stop", self.latest_cmd, cmd, now)
+            return
         if now < self.avoid_until:
             self.pub.publish(self.avoid_cmd)
             self._publish_debug("override", self.latest_cmd, self.avoid_cmd, now)
@@ -694,6 +835,14 @@ class HumanCollisionAvoidance(Node):
             "people_force": {"x": round(people_x, 4), "y": round(people_y, 4)},
             "active_people_sources": sorted(self.people_forces.keys()),
             "input_age_s": self._age_seconds(self.latest_cmd_time, now),
+            "planner_state": self.planner_state,
+            "planner_state_age_s": self._age_seconds(self.planner_state_time, now),
+            "safe_patch": (
+                None if self.safe_patch is None
+                else {"x": round(self.safe_patch[0], 3), "y": round(self.safe_patch[1], 3)}
+            ),
+            "safe_patch_age_s": self._age_seconds(self.safe_patch_time, now),
+            "scan_fresh": self._scan_fresh(),
             "person_cloud_ages_s": {
                 source: self._age_seconds(stamp, now) for source, stamp in self.person_cloud_times.items()
             },
@@ -757,6 +906,11 @@ class HumanCollisionAvoidance(Node):
         cmd.linear.y += wall_y + people_y
         turn_bias = wall_y * self.wall_repulsion_max_angular + people_y * self.people_repulsion_max_angular
         cmd.angular.z += turn_bias
+        cmd.linear.x, cmd.linear.y, cmd.angular.z = clamp_velocity(
+            float(cmd.linear.x), float(cmd.linear.y), float(cmd.angular.z),
+            self.max_avoid_linear, self.max_reverse_linear,
+            self.max_lateral_linear, self.max_avoid_angular,
+        )
         return cmd
 
     def _active_wall_force(self) -> tuple[float, float]:

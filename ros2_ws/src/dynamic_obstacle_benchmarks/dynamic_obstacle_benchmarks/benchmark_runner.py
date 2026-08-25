@@ -71,6 +71,7 @@ class BenchmarkRosNode(Node):
         self.latest_people: list[PersonState] = []
         self.latest_people_stamp = None
         self.latest_raw_cmd_stamp: float | None = None
+        self.latest_raw_cmd_magnitude = 0.0
         self.latest_locomotion: dict | None = None
         if self.ros_enabled:
             super().__init__("person_avoidance_benchmark")
@@ -151,6 +152,9 @@ class BenchmarkRosNode(Node):
 
     def _raw_cmd_callback(self, msg) -> None:
         self.latest_raw_cmd_stamp = time.monotonic()
+        self.latest_raw_cmd_magnitude = (
+            math.hypot(float(msg.linear.x), float(msg.linear.y)) + abs(float(msg.angular.z))
+        )
 
     def _locomotion_callback(self, msg) -> None:
         try:
@@ -179,9 +183,11 @@ class BenchmarkRosNode(Node):
         deadline = time.monotonic() + timeout_s
         while rclpy.ok() and time.monotonic() < deadline:
             rclpy.spin_once(self, timeout_sec=0.05)
-            if self.latest_robot_pose is not None and self.latest_people_stamp is not None:
+            people_ready = self.config.people_count == 0 or self.latest_people_stamp is not None
+            if self.latest_robot_pose is not None and people_ready:
                 return
-        raise RuntimeError("Timed out waiting for live /odom and /mujoco/pedestrians state")
+        required = "/odom" if self.config.people_count == 0 else "/odom and /mujoco/pedestrians"
+        raise RuntimeError(f"Timed out waiting for live {required} state")
 
     def wait_for_safe_start(self, timeout_s: float = 20.0) -> None:
         if not self.ros_enabled:
@@ -190,7 +196,11 @@ class BenchmarkRosNode(Node):
         last_warning = 0.0
         while rclpy.ok() and time.monotonic() < deadline:
             rclpy.spin_once(self, timeout_sec=0.05)
-            if self.latest_robot_pose is None or self.latest_people_stamp is None:
+            if self.latest_robot_pose is None:
+                continue
+            if self.config.people_count == 0:
+                return
+            if self.latest_people_stamp is None:
                 continue
             if not self.latest_people:
                 return
@@ -228,7 +238,10 @@ class BenchmarkRosNode(Node):
             rclpy.spin_once(self, timeout_sec=0.05)
         if not result_future.done() or result_future.result() is None:
             return False
-        return len(result_future.result().result.path.poses) > 0
+        has_path = len(result_future.result().result.path.poses) > 0
+        if has_path:
+            self.get_logger().info(f"Reachable random goal accepted at x={goal.x:+.2f}, y={goal.y:+.2f}")
+        return has_path
 
     def _pose_stamped(self, pose: Pose2D):
         msg = PoseStamped()
@@ -269,20 +282,24 @@ class BenchmarkRosNode(Node):
             return False
         return True
 
-    def wait_for_raw_cmd_after(self, stamp: float, timeout_s: float = 15.0) -> bool:
+    def wait_for_motion_cmd_after(self, stamp: float, timeout_s: float = 15.0) -> bool:
         if not self.ros_enabled:
             return True
         deadline = time.monotonic() + timeout_s
         last_warning = 0.0
         while rclpy.ok() and time.monotonic() < deadline:
             rclpy.spin_once(self, timeout_sec=0.05)
-            if self.latest_raw_cmd_stamp is not None and self.latest_raw_cmd_stamp >= stamp:
+            if (
+                self.latest_raw_cmd_stamp is not None
+                and self.latest_raw_cmd_stamp >= stamp
+                and self.latest_raw_cmd_magnitude >= 0.01
+            ):
                 return True
             now = time.monotonic()
             if now - last_warning > 2.0:
-                self.get_logger().warn("Waiting for first /cmd_vel after accepted Nav2 goal before scoring")
+                self.get_logger().warn("Waiting for first nonzero /cmd_vel after accepted Nav2 goal")
                 last_warning = now
-        self.get_logger().warn("No /cmd_vel received after accepted Nav2 goal before startup timeout")
+        self.get_logger().warn("No nonzero /cmd_vel received after accepted Nav2 goal before startup timeout")
         return False
 
 
@@ -379,19 +396,32 @@ class BenchmarkRunner:
             node.wait_for_safe_start()
         except RuntimeError as exc:
             return self._finish_invalid(monitor, [], node.latest_people, str(exc))
+        requested_people_count = self.config.people_count
+        if requested_people_count == 0:
+            node.latest_people = []
         live_people_count = len(node.latest_people)
-        if live_people_count != self.config.people_count:
+        if requested_people_count > 0 and live_people_count != requested_people_count:
             node.get_logger().warn(
                 f"Requested {self.config.people_count} people, but live MuJoCo scene publishes {live_people_count}; "
                 "scoring the live scene count."
             )
             self.config.people_count = live_people_count
         start = node.latest_robot_pose or Pose2D(0.0, 0.0, 0.0)
+        dynamic_random_goals = not self.config.scenario_file and self.config.goal_mode == "random"
+        sampler = GoalSampler(
+            self.config,
+            self.rng,
+            lambda start_pose, goal_pose: node.goal_has_path(
+                start_pose, goal_pose, self.config.path_validation_timeout_s
+            ),
+        )
         if self.config.scenario_file:
             goals, _ = self._load_scenario(Path(self.config.scenario_file))
+        elif dynamic_random_goals:
+            goals = []
         else:
             try:
-                goals = GoalSampler(self.config, self.rng, node.goal_has_path).sample(start, node.latest_people)
+                goals = sampler.sample(start, node.latest_people)
             except RuntimeError as exc:
                 return self._finish_invalid(monitor, [], node.latest_people, f"goal_sampling_failed: {exc}")
         previous_goal_pose = start
@@ -399,7 +429,21 @@ class BenchmarkRunner:
         start_wall = time.monotonic()
         last_sample = start_wall
 
-        for goal in goals:
+        for goal_index in range(self.config.goals_count):
+            if dynamic_random_goals:
+                current_pose = node.latest_robot_pose or start
+                try:
+                    goal = sampler.sample_random_goal(goal_index, current_pose, node.latest_people)
+                except RuntimeError as exc:
+                    if not goals:
+                        return self._finish_invalid(
+                            monitor, goals, node.latest_people, f"goal_sampling_failed: {exc}"
+                        )
+                    break
+                goals.append(goal)
+                scenario_path = self.writer.write_scenario(self.config, goals, node.latest_people)
+            else:
+                goal = goals[goal_index]
             goal_metrics = monitor.start_goal(goal)
             monitor.metrics.ideal_path_length_m += distance_xy(previous_goal_pose, goal.pose)
             previous_goal_pose = goal.pose
@@ -407,16 +451,30 @@ class BenchmarkRunner:
                 monitor.metrics.fallen = True
                 monitor.complete_goal(goal_metrics, False, "fallen", 0.0)
                 return self._finish(monitor, goals, node.latest_people, scenario_path), str(self.writer.output_path)
-            goal_accepted = node.send_nav_goal(goal)
+            motion_started = False
+            goal_accepted = False
+            for attempt in range(2):
+                goal_accepted = node.send_nav_goal(goal)
+                if not goal_accepted:
+                    break
+                if node.wait_for_motion_cmd_after(time.monotonic()):
+                    motion_started = True
+                    break
+                if attempt == 0:
+                    node.get_logger().warn(
+                        "Accepted Nav2 goal produced no motion command; retrying once"
+                    )
             if not goal_accepted:
                 if monitor.metrics.total_time_s <= 0.0 and monitor.metrics.goals_reached == 0:
                     return self._finish_invalid(monitor, goals, node.latest_people, "nav2_not_ready_or_first_goal_rejected")
                 monitor.complete_goal(goal_metrics, False, "nav2_goal_not_accepted", 0.0)
                 return self._finish(monitor, goals, node.latest_people, scenario_path), str(self.writer.output_path)
-            if not node.wait_for_raw_cmd_after(time.monotonic()):
+            if not motion_started:
                 if monitor.metrics.total_time_s <= 0.0 and monitor.metrics.goals_reached == 0:
-                    return self._finish_invalid(monitor, goals, node.latest_people, "no_cmd_vel_before_scoring_start")
-                monitor.complete_goal(goal_metrics, False, "no_cmd_vel_before_start", 0.0)
+                    return self._finish_invalid(
+                        monitor, goals, node.latest_people, "no_nonzero_cmd_vel_before_scoring_start"
+                    )
+                monitor.complete_goal(goal_metrics, False, "no_nonzero_cmd_vel_before_start", 0.0)
                 return self._finish(monitor, goals, node.latest_people, scenario_path), str(self.writer.output_path)
             goal_start_time = time.monotonic()
             if monitor.metrics.total_time_s <= 0.0:
@@ -439,7 +497,7 @@ class BenchmarkRunner:
                 robot_pose = node.latest_robot_pose
                 if robot_pose is None:
                     continue
-                people = node.latest_people[: self.config.people_count] if self.config.people_count > 0 else node.latest_people
+                people = node.latest_people[: self.config.people_count] if self.config.people_count > 0 else []
                 monitor.update(now_s, dt, robot_pose, node.latest_robot_velocity, people)
                 monitor.metrics.emergency_stops = node.live_events.emergency_stops
                 monitor.metrics.stale_events = node.live_events.stale_events

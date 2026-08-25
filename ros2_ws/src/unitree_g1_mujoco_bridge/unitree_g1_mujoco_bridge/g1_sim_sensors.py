@@ -23,6 +23,20 @@ from unitree_go.msg import SportModeState
 from .sensor_packets import decode_camera_packet, decode_lidar_packet
 
 
+def world_to_body_velocity(rotation: tuple, velocity: tuple) -> tuple[float, float, float]:
+    return (
+        rotation[0][0] * velocity[0]
+        + rotation[1][0] * velocity[1]
+        + rotation[2][0] * velocity[2],
+        rotation[0][1] * velocity[0]
+        + rotation[1][1] * velocity[1]
+        + rotation[2][1] * velocity[2],
+        rotation[0][2] * velocity[0]
+        + rotation[1][2] * velocity[1]
+        + rotation[2][2] * velocity[2],
+    )
+
+
 class G1SimSensors(Node):
     def __init__(self) -> None:
         super().__init__("g1_sim_sensors")
@@ -134,7 +148,7 @@ class G1SimSensors(Node):
         self.last_base_yaw = 0.0
         self.last_odom_pose = None
         self.last_odom_time = None
-        self.current_odom_twist = (0.0, 0.0, 0.0)
+        self.current_odom_twist = (0.0, 0.0, 0.0, 0.0)
         self.mapping_lidar_fallen = False
         self.mapping_lidar_resume_time = None
         self.mapping_lidar_suppressed_count = 0
@@ -371,7 +385,17 @@ class G1SimSensors(Node):
         self.last_mujoco_pose = self._lidar_pose_from_base_pose(origin, rotation)
         self.last_mujoco_pose_time = self.get_clock().now()
         self.last_base_pose = (origin, rotation)
-        self._update_odometry_state(origin, rotation)
+        world_velocity = None
+        if len(msg.velocity) >= 3:
+            candidate = tuple(float(value) for value in msg.velocity[:3])
+            if all(math.isfinite(value) for value in candidate):
+                world_velocity = candidate
+        body_angular_velocity = None
+        if len(msg.imu_state.gyroscope) >= 3:
+            candidate = tuple(float(value) for value in msg.imu_state.gyroscope[:3])
+            if all(math.isfinite(value) for value in candidate):
+                body_angular_velocity = candidate
+        self._update_odometry_state(origin, rotation, world_velocity, body_angular_velocity)
         self._update_mapping_lidar_state(rotation)
         if self.publish_lidar_tf:
             self._publish_lidar_tf(*self.last_mujoco_pose)
@@ -380,10 +404,24 @@ class G1SimSensors(Node):
         self._publish_base_footprint_tf(*self.last_base_pose)
         self._publish_odometry(*self.last_base_pose)
 
-    def _update_odometry_state(self, base_origin: tuple, base_rotation: tuple) -> None:
+    def _update_odometry_state(
+        self,
+        base_origin: tuple,
+        base_rotation: tuple,
+        world_velocity: tuple | None = None,
+        body_angular_velocity: tuple | None = None,
+    ) -> None:
         now = self.get_clock().now()
         yaw = self._stable_base_yaw(base_rotation)
-        if self.last_odom_pose is not None and self.last_odom_time is not None:
+        if world_velocity is not None:
+            body_velocity = world_to_body_velocity(base_rotation, world_velocity)
+            wz = (
+                body_angular_velocity[2]
+                if body_angular_velocity is not None
+                else self.current_odom_twist[3]
+            )
+            self.current_odom_twist = (*body_velocity, wz)
+        elif self.last_odom_pose is not None and self.last_odom_time is not None:
             dt = (now - self.last_odom_time).nanoseconds * 1e-9
             if dt > 1e-4:
                 prev_x, prev_y, prev_yaw = self.last_odom_pose
@@ -394,7 +432,7 @@ class G1SimSensors(Node):
                 body_vx = math.cos(yaw) * world_vx + math.sin(yaw) * world_vy
                 body_vy = -math.sin(yaw) * world_vx + math.cos(yaw) * world_vy
                 wz = self._wrap_pi(yaw - prev_yaw) / dt
-                self.current_odom_twist = (body_vx, body_vy, wz)
+                self.current_odom_twist = (body_vx, body_vy, 0.0, wz)
         self.last_odom_pose = (base_origin[0], base_origin[1], yaw)
         self.last_odom_time = now
 
@@ -415,7 +453,8 @@ class G1SimSensors(Node):
         odom.pose.pose.orientation.w = qw
         odom.twist.twist.linear.x = self.current_odom_twist[0]
         odom.twist.twist.linear.y = self.current_odom_twist[1]
-        odom.twist.twist.angular.z = self.current_odom_twist[2]
+        odom.twist.twist.linear.z = self.current_odom_twist[2]
+        odom.twist.twist.angular.z = self.current_odom_twist[3]
         self.odom_pub.publish(odom)
 
     def _publish_base_footprint_tf(self, base_origin: tuple, base_rotation: tuple, stamp=None) -> None:

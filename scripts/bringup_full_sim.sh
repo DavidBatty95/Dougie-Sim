@@ -22,4 +22,12 @@ for arg in "$@"; do
   esac
 done
 
-docker compose run --rm unitree-g1-sim bash -lc 'exec /workspace/scripts/bringup_g1_ros2.sh "$@"' bash "${ARGS[@]}"
+RUN_OPTIONS=(--rm)
+if [ -n "${UNITREE_G1_CONTAINER_NAME:-}" ]; then
+  RUN_OPTIONS+=(--name "${UNITREE_G1_CONTAINER_NAME}")
+fi
+
+docker compose run "${RUN_OPTIONS[@]}" \
+  -e COLCON_INSTALL_BASE="${COLCON_INSTALL_BASE:-/workspace/ros2_ws/install}" \
+  unitree-g1-sim \
+  bash -lc 'exec /workspace/scripts/bringup_g1_ros2.sh "$@"' bash "${ARGS[@]}"

@@ -1,205 +1,907 @@
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+    Tree Height: 156
 Visualization Manager:
   Class: ""
   Displays:
-    - Class: rviz_default_plugins/Grid
-      Name: Grid
-      Enabled: true
+    - Alpha: 0.5
       Cell Size: 0.5
-      Plane: XY
-    - Class: rviz_default_plugins/TF
-      Name: TF
-      Enabled: false
-      Show Names: false
-      Show Axes: true
-      Show Arrows: true
-    - Class: rviz_default_plugins/Map
-      Name: SLAM Occupancy Map
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
       Enabled: true
-      Topic:
-        Value: /map
-        Durability Policy: Transient Local
-        Reliability Policy: Reliable
-      Alpha: 0.75
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: false
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Alpha: 0.75
+      Class: rviz_default_plugins/Map
       Color Scheme: map
       Draw Behind: true
-    - Class: rviz_default_plugins/LaserScan
-      Name: Projected Livox /scan
       Enabled: true
+      Name: SLAM Occupancy Map
       Topic:
-        Value: /scan
-        Reliability Policy: Best Effort
-      Size (Pixels): 3
-      Style: Points
-      Color Transformer: FlatColor
-    - Class: rviz_default_plugins/MarkerArray
-      Name: Dynamic Obstacles
-      Enabled: true
-      Topic:
-        Value: /dynamic_obstacles
-        Reliability Policy: Reliable
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Tracked Object Footprints
-      Enabled: true
-      Topic:
-        Value: /tracked_dynamic_obstacles
-        Reliability Policy: Best Effort
-      Style: Flat Squares
-      Size (Pixels): 8
-      Color Transformer: FlatColor
-      Color: 255; 40; 20
-      Decay Time: 0.6
-      Queue Size: 3
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Predicted Object Risk
-      Enabled: true
-      Topic:
-        Value: /predicted_dynamic_obstacles
-        Reliability Policy: Best Effort
-      Style: Flat Squares
-      Size (Pixels): 5
-      Color Transformer: FlatColor
-      Color: 255; 190; 0
-      Decay Time: 0.8
-      Queue Size: 3
-    - Class: rviz_default_plugins/Map
-      Name: Human Safety Grid
-      Enabled: false
-      Topic:
-        Value: /human_safety_grid
-        Durability Policy: Volatile
-        Reliability Policy: Reliable
-      Alpha: 0.45
-      Color Scheme: costmap
-      Draw Behind: false
-    - Class: rviz_default_plugins/Pose
-      Name: Current Nav2 Goal
-      Enabled: true
-      Topic:
-        Value: /exploration_goal
-        Reliability Policy: Reliable
-      Shape: Arrow
-      Shaft Length: 0.8
-      Shaft Radius: 0.05
-      Head Length: 0.25
-      Head Radius: 0.12
-      Color: 255; 80; 20
-    - Class: rviz_default_plugins/Marker
-      Name: Waypoint Exploration Goal Marker
-      Enabled: true
-      Topic:
-        Value: /exploration_goal_marker
-        Reliability Policy: Reliable
-        Durability Policy: Volatile
-      Queue Size: 10
-    - Class: rviz_default_plugins/MarkerArray
-      Name: Human-Aware Candidate Trajectories
-      Enabled: true
-      Topic:
-        Value: /human_avoidance_markers
-        Reliability Policy: Reliable
-      Queue Size: 10
-    - Class: rviz_default_plugins/Map
-      Name: Human Social Risk Grid
-      Enabled: false
-      Topic:
-        Value: /human_social_risk_grid
-        Durability Policy: Volatile
-        Reliability Policy: Reliable
-      Alpha: 0.45
-      Color Scheme: costmap
-      Draw Behind: false
-    - Class: rviz_default_plugins/Path
-      Name: Nav2 Global Path
-      Enabled: true
-      Topic:
-        Value: /plan
-        Reliability Policy: Reliable
-      Color: 25; 220; 255
-      Line Style: Lines
-      Line Width: 0.06
-    - Class: rviz_default_plugins/Path
-      Name: Nav2 Local Plan
-      Enabled: true
-      Topic:
-        Value: /local_plan
-        Reliability Policy: Reliable
-      Color: 255; 190; 20
-      Line Style: Lines
-      Line Width: 0.04
-    - Class: rviz_default_plugins/RobotModel
-      Name: G1 Robot Model
-      Enabled: true
-      Description Topic:
-        Value: /robot_description
+        Depth: 5
         Durability Policy: Transient Local
+        Filter size: 10
+        History Policy: Keep Last
         Reliability Policy: Reliable
-      Visual Enabled: true
-      Collision Enabled: false
-    - Class: rviz_default_plugins/PointCloud2
-      Name: MuJoCo Livox mj_multiRay
+        Value: /map
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_updates
+      Use Timestamp: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/LaserScan
+      Color: 255; 255; 255
+      Color Transformer: FlatColor
+      Decay Time: 0
       Enabled: true
-      Topic:
-        Value: /livox/lidar_world
-        Reliability Policy: Best Effort
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Projected Livox /scan
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
       Style: Points
-      Size (Pixels): 2
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /scan
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Dynamic Obstacles
+      Namespaces:
+        dynamic_obstacle_labels: true
+        tracked_object_paths: true
+        tracked_people: true
+        tracked_people_danger_corridors: true
+        tracked_people_predictions: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /dynamic_obstacles
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 40; 20
+      Color Transformer: FlatColor
+      Decay Time: 0.6000000238418579
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Tracked Object Footprints
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 8
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /tracked_dynamic_obstacles
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 190; 0
+      Color Transformer: FlatColor
+      Decay Time: 0.800000011920929
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Predicted Object Risk
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 5
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /predicted_dynamic_obstacles
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 0.44999998807907104
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: false
+      Name: Human Safety Grid
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /human_safety_grid
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /human_safety_grid_updates
+      Use Timestamp: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz_default_plugins/Pose
+      Color: 255; 80; 20
+      Enabled: true
+      Head Length: 0.25
+      Head Radius: 0.11999999731779099
+      Name: Current Nav2 Goal
+      Shaft Length: 0.800000011920929
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /exploration_goal
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Waypoint Exploration Goal Marker
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /exploration_goal_marker
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Human-Aware Candidate Trajectories
+      Namespaces:
+        human_aware_candidates: true
+        human_aware_state: true
+        nearest_clear_ground_patch: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /human_avoidance_markers
+      Value: true
+    - Alpha: 0.44999998807907104
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Human Social Risk Grid
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /human_social_risk_grid
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /human_social_risk_grid_updates
+      Use Timestamp: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 25; 220; 255
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.05999999865889549
+      Name: Nav2 Global Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /plan
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 255; 190; 20
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.03999999910593033
+      Name: Nav2 Local Plan
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_plan
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_in_pelvis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        imu_in_torso:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        laser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_ankle_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_ankle_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_base2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_elbow_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_hip_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_hip_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_hip_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_index_distal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_index_proximal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_index_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_knee_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_middle_distal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_middle_proximal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_middle_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_pinky_distal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_pinky_proximal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_pinky_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_ring_distal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_ring_proximal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_ring_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_shoulder_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_shoulder_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_shoulder_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_thumb_distal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_thumb_metacarpal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_thumb_proximal_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_thumb_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_wrist_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_wrist_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_wrist_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        livox_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        livox_mid360_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        logo_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pelvis:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pelvis_contour_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ankle_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ankle_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_base2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_elbow_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hip_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hip_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hip_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_index_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_knee_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_middle_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_middle_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_middle_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_pinky_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_pinky_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_pinky_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ring_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ring_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_ring_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_shoulder_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_shoulder_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_shoulder_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_distal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_metacarpal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_proximal_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_thumb_tip_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_wrist_pitch_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_wrist_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_wrist_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        torso_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        waist_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        waist_yaw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: G1 Robot Model
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Queue Size: 10
-    - Class: rviz_default_plugins/Image
-      Name: D435i Color
-      Enabled: false
-      Normalize Range: true
-      Topic:
-        Value: /camera/camera/color/image_raw
-        Reliability Policy: Best Effort
-    - Class: rviz_default_plugins/Camera
-      Name: D435i Camera View
-      Enabled: false
-      Image Topic:
-        Value: /camera/camera/color/image_raw
-        Reliability Policy: Best Effort
-      Overlay Alpha: 0.6
-      Queue Size: 2
-    - Class: rviz_default_plugins/Image
-      Name: D435i Depth
-      Enabled: false
-      Max Value: 4000
-      Min Value: 0
-      Normalize Range: true
-      Topic:
-        Value: /camera/camera/depth/image_rect_raw
-        Reliability Policy: Best Effort
-    - Class: rviz_default_plugins/PointCloud2
-      Name: D435i Depth Points
-      Enabled: false
-      Topic:
-        Value: /camera/camera/depth/color/points
-      Style: Points
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 98.66812896728516
+      Min Color: 0; 0; 0
+      Min Intensity: 90.2333755493164
+      Name: MuJoCo Livox mj_multiRay
+      Position Transformer: XYZ
+      Selectable: true
       Size (Pixels): 2
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /livox/lidar_world
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: D435i Color
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /camera/camera/color/image_raw
+      Value: true
+    - Class: rviz_default_plugins/Camera
+      Enabled: true
+      Far Plane Distance: 100
+      Image Rendering: background and overlay
+      Name: D435i Camera View
+      Overlay Alpha: 0.6000000238418579
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: ""
+      Value: true
+      Visibility:
+        Current Nav2 Goal: true
+        D435i Color: true
+        D435i Depth: true
+        D435i Depth Points: true
+        Dynamic Obstacles: true
+        G1 Robot Model: true
+        Grid: true
+        Human Safety Grid: true
+        Human Social Risk Grid: true
+        Human-Aware Candidate Trajectories: true
+        MuJoCo Livox mj_multiRay: true
+        Nav2 Global Path: true
+        Nav2 Local Plan: true
+        Predicted Object Risk: true
+        Projected Livox /scan: true
+        SLAM Occupancy Map: true
+        TF: true
+        Tracked Object Footprints: true
+        Value: true
+        Waypoint Exploration Goal Marker: true
+      Zoom Factor: 1
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 4000
+      Median window: 5
+      Min Value: 0
+      Name: D435i Depth
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /camera/camera/depth/image_rect_raw
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
       Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: D435i Depth Points
+      Position Transformer: ""
+      Selectable: true
+      Size (Pixels): 2
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /camera/camera/depth/color/points
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
   Enabled: true
   Global Options:
+    Background Color: 48; 48; 48
     Fixed Frame: map
     Frame Rate: 30
+  Name: root
   Tools:
     - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
       Distance: 4
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
         X: 0
         Y: 0
-        Z: 0.8
+        Z: 0.800000011920929
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
       Name: Current View
-      Pitch: 0.45
-      Yaw: 0.8
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.44999998807907104
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 0.800000011920929
+    Saved: ~
 Window Geometry:
+  D435i Camera View:
+    collapsed: false
+  D435i Color:
+    collapsed: false
+  D435i Depth:
+    collapsed: false
+  Displays:
+    collapsed: false
   Height: 900
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001560000032efc0200000004fb0000001600440034003300350069002000440065007000740068010000003b000000aa0000002800fffffffb0000002200440034003300350069002000430061006d0065007200610020005600690065007701000000eb000000aa0000002800fffffffb000000160044003400330035006900200043006f006c006f0072010000019b000000ab0000002800fffffffb000000100044006900730070006c006100790073010000024c0000011d000000c700ffffff0000041c0000032e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Width: 1400
+  X: 288
+  Y: 129

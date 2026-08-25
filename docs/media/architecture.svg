@@ -1,0 +1,255 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" width="1200" height="1000" role="img" aria-labelledby="title desc">
+<title id="title">Unitree G1 ROS 2 MuJoCo architecture</title>
+<desc id="desc">Animated architecture diagram showing navigation, social safety, locomotion control, sensing, Unitree DDS, and MuJoCo feedback flows.</desc>
+<style>
+  :root {
+    --bg:#fff; --fg:#1f2328; --muted:#656d76; --line:#d0d7de;
+    --card:#fff; --card-br:#d0d7de; --band:#f6f8fa; --band-br:#d8dee4;
+    --nav:#0969da; --nav-bg:#ddf4ff; --social:#8250df; --social-bg:#fbefff;
+    --state:#1a7f37; --state-bg:#dafbe1; --ctrl:#bc4c00; --ctrl-bg:#fff1e5;
+    --sim:#6e7781; --sim-bg:#f6f8fa; --hw:#cf222e; --hw-bg:#ffebe9;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root {
+      --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --line:#30363d;
+      --card:#161b22; --card-br:#30363d; --band:#11161d; --band-br:#21262d;
+      --nav:#58a6ff; --nav-bg:#0c2d6b33; --social:#bc8cff; --social-bg:#3f2a6b33;
+      --state:#3fb950; --state-bg:#12351d33; --ctrl:#db6d28; --ctrl-bg:#4d2b0033;
+      --sim:#8b949e; --sim-bg:#161b22; --hw:#f85149; --hw-bg:#5c1a1a33;
+    }
+  }
+  text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; fill:var(--fg) }
+  .ttl { font-size:20px; font-weight:700 } .sub { font-size:12px; fill:var(--muted) }
+  .t { font-size:13px; font-weight:650 } .s { font-size:10.5px; fill:var(--muted) }
+  .lbl { font-size:9.5px; fill:var(--muted); font-weight:500 }
+  .grp { font-size:10px; font-weight:700; letter-spacing:.08em }
+  .card { fill:var(--card); stroke:var(--card-br); stroke-width:1; rx:8 }
+  .band { fill:var(--band); stroke:var(--band-br); stroke-width:1; rx:10 }
+  .tag { stroke-width:.9; opacity:.95 }
+  .e { fill:none; stroke-width:1.7; opacity:.46; stroke-linecap:round; stroke-linejoin:round }
+  .e-dash { stroke-dasharray:4 4 } .e-state { stroke:var(--state) }
+  .e-nav { stroke:var(--nav) } .e-social { stroke:var(--social) } .e-ctrl { stroke:var(--ctrl) }
+  .pulse { fill:none; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round;
+           stroke-dasharray:8 100; stroke-dashoffset:8;
+           animation:pulse 3.8s cubic-bezier(.5,0,.5,1) infinite }
+  .p-state { stroke:var(--state) } .p-nav { stroke:var(--nav) }
+  .p-social { stroke:var(--social) } .p-ctrl { stroke:var(--ctrl) }
+  @keyframes pulse { to { stroke-dashoffset:-100 } }
+  @media (prefers-reduced-motion:reduce) { .pulse { display:none } .e { opacity:.86 } }
+</style>
+<defs>
+  <marker id="as" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--state)"/></marker>
+  <marker id="an" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--nav)"/></marker>
+  <marker id="ap" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--social)"/></marker>
+  <marker id="ac" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ctrl)"/></marker>
+</defs>
+<rect width="1200" height="1000" fill="var(--bg)"/>
+
+<!-- Header -->
+<text class="ttl" x="28" y="37">Unitree G1 ROS 2 MuJoCo</text>
+<text class="sub" x="278" y="37">simulation-first locomotion and human-aware navigation</text>
+<rect class="card" x="386" y="58" width="428" height="34" rx="17"/>
+<text class="t" x="600" y="75" text-anchor="middle" dominant-baseline="middle">ros2 launch unitree_g1_sim_bringup g1_sim.launch.py</text>
+
+<!-- Autonomy band -->
+<rect class="band" x="28" y="118" width="1144" height="280"/>
+<path d="M39 118.5H1161" stroke="var(--nav)" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+<text class="grp" x="41" y="139" fill="var(--nav)">NAVIGATION, SOCIAL SAFETY, AND LOCOMOTION</text>
+
+<rect class="card" x="44" y="156" width="176" height="48"/>
+<path d="M44.5 164V196" stroke="var(--nav)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="57" y="174" dominant-baseline="middle">Command sources</text>
+<text class="s" x="57" y="190" dominant-baseline="middle">teleop or one goal mode</text>
+
+<rect class="card" x="250" y="156" width="176" height="48"/>
+<path d="M250.5 164V196" stroke="var(--nav)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="263" y="174" dominant-baseline="middle">Nav2</text>
+<text class="s" x="263" y="190" dominant-baseline="middle">plan, control, costmaps</text>
+
+<rect class="card" x="456" y="156" width="196" height="48"/>
+<path d="M456.5 164V196" stroke="var(--social)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="469" y="174" dominant-baseline="middle">Human-aware planner</text>
+<text class="s" x="469" y="190" dominant-baseline="middle">social trajectory selection</text>
+
+<rect class="card" x="682" y="156" width="196" height="48"/>
+<path d="M682.5 164V196" stroke="var(--social)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="695" y="174" dominant-baseline="middle">Collision supervisor</text>
+<text class="s" x="695" y="190" dominant-baseline="middle">hard stop, stale-input gate</text>
+
+<rect class="card" x="908" y="156" width="248" height="48"/>
+<path d="M908.5 164V196" stroke="var(--ctrl)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="921" y="174" dominant-baseline="middle">Policy controller</text>
+<text class="s" x="921" y="190" dominant-baseline="middle">ONNX/Torch, 12 or 29 actions</text>
+
+<rect class="card" x="456" y="286" width="196" height="48"/>
+<path d="M456.5 294V326" stroke="var(--social)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="469" y="304" dominant-baseline="middle">Dynamic tracker</text>
+<text class="s" x="469" y="320" dominant-baseline="middle">people and trajectories</text>
+<rect x="608" y="294" width="34" height="14" rx="7" fill="var(--social-bg)" stroke="var(--social)" class="tag"/>
+<text x="625" y="301.5" text-anchor="middle" dominant-baseline="middle" font-size="8" font-weight="700" fill="var(--social)">ROS 2</text>
+
+<rect class="card" x="682" y="286" width="196" height="48"/>
+<path d="M682.5 294V326" stroke="var(--state)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="695" y="304" dominant-baseline="middle">SLAM Toolbox + TF</text>
+<text class="s" x="695" y="320" dominant-baseline="middle">map to world, robot frames</text>
+
+<rect class="card" x="908" y="286" width="248" height="48"/>
+<path d="M908.5 294V326" stroke="var(--sim)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="921" y="304" dominant-baseline="middle">RViz + diagnostics</text>
+<text class="s" x="921" y="320" dominant-baseline="middle">state, risk, paths, benchmark</text>
+
+<!-- Primary autonomy flow -->
+<path class="e e-nav" d="M220 180H250" marker-end="url(#an)"/>
+<path class="pulse p-nav" d="M220 180H250" pathLength="100" style="animation-delay:0s"/>
+<text class="lbl" x="235" y="171" text-anchor="middle">goal</text>
+<path class="e e-nav e-dash" d="M132 204V231Q132 238 139 238H445Q452 238 452 231V180H456" marker-end="url(#an)"/>
+<path class="pulse p-nav" d="M132 204V231Q132 238 139 238H445Q452 238 452 231V180H456" pathLength="100" style="animation-delay:.2s"/>
+<text class="lbl" x="294" y="247" text-anchor="middle">teleop /cmd_vel bypasses Nav2</text>
+<path class="e e-nav" d="M426 180H456" marker-end="url(#an)"/>
+<path class="pulse p-nav" d="M426 180H456" pathLength="100" style="animation-delay:.35s"/>
+<text class="lbl" x="441" y="171" text-anchor="middle">/cmd_vel</text>
+<path class="e e-social" d="M652 180H682" marker-end="url(#ap)"/>
+<path class="pulse p-social" d="M652 180H682" pathLength="100" style="animation-delay:.7s"/>
+<text class="lbl" x="667" y="171" text-anchor="middle">aware</text>
+<path class="e e-social" d="M878 180H908" marker-end="url(#ap)"/>
+<path class="pulse p-social" d="M878 180H908" pathLength="100" style="animation-delay:1s"/>
+<text class="lbl" x="893" y="171" text-anchor="middle">safe</text>
+<path class="e e-social" d="M554 286V204" marker-end="url(#ap)"/>
+<path class="pulse p-social" d="M554 286V204" pathLength="100" style="animation-delay:.5s"/>
+<rect x="493" y="238" width="122" height="14" rx="4" fill="var(--bg)"/>
+<text class="lbl" x="554" y="245" text-anchor="middle" dominant-baseline="middle">tracks + predictions</text>
+<path class="e e-nav" d="M780 286V263Q780 256 773 256H345Q338 256 338 249V204" marker-end="url(#an)"/>
+<path class="pulse p-nav" d="M780 286V263Q780 256 773 256H345Q338 256 338 249V204" pathLength="100" style="animation-delay:1.8s"/>
+<text class="lbl" x="710" y="265">map + TF</text>
+
+<!-- Sensing band -->
+<rect class="band" x="28" y="426" width="1144" height="216"/>
+<path d="M39 426.5H1161" stroke="var(--state)" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+<text class="grp" x="41" y="447" fill="var(--state)">SENSING AND STATE</text>
+
+<rect class="card" x="44" y="466" width="206" height="52"/>
+<path d="M44.5 474V510" stroke="var(--state)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="57" y="483" dominant-baseline="middle">MuJoCo sensor workers</text>
+<text class="s" x="57" y="499" dominant-baseline="middle">raycast LiDAR, RGB-D, actors</text>
+<text class="s" x="57" y="511" dominant-baseline="middle">latest-only private snapshots</text>
+
+<rect class="card" x="280" y="466" width="206" height="52"/>
+<path d="M280.5 474V510" stroke="var(--state)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="293" y="483" dominant-baseline="middle">g1_sim_sensors</text>
+<text class="s" x="293" y="499" dominant-baseline="middle">LiDAR, odom, IMU, camera</text>
+<text class="s" x="293" y="511" dominant-baseline="middle">world to base_footprint</text>
+
+<rect class="card" x="516" y="466" width="206" height="52"/>
+<path d="M516.5 474V510" stroke="var(--state)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="529" y="483" dominant-baseline="middle">Scan pipeline</text>
+<text class="s" x="529" y="499" dominant-baseline="middle">Livox conversion + dynamic filter</text>
+<text class="s" x="529" y="511" dominant-baseline="middle">/scan_raw to /scan</text>
+
+<rect class="card" x="752" y="466" width="206" height="52"/>
+<path d="M752.5 474V510" stroke="var(--state)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="765" y="483" dominant-baseline="middle">State publishers</text>
+<text class="s" x="765" y="499" dominant-baseline="middle">joint states + robot model</text>
+<text class="s" x="765" y="511" dominant-baseline="middle">odometry and TF graph</text>
+
+<rect class="card" x="988" y="466" width="168" height="52"/>
+<path d="M988.5 474V510" stroke="var(--sim)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="1001" y="483" dominant-baseline="middle">Optional sidecars</text>
+<text class="s" x="1001" y="499" dominant-baseline="middle">camera, detector, logger</text>
+<text class="s" x="1001" y="511" dominant-baseline="middle">benchmark + oracle truth</text>
+
+<path class="e e-state" d="M250 492H280" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M250 492H280" pathLength="100" style="animation-delay:0s"/>
+<rect x="238" y="525" width="90" height="14" rx="4" fill="var(--bg)"/>
+<text class="lbl" x="283" y="532" text-anchor="middle" dominant-baseline="middle">Unix datagrams</text>
+<path class="e e-state" d="M486 492H516" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M486 492H516" pathLength="100" style="animation-delay:.35s"/>
+<text class="lbl" x="501" y="483" text-anchor="middle">cloud</text>
+<path class="e e-state" d="M619 466V368Q619 361 612 361H561Q554 361 554 334" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M619 466V368Q619 361 612 361H561Q554 361 554 334" pathLength="100" style="animation-delay:.7s"/>
+<text class="lbl" x="621" y="405">/scan</text>
+<path class="e e-state" d="M722 492H735Q742 492 742 485V353Q742 346 749 346H773Q780 346 780 334" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M722 492H735Q742 492 742 485V353Q742 346 749 346H773Q780 346 780 334" pathLength="100" style="animation-delay:1s"/>
+<text class="lbl" x="744" y="421">/scan</text>
+<path class="e e-state" d="M383 466V392Q383 385 390 385H901Q908 385 908 378V310" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M383 466V392Q383 385 390 385H901Q908 385 908 378V310" pathLength="100" style="animation-delay:1.5s"/>
+<text class="lbl" x="814" y="394">odom, sensors, TF</text>
+
+<!-- Control band -->
+<rect class="band" x="28" y="674" width="1144" height="126"/>
+<path d="M39 674.5H1161" stroke="var(--ctrl)" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+<text class="grp" x="41" y="695" fill="var(--ctrl)">BRIDGING AND LOW-LEVEL CONTROL</text>
+
+<rect class="card" x="84" y="716" width="286" height="52"/>
+<path d="M84.5 724V760" stroke="var(--ctrl)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="97" y="733" dominant-baseline="middle">g1_mujoco_bridge</text>
+<text class="s" x="97" y="749" dominant-baseline="middle">joint targets, limits, fall damping</text>
+<text class="s" x="97" y="761" dominant-baseline="middle">sole default LowCmd authority</text>
+
+<rect class="card" x="456" y="716" width="286" height="52"/>
+<path d="M456.5 724V760" stroke="var(--ctrl)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="469" y="733" dominant-baseline="middle">Unitree SDK2 + CycloneDDS</text>
+<text class="s" x="469" y="749" dominant-baseline="middle">domain 42, loopback by default</text>
+<text class="s" x="469" y="761" dominant-baseline="middle">LowCmd, LowState, SportModeState</text>
+
+<rect class="card" x="828" y="716" width="286" height="52"/>
+<path d="M828.5 724V760" stroke="var(--ctrl)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="841" y="733" dominant-baseline="middle">Actuator contract</text>
+<text class="s" x="841" y="749" dominant-baseline="middle">tau + kp(q target - q) + kd(...)</text>
+<text class="s" x="841" y="761" dominant-baseline="middle">29 motors + 100 ms watchdog</text>
+
+<path class="e e-ctrl" d="M1032 204V650Q1032 657 1025 657H234Q227 657 227 664V716" marker-end="url(#ac)"/>
+<path class="pulse p-ctrl" d="M1032 204V650Q1032 657 1025 657H234Q227 657 227 664V716" pathLength="100" style="animation-delay:1.2s"/>
+<rect x="937" y="650" width="122" height="14" rx="4" fill="var(--bg)"/>
+<text class="lbl" x="998" y="657" text-anchor="middle" dominant-baseline="middle">29-joint position targets</text>
+<path class="e e-ctrl" d="M370 742H456" marker-end="url(#ac)"/>
+<path class="pulse p-ctrl" d="M370 742H456" pathLength="100" style="animation-delay:1.55s"/>
+<text class="lbl" x="413" y="733" text-anchor="middle">rt/lowcmd</text>
+<path class="e e-ctrl" d="M742 742H828" marker-end="url(#ac)"/>
+<path class="pulse p-ctrl" d="M742 742H828" pathLength="100" style="animation-delay:1.9s"/>
+
+<!-- Robot band -->
+<rect class="band" x="28" y="832" width="1144" height="100"/>
+<path d="M39 832.5H1161" stroke="var(--hw)" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+<text class="grp" x="41" y="853" fill="var(--hw)">ROBOT BOUNDARY</text>
+
+<rect class="card" x="84" y="872" width="492" height="44"/>
+<path d="M84.5 880V908" stroke="var(--sim)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="97" y="889" dominant-baseline="middle">unitree_mujoco</text>
+<text class="s" x="97" y="903" dominant-baseline="middle">physics, actuator PD, animated pedestrians, sensor snapshots</text>
+<rect x="530" y="880" width="35" height="14" rx="7" fill="var(--sim-bg)" stroke="var(--sim)" class="tag"/>
+<text x="547.5" y="887.5" text-anchor="middle" dominant-baseline="middle" font-size="8" font-weight="700" fill="var(--sim)">SIM</text>
+
+<rect class="card" x="624" y="872" width="492" height="44"/>
+<path d="M624.5 880V908" stroke="var(--hw)" stroke-width="3.5" stroke-linecap="round"/>
+<text class="t" x="637" y="889" dominant-baseline="middle">Physical Unitree G1</text>
+<text class="s" x="637" y="903" dominant-baseline="middle">same DDS target contract; deployment and safety are not validated</text>
+<rect x="1064" y="880" width="42" height="14" rx="7" fill="var(--hw-bg)" stroke="var(--hw)" class="tag"/>
+<text x="1085" y="887.5" text-anchor="middle" dominant-baseline="middle" font-size="8" font-weight="700" fill="var(--hw)">ROBOT</text>
+
+<path class="e e-ctrl" d="M971 768V807Q971 814 964 814H337Q330 814 330 821V872" marker-end="url(#ac)"/>
+<path class="pulse p-ctrl" d="M971 768V807Q971 814 964 814H337Q330 814 330 821V872" pathLength="100" style="animation-delay:2.2s"/>
+<path class="e e-ctrl e-dash" d="M971 768V807Q971 814 978 814H863Q870 814 870 821V872" marker-end="url(#ac)"/>
+<text class="lbl" x="600" y="824" text-anchor="middle">select one DDS endpoint</text>
+
+<!-- Feedback rails -->
+<path class="e e-state" d="M330 872H66Q58 872 58 864V570Q58 562 66 562H147Q155 562 155 518" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M330 872H66Q58 872 58 864V570Q58 562 66 562H147Q155 562 155 518" pathLength="100" style="animation-delay:2.5s"/>
+<text class="lbl" x="67" y="552">raycasts / actors</text>
+<path class="e e-state" d="M456 742H411Q403 742 403 734V617Q403 609 411 609H888Q896 609 896 601V370Q896 362 904 362H1024Q1032 362 1032 334" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M456 742H411Q403 742 403 734V617Q403 609 411 609H888Q896 609 896 601V370Q896 362 904 362H1024Q1032 362 1032 334" pathLength="100" style="animation-delay:2.8s"/>
+<text class="lbl" x="422" y="602">rt/lowstate + sport mode state</text>
+<path class="e e-state" d="M403 632H1080Q1088 632 1088 624V212Q1088 204 1080 204H1032" marker-end="url(#as)"/>
+<path class="pulse p-state" d="M403 632H1080Q1088 632 1088 624V212Q1088 204 1080 204H1032" pathLength="100" style="animation-delay:3.1s"/>
+<text class="lbl" x="1096" y="424" transform="rotate(-90 1096 424)">LowState + /odom feedback</text>
+
+<!-- Legend -->
+<path d="M28 961H50" stroke="var(--state)" stroke-width="2.8" stroke-linecap="round"/>
+<text class="lbl" x="57" y="964">state and sensing</text>
+<path d="M187 961H209" stroke="var(--nav)" stroke-width="2.8" stroke-linecap="round"/>
+<text class="lbl" x="216" y="964">navigation</text>
+<path d="M321 961H343" stroke="var(--social)" stroke-width="2.8" stroke-linecap="round"/>
+<text class="lbl" x="350" y="964">social safety</text>
+<path d="M462 961H484" stroke="var(--ctrl)" stroke-width="2.8" stroke-linecap="round"/>
+<text class="lbl" x="491" y="964">robot commands</text>
+<text class="lbl" x="28" y="985">Solid paths are default runtime flows. Dashed paths are alternate sources or endpoints. Animation follows message direction and respects reduced-motion settings.</text>
+</svg>

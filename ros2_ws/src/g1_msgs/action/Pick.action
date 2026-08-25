@@ -1,0 +1,15 @@
+# Pick a known object off a surface with one arm.
+string object_id
+string ARM_LEFT=left
+string ARM_RIGHT=right
+string arm
+---
+bool success
+string message
+---
+string PHASE_LOCATING=locating
+string PHASE_PREGRASP=pregrasp
+string PHASE_APPROACH=approach
+string PHASE_GRASP=grasp
+string PHASE_LIFT=lift
+string phase

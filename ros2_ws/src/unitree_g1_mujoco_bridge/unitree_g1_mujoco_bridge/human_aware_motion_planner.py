@@ -3,7 +3,7 @@ import math
 from dataclasses import dataclass
 
 import rclpy
-from geometry_msgs.msg import Point, Twist
+from geometry_msgs.msg import Point, PoseStamped, Twist
 from nav_msgs.msg import OccupancyGrid
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -11,9 +11,19 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan, PointCloud2
 from std_msgs.msg import ColorRGBA, String
 from unitree_hg.msg import LowState
+from unitree_social_navigation_msgs.msg import PredictedTrajectories, TrackedPerson, TrackedPersons
 from tf2_ros import Buffer, TransformException, TransformListener
 from visualization_msgs.msg import Marker, MarkerArray
 
+from .bridge_safety import (
+    blocked_motion_state,
+    clamp_velocity,
+    no_unrequested_forward,
+    relative_motion_metrics,
+    scan_is_fresh,
+    trajectory_static_cost,
+    ttc_is_relevant,
+)
 from .pointcloud import iter_xyz
 
 
@@ -31,6 +41,147 @@ class HumanTrack:
     cov_xx: float
     cov_yy: float
     stamp: float
+    body_radius: float = 0.35
+
+
+def align_track_to_time(track: HumanTrack, query_stamp: float) -> HumanTrack:
+    """Advance a track state from its observation stamp to a planning epoch."""
+    age = max(0.0, query_stamp - track.stamp)
+    return HumanTrack(
+        track_id=track.track_id,
+        state=track.state,
+        x=track.x + track.vx * age,
+        y=track.y + track.vy * age,
+        vx=track.vx,
+        vy=track.vy,
+        confidence=track.confidence,
+        person_score=track.person_score,
+        missed_count=track.missed_count,
+        cov_xx=track.cov_xx,
+        cov_yy=track.cov_yy,
+        stamp=query_stamp,
+        body_radius=track.body_radius,
+    )
+
+
+@dataclass(frozen=True)
+class PredictionSample:
+    time_offset: float
+    x: float
+    y: float
+    vx: float
+    vy: float
+    cov_xx: float
+    cov_yy: float
+    confidence: float
+
+
+def _ros_time_seconds(stamp) -> float:
+    return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+
+
+def interpolate_prediction(
+    points: list[PredictionSample], time_offset: float
+) -> PredictionSample | None:
+    """Interpolate a prediction at an offset from its message epoch."""
+    if not points or time_offset < points[0].time_offset or time_offset > points[-1].time_offset:
+        return None
+    for right_index, right in enumerate(points):
+        if time_offset > right.time_offset:
+            continue
+        if right_index == 0 or time_offset == right.time_offset:
+            return right
+        left = points[right_index - 1]
+        span = right.time_offset - left.time_offset
+        if span <= 0.0:
+            return None
+        fraction = (time_offset - left.time_offset) / span
+        return PredictionSample(
+            time_offset=time_offset,
+            x=left.x + fraction * (right.x - left.x),
+            y=left.y + fraction * (right.y - left.y),
+            vx=left.vx + fraction * (right.vx - left.vx),
+            vy=left.vy + fraction * (right.vy - left.vy),
+            cov_xx=left.cov_xx + fraction * (right.cov_xx - left.cov_xx),
+            cov_yy=left.cov_yy + fraction * (right.cov_yy - left.cov_yy),
+            confidence=left.confidence + fraction * (right.confidence - left.confidence),
+        )
+    return None
+
+
+def nearest_clear_patch(
+    origin: tuple[float, float],
+    danger_points: list[tuple[float, float, float]],
+    static_points: list[tuple[float, float]],
+    search_radius: float,
+    spacing: float,
+    clearance: float,
+    preferred_heading: float,
+) -> tuple[float, float] | None:
+    """Return the closest straight-line reachable patch outside all danger regions."""
+    ox, oy = origin
+    spacing = max(0.1, spacing)
+    ring_count = max(1, math.ceil(search_radius / spacing))
+
+    def clear(x: float, y: float) -> bool:
+        if any(math.hypot(x - px, y - py) < radius + clearance for px, py, radius in danger_points):
+            return False
+        return not any(math.hypot(x - px, y - py) < clearance for px, py in static_points)
+
+    def static_clear(x: float, y: float) -> bool:
+        return not any(math.hypot(x - px, y - py) < clearance for px, py in static_points)
+
+    for ring in range(1, ring_count + 1):
+        radius = min(search_radius, ring * spacing)
+        candidates = []
+        sample_count = max(16, math.ceil(2.0 * math.pi * radius / spacing))
+        for index in range(sample_count):
+            angle = 2.0 * math.pi * index / sample_count
+            x = ox + radius * math.cos(angle)
+            y = oy + radius * math.sin(angle)
+            if not clear(x, y):
+                continue
+            segment_clear = True
+            for step in range(1, ring + 1):
+                fraction = step / ring
+                if not static_clear(ox + (x - ox) * fraction, oy + (y - oy) * fraction):
+                    segment_clear = False
+                    break
+            if segment_clear:
+                heading_error = abs(math.atan2(math.sin(angle - preferred_heading), math.cos(angle - preferred_heading)))
+                candidates.append((heading_error, x, y))
+        if candidates:
+            _, x, y = min(candidates)
+            return x, y
+    return None
+
+
+def incoming_collision_imminent(
+    pose: tuple[float, float, float],
+    tracks: list[HumanTrack],
+    ttc_limit: float,
+    dcpa_limit: float,
+    minimum_person_speed: float,
+) -> bool:
+    robot_x, robot_y, _ = pose
+    for track in tracks:
+        if track.state not in ("CONFIRMED", "OCCLUDED"):
+            continue
+        if math.hypot(track.vx, track.vy) < minimum_person_speed:
+            continue
+        metrics = relative_motion_metrics(
+            robot_x,
+            robot_y,
+            0.0,
+            0.0,
+            track.x,
+            track.y,
+            track.vx,
+            track.vy,
+        )
+        if ttc_is_relevant(metrics, ttc_limit, dcpa_limit):
+            return True
+    return False
 
 
 @dataclass
@@ -66,14 +217,18 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("predicted_cloud_topic", "/predicted_dynamic_obstacles")
         self.declare_parameter("tentative_cloud_topic", "/tentative_dynamic_obstacles")
         self.declare_parameter("debug_tracks_topic", "/dynamic_obstacle_tracker/debug_tracks")
+        self.declare_parameter("tracked_persons_topic", "/tracked_persons")
+        self.declare_parameter("predicted_trajectories_topic", "/predicted_person_trajectories")
+        self.declare_parameter("use_legacy_person_inputs", False)
         self.declare_parameter("scan_topic", "/scan")
         self.declare_parameter("target_frame", "world")
         self.declare_parameter("robot_frame", "base_footprint")
         self.declare_parameter("rate_hz", 12.0)
-        self.declare_parameter("prediction_horizon", 2.5)
+        self.declare_parameter("prediction_horizon", 5.0)
         self.declare_parameter("simulation_dt", 0.2)
         self.declare_parameter("input_timeout", 0.6)
         self.declare_parameter("max_person_cloud_age", 0.8)
+        self.declare_parameter("max_scan_age", 0.6)
         self.declare_parameter("robot_radius", 0.38)
         self.declare_parameter("human_body_radius", 0.35)
         self.declare_parameter("hard_safety_margin", 0.25)
@@ -118,12 +273,18 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("risk_grid_resolution", 0.20)
         self.declare_parameter("local_safe_space_enabled", True)
         self.declare_parameter("local_safe_radius", 1.35)
-        self.declare_parameter("local_danger_radius", 2.20)
-        self.declare_parameter("predicted_danger_radius", 0.75)
+        self.declare_parameter("local_danger_radius", 4.0)
+        self.declare_parameter("predicted_danger_radius", 1.25)
         self.declare_parameter("safe_space_max_speed", 0.22)
         self.declare_parameter("safe_space_max_lateral", 0.18)
         self.declare_parameter("safe_space_max_yaw", 0.45)
         self.declare_parameter("safe_space_max_tilt", 0.45)
+        self.declare_parameter("safe_patch_search_radius", 3.0)
+        self.declare_parameter("safe_patch_spacing", 0.30)
+        self.declare_parameter("safe_patch_clearance", 0.55)
+        self.declare_parameter("collision_reflex_ttc", 6.0)
+        self.declare_parameter("collision_reflex_dcpa", 1.10)
+        self.declare_parameter("collision_reflex_min_person_speed", 0.12)
 
         self.target_frame = str(self.get_parameter("target_frame").value)
         self.robot_frame = str(self.get_parameter("robot_frame").value)
@@ -131,6 +292,7 @@ class HumanAwareMotionPlanner(Node):
         self.dt = float(self.get_parameter("simulation_dt").value)
         self.input_timeout = float(self.get_parameter("input_timeout").value)
         self.max_person_cloud_age = float(self.get_parameter("max_person_cloud_age").value)
+        self.max_scan_age = float(self.get_parameter("max_scan_age").value)
         self.robot_radius = float(self.get_parameter("robot_radius").value)
         self.human_body_radius = float(self.get_parameter("human_body_radius").value)
         self.hard_safety_margin = float(self.get_parameter("hard_safety_margin").value)
@@ -186,6 +348,15 @@ class HumanAwareMotionPlanner(Node):
         self.safe_space_max_lateral = float(self.get_parameter("safe_space_max_lateral").value)
         self.safe_space_max_yaw = float(self.get_parameter("safe_space_max_yaw").value)
         self.safe_space_max_tilt = float(self.get_parameter("safe_space_max_tilt").value)
+        self.safe_patch_search_radius = float(self.get_parameter("safe_patch_search_radius").value)
+        self.safe_patch_spacing = float(self.get_parameter("safe_patch_spacing").value)
+        self.safe_patch_clearance = float(self.get_parameter("safe_patch_clearance").value)
+        self.collision_reflex_ttc = float(self.get_parameter("collision_reflex_ttc").value)
+        self.collision_reflex_dcpa = float(self.get_parameter("collision_reflex_dcpa").value)
+        self.collision_reflex_min_person_speed = float(
+            self.get_parameter("collision_reflex_min_person_speed").value
+        )
+        self.use_legacy_person_inputs = bool(self.get_parameter("use_legacy_person_inputs").value)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -194,8 +365,12 @@ class HumanAwareMotionPlanner(Node):
         self.latest_scan: LaserScan | None = None
         self.latest_scan_time = None
         self.tracks: dict[int, HumanTrack] = {}
+        self.tracks_epoch: float | None = None
+        self.legacy_tracks: dict[int, HumanTrack] = {}
         self.predicted_points: list[tuple[float, float, float]] = []
         self.predicted_time = None
+        self.predictions: dict[int, list[PredictionSample]] = {}
+        self.prediction_epoch: float | None = None
         self.tentative_points: list[tuple[float, float, float]] = []
         self.tentative_time = None
         self.state = "NORMAL_NAVIGATION"
@@ -206,16 +381,28 @@ class HumanAwareMotionPlanner(Node):
         self.last_tilt = 0.0
         self.last_progress_time = self.get_clock().now()
         self.last_debug = {}
+        self.selected_safe_patch: tuple[float, float] | None = None
 
         self.cmd_pub = self.create_publisher(Twist, str(self.get_parameter("output_cmd_vel_topic").value), 10)
         self.state_pub = self.create_publisher(String, "/human_avoidance_state", 10)
         self.debug_pub = self.create_publisher(String, "/human_avoidance_debug", 10)
         self.grid_pub = self.create_publisher(OccupancyGrid, "/human_social_risk_grid", 10)
         self.marker_pub = self.create_publisher(MarkerArray, "/human_avoidance_markers", 10)
+        self.safe_patch_pub = self.create_publisher(PoseStamped, "/human_avoidance_safe_patch", 10)
         self.create_subscription(Twist, str(self.get_parameter("input_cmd_vel_topic").value), self._cmd_callback, 10)
-        self.create_subscription(String, str(self.get_parameter("debug_tracks_topic").value), self._debug_tracks_callback, 10)
-        self.create_subscription(PointCloud2, str(self.get_parameter("predicted_cloud_topic").value), self._predicted_callback, qos_profile_sensor_data)
-        self.create_subscription(PointCloud2, str(self.get_parameter("tentative_cloud_topic").value), self._tentative_callback, qos_profile_sensor_data)
+        self.create_subscription(
+            TrackedPersons, str(self.get_parameter("tracked_persons_topic").value), self._tracked_persons_callback, 10
+        )
+        self.create_subscription(
+            PredictedTrajectories,
+            str(self.get_parameter("predicted_trajectories_topic").value),
+            self._predicted_trajectories_callback,
+            10,
+        )
+        if self.use_legacy_person_inputs:
+            self.create_subscription(String, str(self.get_parameter("debug_tracks_topic").value), self._debug_tracks_callback, 10)
+            self.create_subscription(PointCloud2, str(self.get_parameter("predicted_cloud_topic").value), self._predicted_callback, qos_profile_sensor_data)
+            self.create_subscription(PointCloud2, str(self.get_parameter("tentative_cloud_topic").value), self._tentative_callback, qos_profile_sensor_data)
         self.create_subscription(LaserScan, str(self.get_parameter("scan_topic").value), self._scan_callback, qos_profile_sensor_data)
         self.create_subscription(LowState, "/lowstate", self._lowstate_callback, qos_profile_sensor_data)
         self.create_timer(1.0 / max(1.0, float(self.get_parameter("rate_hz").value)), self._timer_callback)
@@ -237,11 +424,76 @@ class HumanAwareMotionPlanner(Node):
 
     def _tentative_callback(self, msg: PointCloud2) -> None:
         self.tentative_points = list(iter_xyz(msg))[:64]
-        self.tentative_time = self.get_clock().now()
+        self.tentative_time = _ros_time_seconds(msg.header.stamp)
 
     def _predicted_callback(self, msg: PointCloud2) -> None:
         self.predicted_points = list(iter_xyz(msg))[:256]
-        self.predicted_time = self.get_clock().now()
+        self.predicted_time = _ros_time_seconds(msg.header.stamp)
+
+    def _tracked_persons_callback(self, msg: TrackedPersons) -> None:
+        if msg.header.frame_id and msg.header.frame_id != self.target_frame:
+            self.get_logger().warn(
+                f"Ignoring tracked persons in {msg.header.frame_id}; expected {self.target_frame}",
+                throttle_duration_sec=2.0,
+            )
+            return
+        stamp = _ros_time_seconds(msg.header.stamp)
+        tracks = {}
+        for person in msg.persons:
+            if person.track_state not in (
+                TrackedPerson.TRACK_STATE_CONFIRMED,
+                TrackedPerson.TRACK_STATE_LOST,
+            ):
+                continue
+            tracks[int(person.track_id)] = HumanTrack(
+                track_id=int(person.track_id),
+                state="CONFIRMED" if person.track_state == TrackedPerson.TRACK_STATE_CONFIRMED else "OCCLUDED",
+                x=float(person.pose.pose.position.x),
+                y=float(person.pose.pose.position.y),
+                vx=float(person.velocity.twist.linear.x),
+                vy=float(person.velocity.twist.linear.y),
+                confidence=max(0.0, min(1.0, float(person.confidence))),
+                person_score=max(0.0, min(1.0, float(person.confidence))),
+                missed_count=1 if person.track_state == TrackedPerson.TRACK_STATE_LOST else 0,
+                cov_xx=max(0.0, float(person.pose.covariance[0])),
+                cov_yy=max(0.0, float(person.pose.covariance[7])),
+                stamp=stamp,
+                body_radius=max(0.0, float(person.body_radius)),
+            )
+        self.tracks = tracks
+        self.tracks_epoch = stamp
+
+    def _predicted_trajectories_callback(self, msg: PredictedTrajectories) -> None:
+        if msg.header.frame_id and msg.header.frame_id != self.target_frame:
+            self.get_logger().warn(
+                f"Ignoring person predictions in {msg.header.frame_id}; expected {self.target_frame}",
+                throttle_duration_sec=2.0,
+            )
+            return
+        predictions = {}
+        for trajectory in msg.trajectories:
+            points = []
+            previous_offset = -1.0
+            for point in trajectory.points:
+                offset = _ros_time_seconds(point.time_offset)
+                values = (point.position.x, point.position.y, point.velocity.x, point.velocity.y)
+                if offset < 0.0 or offset <= previous_offset or not all(math.isfinite(float(value)) for value in values):
+                    continue
+                points.append(PredictionSample(
+                    time_offset=offset,
+                    x=float(point.position.x),
+                    y=float(point.position.y),
+                    vx=float(point.velocity.x),
+                    vy=float(point.velocity.y),
+                    cov_xx=max(0.0, float(point.position_covariance[0])),
+                    cov_yy=max(0.0, float(point.position_covariance[4])),
+                    confidence=max(0.0, min(1.0, float(point.confidence))),
+                ))
+                previous_offset = offset
+            if points:
+                predictions[int(trajectory.track_id)] = points
+        self.predictions = predictions
+        self.prediction_epoch = _ros_time_seconds(msg.header.stamp)
 
     def _debug_tracks_callback(self, msg: String) -> None:
         try:
@@ -269,21 +521,30 @@ class HumanAwareMotionPlanner(Node):
                     cov_xx=float(item.get("cov_xx", 0.20)),
                     cov_yy=float(item.get("cov_yy", 0.20)),
                     stamp=stamp,
+                    body_radius=self.human_body_radius,
                 )
             except (TypeError, ValueError, KeyError):
                 continue
-        self.tracks = tracks
+        self.legacy_tracks = tracks
 
     def _timer_callback(self) -> None:
         now = self.get_clock().now()
+        self.selected_safe_patch = None
         pose = self._robot_pose()
         tracks = self._fresh_tracks(now)
         tentative_points = self._fresh_tentative(now)
-        predicted_points = self._fresh_predicted(now)
+        predictions, prediction_age, typed_predictions_fresh = self._fresh_predictions(now)
+        predicted_points = [] if typed_predictions_fresh else self._fresh_predicted(now)
         if self._input_stale(now):
-            if pose is not None and self.local_safe_space_enabled and self.last_tilt <= self.safe_space_max_tilt:
-                selected, results = self._select_local_safe_space_command(pose, tracks, tentative_points, predicted_points)
-                if selected is not None:
+            if (
+                pose is not None
+                and self.local_safe_space_enabled
+                and self.last_tilt <= self.safe_space_max_tilt
+            ):
+                selected, results = self._select_local_safe_space_command(
+                    pose, tracks, tentative_points, predicted_points, predictions, prediction_age
+                )
+                if selected is not None and selected.candidate.name == "nearest_clear_patch":
                     cmd = self._twist_from_candidate(selected.candidate)
                     self.last_cmd = cmd
                     self._publish(cmd, "LOCAL_SAFE_SPACE", results, selected)
@@ -291,11 +552,25 @@ class HumanAwareMotionPlanner(Node):
             self._publish(Twist(), "NORMAL_NAVIGATION", [], None)
             return
         if pose is None:
-            self._publish(self.latest_cmd, "NORMAL_NAVIGATION", [], None)
+            self._publish(Twist(), "EMERGENCY_STOP", [], None)
             return
+        if self.local_safe_space_enabled and self.last_tilt <= self.safe_space_max_tilt:
+            safe_selected, safe_results = self._select_local_safe_space_command(
+                pose, tracks, tentative_points, predicted_points, predictions, prediction_age
+            )
+            if safe_selected is not None and safe_selected.candidate.name == "nearest_clear_patch":
+                cmd = self._twist_from_candidate(safe_selected.candidate)
+                self.last_cmd = cmd
+                self._publish(cmd, "LOCAL_SAFE_SPACE", safe_results, safe_selected)
+                return
         state = self._update_state(now, pose, tracks, tentative_points)
         candidates = self._candidate_commands(self.latest_cmd, state, pose, tracks)
-        results = [self._score_candidate(candidate, pose, tracks, tentative_points, predicted_points) for candidate in candidates]
+        results = [
+            self._score_candidate(
+                candidate, pose, tracks, tentative_points, predicted_points, predictions, prediction_age
+            )
+            for candidate in candidates
+        ]
         feasible = [result for result in results if not result.rejected]
         selected = min(feasible, key=lambda result: result.score) if feasible else None
         if selected is None:
@@ -308,44 +583,73 @@ class HumanAwareMotionPlanner(Node):
 
     def _fresh_tracks(self, now) -> list[HumanTrack]:
         now_seconds = now.nanoseconds * 1e-9
-        return [track for track in self.tracks.values() if now_seconds - track.stamp <= self.max_person_cloud_age]
+        if self.tracks_epoch is not None and 0.0 <= now_seconds - self.tracks_epoch <= self.max_person_cloud_age:
+            return [align_track_to_time(track, now_seconds) for track in self.tracks.values()]
+        if not self.use_legacy_person_inputs:
+            return []
+        return [
+            align_track_to_time(track, now_seconds) for track in self.legacy_tracks.values()
+            if 0.0 <= now_seconds - track.stamp <= self.max_person_cloud_age
+        ]
 
     def _fresh_tentative(self, now) -> list[tuple[float, float, float]]:
-        if self.tentative_time is None:
+        if not self.use_legacy_person_inputs or self.tentative_time is None:
             return []
-        if (now - self.tentative_time).nanoseconds * 1e-9 > self.max_person_cloud_age:
+        age = now.nanoseconds * 1e-9 - self.tentative_time
+        if age < 0.0 or age > self.max_person_cloud_age:
             return []
         return self.tentative_points
 
     def _fresh_predicted(self, now) -> list[tuple[float, float, float]]:
-        if self.predicted_time is None:
+        if not self.use_legacy_person_inputs or self.predicted_time is None:
             return []
-        if (now - self.predicted_time).nanoseconds * 1e-9 > self.max_person_cloud_age:
+        age = now.nanoseconds * 1e-9 - self.predicted_time
+        if age < 0.0 or age > self.max_person_cloud_age:
             return []
         return self.predicted_points
 
+    def _fresh_predictions(self, now) -> tuple[dict[int, list[PredictionSample]], float, bool]:
+        if self.prediction_epoch is None:
+            return {}, 0.0, False
+        age = now.nanoseconds * 1e-9 - self.prediction_epoch
+        if age < 0.0 or age > self.max_person_cloud_age:
+            return {}, 0.0, False
+        return self.predictions, age, True
+
     def _update_state(self, now, pose: tuple[float, float, float], tracks: list[HumanTrack], tentative_points) -> str:
         min_distance = math.inf
-        min_tcpa = math.inf
+        hard_ttc = False
+        hard_distance = False
+        warning_ttc = False
         crossing_front = False
         for track in tracks:
             metrics = self._relative_metrics_for_raw_cmd(pose, track)
             min_distance = min(min_distance, metrics["distance"])
-            min_tcpa = min(min_tcpa, metrics["tcpa"])
+            hard_radius = self.robot_radius + track.body_radius + self.hard_safety_margin
+            hard_distance = hard_distance or metrics["distance"] <= hard_radius
+            hard_ttc = hard_ttc or ttc_is_relevant(metrics, self.ttc_hard_threshold, hard_radius)
+            warning_ttc = warning_ttc or ttc_is_relevant(metrics, self.ttc_warning_threshold, self.dcpa_comfort_threshold)
             crossing_front = crossing_front or metrics["front_cut"]
-        hard_radius = self.robot_radius + self.human_body_radius + self.hard_safety_margin
         next_state = self.state
-        if min_distance <= hard_radius or min_tcpa <= self.ttc_hard_threshold:
+        forward_blocked = self._human_blocks_forward_path(pose, tracks)
+        state_age = (now - self.state_since).nanoseconds * 1e-9
+        blocked_age = (now - self.last_progress_time).nanoseconds * 1e-9
+        if hard_distance or hard_ttc:
             next_state = "EMERGENCY_STOP"
         elif crossing_front:
             next_state = "PASS_BEHIND"
-        elif min_distance <= self.comfort_radius or min_tcpa <= self.ttc_warning_threshold:
-            forward_blocked = self._human_blocks_forward_path(pose, tracks)
-            next_state = "YIELD_TO_HUMAN" if forward_blocked else "HUMAN_CAUTION"
+        elif min_distance <= self.comfort_radius or warning_ttc:
+            if forward_blocked:
+                next_state = blocked_motion_state(
+                    self.state, state_age, blocked_age, self.yield_timeout, self.deadlock_timeout
+                )
+            else:
+                next_state = "HUMAN_CAUTION"
         elif tentative_points:
             next_state = "HUMAN_CAUTION"
         else:
             next_state = "NORMAL_NAVIGATION"
+            self.last_progress_time = now
         if next_state != self.state:
             self.state_since = now
         self.state = next_state
@@ -386,9 +690,19 @@ class HumanAwareMotionPlanner(Node):
         if state in ("PASS_BEHIND", "HUMAN_CAUTION"):
             candidates.insert(1, Candidate("committed_side", 0.14, side * self.max_lateral_near_human, -side * self.max_angular_near_human * 0.25))
         if state == "YIELD_TO_HUMAN":
-            candidates = [candidate for candidate in candidates if candidate.name in ("yield_stop", "retreat", "committed_side", "sidestep_left", "sidestep_right", "creep")]
+            candidates = [Candidate("yield_stop", 0.0, 0.0, 0.0, "YIELD_TO_HUMAN")]
+        elif state == "DEADLOCK_RECOVERY":
+            lateral = side * self.max_lateral_near_human
+            candidates = [
+                Candidate("deadlock_sidestep", 0.0, lateral, -side * self.max_angular_near_human * 0.25),
+                Candidate("deadlock_retreat", -self.max_reverse_velocity, 0.5 * lateral, 0.0, "RETREAT_OR_BACKUP"),
+                Candidate("deadlock_turn", 0.0, 0.0, -side * self.max_angular_near_human * 0.55),
+                Candidate("yield_stop", 0.0, 0.0, 0.0, "YIELD_TO_HUMAN"),
+            ]
         if state == "EMERGENCY_STOP":
             return [Candidate("emergency_stop", 0.0, 0.0, 0.0)]
+        for candidate in candidates:
+            candidate.vx = no_unrequested_forward(candidate.vx, raw_x)
         return candidates
 
     def _move_away_candidate(self, pose: tuple[float, float, float], tracks: list[HumanTrack]) -> Candidate | None:
@@ -428,13 +742,17 @@ class HumanAwareMotionPlanner(Node):
         tracks: list[HumanTrack],
         tentative_points: list[tuple[float, float, float]],
         predicted_points: list[tuple[float, float, float]],
+        predictions: dict[int, list[PredictionSample]],
+        prediction_age: float,
     ) -> tuple[CandidateResult | None, list[CandidateResult]]:
-        danger_points = self._danger_zone_points(tracks, tentative_points, predicted_points)
+        danger_points = self._danger_zone_points(
+            tracks, tentative_points, predicted_points, predictions, prediction_age
+        )
         if not self._local_danger_present(pose, danger_points):
             return None, []
 
         speed = max(0.05, min(self.safe_space_max_speed, self.max_forward_near_human))
-        lateral = max(0.04, min(self.safe_space_max_lateral, self.max_lateral_near_human))
+        lateral = max(0.0, min(self.safe_space_max_lateral, self.max_lateral_near_human))
         yaw = max(0.10, min(self.safe_space_max_yaw, self.max_angular_near_human))
         candidates = [
             Candidate("safe_hold", 0.0, 0.0, 0.0),
@@ -448,29 +766,93 @@ class HumanAwareMotionPlanner(Node):
             Candidate("safe_arc_left", speed * 0.7, 0.0, yaw, "SIDESTEP_LEFT"),
             Candidate("safe_arc_right", speed * 0.7, 0.0, -yaw, "SIDESTEP_RIGHT"),
         ]
+        patch = self._nearest_clear_patch(pose, danger_points)
+        if patch is not None:
+            self.selected_safe_patch = patch
+            dx = patch[0] - pose[0]
+            dy = patch[1] - pose[1]
+            local_x = math.cos(pose[2]) * dx + math.sin(pose[2]) * dy
+            local_y = -math.sin(pose[2]) * dx + math.cos(pose[2]) * dy
+            distance = max(1e-6, math.hypot(local_x, local_y))
+            heading = math.atan2(local_y, local_x)
+            candidates.insert(
+                0,
+                Candidate(
+                    "nearest_clear_patch",
+                    speed * local_x / distance,
+                    lateral * local_y / distance,
+                    self._clamp(heading, -yaw, yaw),
+                    "LOCAL_SAFE_SPACE",
+                ),
+            )
         results = [self._score_safe_space_candidate(candidate, pose, danger_points) for candidate in candidates]
+        patch_result = next(
+            (result for result in results if result.candidate.name == "nearest_clear_patch" and not result.rejected),
+            None,
+        )
+        if patch_result is not None:
+            return patch_result, results
         feasible = [result for result in results if not result.rejected]
         if feasible:
             return min(feasible, key=lambda result: result.score), results
-        fallback = min(results, key=lambda result: result.score, default=None)
-        return fallback, results
+        return None, results
 
     def _danger_zone_points(
         self,
         tracks: list[HumanTrack],
         tentative_points: list[tuple[float, float, float]],
         predicted_points: list[tuple[float, float, float]],
+        predictions: dict[int, list[PredictionSample]],
+        prediction_age: float,
     ) -> list[tuple[float, float, float]]:
         points = [(x, y, self.predicted_danger_radius) for x, y, _ in predicted_points]
         points.extend((x, y, self.tentative_caution_radius) for x, y, _ in tentative_points)
+        for samples in predictions.values():
+            points.extend(
+                (sample.x, sample.y, self.predicted_danger_radius)
+                for sample in samples
+                if prediction_age <= sample.time_offset <= prediction_age + self.horizon
+            )
         steps = max(1, int(self.horizon / max(0.05, self.dt)))
         for track in tracks:
+            if track.track_id in predictions:
+                continue
             base_radius = self._comfort_radius(track, 0.0)
             for step in range(steps + 1):
                 t = step * self.dt
                 radius = min(self.local_safe_radius, base_radius + self.uncertainty_growth_rate * t)
                 points.append((track.x + track.vx * t, track.y + track.vy * t, radius))
         return points
+
+    def _nearest_clear_patch(
+        self,
+        pose: tuple[float, float, float],
+        danger_points: list[tuple[float, float, float]],
+    ) -> tuple[float, float] | None:
+        static_points = []
+        now = self.get_clock().now()
+        scan_time = None if self.latest_scan_time is None else self.latest_scan_time.nanoseconds * 1e-9
+        if self.latest_scan is None or not scan_is_fresh(scan_time, now.nanoseconds * 1e-9, self.max_scan_age):
+            return None
+        for index, distance in enumerate(self.latest_scan.ranges):
+            if not math.isfinite(distance) or distance <= self.latest_scan.range_min:
+                continue
+            angle = pose[2] + self.latest_scan.angle_min + index * self.latest_scan.angle_increment
+            static_points.append((pose[0] + distance * math.cos(angle), pose[1] + distance * math.sin(angle)))
+        raw_x = float(self.latest_cmd.linear.x)
+        raw_y = float(self.latest_cmd.linear.y)
+        preferred_heading = pose[2]
+        if math.hypot(raw_x, raw_y) > 1e-3:
+            preferred_heading += math.atan2(raw_y, raw_x)
+        return nearest_clear_patch(
+            (pose[0], pose[1]),
+            danger_points,
+            static_points,
+            self.safe_patch_search_radius,
+            self.safe_patch_spacing,
+            self.safe_patch_clearance,
+            preferred_heading,
+        )
 
     def _local_danger_present(self, pose: tuple[float, float, float], danger_points: list[tuple[float, float, float]]) -> bool:
         if not danger_points:
@@ -488,9 +870,9 @@ class HumanAwareMotionPlanner(Node):
         danger_points: list[tuple[float, float, float]],
     ) -> CandidateResult:
         trajectory = self._simulate(pose, candidate)
-        hard_radius = self.robot_radius + self.human_body_radius + self.hard_safety_margin
         min_clearance = math.inf
         final_clearance = -math.inf
+        initial_clearance = -math.inf
         first_safe_time = math.inf
         path_length = 0.0
         last_xy = None
@@ -499,6 +881,8 @@ class HumanAwareMotionPlanner(Node):
                 path_length += math.hypot(x - last_xy[0], y - last_xy[1])
             last_xy = (x, y)
             clearance = min(math.hypot(x - px, y - py) - radius for px, py, radius in danger_points)
+            if not math.isfinite(initial_clearance):
+                initial_clearance = clearance
             min_clearance = min(min_clearance, clearance)
             final_clearance = clearance
             if not math.isfinite(first_safe_time) and clearance >= self.local_safe_radius:
@@ -507,6 +891,23 @@ class HumanAwareMotionPlanner(Node):
         if static_reject:
             return CandidateResult(candidate, math.inf, True, "static_obstacle", trajectory, max(0.0, min_clearance), math.inf, 0.0, {})
         if not math.isfinite(first_safe_time):
+            if candidate.name == "nearest_clear_patch" and final_clearance >= initial_clearance + 0.10:
+                score_terms = {
+                    "clearance_progress": -(final_clearance - initial_clearance),
+                    "static": self.weights["w_static"] * static_cost,
+                    "path_length": 0.35 * path_length,
+                }
+                return CandidateResult(
+                    candidate,
+                    sum(score_terms.values()),
+                    False,
+                    "",
+                    trajectory,
+                    max(0.0, min_clearance),
+                    math.inf,
+                    0.0,
+                    score_terms,
+                )
             speed_cost = 0.15 * (abs(candidate.vx) + abs(candidate.vy))
             yaw_cost = 0.08 * abs(candidate.wz)
             score = 100.0 - final_clearance + 0.25 * path_length + speed_cost + yaw_cost
@@ -541,9 +942,10 @@ class HumanAwareMotionPlanner(Node):
         tracks: list[HumanTrack],
         tentative_points: list[tuple[float, float, float]],
         predicted_points: list[tuple[float, float, float]],
+        predictions: dict[int, list[PredictionSample]],
+        prediction_age: float,
     ) -> CandidateResult:
         trajectory = self._simulate(pose, candidate)
-        hard_radius = self.robot_radius + self.human_body_radius + self.hard_safety_margin
         min_human_distance = math.inf
         min_tcpa = math.inf
         personal_space_cost = 0.0
@@ -551,16 +953,28 @@ class HumanAwareMotionPlanner(Node):
         front_cut_cost = 0.0
         yield_cost = 0.0
         for track in tracks:
+            track_hard_radius = self.robot_radius + track.body_radius + self.hard_safety_margin
+            samples = predictions.get(track.track_id)
             for x, y, _, t in trajectory:
-                hx = track.x + track.vx * t
-                hy = track.y + track.vy * t
+                sample = interpolate_prediction(samples, prediction_age + t) if samples else None
+                if sample is None:
+                    hx = track.x + track.vx * t
+                    hy = track.y + track.vy * t
+                    hvx = track.vx
+                    hvy = track.vy
+                    radius = self._comfort_radius(track, t)
+                else:
+                    hx = sample.x
+                    hy = sample.y
+                    hvx = sample.vx
+                    hvy = sample.vy
+                    radius = self._prediction_comfort_radius(track, sample)
                 distance = math.hypot(x - hx, y - hy)
                 min_human_distance = min(min_human_distance, distance)
-                radius = self._comfort_radius(track, t)
-                if distance < hard_radius:
+                if distance < track_hard_radius:
                     return CandidateResult(candidate, math.inf, True, "hard_human_collision", trajectory, distance, 0.0, 0.0, {})
                 personal_space_cost += math.exp(-0.5 * (distance / max(0.1, radius)) ** 2)
-                personal_space_cost += self._front_arc_risk_cost(x, y, track, t, radius)
+                personal_space_cost += self._front_arc_risk_at(x, y, hx, hy, hvx, hvy, radius)
             metrics = self._relative_metrics_for_candidate(pose, candidate, track)
             min_tcpa = min(min_tcpa, metrics["tcpa"])
             if metrics["dcpa"] < self.dcpa_comfort_threshold and metrics["tcpa"] < self.ttc_warning_threshold:
@@ -576,6 +990,7 @@ class HumanAwareMotionPlanner(Node):
         for px, py, _ in predicted_points:
             for x, y, _, t in trajectory:
                 distance = math.hypot(x - px, y - py)
+                hard_radius = self.robot_radius + self.human_body_radius + self.hard_safety_margin
                 if distance < hard_radius:
                     return CandidateResult(candidate, math.inf, True, "predicted_danger_zone", trajectory, distance, min_tcpa, front_cut_cost, {})
                 if distance < self.predicted_danger_radius:
@@ -630,27 +1045,18 @@ class HumanAwareMotionPlanner(Node):
         return trajectory
 
     def _static_obstacle_cost(self, trajectory: list[tuple[float, float, float, float]]) -> tuple[float, bool]:
-        if self.latest_scan is None:
-            return 0.0, False
+        now = self.get_clock().now()
+        scan_time = None if self.latest_scan_time is None else self.latest_scan_time.nanoseconds * 1e-9
+        if self.latest_scan is None or not scan_is_fresh(scan_time, now.nanoseconds * 1e-9, self.max_scan_age):
+            moving = any(math.hypot(point[0] - trajectory[0][0], point[1] - trajectory[0][1]) > 1e-4 for point in trajectory[1:])
+            return (math.inf, True) if moving else (0.0, False)
         obstacles = []
         for index, distance in enumerate(self.latest_scan.ranges):
             if not math.isfinite(distance) or distance <= self.latest_scan.range_min or distance > self.static_influence_range:
                 continue
             angle = self.latest_scan.angle_min + index * self.latest_scan.angle_increment
             obstacles.append((distance * math.cos(angle), distance * math.sin(angle)))
-        if not obstacles:
-            return 0.0, False
-        cost = 0.0
-        origin_x, origin_y, origin_yaw, _ = trajectory[0]
-        for x, y, _, _ in trajectory:
-            lx = math.cos(origin_yaw) * (x - origin_x) + math.sin(origin_yaw) * (y - origin_y)
-            ly = -math.sin(origin_yaw) * (x - origin_x) + math.cos(origin_yaw) * (y - origin_y)
-            nearest = min(math.hypot(lx - ox, ly - oy) for ox, oy in obstacles)
-            if nearest < self.static_clearance:
-                return math.inf, True
-            if nearest < self.static_influence_range:
-                cost += ((self.static_influence_range - nearest) / self.static_influence_range) ** 2
-        return cost, False
+        return trajectory_static_cost(trajectory, obstacles, self.static_clearance, self.static_influence_range)
 
     def _relative_metrics_for_raw_cmd(self, pose: tuple[float, float, float], track: HumanTrack) -> dict[str, float | bool]:
         return self._relative_metrics_for_candidate(
@@ -663,18 +1069,14 @@ class HumanAwareMotionPlanner(Node):
         robot_x, robot_y, yaw = pose
         rvx = math.cos(yaw) * candidate.vx - math.sin(yaw) * candidate.vy
         rvy = math.sin(yaw) * candidate.vx + math.cos(yaw) * candidate.vy
-        px = robot_x - track.x
-        py = robot_y - track.y
-        vx = rvx - track.vx
-        vy = rvy - track.vy
-        rel_speed_sq = vx * vx + vy * vy
-        tcpa = math.inf if rel_speed_sq < 1e-6 else max(0.0, min(self.horizon, -(px * vx + py * vy) / rel_speed_sq))
-        dcpa = math.hypot(px + vx * tcpa, py + vy * tcpa)
+        metrics = relative_motion_metrics(robot_x, robot_y, rvx, rvy, track.x, track.y, track.vx, track.vy)
+        tcpa = float(metrics["tcpa"])
+        dcpa = float(metrics["dcpa"])
         human_speed = math.hypot(track.vx, track.vy)
         robot_speed = math.hypot(rvx, rvy)
         crossing = False
         front_cut = False
-        if human_speed > 0.08 and robot_speed > 0.03:
+        if bool(metrics["closing"]) and human_speed > 0.08 and robot_speed > 0.03:
             dot = (track.vx * rvx + track.vy * rvy) / max(1e-6, human_speed * robot_speed)
             crossing = abs(math.acos(max(-1.0, min(1.0, dot)))) > self.crossing_angle_min
             human_future_x = track.x + track.vx * tcpa
@@ -683,7 +1085,7 @@ class HumanAwareMotionPlanner(Node):
             robot_future_y = robot_y + rvy * tcpa
             ahead = ((robot_future_x - human_future_x) * track.vx + (robot_future_y - human_future_y) * track.vy) / human_speed
             front_cut = crossing and ahead > 0.0 and dcpa < self.dcpa_comfort_threshold
-        return {"distance": math.hypot(px, py), "tcpa": tcpa, "dcpa": dcpa, "front_cut": front_cut}
+        return {**metrics, "front_cut": front_cut}
 
     def _comfort_radius(self, track: HumanTrack, t: float) -> float:
         uncertainty = math.sqrt(max(0.0, track.cov_xx + track.cov_yy))
@@ -694,15 +1096,35 @@ class HumanAwareMotionPlanner(Node):
             uncertainty += self.occluded_risk_scale
         return self.comfort_radius + uncertainty
 
+    def _prediction_comfort_radius(self, track: HumanTrack, sample: PredictionSample) -> float:
+        uncertainty = math.sqrt(max(0.0, sample.cov_xx + sample.cov_yy))
+        uncertainty += self.low_conf_uncertainty_gain * max(0.0, 1.0 - sample.confidence)
+        uncertainty += 0.08 * max(0, track.missed_count)
+        if track.state == "OCCLUDED":
+            uncertainty += self.occluded_risk_scale
+        return self.comfort_radius + uncertainty
+
     def _front_arc_risk_cost(self, robot_x: float, robot_y: float, track: HumanTrack, t: float, radius: float) -> float:
+        return self._front_arc_risk_at(
+            robot_x,
+            robot_y,
+            track.x + track.vx * t,
+            track.y + track.vy * t,
+            track.vx,
+            track.vy,
+            radius,
+        )
+
+    def _front_arc_risk_at(
+        self, robot_x: float, robot_y: float, hx: float, hy: float,
+        vx: float, vy: float, radius: float,
+    ) -> float:
         if not self.front_arc_risk_enabled:
             return 0.0
-        speed = math.hypot(track.vx, track.vy)
+        speed = math.hypot(vx, vy)
         if speed < 0.08:
             return 0.0
-        hx = track.x + track.vx * t
-        hy = track.y + track.vy * t
-        heading = math.atan2(track.vy, track.vx)
+        heading = math.atan2(vy, vx)
         arc_radius = max(0.4, self.front_arc_distance)
         cost = 0.0
         for fraction in (-1.0, -0.5, 0.0, 0.5, 1.0):
@@ -754,13 +1176,21 @@ class HumanAwareMotionPlanner(Node):
         return -1.0 if local_y >= 0.0 else 1.0
 
     def _publish(self, cmd: Twist, state: str, results: list[CandidateResult], selected: CandidateResult | None) -> None:
-        self.cmd_pub.publish(cmd)
         now = self.get_clock().now()
         tracks = self._fresh_tracks(now)
         closest_track = self._closest_track_debug(tracks)
         state_msg = String()
         state_msg.data = state
         self.state_pub.publish(state_msg)
+        if self.selected_safe_patch is not None:
+            patch_msg = PoseStamped()
+            patch_msg.header.frame_id = self.target_frame
+            patch_msg.header.stamp = now.to_msg()
+            patch_msg.pose.position.x = self.selected_safe_patch[0]
+            patch_msg.pose.position.y = self.selected_safe_patch[1]
+            patch_msg.pose.orientation.w = 1.0
+            self.safe_patch_pub.publish(patch_msg)
+        self.cmd_pub.publish(cmd)
         debug = {
             "state": state,
             "state_age_s": round((now - self.state_since).nanoseconds * 1e-9, 3),
@@ -872,6 +1302,24 @@ class HumanAwareMotionPlanner(Node):
         label.text = state
         label.lifetime = Duration(seconds=0.5).to_msg()
         markers.markers.append(label)
+        if self.selected_safe_patch is not None:
+            patch = Marker()
+            patch.header.frame_id = self.target_frame
+            patch.header.stamp = now
+            patch.ns = "nearest_clear_ground_patch"
+            patch.id = 1
+            patch.type = Marker.CYLINDER
+            patch.action = Marker.ADD
+            patch.pose.position.x = self.selected_safe_patch[0]
+            patch.pose.position.y = self.selected_safe_patch[1]
+            patch.pose.position.z = 0.025
+            patch.pose.orientation.w = 1.0
+            patch.scale.x = self.safe_patch_clearance * 2.0
+            patch.scale.y = self.safe_patch_clearance * 2.0
+            patch.scale.z = 0.05
+            patch.color = ColorRGBA(r=0.05, g=1.0, b=0.25, a=0.65)
+            patch.lifetime = Duration(seconds=0.5).to_msg()
+            markers.markers.append(patch)
         return markers
 
     def _risk_grid(self) -> OccupancyGrid:
@@ -889,7 +1337,9 @@ class HumanAwareMotionPlanner(Node):
         grid.info.origin.position.y = center_y - self.risk_grid_size * 0.5
         grid.info.origin.orientation.w = 1.0
         tracks = self._fresh_tracks(self.get_clock().now())
-        predicted_points = self._fresh_predicted(self.get_clock().now())
+        now = self.get_clock().now()
+        predictions, prediction_age, typed_predictions_fresh = self._fresh_predictions(now)
+        predicted_points = [] if typed_predictions_fresh else self._fresh_predicted(now)
         data = []
         for row in range(width):
             y = grid.info.origin.position.y + (row + 0.5) * resolution
@@ -901,15 +1351,27 @@ class HumanAwareMotionPlanner(Node):
                     risk = max(risk, math.exp(-0.5 * (math.hypot(x - track.x, y - track.y) / max(0.1, radius)) ** 2))
                 for px, py, _ in predicted_points:
                     risk = max(risk, math.exp(-0.5 * (math.hypot(x - px, y - py) / max(0.1, self.predicted_danger_radius)) ** 2))
+                for samples in predictions.values():
+                    for sample in samples:
+                        if prediction_age <= sample.time_offset <= prediction_age + self.horizon:
+                            risk = max(
+                                risk,
+                                math.exp(-0.5 * (math.hypot(x - sample.x, y - sample.y) / max(0.1, self.predicted_danger_radius)) ** 2),
+                            )
                 data.append(int(max(0.0, min(1.0, risk)) * 100.0))
         grid.data = data
         return grid
 
     def _twist_from_candidate(self, candidate: Candidate) -> Twist:
         msg = Twist()
-        msg.linear.x = candidate.vx
-        msg.linear.y = candidate.vy
-        msg.angular.z = candidate.wz
+        vx, vy, wz = clamp_velocity(
+            candidate.vx, candidate.vy, candidate.wz,
+            self.max_forward_near_human, self.max_reverse_velocity,
+            self.max_lateral_near_human, self.max_angular_near_human,
+        )
+        msg.linear.x = vx
+        msg.linear.y = vy
+        msg.angular.z = wz
         return msg
 
     def _robot_pose(self) -> tuple[float, float, float] | None:

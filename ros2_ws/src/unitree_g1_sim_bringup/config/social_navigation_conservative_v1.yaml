@@ -1,0 +1,24 @@
+# v1 conservative perception profile with earlier intervention and lower near-human speeds.
+dynamic_obstacle_tracker:
+  ros__parameters:
+    use_mujoco_people_detections: false
+    mujoco_people_authoritative: false
+
+human_aware_motion_planner:
+  ros__parameters:
+    tracked_persons_topic: /tracked_persons
+    predicted_trajectories_topic: /predicted_person_trajectories
+    use_legacy_person_inputs: false
+    max_forward_near_human: 0.25
+    max_lateral_near_human: 0.12
+    max_angular_near_human: 0.45
+
+human_collision_avoidance:
+  ros__parameters:
+    use_mujoco_people: false
+    danger_radius: 1.80
+    critical_radius: 1.10
+    emergency_stop_radius: 0.80
+    max_avoid_linear: 0.22
+    max_reverse_linear: 0.15
+    max_lateral_linear: 0.14

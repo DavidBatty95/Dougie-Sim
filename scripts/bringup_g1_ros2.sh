@@ -2,13 +2,37 @@
 set -eo pipefail
 
 WORKSPACE="${WORKSPACE:-/workspace/ros2_ws}"
+INSTALL_BASE="${COLCON_INSTALL_BASE:-${WORKSPACE}/install}"
 
 source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
-if [ -f "${WORKSPACE}/install/setup.bash" ]; then
-  source "${WORKSPACE}/install/setup.bash"
+if [ -f "${INSTALL_BASE}/setup.bash" ]; then
+  source "${INSTALL_BASE}/setup.bash"
 fi
 
 ARGS=("$@")
+
+append_default_arg() {
+  local name="$1"
+  local value="$2"
+  local arg
+  for arg in "${ARGS[@]}"; do
+    if [[ "${arg}" == "${name}:="* ]]; then
+      return
+    fi
+  done
+  ARGS+=("${name}:=${value}")
+}
+
+# The policy reset pose is only stable under immediate policy control. Keep
+# these defaults here as well as in the launch file so all script entry points
+# use the validated startup sequence unless the caller explicitly overrides it.
+append_default_arg "mujoco_initial_keyframe" "policy_stand"
+append_default_arg "startup_current_pose_hold_time" "0.0"
+append_default_arg "startup_blend_time" "0.0"
+append_default_arg "startup_hold_time" "0.0"
+append_default_arg "startup_require_upright" "true"
+append_default_arg "policy_action_ramp_time" "0.0"
+
 detector_arg_set=0
 diagnostics_arg_set=0
 point_goal_arg_set=0

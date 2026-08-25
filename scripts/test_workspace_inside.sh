@@ -4,20 +4,47 @@ set -euo pipefail
 WORKSPACE="${WORKSPACE:-/workspace/ros2_ws}"
 REPO_ROOT="${REPO_ROOT:-/workspace}"
 MODE="${1:-fast}"
+INSTALL_BASE="${COLCON_INSTALL_BASE:-${WORKSPACE}/install}"
+
+case "${MODE}" in
+  fast|precommit|smoke|ci)
+    ;;
+  *)
+    echo "Usage: $0 [fast|precommit|smoke|ci]"
+    exit 2
+    ;;
+esac
 
 set +u
 source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
-if [ -f "${WORKSPACE}/install/setup.bash" ]; then
-  source "${WORKSPACE}/install/setup.bash"
+set -u
+
+if [ "${MODE}" = "ci" ]; then
+  export COLCON_BUILD_BASE="${COLCON_BUILD_BASE:-${WORKSPACE}/.verification/build}"
+  export COLCON_INSTALL_BASE="${COLCON_INSTALL_BASE:-${WORKSPACE}/.verification/install}"
+  export COLCON_LOG_BASE="${COLCON_LOG_BASE:-${WORKSPACE}/.verification/log}"
+  INSTALL_BASE="${COLCON_INSTALL_BASE}"
+  echo "[test] ROS workspace build"
+  "${REPO_ROOT}/scripts/build_ws.sh"
+fi
+
+set +u
+if [ -f "${INSTALL_BASE}/setup.bash" ]; then
+  source "${INSTALL_BASE}/setup.bash"
 fi
 set -u
 
 cd "${REPO_ROOT}"
 
 echo "[test] Python syntax for local ROS packages"
-python3 -m compileall -q \
+PYTHONPYCACHEPREFIX=/tmp/unitree_g1_pycache python3 -m compileall -q \
+  "${REPO_ROOT}/scripts" \
+  "${WORKSPACE}/src/dynamic_obstacle_benchmarks/dynamic_obstacle_benchmarks" \
   "${WORKSPACE}/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge" \
   "${WORKSPACE}/src/unitree_g1_sim_bringup/launch"
+
+echo "[test] Optional Grove-G1 source profile"
+python3 "${REPO_ROOT}/integrations/grove_g1/test/test_profile.py"
 
 echo "[test] XML/package/scene files parse"
 python3 - <<'PY'
@@ -26,9 +53,13 @@ import xml.etree.ElementTree as ET
 
 root = pathlib.Path('/workspace/ros2_ws')
 paths = [
+    root / 'src/g1_locomotion/package.xml',
+    root / 'src/g1_msgs/package.xml',
     root / 'src/unitree_g1_description/package.xml',
     root / 'src/unitree_g1_mujoco_bridge/package.xml',
     root / 'src/unitree_g1_sim_bringup/package.xml',
+    root / 'src/dynamic_obstacle_benchmarks/package.xml',
+    root / 'src/unitree_social_navigation_msgs/package.xml',
     root / 'src/unitree_g1_description/urdf/g1_29dof_mode_15_brainco_hand.urdf',
 ]
 paths.extend(
@@ -58,6 +89,47 @@ if command -v ros2 >/dev/null 2>&1 && ros2 pkg prefix unitree_g1_sim_bringup >/d
   grep -q "mujoco_scene" /tmp/g1_launch_args.txt
 else
   echo "[test] Skipping launch argument check because workspace is not built"
+fi
+
+if [ "${MODE}" != "fast" ]; then
+  echo "[test] ROS package unit and integration tests"
+  cd "${WORKSPACE}"
+  colcon --log-base "${COLCON_LOG_BASE:-${WORKSPACE}/log}" test \
+    --build-base "${COLCON_BUILD_BASE:-${WORKSPACE}/build}" \
+    --install-base "${INSTALL_BASE}" \
+    --merge-install \
+    --return-code-on-test-failure \
+    --python-testing pytest \
+    --packages-select \
+      dynamic_obstacle_benchmarks \
+      g1_locomotion \
+      g1_msgs \
+      unitree_g1_description \
+      unitree_g1_mujoco_bridge \
+      unitree_g1_sim_bringup \
+      unitree_social_navigation_msgs \
+    --event-handlers console_direct+
+  colcon test-result \
+    --test-result-base "${COLCON_BUILD_BASE:-${WORKSPACE}/build}" \
+    --verbose
+
+  echo "[test] Deterministic person-avoidance regression benchmark"
+  benchmark_output="/tmp/person_avoidance_smoke.json"
+  rm -f "${benchmark_output}" \
+    "/tmp/person_avoidance_smoke_goals.csv" \
+    "/tmp/person_avoidance_smoke_events.csv" \
+    "/tmp/person_avoidance_smoke_scenario.yaml"
+  ros2 run dynamic_obstacle_benchmarks person_avoidance_benchmark \
+    --config "${WORKSPACE}/src/dynamic_obstacle_benchmarks/config/person_avoidance_benchmark.yaml" \
+    --mode smoke \
+    --backend mock \
+    --seed 1 \
+    --headless \
+    --output "${benchmark_output}"
+  python3 "${REPO_ROOT}/scripts/validate_benchmark_result.py" \
+    "${benchmark_output}" \
+    --minimum-score "${BENCHMARK_MINIMUM_SCORE:-95.0}"
+  cd "${REPO_ROOT}"
 fi
 
 echo "[test] MJ Lab helper is usable when dependencies are installed"

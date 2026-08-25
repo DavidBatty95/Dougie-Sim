@@ -33,6 +33,20 @@ class RunnerSupportTests(unittest.TestCase):
         self.assertEqual(len(goals), 1)
         self.assertEqual(len(attempts), 2)
 
+    def test_random_goal_is_sampled_from_current_robot_pose(self) -> None:
+        cfg = BenchmarkConfig(goals_count=3, people_count=0, min_goal_distance_m=1.0)
+        starts = []
+
+        def validator(start, goal):
+            starts.append(start)
+            return True
+
+        sampler = GoalSampler(cfg, random.Random(4), validator)
+        current = Pose2D(1.25, -0.75, 0.0)
+        goal = sampler.sample_random_goal(2, current, [])
+        self.assertEqual(goal.index, 2)
+        self.assertEqual(starts, [current])
+
     def test_mode_values_come_from_loaded_preset_before_cli_overrides(self) -> None:
         cfg = BenchmarkConfig()
         cfg.mode_presets = {

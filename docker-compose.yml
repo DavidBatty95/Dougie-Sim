@@ -25,6 +25,7 @@ services:
       - ./ros2_ws:/workspace/ros2_ws
       - ./vendor:/workspace/vendor
       - ./scripts:/workspace/scripts:ro
+      - ./integrations:/workspace/integrations:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XAUTHORITY:-/tmp/.docker.xauth}:${XAUTHORITY:-/tmp/.docker.xauth}:ro
       - /dev/dri:/dev/dri

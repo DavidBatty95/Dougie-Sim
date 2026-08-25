@@ -157,7 +157,12 @@ class G1WaypointExplorer(Node):
             return
         x, y = chosen
         self.last_goal = (x, y)
-        yaw = self.rng.uniform(-math.pi, math.pi)
+        robot_xy = self._robot_xy(str(self.get_parameter("frame_id").value))
+        yaw = (
+            math.atan2(y - robot_xy[1], x - robot_xy[0])
+            if robot_xy is not None
+            else 0.0
+        )
         goal = NavigateToPose.Goal()
         goal.pose = PoseStamped()
         goal.pose.header.frame_id = str(self.get_parameter("frame_id").value)

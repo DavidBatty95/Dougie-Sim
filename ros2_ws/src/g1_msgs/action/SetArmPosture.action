@@ -1,0 +1,8 @@
+# Move a planning group to one of its named SRDF poses.
+string group
+string named_target
+---
+bool success
+string message
+---
+# This action intentionally has no feedback fields.

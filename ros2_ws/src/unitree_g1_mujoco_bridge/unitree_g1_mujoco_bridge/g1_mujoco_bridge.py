@@ -21,6 +21,8 @@ from .g1_constants import (
     G1_MJLAB_BODY_KD,
     G1_MJLAB_BODY_KP,
     G1_RVIZ_JOINTS,
+    G1_UNITREE_RL_LAB_BODY_KD,
+    G1_UNITREE_RL_LAB_BODY_KP,
 )
 
 
@@ -49,6 +51,7 @@ class G1MujocoBridge(Node):
         self.declare_parameter("body_kd", 2.5)
         self.declare_parameter("base_height_offset", 0.182)
         self.declare_parameter("use_mjlab_body_gains", True)
+        self.declare_parameter("body_gain_profile", "mjlab")
         self.declare_parameter("lock_waist", False)
         self.declare_parameter("waist_lock_kp", 120.0)
         self.declare_parameter("waist_lock_kd", 8.0)
@@ -101,9 +104,15 @@ class G1MujocoBridge(Node):
         ]
         self.body_kp_by_joint = [self.body_kp] * len(G1_29DOF_JOINTS)
         self.body_kd_by_joint = [self.body_kd] * len(G1_29DOF_JOINTS)
-        if bool(self.get_parameter("use_mjlab_body_gains").value):
+        gain_profile = str(self.get_parameter("body_gain_profile").value)
+        if gain_profile == "unitree_rl_lab_g1_29dof":
+            self.body_kp_by_joint = list(G1_UNITREE_RL_LAB_BODY_KP)
+            self.body_kd_by_joint = list(G1_UNITREE_RL_LAB_BODY_KD)
+        elif gain_profile == "mjlab" and bool(self.get_parameter("use_mjlab_body_gains").value):
             self.body_kp_by_joint = list(G1_MJLAB_BODY_KP)
             self.body_kd_by_joint = list(G1_MJLAB_BODY_KD)
+        elif gain_profile not in ("uniform", "mjlab"):
+            raise ValueError(f"Unknown body_gain_profile: {gain_profile}")
         if self.lock_waist:
             for index in self.waist_joint_indexes:
                 self.body_kp_by_joint[index] = self.waist_lock_kp

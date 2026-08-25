@@ -19,6 +19,7 @@
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>unitree_go</exec_depend>
   <exec_depend>unitree_hg</exec_depend>
+  <exec_depend>unitree_social_navigation_msgs</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
 
   <test_depend>python3-pytest</test_depend>

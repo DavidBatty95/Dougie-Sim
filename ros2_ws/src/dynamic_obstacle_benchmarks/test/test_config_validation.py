@@ -19,6 +19,12 @@ class ConfigValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cfg.validate()
 
+    def test_invalid_goal_sampling_limits_fail(self) -> None:
+        with self.assertRaises(ValueError):
+            BenchmarkConfig(max_sampling_attempts=0).validate()
+        with self.assertRaises(ValueError):
+            BenchmarkConfig(path_validation_timeout_s=0.0).validate()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 [submodule "ros2_ws/src/unitree_mujoco"]
 	path = ros2_ws/src/unitree_mujoco
-	url = https://github.com/unitreerobotics/unitree_mujoco.git
+	url = https://github.com/DavidBatty95/Geoff-Sim-unitree-mujoco.git
 [submodule "ros2_ws/src/unitree_ros2"]
 	path = ros2_ws/src/unitree_ros2
 	url = https://github.com/unitreerobotics/unitree_ros2.git
@@ -9,4 +9,4 @@
 	url = https://github.com/unitreerobotics/unitree_sdk2.git
 [submodule "vendor/mjlab"]
 	path = vendor/mjlab
-	url = https://github.com/mujocolab/mjlab.git
+	url = https://github.com/DavidBatty95/Geoff-Sim-mjlab.git

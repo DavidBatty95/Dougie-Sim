@@ -15,6 +15,24 @@ from std_msgs.msg import Float64MultiArray
 from unitree_hg.msg import LowState
 
 from .g1_constants import G1_29DOF_JOINTS
+from .policy_safety import (
+    advance_gait_phase,
+    apply_command_deadband,
+    axis_isolated_command,
+    cleared_motion_state,
+    clamp_joint_targets,
+    ensure_forward_turning_arc,
+    filter_command,
+    pending_target,
+    sample_age,
+    startup_active,
+    validate_metadata_joint_order,
+)
+from .unitree_rl_lab_policy import (
+    UNITREE_RL_LAB_G1_ACTION_DIM,
+    UNITREE_RL_LAB_G1_OBS_DIM,
+    UnitreeRLLabG1PolicyAdapter,
+)
 
 try:
     import torch
@@ -74,8 +92,8 @@ ACTION_SCALE = {
     ".*_shoulder_yaw_joint": 0.43857731389829635,
     ".*_elbow_joint": 0.43857731389829635,
     ".*_wrist_roll_joint": 0.43857731389829635,
-    ".*_wrist_pitch_joint": 1.0,
-    ".*_wrist_yaw_joint": 1.0,
+    ".*_wrist_pitch_joint": 0.07450087032524835,
+    ".*_wrist_yaw_joint": 0.07450087032524835,
 }
 
 
@@ -414,24 +432,34 @@ class G1PolicyCmdVelController(Node):
         super().__init__("g1_policy_cmd_vel_controller")
 
         self.declare_parameter("policy_path", "")
+        self.declare_parameter("policy_profile", "mjlab")
         self.declare_parameter("rate_hz", 50.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("body_command_topic", "/g1/body_position_commands")
-        self.declare_parameter("cmd_vel_timeout", 0.5)
-        self.declare_parameter("max_lin_vel_x", 0.5)
-        self.declare_parameter("max_lin_vel_y", 0.25)
-        self.declare_parameter("max_ang_vel_z", 0.5)
-        self.declare_parameter("cmd_accel_x", 0.5)
-        self.declare_parameter("cmd_accel_y", 0.35)
-        self.declare_parameter("cmd_accel_yaw", 0.5)
-        self.declare_parameter("action_clip", 10.0)
+        self.declare_parameter("cmd_vel_timeout", 0.4)
+        self.declare_parameter("lowstate_timeout", 0.1)
+        self.declare_parameter("odom_timeout", 0.2)
+        self.declare_parameter("cmd_vel_deadband", 0.05)
+        self.declare_parameter("cmd_vel_deadband_hysteresis", 0.01)
+        self.declare_parameter("max_lin_vel_x", 0.35)
+        self.declare_parameter("max_lin_vel_y", 0.12)
+        self.declare_parameter("max_ang_vel_z", 0.35)
+        self.declare_parameter("cmd_accel_x", 0.22)
+        self.declare_parameter("cmd_accel_y", 0.16)
+        self.declare_parameter("cmd_accel_yaw", 0.35)
+        self.declare_parameter("axis_exclusive_cmd_vel", False)
+        self.declare_parameter("axis_exclusive_yaw_threshold", 0.05)
+        self.declare_parameter("turning_arc_min_forward_speed", 0.0)
+        self.declare_parameter("turning_arc_min_yaw_speed", 0.0)
+        self.declare_parameter("allow_reverse_cmd_vel", True)
+        self.declare_parameter("action_clip", 1.0)
         self.declare_parameter("action_rate_limit", 0.0)
         self.declare_parameter("policy_obs_dim", 0)
         self.declare_parameter("policy_action_dim", 0)
-        self.declare_parameter("policy_inference_deadline_sec", 0.1)
+        self.declare_parameter("gait_cycle_time", 0.8)
+        self.declare_parameter("policy_inference_deadline_sec", 0.05)
         self.declare_parameter("policy_command_height", 0.84)
-        self.declare_parameter("stand_still_on_timeout", True)
         self.declare_parameter("startup_blend_time", 0.0)
         self.declare_parameter("startup_hold_time", 0.0)
         self.declare_parameter("startup_current_pose_hold_time", 0.0)
@@ -453,18 +481,24 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("device", "cpu")
 
         self.device = str(self.get_parameter("device").value)
+        self.policy_profile = str(self.get_parameter("policy_profile").value)
+        if self.policy_profile not in ("mjlab", "unitree_rl_lab_g1_29dof"):
+            raise ValueError(f"Unknown policy_profile: {self.policy_profile}")
         self.policy_path = self._resolve_policy_path(str(self.get_parameter("policy_path").value))
         self.policy = self._load_policy(self.policy_path)
         self.policy_obs_dim: Optional[int] = None
         self.policy_action_dim: Optional[int] = None
         policy_obs_dim = int(self.get_parameter("policy_obs_dim").value)
         policy_action_dim = int(self.get_parameter("policy_action_dim").value)
-        if policy_obs_dim in (80, 82, 97, 99):
+        if policy_obs_dim in (80, 82, 97, 99, 101, UNITREE_RL_LAB_G1_OBS_DIM):
             self.policy_obs_dim = policy_obs_dim
         if policy_action_dim in (12, 29):
             self.policy_action_dim = policy_action_dim
         self.policy_command_names: list[str] = []
         self.last_lowstate: Optional[LowState] = None
+        self.last_lowstate_arrival: Optional[float] = None
+        self.last_odom_arrival: Optional[float] = None
+        self.lowstate_stale = False
         self.previous_joint_positions: Optional[List[float]] = None
         self.last_stable_positions: Optional[List[float]] = None
         self.previous_tilt: Optional[float] = None
@@ -478,6 +512,8 @@ class G1PolicyCmdVelController(Node):
         self.last_cmd_time = self.get_clock().now()
         self.command = [0.0, 0.0, 0.0]
         self.filtered_command = [0.0, 0.0, 0.0]
+        self.command_stopped = True
+        self.gait_phase = 0.0
         self.last_control_time = self.get_clock().now()
         self.first_policy_time = None
         self.cmd_vel_count = 0
@@ -488,7 +524,13 @@ class G1PolicyCmdVelController(Node):
         self.last_tilt = 0.0
         self.control_state = "waiting_lowstate"
         self.base_lin_vel = [0.0, 0.0, 0.0]
+        self.last_safe_targets: Optional[List[float]] = None
         self.body_joint_names = list(G1_29DOF_JOINTS)
+        self.unitree_rl_lab_adapter = (
+            UnitreeRLLabG1PolicyAdapter()
+            if self.policy_profile == "unitree_rl_lab_g1_29dof"
+            else None
+        )
         self.lower_joint_indexes = [
             self.body_joint_names.index(j) for j in LOWER_BODY_JOINTS
         ]
@@ -498,6 +540,11 @@ class G1PolicyCmdVelController(Node):
         self.scales = [
             _pattern_value(name, ACTION_SCALE, 0.25) for name in self.body_joint_names
         ]
+        if self.unitree_rl_lab_adapter is not None:
+            self.policy_obs_dim = UNITREE_RL_LAB_G1_OBS_DIM
+            self.policy_action_dim = UNITREE_RL_LAB_G1_ACTION_DIM
+            self.default_positions = self.unitree_rl_lab_adapter.sdk_default_positions
+            self.scales = [0.25] * len(self.body_joint_names)
         self.last_actions = {
             12: [0.0] * len(self.lower_joint_indexes),
             29: [0.0] * len(self.body_joint_names),
@@ -545,7 +592,7 @@ class G1PolicyCmdVelController(Node):
         action_scope = "lower-body" if self.policy_action_dim == 12 else "whole-body" if self.policy_action_dim == 29 else "unknown"
         self.get_logger().info(
             "Loaded G1 policy: "
-            f"path={self.policy_path} obs_dim={self.policy_obs_dim} "
+            f"path={self.policy_path} profile={self.policy_profile} obs_dim={self.policy_obs_dim} "
             f"action_dim={self.policy_action_dim} action_scope={action_scope} command_mode={command_mode} "
             f"command_names={self.policy_command_names or 'unknown'} "
             f"target_height={float(self.get_parameter('policy_command_height').value):.3f}"
@@ -590,6 +637,8 @@ class G1PolicyCmdVelController(Node):
             return path
 
         roots = [
+            Path("/workspace/vendor/mjlab/logs/rsl_rl/g1_stand_creep_stop"),
+            Path.cwd() / "vendor/mjlab/logs/rsl_rl/g1_stand_creep_stop",
             Path("/workspace/vendor/mjlab/logs/rsl_rl/g1_velocity"),
             Path.cwd() / "vendor/mjlab/logs/rsl_rl/g1_velocity",
         ]
@@ -597,6 +646,9 @@ class G1PolicyCmdVelController(Node):
         fallback: list[Path] = []
         for root in roots:
             if not root.exists():
+                continue
+            if root.name == "g1_stand_creep_stop":
+                preferred.extend(root.glob("*/*.onnx"))
                 continue
             preferred.extend(root.glob("*g1_flat_locomotion/*.onnx"))
             preferred.extend(root.glob("*flat_locomotion/*.onnx"))
@@ -612,8 +664,8 @@ class G1PolicyCmdVelController(Node):
             return str(latest)
 
         raise FileNotFoundError(
-            "No G1 walking policy ONNX was found. Train/export a lower-body locomotion "
-            "policy into vendor/mjlab/logs/rsl_rl/g1_velocity, or launch with "
+            "No G1 walking policy ONNX was found. Train/export a stand/creep/stop or "
+            "flat locomotion policy into vendor/mjlab/logs/rsl_rl, or launch with "
             "policy_path:=/workspace/path/to/policy.onnx."
         )
 
@@ -626,11 +678,15 @@ class G1PolicyCmdVelController(Node):
         action_scale = _parse_float_csv(metadata.get("action_scale", ""))
         joint_names = _parse_str_csv(metadata.get("joint_names", ""))
         self.policy_command_names = _parse_str_csv(metadata.get("command_names", ""))
-        if joint_names and joint_names != self.body_joint_names and joint_names != LOWER_BODY_JOINTS:
-            self.get_logger().warn(
-                "Policy joint metadata order differs from bridge order; using bridge order",
-                throttle_duration_sec=5.0,
-            )
+        metadata_action_dim = self.policy_action_dim or getattr(
+            self.policy, "action_dim", None
+        )
+        validate_metadata_joint_order(
+            joint_names,
+            self.body_joint_names,
+            LOWER_BODY_JOINTS,
+            metadata_action_dim,
+        )
         if len(default_joint_pos) == len(self.body_joint_names):
             self.default_positions = default_joint_pos
         elif len(default_joint_pos) == len(self.lower_joint_indexes):
@@ -654,7 +710,7 @@ class G1PolicyCmdVelController(Node):
 
         obs_dim = getattr(self.policy, "obs_dim", None)
         action_dim = getattr(self.policy, "action_dim", None)
-        if self.policy_obs_dim is None and obs_dim in (80, 82, 97, 99):
+        if self.policy_obs_dim is None and obs_dim in (80, 82, 97, 99, 101, UNITREE_RL_LAB_G1_OBS_DIM):
             self.policy_obs_dim = int(obs_dim)
         if self.policy_action_dim is None and action_dim in (12, 29):
             self.policy_action_dim = int(action_dim)
@@ -699,6 +755,8 @@ class G1PolicyCmdVelController(Node):
         self.previous_joint_positions = list(joint_positions)
         self.previous_tilt = tilt
         self.last_lowstate = msg
+        self.last_lowstate_arrival = time.monotonic()
+        self.lowstate_stale = False
 
     def _tilt_guard_holding(self) -> bool:
         if not bool(self.get_parameter("tilt_guard_enable").value):
@@ -714,6 +772,8 @@ class G1PolicyCmdVelController(Node):
                     throttle_duration_sec=1.0,
                 )
                 self.policy_worker.invalidate()
+                if self.unitree_rl_lab_adapter is not None:
+                    self.unitree_rl_lab_adapter.reset()
             self.tilt_guard_active = True
             self.tilt_guard_clear_since = None
             self.filtered_command = [0.0, 0.0, 0.0]
@@ -790,13 +850,24 @@ class G1PolicyCmdVelController(Node):
         self.last_stable_positions = list(joint_positions)
         self.upright_since = None
         self.filtered_command = [0.0, 0.0, 0.0]
+        self.command = [0.0, 0.0, 0.0]
+        self.command_stopped = True
+        self.gait_phase = 0.0
         self.last_active_command = [0.0, 0.0, 0.0]
+        (
+            self.base_lin_vel,
+            self.last_lowstate_arrival,
+            self.last_odom_arrival,
+        ) = cleared_motion_state()
+        self.last_cmd_time = now
         self.last_control_time = now
         self.first_policy_time = None
         self.last_actions = {
             12: [0.0] * len(self.lower_joint_indexes),
             29: [0.0] * len(self.body_joint_names),
         }
+        if self.unitree_rl_lab_adapter is not None:
+            self.unitree_rl_lab_adapter.reset()
         self.last_action_norm = 0.0
         self.last_reset_time = now
         self.reset_count += 1
@@ -819,6 +890,8 @@ class G1PolicyCmdVelController(Node):
             _clamp(values[1], float(self.get_parameter("max_lin_vel_y").value)),
             _clamp(values[2], float(self.get_parameter("max_ang_vel_z").value)),
         ]
+        if not bool(self.get_parameter("allow_reverse_cmd_vel").value):
+            self.command[0] = max(0.0, self.command[0])
 
     def _odom_callback(self, msg: Odometry) -> None:
         values = [
@@ -828,28 +901,51 @@ class G1PolicyCmdVelController(Node):
         ]
         if all(math.isfinite(value) for value in values):
             self.base_lin_vel = values
+            self.last_odom_arrival = time.monotonic()
 
-    def _active_command(self) -> List[float]:
+    def _active_command(self) -> tuple[List[float], bool]:
         age = (self.get_clock().now() - self.last_cmd_time).nanoseconds * 1e-9
         if age > float(self.get_parameter("cmd_vel_timeout").value):
-            if bool(self.get_parameter("stand_still_on_timeout").value):
-                return [0.0, 0.0, 0.0]
-        return list(self.command)
+            self.command_stopped = True
+            return [0.0, 0.0, 0.0], True
+        command, self.command_stopped = apply_command_deadband(
+            self.command,
+            self.command_stopped,
+            float(self.get_parameter("cmd_vel_deadband").value),
+            float(self.get_parameter("cmd_vel_deadband_hysteresis").value),
+        )
+        return command, self.command_stopped
 
-    def _filtered_active_command(self, target: Sequence[float], dt: float) -> List[float]:
+    def _filtered_active_command(
+        self, target: Sequence[float], dt: float, immediate_stop: bool = False
+    ) -> List[float]:
+        turning = False
+        if bool(self.get_parameter("axis_exclusive_cmd_vel").value):
+            target, turning = axis_isolated_command(
+                target,
+                float(self.get_parameter("axis_exclusive_yaw_threshold").value),
+            )
+        else:
+            target = ensure_forward_turning_arc(
+                target,
+                float(self.get_parameter("axis_exclusive_yaw_threshold").value),
+                float(self.get_parameter("turning_arc_min_forward_speed").value),
+                float(self.get_parameter("turning_arc_min_yaw_speed").value),
+            )
         limits = [
             float(self.get_parameter("cmd_accel_x").value),
             float(self.get_parameter("cmd_accel_y").value),
             float(self.get_parameter("cmd_accel_yaw").value),
         ]
-        for index, limit in enumerate(limits):
-            max_delta = max(0.0, limit) * dt
-            delta = float(target[index]) - self.filtered_command[index]
-            if delta > max_delta:
-                delta = max_delta
-            elif delta < -max_delta:
-                delta = -max_delta
-            self.filtered_command[index] += delta
+        self.filtered_command = filter_command(
+            self.filtered_command, target, limits, dt, immediate_stop
+        )
+        if bool(self.get_parameter("axis_exclusive_cmd_vel").value):
+            if turning:
+                self.filtered_command[0] = 0.0
+                self.filtered_command[1] = 0.0
+            else:
+                self.filtered_command[2] = 0.0
         return list(self.filtered_command)
 
     def _control_tick(self) -> None:
@@ -863,15 +959,33 @@ class G1PolicyCmdVelController(Node):
             return
 
         now = self.get_clock().now()
+        monotonic_now = time.monotonic()
+        lowstate_age = sample_age(monotonic_now, self.last_lowstate_arrival)
+        if lowstate_age > float(self.get_parameter("lowstate_timeout").value):
+            if not self.lowstate_stale:
+                self.policy_worker.invalidate()
+                self.lowstate_stale = True
+            self.get_logger().error(
+                f"Lowstate stale ({lowstate_age:.3f}s); holding last safe target",
+                throttle_duration_sec=1.0,
+            )
+            self._policy_safe_hold("stale_lowstate_hold")
+            return
+        odom_age = sample_age(monotonic_now, self.last_odom_arrival)
+        if odom_age > float(self.get_parameter("odom_timeout").value):
+            self.base_lin_vel = [0.0, 0.0, 0.0]
         dt = max(1e-3, min(0.1, (now - self.last_control_time).nanoseconds * 1e-9))
         self.last_control_time = now
-        command = self._filtered_active_command(self._active_command(), dt)
+        active_command, immediate_stop = self._active_command()
+        command = self._filtered_active_command(active_command, dt, immediate_stop)
         self.last_active_command = command
         if self._startup_active():
+            self.gait_phase = 0.0
             self.control_state = "startup_hold"
             self._publish_startup_pose()
             return
         if self._tilt_guard_holding():
+            self.gait_phase = 0.0
             self.control_state = "tilt_guard_hold"
             self._publish_targets(self._safe_hold_positions())
             return
@@ -925,22 +1039,32 @@ class G1PolicyCmdVelController(Node):
                 self._policy_safe_hold("policy_error_hold")
                 return
 
+        self.gait_phase = advance_gait_phase(
+            self.gait_phase,
+            command,
+            dt,
+            float(self.get_parameter("gait_cycle_time").value),
+        )
         candidates = self._build_inference_candidates(command)
         self.policy_worker.submit(
             candidates, deadline=time.monotonic() + self.policy_inference_deadline
         )
         if result is None:
             self.control_state = "policy_wait"
-            if self.first_policy_time is None:
-                self._publish_targets(self._safe_hold_positions())
+            self._publish_targets(
+                pending_target(self.last_safe_targets, self._safe_hold_positions())
+            )
 
     def _policy_safe_hold(self, state: str) -> None:
         self.control_state = state
         self.filtered_command = [0.0, 0.0, 0.0]
+        self.gait_phase = 0.0
         self.last_actions = {
             12: [0.0] * len(self.lower_joint_indexes),
             29: [0.0] * len(self.body_joint_names),
         }
+        if self.unitree_rl_lab_adapter is not None:
+            self.unitree_rl_lab_adapter.reset()
         self.last_action_norm = 0.0
         self.first_policy_time = None
         self._publish_targets(self._safe_hold_positions())
@@ -951,7 +1075,7 @@ class G1PolicyCmdVelController(Node):
         obs_dims = (
             (self.policy_obs_dim,)
             if self.policy_obs_dim is not None
-            else (80, 82, 97, 99)
+            else (80, 82, 97, 99, 101)
         )
         candidates = []
         for obs_dim in obs_dims:
@@ -972,24 +1096,34 @@ class G1PolicyCmdVelController(Node):
         if self.first_lowstate_time is None:
             return True
         elapsed = (self.get_clock().now() - self.first_lowstate_time).nanoseconds * 1e-9
-        startup_time = float(self.get_parameter("startup_current_pose_hold_time").value)
-        startup_time += float(self.get_parameter("startup_blend_time").value)
-        startup_time += float(self.get_parameter("startup_hold_time").value)
-        if elapsed < startup_time:
-            return True
-        if not bool(self.get_parameter("startup_require_upright").value):
-            return False
-        max_recovery = float(self.get_parameter("startup_max_recovery_time").value)
-        if max_recovery > 0.0 and elapsed > max_recovery:
-            return False
-        if self.upright_since is None:
+        upright_duration = None
+        if self.upright_since is not None:
+            upright_duration = (
+                self.get_clock().now() - self.upright_since
+            ).nanoseconds * 1e-9
+        active = startup_active(
+            elapsed,
+            bool(self.get_parameter("startup_require_upright").value),
+            upright_duration,
+            float(self.get_parameter("startup_current_pose_hold_time").value),
+            float(self.get_parameter("startup_blend_time").value),
+            float(self.get_parameter("startup_hold_time").value),
+        )
+        if active and upright_duration is None:
+            max_recovery = float(
+                self.get_parameter("startup_max_recovery_time").value
+            )
+            timeout_text = (
+                " (recovery timeout exceeded; policy remains inhibited)"
+                if max_recovery > 0.0 and elapsed > max_recovery
+                else ""
+            )
             self.get_logger().warn(
-                "Holding stable joint pose until robot is upright before enabling policy inference",
+                "Holding stable joint pose until robot is upright before enabling policy inference"
+                + timeout_text,
                 throttle_duration_sec=1.0,
             )
-            return True
-        stable_time = (self.get_clock().now() - self.upright_since).nanoseconds * 1e-9
-        return stable_time < float(self.get_parameter("startup_hold_time").value)
+        return active
 
     def _publish_startup_pose(self) -> None:
         if self.first_lowstate_time is None or self.initial_positions is None:
@@ -1018,11 +1152,15 @@ class G1PolicyCmdVelController(Node):
 
     def _diagnostics(self) -> None:
         cmd_age = (self.get_clock().now() - self.last_cmd_time).nanoseconds * 1e-9
+        now = time.monotonic()
+        lowstate_age = sample_age(now, self.last_lowstate_arrival)
+        odom_age = sample_age(now, self.last_odom_arrival)
         inference = self.policy_worker.diagnostics()
         self.get_logger().info(
             "policy status: "
             f"state={self.control_state} lowstate={self.lowstate_count} cmd_vel={self.cmd_vel_count} "
             f"body_cmd={self.body_command_count} resets={self.reset_count} cmd_age={cmd_age:.2f}s "
+            f"lowstate_age={lowstate_age:.3f}s odom_age={odom_age:.3f}s "
             f"tilt={self.last_tilt:.2f} "
             f"cmd=({self.last_active_command[0]:+.2f}, "
             f"{self.last_active_command[1]:+.2f}, {self.last_active_command[2]:+.2f}) "
@@ -1042,6 +1180,17 @@ class G1PolicyCmdVelController(Node):
         joint_pos = [float(state.q) for state in self.last_lowstate.motor_state[:29]]
         joint_vel = [float(state.dq) for state in self.last_lowstate.motor_state[:29]]
         imu = self.last_lowstate.imu_state
+        if self.unitree_rl_lab_adapter is not None:
+            if action_dim != UNITREE_RL_LAB_G1_ACTION_DIM or obs_dim != UNITREE_RL_LAB_G1_OBS_DIM:
+                raise ValueError("Unitree RL Lab G1 profile requires a 480/29 policy")
+            return self.unitree_rl_lab_adapter.build_observation(
+                command,
+                joint_pos,
+                joint_vel,
+                imu.gyroscope,
+                imu.quaternion,
+                self.last_actions[UNITREE_RL_LAB_G1_ACTION_DIM],
+            )
         quat = list(imu.quaternion)
         norm = math.sqrt(sum(q * q for q in quat))
         if norm > 1e-6:
@@ -1060,6 +1209,13 @@ class G1PolicyCmdVelController(Node):
             values.append(float(self.get_parameter("policy_command_height").value))
         else:
             values.extend(command)
+        if obs_dim == 101:
+            angle = 2.0 * math.pi * self.gait_phase
+            values.extend((math.sin(angle), math.cos(angle)))
+        if obs_dim is not None and len(values) != obs_dim:
+            raise ValueError(
+                f"Built {len(values)} observations for a policy expecting {obs_dim}"
+            )
         return np.asarray([values], dtype=np.float32)
 
     def _uses_height_command(self, obs_dim: Optional[int] = None) -> bool:
@@ -1083,7 +1239,10 @@ class G1PolicyCmdVelController(Node):
         if not all(math.isfinite(float(value)) for value in action_values):
             raise ValueError("Policy returned non-finite actions")
         clip = float(self.get_parameter("action_clip").value)
-        action_values = [_clamp(float(value), clip) for value in action_values]
+        if self.unitree_rl_lab_adapter is None and clip > 0.0:
+            action_values = [_clamp(float(value), clip) for value in action_values]
+        else:
+            action_values = [float(value) for value in action_values]
         ramp = max(0.0, min(1.0, ramp))
         if ramp < 1.0:
             action_values = [value * ramp for value in action_values]
@@ -1099,7 +1258,11 @@ class G1PolicyCmdVelController(Node):
         self.last_action_norm = math.sqrt(sum(value * value for value in action_values))
 
         targets = list(self.default_positions)
-        if action_dim == 12:
+        if self.unitree_rl_lab_adapter is not None:
+            if action_dim != UNITREE_RL_LAB_G1_ACTION_DIM:
+                raise ValueError("Unitree RL Lab G1 profile requires 29 actions")
+            targets = self.unitree_rl_lab_adapter.action_targets(action_values)
+        elif action_dim == 12:
             for action_index, joint_index in enumerate(self.lower_joint_indexes):
                 targets[joint_index] += (
                     action_values[action_index] * self.scales[joint_index]
@@ -1111,9 +1274,11 @@ class G1PolicyCmdVelController(Node):
         self._publish_targets(targets)
 
     def _publish_targets(self, targets: Sequence[float]) -> None:
+        safe_targets = clamp_joint_targets(targets)
         msg = Float64MultiArray()
-        msg.data = list(targets)
+        msg.data = safe_targets
         self.body_pub.publish(msg)
+        self.last_safe_targets = safe_targets
         self.body_command_count += 1
 
     def destroy_node(self):
