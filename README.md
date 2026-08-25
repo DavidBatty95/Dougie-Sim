@@ -1,10 +1,32 @@
-# Unitree G1 ROS 2 MuJoCo
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:071A2F,45:0B3B60,100:00A6D6&amp;height=230&amp;section=header&amp;text=Geoff-Sim&amp;fontSize=54&amp;fontColor=FFFFFF&amp;fontAlignY=36&amp;desc=Unitree%20G1%20%7C%20ROS%202%20Humble%20%7C%20MuJoCo&amp;descSize=19&amp;descAlignY=57&amp;animation=fadeIn" width="100%" alt="Geoff-Sim animated title card">
 
-A Dockerized ROS 2 Humble simulation and research workspace for the Unitree G1 humanoid. The project integrates MuJoCo locomotion, ROS 2/DDS bridging, simulated sensors, SLAM, Nav2, dynamic-obstacle tracking, human-aware navigation, benchmarking, and MJLab policy workflows.
+  <p><strong>A reproducible research platform for intelligent humanoid simulation.</strong></p>
+  <p>MuJoCo locomotion · ROS 2/DDS · SLAM and Nav2 · Human-aware navigation · MJLab training</p>
 
-> **Safety:** This repository is simulation-first. Do not deploy its controllers, gains, or policies to hardware without Unitree's safety procedures, current and torque limits, an emergency stop, and controlled test-stand validation.
+  <p>
+    <a href="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml"><img src="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml/badge.svg?branch=main" alt="Verification status"></a>
+    <img src="https://img.shields.io/badge/ROS%202-Humble-22314E?logo=ros&amp;logoColor=white" alt="ROS 2 Humble">
+    <img src="https://img.shields.io/badge/MuJoCo-Simulation-00A6D6" alt="MuJoCo simulation">
+    <img src="https://img.shields.io/badge/Docker-Compose%20v2-2496ED?logo=docker&amp;logoColor=white" alt="Docker Compose v2">
+    <img src="https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&amp;logoColor=white" alt="Ubuntu 22.04">
+  </p>
 
-## Features
+  <p>
+    <a href="#quick-start">Quick Start</a> ·
+    <a href="#architecture">Architecture</a> ·
+    <a href="#running">Run</a> ·
+    <a href="#development">Develop</a> ·
+    <a href="#documentation">Documentation</a>
+  </p>
+</div>
+
+**Geoff-Sim** brings the Unitree G1, MuJoCo, and ROS 2 Humble into one integrated environment for locomotion, autonomous navigation, simulated perception, dynamic-obstacle avoidance, benchmarking, and policy development.
+
+> [!WARNING]
+> **Simulation-first safety notice:** Do not deploy these controllers, gains, or policies to hardware without Unitree's safety procedures, current and torque limits, an emergency stop, and controlled test-stand validation.
+
+## ✨ Features
 
 - Unitree G1 29-DoF MuJoCo simulation and low-level DDS bridge
 - ROS 2 joint states, odometry, TF, Livox-style LiDAR, and optional camera simulation
@@ -15,7 +37,7 @@ A Dockerized ROS 2 Humble simulation and research workspace for the Unitree G1 h
 - Docker-based reproducible ROS 2 Humble development environment
 - Fast, pre-commit, and live simulation verification tiers
 
-## Requirements
+## 📋 Requirements
 
 | Requirement | Supported configuration |
 | --- | --- |
@@ -28,13 +50,14 @@ A Dockerized ROS 2 Humble simulation and research workspace for the Unitree G1 h
 
 Windows, macOS, ARM systems, and native non-container builds are not currently supported. The installer needs `sudo` and internet access.
 
-## Quick Start
+<a id="quick-start"></a>
+## 🚀 Quick Start
 
 Clone the repository and run the top-level installer:
 
 ```bash
 git clone --recurse-submodules https://github.com/DavidBatty95/Geoff-Sim.git
-cd unitree_g1_ros2_mujoco
+cd Geoff-Sim
 ./install.sh
 ```
 
@@ -58,7 +81,7 @@ After installation, start a people-free simulation in the included empty scene:
 
 If Docker was installed for the first time, log out and back in before running project scripts so the new `docker` group membership takes effect.
 
-### Installer Options
+### 🛠️ Installer Options
 
 ```text
 ./install.sh --skip-docker-install  # Require Docker to be installed already
@@ -68,7 +91,7 @@ If Docker was installed for the first time, log out and back in before running p
 
 The installer is idempotent: it preserves an existing `.env` and reuses completed downloads and builds where supported.
 
-## Manual Setup
+## 🔧 Manual Setup
 
 Use this path when Docker is managed externally or you want to inspect each setup step:
 
@@ -92,7 +115,8 @@ xhost +local:docker
 
 Revoke that access when finished with `xhost -local:docker`.
 
-## Running The Project
+<a id="running"></a>
+## 🎮 Running The Project
 
 Open an interactive ROS shell:
 
@@ -131,7 +155,7 @@ Available upstream scenes include:
 
 The custom `scene_29dof_extreme_lab.xml` requires external textured assets that are not committed to this repository.
 
-### Teleoperation
+### ⌨️ Teleoperation
 
 Start keyboard teleoperation in another terminal:
 
@@ -141,13 +165,18 @@ Start keyboard teleoperation in another terminal:
 
 Publish commands to `/cmd_vel`; the integrated stack routes them through the human-aware planner and final safety filter before the locomotion policy consumes `/cmd_vel_safe`.
 
-### Navigation And Avoidance
+### 🧭 Navigation And Avoidance
 
 Run the waypoint navigation demo:
 
 ```bash
 ./scripts/run_waypoint_navigation_demo.sh mujoco_scene:=scene_29dof_empty.xml
 ```
+
+The people-free demo opts into a measured reactive envelope of `0.45 m/s` forward and
+`0.35 m/s²` acceleration. The normal integrated and social-navigation launch defaults retain the
+`0.35 m/s` policy clamp. A live empty-scene check delivered `0.354 m/s` average motion, remained
+upright, and settled to `0.0032 m` net drift over the five seconds after a stop command.
 
 Run the collision-avoidance demo when the required Extreme Lab assets and policy are available:
 
@@ -157,7 +186,8 @@ Run the collision-avoidance demo when the required Extreme Lab assets and policy
 
 Do not enable multiple command generators at the same time. Direct teleoperation, point goals, waypoint exploration, frontier exploration, random exploration, and waypoint patrol are separate control modes.
 
-## Architecture
+<a id="architecture"></a>
+## 🏗️ Architecture
 
 <p align="center">
   <a href="docs/ARCHITECTURE.md">
@@ -177,36 +207,14 @@ Primary packages:
 | `unitree_g1_mujoco_bridge` | DDS bridge, controllers, sensors, tracking, and safety nodes |
 | `unitree_g1_sim_bringup` | Integrated launch, Nav2/SLAM configuration, and RViz |
 | `dynamic_obstacle_benchmarks` | Deterministic mock and live person-avoidance benchmarks |
-| `g1_msgs` | Grove-G1 approach, retreat, and manipulation action interfaces ported to Humble |
-| `g1_locomotion` | Closed-loop Grove-G1 object approach and retreat actions through `/cmd_vel` safety |
+| `g1_msgs` | Approach, retreat, and manipulation action interfaces |
+| `g1_locomotion` | Closed-loop object approach and retreat actions through the `/cmd_vel` safety path |
 | `unitree_social_navigation_msgs` | Social-navigation interfaces |
 
 The default container uses `ROS_DOMAIN_ID=42`, CycloneDDS, and loopback-only DDS configuration. Change `ROS_DOMAIN_ID` in `.env` if it conflicts with another ROS environment.
 
-### Grove-G1 Integration
-
-The Grove-G1 object approach and retreat server can be enabled when a
-`vision_msgs/msg/Detection3DArray` object source is publishing `/objects`:
-
-```bash
-./scripts/bringup_full_sim.sh run_base_approach:=true
-```
-
-Keep Nav2 goal execution, exploration, teleoperation, and other raw velocity publishers idle while
-an approach or retreat goal is active. The server publishes `/cmd_vel`, so its commands still pass
-through human-aware planning, `/cmd_vel_safe`, policy limits, and bridge safeguards.
-
-Fetch the complete pinned Grove-G1 Jazzy repository, including its MoveIt, Dex3, FAST-LIO,
-BehaviorTree.CPP, `ros2_control`, simulator patches, and tests, with:
-
-```bash
-./scripts/setup_grove_g1.sh
-```
-
-See `integrations/grove_g1/README.md`. The Jazzy profile is an alternative full stack and must not
-run concurrently with this Humble stack because both can own `rt/lowcmd`, TF, and sensor topics.
-
-## Development
+<a id="development"></a>
+## 🧪 Development
 
 Rebuild the ROS workspace after source changes:
 
@@ -230,7 +238,7 @@ Run verification from the repository root:
 
 GitHub Actions runs the container build, local ROS package tests, and deterministic benchmark on pushes and pull requests. GUI and GPU simulation tests remain local or require a self-hosted runner.
 
-### MJLab
+### 🤖 MJLab
 
 Set up MJLab inside the container:
 
@@ -254,7 +262,7 @@ GPU workflows require the NVIDIA Container Toolkit and the GPU Compose override:
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm unitree-g1-sim bash
 ```
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 | Problem | Resolution |
 | --- | --- |
@@ -267,20 +275,21 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm unitree-
 | Default scene cannot load | Select `mujoco_scene:=scene_29dof_empty.xml`; Extreme Lab assets are external |
 | Default policy cannot load | Use `run_waypoint_navigation_demo.sh`, which downloads and configures the verified public policy |
 
-## Documentation
+<a id="documentation"></a>
+## 📚 Documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): animated system diagram, runtime boundaries, data flow, and architecture evaluation
 - [`LOCOMOTION_STABILITY.md`](LOCOMOTION_STABILITY.md): locomotion training, controller safeguards, acceptance gates, and policy deployment
 - [`SOCIAL_NAVIGATION_ARCHITECTURE.md`](SOCIAL_NAVIGATION_ARCHITECTURE.md): social-navigation architecture and safety design
 
-## Known Limitations
+## ⚠️ Known Limitations
 
 - The default trained navigation policy and custom Extreme Lab texture assets are intentionally not stored in Git.
 - MuJoCo LiDAR is an approximation; real Livox deployment requires timestamp, packet-loss, calibration, and hardware safety validation.
 - Live MuJoCo actor reset and deterministic scene replay are not yet implemented.
 - Vendored Unitree packages may report upstream lint failures during an unrestricted `colcon test`.
 
-## Repository Layout
+## 🗂️ Repository Layout
 
 ```text
 .
