@@ -25,7 +25,7 @@ elif [ "${existing_repositories}" -ne "${#unitree_repositories[@]}" ]; then
   exit 1
 fi
 
-if [ ! -d "/workspace/vendor/mjlab/.git" ]; then
+if ! git -C "/workspace/vendor/mjlab" rev-parse --git-dir >/dev/null 2>&1; then
   git clone https://github.com/mujocolab/mjlab.git "/workspace/vendor/mjlab"
 fi
 
