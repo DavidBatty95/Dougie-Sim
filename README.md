@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:071A2F,45:0B3B60,100:00A6D6&amp;height=230&amp;section=header&amp;text=Geoff-Sim&amp;fontSize=54&amp;fontColor=FFFFFF&amp;fontAlignY=36&amp;desc=Unitree%20G1%20%7C%20ROS%202%20Humble%20%7C%20MuJoCo&amp;descSize=19&amp;descAlignY=57&amp;animation=fadeIn" width="100%" alt="Geoff-Sim animated title card">
+  <img src="docs/media/banner.svg" width="100%" alt="Animated Geoff-Sim humanoid autonomy banner">
 
   <p><strong>A reproducible research platform for intelligent humanoid simulation.</strong></p>
   <p>MuJoCo locomotion · ROS 2/DDS · SLAM and Nav2 · Human-aware navigation · MJLab training</p>
@@ -118,29 +118,92 @@ Revoke that access when finished with `xhost -local:docker`.
 <a id="running"></a>
 ## 🎮 Running The Project
 
-Open an interactive ROS shell:
+Run all commands below from the repository root after completing `./install.sh`. GUI demos require a working X11/XWayland display. Only run one simulation or command-generating demo at a time.
+
+### 🎬 Key Demo Scripts
+
+| Script | Demonstrates | Fresh clone |
+| --- | --- | --- |
+| `run_waypoint_navigation_demo.sh` | G1 locomotion, SLAM, Nav2, continuous waypoint goals, and RViz | Yes, with a bundled scene |
+| `run_collision_avoidance_demo.sh` | Pedestrian tracking, social planning, collision supervision, Nav2, and diagnostics | Requires Extreme Lab assets and a compatible policy |
+| `bringup_full_sim.sh` | Configurable integrated simulation without forcing a specific demo mode | Requires an explicit available scene and policy |
+| `bringup_full_sim_rviz.sh` | Integrated simulation with RViz enabled | Requires an explicit available scene and policy |
+| `run_person_avoidance_benchmark.sh` | Deterministic, headless person-avoidance regression using the mock backend | Yes |
+| `run_extreme_lab_person_avoidance_benchmark.sh` | Scored live MuJoCo/Nav2 pedestrian-avoidance run | Requires Extreme Lab assets and a compatible policy |
+| `run_extreme_lab_waypoint_benchmark.sh` | Scored people-free locomotion and waypoint baseline | Requires Extreme Lab assets and a compatible policy |
+
+#### Waypoint Navigation
+
+This is the recommended first visual demo. It downloads and verifies the public Unitree policy, builds the current workspace, starts RViz, and continuously generates reachable Nav2 goals:
+
+```bash
+./scripts/run_waypoint_navigation_demo.sh mujoco_scene:=scene_29dof_empty.xml
+```
+
+Try another bundled environment by overriding the scene:
+
+```bash
+./scripts/run_waypoint_navigation_demo.sh mujoco_scene:=scene_29dof_obstacles.xml
+```
+
+The demo uses a measured reactive envelope of `0.45 m/s` forward velocity and `0.35 m/s²` acceleration. The normal integrated and social-navigation launch defaults retain the `0.35 m/s` policy clamp. A live empty-scene check delivered `0.354 m/s` average motion, remained upright, and settled to `0.0032 m` net drift over the five seconds after a stop command.
+
+#### Collision Avoidance
+
+When the external Extreme Lab assets and the configured local policy are available, run the complete social-navigation demonstration:
+
+```bash
+./scripts/run_collision_avoidance_demo.sh
+```
+
+The script starts six pedestrians, RViz, SLAM, Nav2 waypoint exploration, dynamic tracking, the conservative social-navigation profile, the final collision supervisor, and a JSONL run logger. Safety commands are published on `/cmd_vel_safe`; diagnostics are available on `/human_collision_avoidance_debug`.
+
+#### Configurable Bringup
+
+Use the general launcher to select individual subsystems or pass launch arguments directly:
+
+```bash
+./scripts/bringup_full_sim.sh \
+  mujoco_scene:=scene_29dof_room.xml \
+  policy_path:=/workspace/path/to/policy.onnx \
+  run_rviz:=true
+```
+
+Open a sourced ROS shell for topic inspection or manual commands:
 
 ```bash
 ./scripts/run_shell.sh
 ```
 
-Run the integrated stack when its local default scene assets and policy are available:
+#### Headless Regression Benchmark
+
+Run a deterministic benchmark without MuJoCo, RViz, or external assets:
 
 ```bash
-./scripts/bringup_full_sim.sh
+./scripts/run_person_avoidance_benchmark.sh \
+  --mode smoke \
+  --seed 1 \
+  --people 8 \
+  --goals 10 \
+  --output /workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/demo.json
 ```
 
-Run with RViz:
+#### Live Extreme Lab Benchmarks
+
+Run a scored pedestrian-avoidance scenario:
 
 ```bash
-./scripts/bringup_full_sim_rviz.sh
+./scripts/run_extreme_lab_person_avoidance_benchmark.sh \
+  --seed 42 --people 8 --goals 10
 ```
 
-The default launch references a locally trained policy and the Extreme Lab scene, which are not distributed in Git. For a fresh clone, use the downloadable official policy through the ready-made demo and select an included upstream scene:
+Run the people-free locomotion baseline:
 
 ```bash
-./scripts/run_waypoint_navigation_demo.sh mujoco_scene:=scene_29dof_empty.xml
+./scripts/run_extreme_lab_waypoint_benchmark.sh --seed 42 --goals 5
 ```
+
+Add `--no-rviz` for headless execution, or `--no-sim` when a compatible simulation is already running. Both wrappers save JSON, CSV, scenario, and text report artifacts under the benchmark package's ignored `results/` directory.
 
 Available upstream scenes include:
 
@@ -165,25 +228,6 @@ Start keyboard teleoperation in another terminal:
 
 Publish commands to `/cmd_vel`; the integrated stack routes them through the human-aware planner and final safety filter before the locomotion policy consumes `/cmd_vel_safe`.
 
-### 🧭 Navigation And Avoidance
-
-Run the waypoint navigation demo:
-
-```bash
-./scripts/run_waypoint_navigation_demo.sh mujoco_scene:=scene_29dof_empty.xml
-```
-
-The people-free demo opts into a measured reactive envelope of `0.45 m/s` forward and
-`0.35 m/s²` acceleration. The normal integrated and social-navigation launch defaults retain the
-`0.35 m/s` policy clamp. A live empty-scene check delivered `0.354 m/s` average motion, remained
-upright, and settled to `0.0032 m` net drift over the five seconds after a stop command.
-
-Run the collision-avoidance demo when the required Extreme Lab assets and policy are available:
-
-```bash
-./scripts/run_collision_avoidance_demo.sh
-```
-
 Do not enable multiple command generators at the same time. Direct teleoperation, point goals, waypoint exploration, frontier exploration, random exploration, and waypoint patrol are separate control modes.
 
 <a id="architecture"></a>
@@ -191,7 +235,7 @@ Do not enable multiple command generators at the same time. Direct teleoperation
 
 <p align="center">
   <a href="docs/ARCHITECTURE.md">
-    <img src="docs/media/architecture.svg" alt="Animated architecture diagram of the Unitree G1 ROS 2 MuJoCo system" width="100%">
+    <img src="docs/media/architecture.svg" alt="Animated architecture diagram of the Geoff-Sim system" width="100%">
   </a>
 </p>
 

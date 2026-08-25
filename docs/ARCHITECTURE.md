@@ -1,4 +1,4 @@
-# System Architecture
+# Geoff-Sim Architecture
 
 ![Animated system architecture](media/architecture.svg)
 
