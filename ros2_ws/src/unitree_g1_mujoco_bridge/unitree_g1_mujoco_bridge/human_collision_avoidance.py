@@ -8,6 +8,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan, PointCloud2
 from std_msgs.msg import String
+from unitree_social_navigation_msgs.msg import PredictedTrajectories
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from .bridge_safety import (
@@ -20,6 +21,89 @@ from .bridge_safety import (
 from .pointcloud import iter_xyz
 
 
+def _duration_seconds(duration) -> float:
+    return float(duration.sec) + float(duration.nanosec) * 1e-9
+
+
+def _robot_position_at(
+    start_x: float,
+    start_y: float,
+    start_yaw: float,
+    vx: float,
+    vy: float,
+    wz: float,
+    offset: float,
+    dt: float,
+) -> tuple[float, float]:
+    """Integrate a body-frame velocity command to a future world position."""
+    x, y, yaw = start_x, start_y, start_yaw
+    remaining = max(0.0, offset)
+    step_size = max(0.01, dt)
+    while remaining > 1e-9:
+        step = min(step_size, remaining)
+        x += (math.cos(yaw) * vx - math.sin(yaw) * vy) * step
+        y += (math.sin(yaw) * vx + math.cos(yaw) * vy) * step
+        yaw += wz * step
+        remaining -= step
+    return x, y
+
+
+def time_aligned_prediction_risk(
+    trajectories: list[list[tuple[float, float, float, float, float, float]]],
+    message_age: float,
+    robot_pose: tuple[float, float, float],
+    command: tuple[float, float, float],
+    horizon: float,
+    integration_dt: float,
+    collision_radius: float,
+    uncertainty_scale: float,
+    minimum_confidence: float,
+) -> tuple[float, float, float, float] | None:
+    """Return the nearest same-time human conflict as clearance, time, x, y."""
+    if message_age < 0.0:
+        return None
+    best = None
+    for trajectory in trajectories:
+        valid_samples = []
+        previous_offset = -math.inf
+        for offset, x, y, cov_xx, cov_yy, confidence in trajectory:
+            if not all(math.isfinite(value) for value in (offset, x, y, cov_xx, cov_yy, confidence)):
+                continue
+            if offset <= previous_offset:
+                continue
+            previous_offset = offset
+            valid_samples.append((offset, x, y, cov_xx, cov_yy, confidence))
+        dense_samples = []
+        for index, right in enumerate(valid_samples):
+            if index == 0:
+                dense_samples.append(right)
+                continue
+            left = valid_samples[index - 1]
+            span = right[0] - left[0]
+            steps = max(1, math.ceil(span / max(0.01, integration_dt)))
+            for step in range(1, steps + 1):
+                fraction = step / steps
+                dense_samples.append(tuple(
+                    left[field] + fraction * (right[field] - left[field])
+                    for field in range(6)
+                ))
+        for offset, x, y, cov_xx, cov_yy, confidence in dense_samples:
+            time_from_now = offset - max(0.0, message_age)
+            if time_from_now < 0.0 or time_from_now > horizon or confidence < minimum_confidence:
+                continue
+            robot_x, robot_y = _robot_position_at(
+                robot_pose[0], robot_pose[1], robot_pose[2],
+                command[0], command[1], command[2], time_from_now, integration_dt,
+            )
+            uncertainty = uncertainty_scale * math.sqrt(max(0.0, cov_xx, cov_yy))
+            clearance = math.hypot(x - robot_x, y - robot_y) - uncertainty
+            if best is None or clearance < best[0]:
+                best = (clearance, time_from_now, x, y)
+    if best is None or best[0] > collision_radius:
+        return None
+    return best
+
+
 class HumanCollisionAvoidance(Node):
     def __init__(self) -> None:
         super().__init__("human_collision_avoidance")
@@ -29,6 +113,7 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("planner_state_topic", "/human_avoidance_state")
         self.declare_parameter("safe_patch_topic", "/human_avoidance_safe_patch")
         self.declare_parameter("predicted_cloud_topic", "/predicted_dynamic_obstacles")
+        self.declare_parameter("predicted_trajectories_topic", "/predicted_person_trajectories")
         self.declare_parameter("tracked_cloud_topic", "/tracked_dynamic_obstacles")
         self.declare_parameter("mujoco_people_topic", "/mujoco/pedestrians")
         self.declare_parameter("use_mujoco_people", True)
@@ -83,6 +168,9 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("repulsion_timeout", 0.8)
         self.declare_parameter("startup_grace_time", 2.0)
         self.declare_parameter("person_cloud_timeout", 0.8)
+        self.declare_parameter("prediction_collision_radius", 1.0)
+        self.declare_parameter("prediction_uncertainty_scale", 0.5)
+        self.declare_parameter("prediction_min_confidence", 0.35)
         self.declare_parameter("scan_timeout", 0.6)
         self.declare_parameter("static_escape_clearance", 0.48)
 
@@ -136,6 +224,9 @@ class HumanCollisionAvoidance(Node):
         self.repulsion_timeout = float(self.get_parameter("repulsion_timeout").value)
         self.startup_grace_time = float(self.get_parameter("startup_grace_time").value)
         self.person_cloud_timeout = float(self.get_parameter("person_cloud_timeout").value)
+        self.prediction_collision_radius = float(self.get_parameter("prediction_collision_radius").value)
+        self.prediction_uncertainty_scale = float(self.get_parameter("prediction_uncertainty_scale").value)
+        self.prediction_min_confidence = float(self.get_parameter("prediction_min_confidence").value)
         self.scan_timeout = float(self.get_parameter("scan_timeout").value)
         self.static_escape_clearance = float(self.get_parameter("static_escape_clearance").value)
         rate_hz = max(1.0, float(self.get_parameter("rate_hz").value))
@@ -199,6 +290,12 @@ class HumanCollisionAvoidance(Node):
             str(self.get_parameter("predicted_cloud_topic").value),
             lambda msg: self._cloud_callback(msg, "predicted"),
             qos_profile_sensor_data,
+        )
+        self.create_subscription(
+            PredictedTrajectories,
+            str(self.get_parameter("predicted_trajectories_topic").value),
+            self._predicted_trajectories_callback,
+            10,
         )
         self.create_subscription(
             PointCloud2,
@@ -296,6 +393,13 @@ class HumanCollisionAvoidance(Node):
         closest = math.inf
         closest_corridor = math.inf
         source_range = self.predicted_repulsion_range if source == "predicted" else self.people_repulsion_range
+        mujoco_stamp = self.person_cloud_times.get("mujoco")
+        mujoco_fresh = (
+            self.use_mujoco_people
+            and mujoco_stamp is not None
+            and (self.get_clock().now() - mujoco_stamp).nanoseconds * 1e-9 <= self.person_cloud_timeout
+        )
+        hard_source = source != "predicted" and not (source == "tracked" and mujoco_fresh)
         for x, y, _ in iter_xyz(msg):
             dx = x - robot_x
             dy = y - robot_y
@@ -304,7 +408,8 @@ class HumanCollisionAvoidance(Node):
                 continue
             if distance < closest:
                 closest = distance
-                self.last_risk_point = (source, x, y, distance)
+                if hard_source:
+                    self.last_risk_point = (source, x, y, distance)
             local_x = math.cos(yaw) * dx + math.sin(yaw) * dy
             local_y = -math.sin(yaw) * dx + math.cos(yaw) * dy
             corridor_distance = self._distance_to_trajectory(local_x, local_y, trajectory)
@@ -334,6 +439,10 @@ class HumanCollisionAvoidance(Node):
             )
         else:
             self.people_forces.pop(source, None)
+        # The legacy prediction cloud is an inflated visualization corridor.
+        # It has no time dimension, so it is suitable only for soft repulsion.
+        if not hard_source:
+            return
         self.closest_risk = closest
         if risk_points:
             self.last_risk_source = source
@@ -409,6 +518,65 @@ class HumanCollisionAvoidance(Node):
             self.avoid_cmd = self._apply_open_space_bias(cmd)
         self.avoid_until = self.get_clock().now() + Duration(seconds=self.hold_time)
         self.last_avoid_reason = "trajectory_risk"
+
+    def _predicted_trajectories_callback(self, msg: PredictedTrajectories) -> None:
+        if msg.header.frame_id and msg.header.frame_id != self.target_frame:
+            self.get_logger().warn(
+                f"Ignoring prediction frame {msg.header.frame_id}; expected {self.target_frame}",
+                throttle_duration_sec=2.0,
+            )
+            return
+        epoch = float(msg.header.stamp.sec) + float(msg.header.stamp.nanosec) * 1e-9
+        now = self.get_clock().now()
+        now_seconds = now.nanoseconds * 1e-9
+        raw_age = now_seconds - epoch if epoch > 0.0 else 0.0
+        if raw_age < -0.05:
+            self.get_logger().warn("Ignoring future-dated person prediction", throttle_duration_sec=2.0)
+            return
+        age = max(0.0, raw_age)
+        if age > self.person_cloud_timeout or self._input_stale() or not self._input_active():
+            return
+        pose = self._robot_pose()
+        if pose is None:
+            return
+        trajectories = []
+        for trajectory in msg.trajectories:
+            samples = []
+            for point in trajectory.points:
+                samples.append((
+                    _duration_seconds(point.time_offset),
+                    float(point.position.x),
+                    float(point.position.y),
+                    float(point.position_covariance[0]),
+                    float(point.position_covariance[4]),
+                    float(point.confidence),
+                ))
+            trajectories.append(samples)
+        risk = time_aligned_prediction_risk(
+            trajectories,
+            age,
+            pose,
+            (
+                float(self.latest_cmd.linear.x),
+                float(self.latest_cmd.linear.y),
+                float(self.latest_cmd.angular.z),
+            ),
+            self.trajectory_horizon,
+            self.trajectory_dt,
+            self.prediction_collision_radius,
+            self.prediction_uncertainty_scale,
+            self.prediction_min_confidence,
+        )
+        self.person_cloud_times["predicted_typed"] = now
+        if risk is None:
+            return
+        clearance, time_to_conflict, x, y = risk
+        self.closest_risk = clearance
+        self.last_risk_source = "predicted_typed"
+        self.last_risk_point = ("predicted_typed", x, y, clearance)
+        self.avoid_cmd = Twist()
+        self.avoid_until = now + Duration(seconds=self.hold_time)
+        self.last_avoid_reason = f"predicted_space_time_stop_{time_to_conflict:.1f}s"
 
     def _safe_patch_command_is_valid(
         self,

@@ -1,0 +1,11 @@
+g1_transport_server:
+  ros__parameters:
+    allow_simulation_manipulation: true
+    server_timeout_s: 10.0
+    cancel_timeout_s: 5.0
+    navigation_timeout_s: 300.0
+    approach_timeout_s: 60.0
+    retreat_distance_m: 0.8
+    retreat_timeout_s: 30.0
+    approach_attempts: 2
+    pick_attempts: 2

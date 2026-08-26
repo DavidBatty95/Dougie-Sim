@@ -45,8 +45,10 @@ class LiveEventEpisodes:
     def reset(self) -> None:
         self.emergency_stops = 0
         self.stale_events = 0
+        self.avoidance_interventions = 0
         self._emergency_active = False
         self._stale_active = False
+        self._override_active = False
 
     def update(self, payload: dict) -> None:
         if "status" in payload:
@@ -59,6 +61,21 @@ class LiveEventEpisodes:
             if stale and not self._stale_active:
                 self.stale_events += 1
             self._stale_active = stale
+            override = payload.get("mode") == "override"
+            if override and not self._override_active:
+                self.avoidance_interventions += 1
+            self._override_active = override
+
+
+def velocity_from_pose_delta(previous: Pose2D, current: Pose2D, dt_s: float) -> Velocity2D | None:
+    if dt_s <= 1e-3 or dt_s > 0.5:
+        return None
+    yaw_delta = math.atan2(math.sin(current.yaw - previous.yaw), math.cos(current.yaw - previous.yaw))
+    return Velocity2D(
+        (current.x - previous.x) / dt_s,
+        (current.y - previous.y) / dt_s,
+        yaw_delta / dt_s,
+    )
 
 
 class BenchmarkRosNode(Node):
@@ -68,11 +85,16 @@ class BenchmarkRosNode(Node):
         self.live_events = LiveEventEpisodes()
         self.latest_robot_pose: Pose2D | None = None
         self.latest_robot_velocity = Velocity2D()
+        self._last_odom_pose: Pose2D | None = None
+        self._last_odom_stamp: float | None = None
+        self._derived_robot_velocity = Velocity2D()
         self.latest_people: list[PersonState] = []
         self.latest_people_stamp = None
         self.latest_raw_cmd_stamp: float | None = None
         self.latest_raw_cmd_magnitude = 0.0
+        self.max_abs_safe_lateral_cmd_mps = 0.0
         self.latest_locomotion: dict | None = None
+        self.nav_goal_handle = None
         if self.ros_enabled:
             super().__init__("person_avoidance_benchmark")
             self.people_pub = self.create_publisher(String, "/benchmark/people_states", 10)
@@ -82,6 +104,7 @@ class BenchmarkRosNode(Node):
             self.create_subscription(Odometry, "/odom", self._odom_callback, 10)
             self.create_subscription(String, "/mujoco/pedestrians", self._people_callback, 10)
             self.create_subscription(Twist, "/cmd_vel", self._raw_cmd_callback, 10)
+            self.create_subscription(Twist, "/cmd_vel_safe", self._safe_cmd_callback, 10)
             self.create_subscription(String, "/g1/locomotion_diagnostics", self._locomotion_callback, 10)
             self.create_subscription(String, "/human_collision_avoidance_debug", self._safety_debug_callback, 10)
             self.nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose") if NavigateToPose is not None else None
@@ -122,12 +145,31 @@ class BenchmarkRosNode(Node):
     def _odom_callback(self, msg) -> None:
         pose = msg.pose.pose
         yaw = _yaw_from_quat(pose.orientation)
-        self.latest_robot_pose = Pose2D(float(pose.position.x), float(pose.position.y), yaw)
-        self.latest_robot_velocity = Velocity2D(
+        current_pose = Pose2D(float(pose.position.x), float(pose.position.y), yaw)
+        stamp = float(msg.header.stamp.sec) + float(msg.header.stamp.nanosec) * 1e-9
+        if stamp <= 0.0:
+            stamp = time.monotonic()
+        reported = Velocity2D(
             float(msg.twist.twist.linear.x),
             float(msg.twist.twist.linear.y),
             float(msg.twist.twist.angular.z),
         )
+        if self._last_odom_pose is None or self._last_odom_stamp is None:
+            self._last_odom_pose = current_pose
+            self._last_odom_stamp = stamp
+        elif stamp - self._last_odom_stamp >= 0.25:
+            derived = velocity_from_pose_delta(self._last_odom_pose, current_pose, stamp - self._last_odom_stamp)
+            plausible_limit = max(1.0, self.config.max_speed_mps * 2.0)
+            if derived is not None and math.hypot(derived.vx, derived.vy) <= plausible_limit:
+                self._derived_robot_velocity = derived
+            self._last_odom_pose = current_pose
+            self._last_odom_stamp = stamp
+        self.latest_robot_velocity = (
+            self._derived_robot_velocity
+            if math.hypot(reported.vx, reported.vy) < 0.005
+            else reported
+        )
+        self.latest_robot_pose = current_pose
 
     def _people_callback(self, msg) -> None:
         try:
@@ -154,6 +196,12 @@ class BenchmarkRosNode(Node):
         self.latest_raw_cmd_stamp = time.monotonic()
         self.latest_raw_cmd_magnitude = (
             math.hypot(float(msg.linear.x), float(msg.linear.y)) + abs(float(msg.angular.z))
+        )
+
+    def _safe_cmd_callback(self, msg) -> None:
+        self.max_abs_safe_lateral_cmd_mps = max(
+            self.max_abs_safe_lateral_cmd_mps,
+            abs(float(msg.linear.y)),
         )
 
     def _locomotion_callback(self, msg) -> None:
@@ -220,9 +268,9 @@ class BenchmarkRosNode(Node):
         raise RuntimeError("Timed out waiting for people to clear the benchmark start area")
 
     def goal_has_path(self, start: Pose2D, goal: Pose2D, timeout_s: float = 5.0) -> bool:
-        """Reject a sampled goal only when Nav2 definitively reports no path."""
+        """Return true only when Nav2 produces a nonempty path."""
         if self.path_client is None or not self.path_client.wait_for_server(timeout_sec=timeout_s):
-            return True
+            return False
         request = ComputePathToPose.Goal()
         request.use_start = True
         request.start = self._pose_stamped(start)
@@ -240,8 +288,23 @@ class BenchmarkRosNode(Node):
             return False
         has_path = len(result_future.result().result.path.poses) > 0
         if has_path:
-            self.get_logger().info(f"Reachable random goal accepted at x={goal.x:+.2f}, y={goal.y:+.2f}")
+            self.get_logger().info(f"Reachable goal accepted at x={goal.x:+.2f}, y={goal.y:+.2f}")
         return has_path
+
+    def wait_for_nav_path(self, start: Pose2D, goal: Pose2D, timeout_s: float = 15.0) -> bool:
+        deadline = time.monotonic() + timeout_s
+        last_warning = 0.0
+        while rclpy.ok() and time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if self.goal_has_path(start, goal, min(2.0, remaining)):
+                return True
+            if self.robot_fallen():
+                return False
+            now = time.monotonic()
+            if now - last_warning > 2.0:
+                self.get_logger().warn("Waiting for Nav2 to produce a path before submitting the goal")
+                last_warning = now
+        return False
 
     def _pose_stamped(self, pose: Pose2D):
         msg = PoseStamped()
@@ -280,7 +343,22 @@ class BenchmarkRosNode(Node):
         if goal_handle is None or not goal_handle.accepted:
             self.get_logger().warn("NavigateToPose goal was rejected")
             return False
+        self.nav_goal_handle = goal_handle
         return True
+
+    def cancel_nav_goal(self, timeout_s: float = 2.0) -> None:
+        """Release the active Nav2 action before advancing benchmark goals."""
+        goal_handle = self.nav_goal_handle
+        self.nav_goal_handle = None
+        if goal_handle is None:
+            return
+        future = goal_handle.cancel_goal_async()
+        deadline = time.monotonic() + timeout_s
+        while rclpy.ok() and not future.done() and time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.05)
+        result_future = goal_handle.get_result_async()
+        while rclpy.ok() and not result_future.done() and time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.05)
 
     def wait_for_motion_cmd_after(self, stamp: float, timeout_s: float = 15.0) -> bool:
         if not self.ros_enabled:
@@ -444,6 +522,13 @@ class BenchmarkRunner:
                 scenario_path = self.writer.write_scenario(self.config, goals, node.latest_people)
             else:
                 goal = goals[goal_index]
+            current_pose = node.latest_robot_pose or start
+            if not node.wait_for_nav_path(current_pose, goal.pose):
+                if monitor.metrics.total_time_s <= 0.0 and monitor.metrics.goals_reached == 0:
+                    return self._finish_invalid(
+                        monitor, goals, node.latest_people, "nav2_path_not_ready_before_scoring_start"
+                    )
+                return self._finish(monitor, goals, node.latest_people, scenario_path), str(self.writer.output_path)
             goal_metrics = monitor.start_goal(goal)
             monitor.metrics.ideal_path_length_m += distance_xy(previous_goal_pose, goal.pose)
             previous_goal_pose = goal.pose
@@ -461,6 +546,7 @@ class BenchmarkRunner:
                     motion_started = True
                     break
                 if attempt == 0:
+                    node.cancel_nav_goal()
                     node.get_logger().warn(
                         "Accepted Nav2 goal produced no motion command; retrying once"
                     )
@@ -498,9 +584,19 @@ class BenchmarkRunner:
                 if robot_pose is None:
                     continue
                 people = node.latest_people[: self.config.people_count] if self.config.people_count > 0 else []
+                previous_path_length = monitor.metrics.actual_path_length_m
                 monitor.update(now_s, dt, robot_pose, node.latest_robot_velocity, people)
+                step_length = monitor.metrics.actual_path_length_m - previous_path_length
+                if node.live_events._override_active:
+                    monitor.metrics.avoidance_time_s += dt
+                    if any(math.hypot(person.velocity.vx, person.velocity.vy) >= 0.10 for person in people):
+                        monitor.metrics.moving_avoidance_time_s += dt
+                elif node.live_events.avoidance_interventions > 0:
+                    monitor.metrics.post_avoidance_progress_m += step_length
                 monitor.metrics.emergency_stops = node.live_events.emergency_stops
+                monitor.metrics.avoidance_interventions = node.live_events.avoidance_interventions
                 monitor.metrics.stale_events = node.live_events.stale_events
+                monitor.metrics.max_abs_safe_lateral_cmd_mps = node.max_abs_safe_lateral_cmd_mps
                 node.publish_people(people)
                 node.publish_metrics(
                     {
@@ -513,6 +609,7 @@ class BenchmarkRunner:
                 )
 
                 if distance_xy(robot_pose, goal.pose) <= self.config.goal_tolerance_m:
+                    node.cancel_nav_goal()
                     monitor.complete_goal(goal_metrics, True, None, now_wall - goal_start_time)
                     break
                 if now_wall - goal_start_time > self.config.max_goal_time_s:

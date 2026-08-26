@@ -3,6 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTAINER_BUILD_BASE="/workspace/ros2_ws/.verification/build"
+CONTAINER_INSTALL_BASE="/workspace/ros2_ws/.verification/install"
+CONTAINER_LOG_BASE="/workspace/ros2_ws/.verification/log"
 
 SEED="42"
 GOALS="5"
@@ -11,6 +14,7 @@ SIM_STARTUP_SECONDS="28"
 RUN_RVIZ="1"
 MINIMUM_SCORE="80"
 RESULT_DIR="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab_locomotion"
+CONTAINER_CONFIG="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/extreme_lab_locomotion_benchmark.yaml"
 SIM_ARGS=()
 
 usage() {
@@ -28,6 +32,7 @@ Options:
   --no-rviz                Do not launch RViz
   --startup-seconds N      Simulation startup wait (default: 28)
   --minimum-score N        Validation threshold (default: 80)
+  --config PATH            Benchmark YAML path visible inside the container
   --sim-arg ARG            Additional g1_sim.launch.py argument
   --result-dir PATH        Host artifact directory
 EOF
@@ -41,6 +46,7 @@ while [ "$#" -gt 0 ]; do
     --no-rviz) RUN_RVIZ="0"; shift ;;
     --startup-seconds) SIM_STARTUP_SECONDS="$2"; shift 2 ;;
     --minimum-score) MINIMUM_SCORE="$2"; shift 2 ;;
+    --config) CONTAINER_CONFIG="$2"; shift 2 ;;
     --sim-arg) SIM_ARGS+=("$2"); shift 2 ;;
     --result-dir) RESULT_DIR="$2"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
@@ -59,7 +65,6 @@ else
   CONTAINER_RESULT_DIR="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab_locomotion"
 fi
 CONTAINER_JSON="${CONTAINER_RESULT_DIR}/${BASENAME}.json"
-CONTAINER_CONFIG="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/extreme_lab_locomotion_benchmark.yaml"
 
 SIM_PID=""
 cleanup_sim_containers() {
@@ -77,10 +82,16 @@ trap cleanup EXIT
 if [ "${START_SIM}" = "1" ]; then
   cleanup_sim_containers
   printf 'Building benchmark and bringup packages...\n'
-  docker compose run --rm unitree-g1-sim bash -lc \
-    'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select dynamic_obstacle_benchmarks unitree_g1_mujoco_bridge unitree_g1_sim_bringup'
+  docker compose run --rm \
+    -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
+    -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+    -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
+    unitree-g1-sim /workspace/scripts/build_ws.sh --packages-select \
+      dynamic_obstacle_benchmarks \
+      unitree_g1_mujoco_bridge \
+      unitree_g1_sim_bringup
   printf 'Starting people-free Extreme Lab simulation...\n'
-  setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
+  COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
     mujoco_scene:=scene_29dof_extreme_lab.xml \
     mujoco_pedestrians_enable:=false \
     mujoco_pedestrians_count:=0 \
@@ -132,8 +143,10 @@ fi
   printf 'Velocity limits: x=0.15 m/s, y=0.00 m/s, yaw=0.20 rad/s\n\n'
 } >"${HOST_TXT}"
 
-docker compose run --rm unitree-g1-sim bash -lc \
-  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source /workspace/ros2_ws/install/setup.bash; exec ros2 run dynamic_obstacle_benchmarks person_avoidance_benchmark "$@"' \
+docker compose run --rm \
+  -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+  unitree-g1-sim bash -lc \
+  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; exec ros2 run dynamic_obstacle_benchmarks person_avoidance_benchmark "$@"' \
   bash \
   --config "${CONTAINER_CONFIG}" \
   --backend mujoco \

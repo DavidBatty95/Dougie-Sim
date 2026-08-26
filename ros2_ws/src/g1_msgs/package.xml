@@ -5,7 +5,7 @@
   <version>0.1.0</version>
   <description>
     Interfaces for the G1 stack: the ApproachObject and Retreat actions the base
-    approach serves, and the Pick, Place and SetArmPosture manipulation actions.
+    approach serves, manipulation actions, and transport mission orchestration.
   </description>
   <maintainer email="gupta.adyansh@gmail.com">Adyansh</maintainer>
   <license>BSD-3-Clause</license>

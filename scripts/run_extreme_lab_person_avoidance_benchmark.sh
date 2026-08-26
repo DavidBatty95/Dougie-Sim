@@ -3,6 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTAINER_BUILD_BASE="/workspace/ros2_ws/.verification/build"
+CONTAINER_INSTALL_BASE="/workspace/ros2_ws/.verification/install"
+CONTAINER_LOG_BASE="/workspace/ros2_ws/.verification/log"
 
 SEED="42"
 PEOPLE="8"
@@ -13,7 +16,10 @@ START_SIM="1"
 SIM_STARTUP_SECONDS="28"
 RUN_RVIZ="1"
 RECORD_ROSBAG="0"
+REQUIRE_AVOIDANCE="0"
+MINIMUM_SCORE="70"
 RESULT_DIR="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab"
+CONFIG="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/person_avoidance_benchmark.yaml"
 EXTRA_ARGS=()
 SIM_ARGS=()
 
@@ -31,6 +37,9 @@ Options:
   --no-rviz                Do not launch RViz with the simulation
   --record-rosbag          Record diagnostic ROS topics during the benchmark
   --startup-seconds N      Seconds to wait after launching simulation (default: 28)
+  --minimum-score N        Validation threshold (default: 70)
+  --require-avoidance      Require prolonged moving-person yield and resume evidence
+  --config PATH            Benchmark YAML path inside the container
   --sim-arg ARG            Extra ROS launch argument passed to g1_sim.launch.py, e.g. avoidance_danger_radius:=2.4
   --result-dir PATH        Host result directory (default: package results/extreme_lab)
 
@@ -49,6 +58,9 @@ while [ "$#" -gt 0 ]; do
     --no-rviz) RUN_RVIZ="0"; shift ;;
     --record-rosbag) RECORD_ROSBAG="1"; EXTRA_ARGS+=("--record-rosbag"); shift ;;
     --startup-seconds) SIM_STARTUP_SECONDS="$2"; shift 2 ;;
+    --minimum-score) MINIMUM_SCORE="$2"; shift 2 ;;
+    --require-avoidance) REQUIRE_AVOIDANCE="1"; shift ;;
+    --config) CONFIG="$2"; shift 2 ;;
     --sim-arg) SIM_ARGS+=("$2"); shift 2 ;;
     --result-dir) RESULT_DIR="$2"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
@@ -72,7 +84,6 @@ fi
 CONTAINER_JSON="${CONTAINER_RESULT_DIR}/${BASENAME}.json"
 CONTAINER_RUN_LOG="${CONTAINER_RESULT_DIR}/${BASENAME}_human_aware.jsonl"
 CONTAINER_ROSBAG="${CONTAINER_RESULT_DIR}/${BASENAME}_rosbag"
-CONTAINER_CONFIG="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/person_avoidance_benchmark.yaml"
 
 SIM_PID=""
 BAG_PID=""
@@ -96,23 +107,23 @@ trap cleanup EXIT
 if [ "${START_SIM}" = "1" ]; then
   printf 'Stopping stale Unitree G1 simulation containers before benchmark...\n'
   cleanup_sim_containers
-  printf 'Checking human-aware logger executable...\n'
-  if ! docker compose run --rm unitree-g1-sim bash -lc 'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; if [ -f /workspace/ros2_ws/install/setup.bash ]; then source /workspace/ros2_ws/install/setup.bash; fi; ros2 pkg executables unitree_g1_mujoco_bridge | grep -q "^unitree_g1_mujoco_bridge human_aware_run_logger$"'; then
-    printf 'Building unitree_g1_mujoco_bridge so human_aware_run_logger is installed...\n'
-    docker compose run --rm unitree-g1-sim bash -lc 'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select unitree_g1_mujoco_bridge && source /workspace/ros2_ws/install/setup.bash'
-  fi
-  printf 'Refreshing bridge package...\n'
-  docker compose run --rm unitree-g1-sim bash -lc 'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select unitree_g1_mujoco_bridge >/dev/null && source /workspace/ros2_ws/install/setup.bash'
-  printf 'Refreshing bringup launch files...\n'
-  docker compose run --rm unitree-g1-sim bash -lc 'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select unitree_g1_sim_bringup >/dev/null && source /workspace/ros2_ws/install/setup.bash'
-  printf 'Refreshing benchmark package...\n'
-  docker compose run --rm unitree-g1-sim bash -lc 'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select dynamic_obstacle_benchmarks >/dev/null && source /workspace/ros2_ws/install/setup.bash'
+  printf 'Refreshing person-avoidance packages...\n'
+  docker compose run --rm \
+    -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
+    -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+    -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
+    unitree-g1-sim /workspace/scripts/build_ws.sh --packages-select \
+      dynamic_obstacle_benchmarks \
+      unitree_g1_mujoco_bridge \
+      unitree_g1_sim_bringup
+  printf 'Preparing Unitree MuJoCo simulator...\n'
+  docker compose run --rm unitree-g1-sim /workspace/scripts/build_unitree_mujoco.sh
   printf 'Starting Extreme Lab simulation for benchmark...\n'
-  setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
+  COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
     mujoco_scene:=scene_29dof_extreme_lab.xml \
     mujoco_pedestrians_enable:=true \
     mujoco_pedestrians_count:="${PEOPLE}" \
-    livox_scan_points:=1200 \
+    livox_scan_points:=600 \
     mujoco_initial_keyframe:=policy_stand \
     startup_current_pose_hold_time:=0.0 \
     startup_blend_time:=0.0 \
@@ -120,6 +131,7 @@ if [ "${START_SIM}" = "1" ]; then
     startup_require_upright:=true \
     startup_max_recovery_time:=0.0 \
     policy_action_ramp_time:=0.0 \
+    policy_action_rate_limit:=0.0 \
     mujoco_reset_on_controller_start:=false \
     max_lin_vel_x:=0.35 \
     max_lin_vel_y:=0.12 \
@@ -134,7 +146,7 @@ if [ "${START_SIM}" = "1" ]; then
     run_human_aware_run_logger:=true \
     human_aware_run_log_path:="${CONTAINER_RUN_LOG}" \
     run_dynamic_obstacle_tracker:=true \
-    run_lidar_person_detector:=true \
+    run_lidar_person_detector:=false \
     run_rviz:="${RUN_RVIZ}" \
     publish_camera:=false \
     "${SIM_ARGS[@]}" \
@@ -144,8 +156,8 @@ if [ "${START_SIM}" = "1" ]; then
   sleep "${SIM_STARTUP_SECONDS}"
   if [ "${RECORD_ROSBAG}" = "1" ]; then
     printf 'Starting diagnostic rosbag recording...\n'
-    setsid docker compose run --rm unitree-g1-sim bash -lc \
-      'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; if [ -f /workspace/ros2_ws/install/setup.bash ]; then source /workspace/ros2_ws/install/setup.bash; fi; mkdir -p "$(dirname "$1")"; exec ros2 bag record -o "$1" /cmd_vel /cmd_vel_human_aware /cmd_vel_safe /human_avoidance_state /human_avoidance_debug /human_collision_avoidance_debug /dynamic_obstacle_tracker/debug_tracks /tracked_dynamic_obstacles /predicted_dynamic_obstacles /tentative_dynamic_obstacles /scan /odom /mujoco/pedestrians /benchmark/metrics /tf /tf_static' \
+    setsid docker compose run --rm -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" unitree-g1-sim bash -lc \
+      'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; mkdir -p "$(dirname "$1")"; exec ros2 bag record -o "$1" /cmd_vel /cmd_vel_human_aware /cmd_vel_safe /human_avoidance_state /human_avoidance_debug /human_collision_avoidance_debug /dynamic_obstacle_tracker/debug_tracks /tracked_dynamic_obstacles /predicted_dynamic_obstacles /tentative_dynamic_obstacles /scan /odom /mujoco/pedestrians /benchmark/metrics /tf /tf_static' \
       bash "${CONTAINER_ROSBAG}" \
       >"${RESULT_DIR}/${BASENAME}_rosbag.log" 2>&1 &
     BAG_PID="$!"
@@ -170,10 +182,10 @@ fi
   printf '\n'
 } >"${HOST_TXT}"
 
-docker compose run --rm unitree-g1-sim bash -lc \
-  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; if [ -f /workspace/ros2_ws/install/setup.bash ]; then source /workspace/ros2_ws/install/setup.bash; fi; if ! ros2 pkg prefix dynamic_obstacle_benchmarks >/dev/null 2>&1; then cd /workspace/ros2_ws && colcon build --merge-install --symlink-install --packages-select dynamic_obstacle_benchmarks && source /workspace/ros2_ws/install/setup.bash; fi; exec ros2 run dynamic_obstacle_benchmarks person_avoidance_benchmark "$@"' \
+docker compose run --rm -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" unitree-g1-sim bash -lc \
+  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; exec ros2 run dynamic_obstacle_benchmarks person_avoidance_benchmark "$@"' \
   bash \
-  --config "${CONTAINER_CONFIG}" \
+  --config "${CONFIG}" \
   --mode "${MODE}" \
   --backend "${BACKEND}" \
   --seed "${SEED}" \
@@ -182,6 +194,19 @@ docker compose run --rm unitree-g1-sim bash -lc \
   --headless \
   --output "${CONTAINER_JSON}" \
   "${EXTRA_ARGS[@]}" | tee -a "${HOST_TXT}"
+
+set +e
+VALIDATION_ARGS=(
+  "${HOST_JSON}"
+  --backend "${BACKEND}"
+  --minimum-score "${MINIMUM_SCORE}"
+)
+if [ "${REQUIRE_AVOIDANCE}" = "1" ]; then
+  VALIDATION_ARGS+=(--require-avoidance)
+fi
+python3 "${SCRIPT_DIR}/validate_benchmark_result.py" "${VALIDATION_ARGS[@]}" | tee -a "${HOST_TXT}"
+VALIDATION_STATUS="${PIPESTATUS[0]}"
+set -e
 
 {
   printf '\nArtifacts\n'
@@ -202,3 +227,4 @@ docker compose run --rm unitree-g1-sim bash -lc \
 } | tee -a "${HOST_TXT}"
 
 printf '\nBenchmark score report written to %s\n' "${HOST_TXT}"
+exit "${VALIDATION_STATUS}"

@@ -9,6 +9,8 @@ human_aware_motion_planner:
     tracked_persons_topic: /tracked_persons
     predicted_trajectories_topic: /predicted_person_trajectories
     use_legacy_person_inputs: false
+    local_safe_space_enabled: false
+    max_lateral_near_human: 0.0
 
 human_collision_avoidance:
   ros__parameters:
@@ -16,3 +18,4 @@ human_collision_avoidance:
     danger_radius: 1.60
     critical_radius: 0.95
     emergency_stop_radius: 0.70
+    max_lateral_linear: 0.0

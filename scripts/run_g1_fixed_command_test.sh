@@ -3,16 +3,27 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTAINER_BUILD_BASE="/workspace/ros2_ws/.verification/build"
+CONTAINER_INSTALL_BASE="/workspace/ros2_ws/.verification/install"
+CONTAINER_LOG_BASE="/workspace/ros2_ws/.verification/log"
 POLICY_PATH="${REPO_ROOT}/vendor/mjlab/logs/rsl_rl/g1_stand_creep_stop/2026-08-05_10-32-24_g1_navigation_finetune_from_model_5796/2026-08-05_10-32-24_g1_navigation_finetune_from_model_5796.onnx"
 POLICY_PROFILE="mjlab"
 INITIAL_KEYFRAME="policy_stand"
 SCENE="scene_29dof_extreme_lab.xml"
 LINEAR_X="0.10"
+LINEAR_Y="0.0"
 ANGULAR_Z="0.0"
 DURATION="20"
+STOP_DURATION="2"
 STARTUP_SECONDS="12"
 MAX_LINEAR_X="0.22"
+MAX_LINEAR_Y="0.12"
 MAX_ANGULAR_Z="0.30"
+CMD_ACCEL_X="0.22"
+CMD_ACCEL_Y="0.16"
+CMD_ACCEL_YAW="0.35"
+RUN_RVIZ="1"
+VALIDATE_RESULT="0"
 RESULT_DIR="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/fixed_command"
 
 while [ "$#" -gt 0 ]; do
@@ -22,14 +33,23 @@ while [ "$#" -gt 0 ]; do
     --initial-keyframe) INITIAL_KEYFRAME="$2"; shift 2 ;;
     --scene) SCENE="$2"; shift 2 ;;
     --linear-x) LINEAR_X="$2"; shift 2 ;;
+    --linear-y) LINEAR_Y="$2"; shift 2 ;;
     --angular-z) ANGULAR_Z="$2"; shift 2 ;;
     --duration) DURATION="$2"; shift 2 ;;
+    --stop-duration) STOP_DURATION="$2"; shift 2 ;;
     --startup-seconds) STARTUP_SECONDS="$2"; shift 2 ;;
     --max-linear-x) MAX_LINEAR_X="$2"; shift 2 ;;
+    --max-linear-y) MAX_LINEAR_Y="$2"; shift 2 ;;
     --max-angular-z) MAX_ANGULAR_Z="$2"; shift 2 ;;
+    --cmd-accel-x) CMD_ACCEL_X="$2"; shift 2 ;;
+    --cmd-accel-y) CMD_ACCEL_Y="$2"; shift 2 ;;
+    --cmd-accel-yaw) CMD_ACCEL_YAW="$2"; shift 2 ;;
+    --rviz) RUN_RVIZ="1"; shift ;;
+    --no-rviz) RUN_RVIZ="0"; shift ;;
+    --validate) VALIDATE_RESULT="1"; shift ;;
     --result-dir) RESULT_DIR="$2"; shift 2 ;;
     -h|--help)
-      printf 'Usage: %s [--scene FILE] [--policy FILE] [--policy-profile NAME] [--initial-keyframe NAME] [--linear-x MPS] [--angular-z RADPS] [--duration SEC] [--max-linear-x MPS] [--max-angular-z RADPS]\n' "$0"
+      printf 'Usage: %s [--scene FILE] [--policy FILE] [--policy-profile NAME] [--initial-keyframe NAME] [--linear-x MPS] [--linear-y MPS] [--angular-z RADPS] [--duration SEC] [--stop-duration SEC] [--max-linear-x MPS] [--max-linear-y MPS] [--max-angular-z RADPS] [--cmd-accel-x MPS2] [--cmd-accel-y MPS2] [--cmd-accel-yaw RADPS2] [--no-rviz] [--validate]\n' "$0"
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
@@ -37,11 +57,27 @@ while [ "$#" -gt 0 ]; do
 done
 
 mkdir -p "${RESULT_DIR}"
+docker compose run --rm \
+  -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
+  -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+  -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
+  unitree-g1-sim /workspace/scripts/build_ws.sh --packages-select \
+    g1_msgs \
+    g1_locomotion \
+    unitree_g1_description \
+    unitree_social_navigation_msgs \
+    unitree_g1_mujoco_bridge \
+    unitree_g1_sim_bringup
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BASENAME="fixed_command_${SCENE%.xml}_${STAMP}"
 SIM_LOG="${RESULT_DIR}/${BASENAME}_sim.log"
 HOST_JSON="${RESULT_DIR}/${BASENAME}.json"
 CONTAINER_JSON="/workspace/${HOST_JSON#${REPO_ROOT}/}"
+if [[ "${POLICY_PATH}" == "${REPO_ROOT}/"* ]]; then
+  CONTAINER_POLICY_PATH="/workspace/${POLICY_PATH#${REPO_ROOT}/}"
+else
+  CONTAINER_POLICY_PATH="${POLICY_PATH}"
+fi
 SIM_PID=""
 
 cleanup_sim_containers() {
@@ -57,7 +93,7 @@ cleanup() {
 trap cleanup EXIT
 
 cleanup_sim_containers
-setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
+COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
   mujoco_scene:="${SCENE}" \
   policy_path:="${POLICY_PATH}" \
   policy_profile:="${POLICY_PROFILE}" \
@@ -75,8 +111,11 @@ setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
   cmd_vel_deadband:=0.03 \
   allow_reverse_cmd_vel:=false \
   max_lin_vel_x:="${MAX_LINEAR_X}" \
-  max_lin_vel_y:=0.0 \
+  max_lin_vel_y:="${MAX_LINEAR_Y}" \
   max_ang_vel_z:="${MAX_ANGULAR_Z}" \
+  cmd_accel_x:="${CMD_ACCEL_X}" \
+  cmd_accel_y:="${CMD_ACCEL_Y}" \
+  cmd_accel_yaw:="${CMD_ACCEL_YAW}" \
   run_slam:=false \
   run_nav2:=false \
   run_slam_reset_monitor:=false \
@@ -84,18 +123,35 @@ setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
   run_lidar_person_detector:=false \
   run_human_aware_motion_planner:=false \
   run_human_collision_avoidance:=false \
-  run_rviz:=false \
+  run_rviz:="${RUN_RVIZ}" \
   publish_camera:=false \
   >"${SIM_LOG}" 2>&1 &
 SIM_PID="$!"
 
 sleep "${STARTUP_SECONDS}"
-docker compose run --rm unitree-g1-sim bash -lc \
-  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source /workspace/ros2_ws/install/setup.bash; exec python3 /workspace/scripts/measure_g1_fixed_command.py "$@"' \
+docker compose run --rm \
+  -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+  unitree-g1-sim bash -lc \
+  'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; exec python3 /workspace/scripts/measure_g1_fixed_command.py "$@"' \
   bash \
   --linear-x "${LINEAR_X}" \
+  --linear-y "${LINEAR_Y}" \
   --angular-z "${ANGULAR_Z}" \
   --duration "${DURATION}" \
+  --stop-duration "${STOP_DURATION}" \
+  --policy-path "${CONTAINER_POLICY_PATH}" \
+  --policy-profile "${POLICY_PROFILE}" \
+  --scene "${SCENE}" \
+  --max-linear-x "${MAX_LINEAR_X}" \
+  --max-linear-y "${MAX_LINEAR_Y}" \
+  --max-angular-z "${MAX_ANGULAR_Z}" \
+  --cmd-accel-x "${CMD_ACCEL_X}" \
+  --cmd-accel-y "${CMD_ACCEL_Y}" \
+  --cmd-accel-yaw "${CMD_ACCEL_YAW}" \
   --output "${CONTAINER_JSON}"
+
+if [ "${VALIDATE_RESULT}" = "1" ]; then
+  python3 "${SCRIPT_DIR}/validate_fixed_command_result.py" "${HOST_JSON}"
+fi
 
 printf 'Result: %s\nSimulation log: %s\n' "${HOST_JSON}" "${SIM_LOG}"

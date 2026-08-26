@@ -4,7 +4,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, FindExecutable, IfElseSubstitution, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
@@ -24,7 +24,14 @@ def generate_launch_description():
     run_sim = LaunchConfiguration("run_sim")
     publish_description = LaunchConfiguration("publish_description")
     run_bridge = LaunchConfiguration("run_bridge")
+    bridge_arm_kp_override = LaunchConfiguration("bridge_arm_kp_override")
+    bridge_arm_kd_override = LaunchConfiguration("bridge_arm_kd_override")
+    run_arm_compositor = LaunchConfiguration("run_arm_compositor")
+    arm_compositor_goal_tolerance = LaunchConfiguration("arm_compositor_goal_tolerance")
+    run_sim_manipulation_io = LaunchConfiguration("run_sim_manipulation_io")
+    sim_manipulation_frame_id = LaunchConfiguration("sim_manipulation_frame_id")
     run_hold_controller = LaunchConfiguration("run_hold_controller")
+    hold_body_positions = LaunchConfiguration("hold_body_positions")
     run_policy_controller = LaunchConfiguration("run_policy_controller")
     run_clamp_button = LaunchConfiguration("run_clamp_button")
     run_sensors = LaunchConfiguration("run_sensors")
@@ -103,6 +110,8 @@ def generate_launch_description():
     mujoco_scene = LaunchConfiguration("mujoco_scene")
     mujoco_pedestrians_enable = LaunchConfiguration("mujoco_pedestrians_enable")
     mujoco_pedestrians_count = LaunchConfiguration("mujoco_pedestrians_count")
+    mujoco_pedestrian_scenario = LaunchConfiguration("mujoco_pedestrian_scenario")
+    mujoco_pedestrian_start_delay = LaunchConfiguration("mujoco_pedestrian_start_delay")
     lidar_rate_hz = LaunchConfiguration("lidar_rate_hz")
     livox_scan_points = LaunchConfiguration("livox_scan_points")
     livox_horizontal_min_deg = LaunchConfiguration("livox_horizontal_min_deg")
@@ -136,6 +145,8 @@ def generate_launch_description():
     nav2_params_file = LaunchConfiguration("nav2_params_file")
     social_navigation_params_file = LaunchConfiguration("social_navigation_params_file")
     lidar_person_model_path = LaunchConfiguration("lidar_person_model_path")
+    tracker_use_sensor_input = LaunchConfiguration("tracker_use_sensor_input")
+    tracker_local_tracking_radius = LaunchConfiguration("tracker_local_tracking_radius")
     tracker_use_object_motion_detection = LaunchConfiguration("tracker_use_object_motion_detection")
     tracker_immediate_person_risk = LaunchConfiguration("tracker_immediate_person_risk")
     tracker_publish_candidate_predictions = LaunchConfiguration("tracker_publish_candidate_predictions")
@@ -179,6 +190,8 @@ def generate_launch_description():
             {
                 "use_mjlab_body_gains": True,
                 "body_gain_profile": policy_profile,
+                "arm_kp_override": bridge_arm_kp_override,
+                "arm_kd_override": bridge_arm_kd_override,
                 "lock_waist": lock_waist,
                 "waist_lock_kp": waist_lock_kp,
                 "waist_lock_kd": waist_lock_kd,
@@ -195,8 +208,25 @@ def generate_launch_description():
                 "fall_damping_reset_grace_time": fall_damping_reset_grace_time,
                 "startup_fall_damping_grace_time": startup_fall_damping_grace_time,
                 "base_height_offset": base_height_offset,
+                "body_command_topic": "/g1/body_position_commands",
             }
         ],
+    )
+    arm_compositor_node = Node(
+        condition=IfCondition(run_arm_compositor),
+        package="unitree_g1_mujoco_bridge",
+        executable="g1_arm_command_compositor",
+        name="g1_arm_command_compositor",
+        output="screen",
+        parameters=[{"goal_tolerance": arm_compositor_goal_tolerance}],
+    )
+    sim_manipulation_io_node = Node(
+        condition=IfCondition(run_sim_manipulation_io),
+        package="unitree_g1_mujoco_bridge",
+        executable="g1_sim_manipulation_io",
+        name="g1_sim_manipulation_io",
+        output="screen",
+        parameters=[{"frame_id": sim_manipulation_frame_id}],
     )
     hold_node = Node(
         condition=IfCondition(run_hold_controller),
@@ -204,6 +234,16 @@ def generate_launch_description():
         executable="g1_hold_pose_controller",
         name="g1_hold_pose_controller",
         output="screen",
+        parameters=[
+            {
+                "body_command_topic": IfElseSubstitution(
+                    run_arm_compositor,
+                    "/g1/locomotion_position_commands",
+                    "/g1/body_position_commands",
+                ),
+                "body_positions": ParameterValue(hold_body_positions),
+            }
+        ],
     )
     policy_node = Node(
         condition=IfCondition(run_policy_controller),
@@ -221,6 +261,11 @@ def generate_launch_description():
                 "rate_hz": policy_rate_hz,
                 "cmd_vel_topic": cmd_vel_topic,
                 "odom_topic": "/odom",
+                "body_command_topic": IfElseSubstitution(
+                    run_arm_compositor,
+                    "/g1/locomotion_position_commands",
+                    "/g1/body_position_commands",
+                ),
                 "cmd_vel_timeout": cmd_vel_timeout,
                 "lowstate_timeout": lowstate_timeout,
                 "odom_timeout": odom_timeout,
@@ -376,6 +421,7 @@ def generate_launch_description():
                 "cloud_topic": "/livox/lidar_world",
                 "scan_topic": "/scan",
                 "use_scan": False,
+                "use_sensor_input": tracker_use_sensor_input,
                 "target_frame": "world",
                 "robot_frame": "base_footprint",
                 "marker_topic": "/dynamic_obstacles",
@@ -407,7 +453,7 @@ def generate_launch_description():
                 "object_near_range": 4.0,
                 "object_near_min_points": 10,
                 "require_person_shape_for_object_detection": True,
-                "local_tracking_radius": 6.0,
+                "local_tracking_radius": tracker_local_tracking_radius,
                 "publish_safety_grid": False,
                 "min_height": 0.05,
                 "min_range": 0.25,
@@ -574,7 +620,7 @@ def generate_launch_description():
                 "scan_topic": "/scan",
                 "target_frame": "world",
                 "robot_frame": "base_footprint",
-                "rate_hz": 12.0,
+                "rate_hz": 20.0,
                 "local_safe_space_enabled": True,
                 "local_danger_radius": 4.0,
                 "predicted_danger_radius": 1.25,
@@ -640,6 +686,7 @@ def generate_launch_description():
             {
                 "input_cmd_vel_topic": "/cmd_vel_human_aware",
                 "output_cmd_vel_topic": cmd_vel_topic,
+                "rate_hz": 20.0,
                 "debug_topic": "/human_collision_avoidance_debug",
                 "predicted_cloud_topic": "/predicted_dynamic_obstacles",
                 "tracked_cloud_topic": "/tracked_dynamic_obstacles",
@@ -763,6 +810,11 @@ def generate_launch_description():
                 "frame_id": "map",
                 "startup_delay": 3.0,
                 "goal_timeout": 90.0,
+                "goal_distance_min": 1.5,
+                "goal_distance_max": 2.4,
+                "max_goal_heading_error": 0.8,
+                "min_goal_distance": 1.2,
+                "forward_sector_goals_only": True,
                 "require_known_free_goal": False,
             }
         ],
@@ -890,9 +942,50 @@ def generate_launch_description():
                 description="Start the ROS 2 bridge for Unitree low-level body and hand topics.",
             ),
             DeclareLaunchArgument(
+                "bridge_arm_kp_override",
+                default_value="0.0",
+                description="Optional arm-only position gain; zero preserves the selected profile.",
+            ),
+            DeclareLaunchArgument(
+                "bridge_arm_kd_override",
+                default_value="0.0",
+                description="Optional arm-only damping gain; enable with bridge_arm_kp_override.",
+            ),
+            DeclareLaunchArgument(
+                "run_arm_compositor",
+                default_value="false",
+                description=(
+                    "Route locomotion through the exclusive arm trajectory compositor. "
+                    "Required for MoveIt execution; transparent while arm authority is released."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "arm_compositor_goal_tolerance",
+                default_value="0.05",
+                description="Maximum measured joint error for arm trajectory completion.",
+            ),
+            DeclareLaunchArgument(
+                "run_sim_manipulation_io",
+                default_value="false",
+                description=(
+                    "Publish simulation object ground truth and expose acknowledged synthetic "
+                    "grasp/release services. Never enable this as hardware perception."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "sim_manipulation_frame_id",
+                default_value="odom",
+                description="Frame assigned to MuJoCo world object poses.",
+            ),
+            DeclareLaunchArgument(
                 "run_hold_controller",
                 default_value="false",
                 description="Start the neutral hold-pose publisher. Leave false when sending your own commands.",
+            ),
+            DeclareLaunchArgument(
+                "hold_body_positions",
+                default_value=str([0.0] * 29),
+                description="Ordered 29-joint position target published by the hold controller.",
             ),
             DeclareLaunchArgument(
                 "run_policy_controller",
@@ -1140,6 +1233,8 @@ def generate_launch_description():
                 description="Output JSONL path for the human-aware run logger.",
             ),
             DeclareLaunchArgument("tracker_use_object_motion_detection", default_value="false"),
+            DeclareLaunchArgument("tracker_use_sensor_input", default_value="true"),
+            DeclareLaunchArgument("tracker_local_tracking_radius", default_value="6.0"),
             DeclareLaunchArgument("tracker_immediate_person_risk", default_value="true"),
             DeclareLaunchArgument("tracker_publish_candidate_predictions", default_value="false"),
             DeclareLaunchArgument("tracker_candidate_person_score_threshold", default_value="0.58"),
@@ -1348,13 +1443,23 @@ def generate_launch_description():
                 description="Number of MuJoCo pedestrian mocap actors to animate and publish.",
             ),
             DeclareLaunchArgument(
+                "mujoco_pedestrian_scenario",
+                default_value="waypoints",
+                description="Pedestrian trajectory profile; demo_endurance provides deterministic one-shot crossings.",
+            ),
+            DeclareLaunchArgument(
+                "mujoco_pedestrian_start_delay",
+                default_value="0.0",
+                description="Seconds to hold pedestrians at their initial poses after simulation reset.",
+            ),
+            DeclareLaunchArgument(
                 "lidar_rate_hz",
                 default_value="10.0",
                 description="Simulated Livox publish rate. Lower if packet generation cannot keep up.",
             ),
             DeclareLaunchArgument(
                 "livox_scan_points",
-                default_value="2400",
+                default_value="600",
                 description="Raycast points per Livox packet. Higher values improve 360 person tracking; lower values reduce latency.",
             ),
             DeclareLaunchArgument(
@@ -1502,6 +1607,8 @@ def generate_launch_description():
                     "UNITREE_MUJOCO_SCENE": mujoco_scene,
                     "UNITREE_MUJOCO_PEDESTRIANS_ENABLE": mujoco_pedestrians_enable,
                     "UNITREE_MUJOCO_PEDESTRIANS_COUNT": mujoco_pedestrians_count,
+                    "UNITREE_MUJOCO_PEDESTRIAN_SCENARIO": mujoco_pedestrian_scenario,
+                    "UNITREE_MUJOCO_PEDESTRIAN_START_DELAY": mujoco_pedestrian_start_delay,
                     "UNITREE_MUJOCO_PEDESTRIAN_SOCKET": "/tmp/unitree_g1_mujoco_pedestrians.sock",
                     "UNITREE_MUJOCO_LIDAR_ENABLE": use_mujoco_raycast_lidar,
                     "UNITREE_MUJOCO_LIDAR_RATE_HZ": lidar_rate_hz,
@@ -1529,6 +1636,8 @@ def generate_launch_description():
                 period=3.0,
                 actions=[
                     bridge_node,
+                    arm_compositor_node,
+                    sim_manipulation_io_node,
                     hold_node,
                     policy_node,
                     clamp_button_node,

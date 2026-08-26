@@ -73,6 +73,16 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(monitor.metrics.speed_limit_violations, 1)
         self.assertTrue(monitor.metrics.left_valid_area)
 
+    def test_moving_pedestrian_time_counts_wall_time_not_people(self) -> None:
+        monitor = MetricsMonitor(BenchmarkConfig(goals_count=1))
+        moving_people = [
+            person(2.0, 0.5),
+            PersonState(2, Pose2D(3.0, 0.0), Velocity2D(-0.4, 0.0), 0.30, "test", 0.4),
+        ]
+        monitor.update(0.1, 0.1, Pose2D(0.0, 0.0), Velocity2D(), moving_people)
+        monitor.update(0.2, 0.1, Pose2D(0.0, 0.0), Velocity2D(), moving_people)
+        self.assertAlmostEqual(monitor.metrics.moving_pedestrian_time_s, 0.2)
+
 
 if __name__ == "__main__":
     unittest.main()

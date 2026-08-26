@@ -2,8 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+HOST_RUN_LOG="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/demos/collision_avoidance_${STAMP}.jsonl"
+CONTAINER_RUN_LOG="/workspace/${HOST_RUN_LOG#${REPO_ROOT}/}"
 
 ARGS=("$@")
+mkdir -p "$(dirname "${HOST_RUN_LOG}")"
 
 append_default_arg() {
   local name="$1"
@@ -31,7 +36,7 @@ append_default_arg "run_dynamic_obstacle_tracker" "true"
 append_default_arg "run_human_aware_motion_planner" "true"
 append_default_arg "run_human_collision_avoidance" "true"
 append_default_arg "run_human_aware_run_logger" "true"
-append_default_arg "human_aware_run_log_path" "/tmp/g1_collision_avoidance.jsonl"
+append_default_arg "human_aware_run_log_path" "${CONTAINER_RUN_LOG}"
 append_default_arg "max_lin_vel_x" "0.05"
 append_default_arg "max_lin_vel_y" "0.0"
 append_default_arg "max_ang_vel_z" "0.10"
@@ -40,7 +45,7 @@ append_default_arg "social_navigation_params_file" \
 
 printf 'Starting conservative G1 collision-avoidance demo.\n'
 printf 'Safety output: /cmd_vel_safe | Diagnostics: /human_collision_avoidance_debug\n'
-printf 'Run log: /tmp/g1_collision_avoidance.jsonl (inside the container)\n'
+printf 'Persistent run log: %s\n' "${HOST_RUN_LOG}"
 
 mapfile -t stale_containers < <(
   docker ps --quiet --filter 'name=unitree_g1_ros2_mujoco-unitree-g1-sim-run-'

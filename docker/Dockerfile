@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-colcon-common-extensions \
     python3-pip \
     python3-rosdep \
+    python3-yaml \
     python3-venv \
     python3-vcstool \
     ros-humble-ament-cmake-gmock \
@@ -49,6 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-robot-state-publisher \
     ros-humble-vision-msgs \
     ros-humble-joint-state-publisher \
+    ros-humble-moveit \
+    ros-humble-moveit-configs-utils \
     ros-humble-xacro \
     sudo \
     wget \

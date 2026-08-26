@@ -25,6 +25,10 @@ class G1WaypointExplorer(Node):
         self.declare_parameter("goal_timeout", 45.0)
         self.declare_parameter("goal_tolerance", 0.8)
         self.declare_parameter("min_goal_distance", 2.0)
+        self.declare_parameter("goal_distance_min", 1.5)
+        self.declare_parameter("goal_distance_max", 2.4)
+        self.declare_parameter("max_goal_heading_error", 0.8)
+        self.declare_parameter("forward_sector_goals_only", True)
         self.declare_parameter("robot_frame", "base_footprint")
         self.declare_parameter("obstacle_frame", "world")
         self.declare_parameter("predicted_cloud_topic", "/predicted_dynamic_obstacles")
@@ -78,7 +82,7 @@ class G1WaypointExplorer(Node):
             lambda msg: self._dynamic_cloud_callback(msg, "tracked"),
             qos_profile_sensor_data,
         )
-        self.create_timer(1.0, self._tick)
+        self.create_timer(0.25, self._tick)
         self.create_timer(0.5, self._publish_active_goal_marker)
         self.get_logger().info("Nav2 waypoint explorer ready; choosing random reachable people-aware goals")
 
@@ -188,8 +192,43 @@ class G1WaypointExplorer(Node):
     def _choose_goal(self) -> Optional[tuple[float, float]]:
         frame_id = str(self.get_parameter("frame_id").value)
         obstacle_frame = str(self.get_parameter("obstacle_frame").value)
-        robot_xy = self._robot_xy(frame_id)
+        robot_pose = self._robot_pose(frame_id)
+        robot_xy = robot_pose[:2] if robot_pose is not None else None
         robot_xy_obstacle = self._robot_xy(obstacle_frame)
+
+        # This policy turns most reliably while walking an arc. Prefer reachable
+        # goals in front of the current heading instead of demanding a 180-degree
+        # recovery turn before every randomly sampled segment.
+        if robot_pose is not None:
+            min_distance = float(self.get_parameter("goal_distance_min").value)
+            max_distance = max(
+                min_distance,
+                float(self.get_parameter("goal_distance_max").value),
+            )
+            heading_limit = max(
+                0.0,
+                min(math.pi, float(self.get_parameter("max_goal_heading_error").value)),
+            )
+            for widening in (1.0, 1.5):
+                for _ in range(40):
+                    distance = self.rng.uniform(min_distance, max_distance)
+                    heading = robot_pose[2] + self.rng.uniform(
+                        -min(math.pi, widening * heading_limit),
+                        min(math.pi, widening * heading_limit),
+                    )
+                    x = robot_pose[0] + distance * math.cos(heading)
+                    y = robot_pose[1] + distance * math.sin(heading)
+                    if self._candidate_is_valid(
+                        x, y, frame_id, obstacle_frame, robot_xy, robot_xy_obstacle
+                    ):
+                        return x, y
+
+            if bool(self.get_parameter("forward_sector_goals_only").value):
+                return None
+
+        if bool(self.get_parameter("forward_sector_goals_only").value):
+            return None
+
         for _ in range(80):
             x = self.rng.uniform(-4.35, 4.35)
             y = self.rng.uniform(-3.00, 3.00)
@@ -358,12 +397,21 @@ class G1WaypointExplorer(Node):
         return False
 
     def _robot_xy(self, target_frame: str) -> Optional[tuple[float, float]]:
+        pose = self._robot_pose(target_frame)
+        return None if pose is None else pose[:2]
+
+    def _robot_pose(self, target_frame: str) -> Optional[tuple[float, float, float]]:
         try:
             transform = self.tf_buffer.lookup_transform(target_frame, str(self.get_parameter("robot_frame").value), rclpy.time.Time())
         except TransformException as exc:
             self.get_logger().warn(f"No robot transform into {target_frame}: {exc}", throttle_duration_sec=5.0)
             return None
-        return transform.transform.translation.x, transform.transform.translation.y
+        q = transform.transform.rotation
+        yaw = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z),
+        )
+        return transform.transform.translation.x, transform.transform.translation.y, yaw
 
     def _transform_xy(self, x: float, y: float, from_frame: str, to_frame: str) -> Optional[tuple[float, float]]:
         if from_frame == to_frame:

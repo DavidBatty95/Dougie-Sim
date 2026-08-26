@@ -1,0 +1,22 @@
+# Navigate between staging poses and transport one detected object to a detected surface.
+geometry_msgs/PoseStamped pickup_staging_pose
+geometry_msgs/PoseStamped delivery_staging_pose
+string object_id
+string surface_object_id
+string ARM_LEFT=left
+string ARM_RIGHT=right
+string arm
+# Zero uses the orchestration server defaults.
+float64 navigation_timeout_s
+float64 approach_timeout_s
+float64 retreat_distance_m
+---
+bool success
+string failed_phase
+string message
+# A failed mission retains authority whenever the object may still be attached.
+bool arm_authority_active
+bool object_may_be_held
+---
+string phase
+string message

@@ -53,6 +53,7 @@ public:
   {
     cmd_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
     base_frame_ = declare_parameter<std::string>("base_frame", "base_footprint");
+    fixed_frame_ = declare_parameter<std::string>("fixed_frame", "odom");
     object_timeout_ms_ = declare_parameter<double>("object_timeout_ms", 1500.0);
     GaitLimits gait_defaults;
     gait_.min_speed_x_mps = declare_parameter<double>("min_speed_x_mps", gait_defaults.min_speed_x_mps);
@@ -167,7 +168,7 @@ private:
   {
     try {
       const auto tf = tf_buffer_.lookupTransform(
-        "odom", base_frame_, tf2::TimePointZero, tf2::durationFromSec(0.5));
+        fixed_frame_, base_frame_, tf2::TimePointZero, tf2::durationFromSec(0.5));
       geometry_msgs::msg::PoseStamped pose;
       pose.header = tf.header;
       pose.pose.position.x = tf.transform.translation.x;
@@ -329,7 +330,7 @@ private:
     if (result->success) {handle->succeed(result);} else {handle->abort(result);}
   }
 
-  std::string cmd_topic_, base_frame_;
+  std::string cmd_topic_, base_frame_, fixed_frame_;
   double object_timeout_ms_{1500.0}, retreat_speed_mps_{0.30}, settle_s_{1.0};
   double cmd_rate_hz_{20.0}, lookup_grace_s_{3.0}, default_timeout_s_{900.0};
   ApproachLimits limits_;

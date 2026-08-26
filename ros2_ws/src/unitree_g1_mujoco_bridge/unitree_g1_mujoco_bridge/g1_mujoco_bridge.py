@@ -49,6 +49,8 @@ class G1MujocoBridge(Node):
 
         self.declare_parameter("body_kp", 60.0)
         self.declare_parameter("body_kd", 2.5)
+        self.declare_parameter("arm_kp_override", 0.0)
+        self.declare_parameter("arm_kd_override", 0.0)
         self.declare_parameter("base_height_offset", 0.182)
         self.declare_parameter("use_mjlab_body_gains", True)
         self.declare_parameter("body_gain_profile", "mjlab")
@@ -113,6 +115,15 @@ class G1MujocoBridge(Node):
             self.body_kd_by_joint = list(G1_MJLAB_BODY_KD)
         elif gain_profile not in ("uniform", "mjlab"):
             raise ValueError(f"Unknown body_gain_profile: {gain_profile}")
+        arm_kp = float(self.get_parameter("arm_kp_override").value)
+        arm_kd = float(self.get_parameter("arm_kd_override").value)
+        if not all(math.isfinite(value) and value >= 0.0 for value in (arm_kp, arm_kd)):
+            raise ValueError("arm gain overrides must be finite and non-negative")
+        if (arm_kp == 0.0) != (arm_kd == 0.0):
+            raise ValueError("arm_kp_override and arm_kd_override must be enabled together")
+        if arm_kp > 0.0:
+            self.body_kp_by_joint[15:] = [arm_kp] * 14
+            self.body_kd_by_joint[15:] = [arm_kd] * 14
         if self.lock_waist:
             for index in self.waist_joint_indexes:
                 self.body_kp_by_joint[index] = self.waist_lock_kp

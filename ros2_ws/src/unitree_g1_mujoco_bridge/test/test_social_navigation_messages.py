@@ -1,9 +1,11 @@
 import math
 
 import pytest
+from geometry_msgs.msg import Twist
 
 from unitree_g1_mujoco_bridge.dynamic_obstacle_tracker import (
     DynamicObstacleTracker,
+    PersonDetection,
     Track,
     _constant_velocity_covariance,
     _position_covariance_at,
@@ -12,12 +14,16 @@ from unitree_g1_mujoco_bridge.dynamic_obstacle_tracker import (
     _typed_track_state,
 )
 from unitree_g1_mujoco_bridge.human_aware_motion_planner import (
+    HumanAwareMotionPlanner,
     HumanTrack,
     PredictionSample,
     align_track_to_time,
     incoming_collision_imminent,
     interpolate_prediction,
     nearest_clear_patch,
+)
+from unitree_g1_mujoco_bridge.human_collision_avoidance import (
+    time_aligned_prediction_risk,
 )
 from unitree_g1_mujoco_bridge.lidar_person_detector import LidarPersonDetector
 from unitree_social_navigation_msgs.msg import TrackedPerson
@@ -115,6 +121,21 @@ def test_tracked_person_message_preserves_state_covariance_confidence_and_radius
     assert person.body_radius == pytest.approx(0.46)
 
 
+def test_authoritative_mujoco_clusters_preserve_exact_position_and_velocity():
+    tracker = object.__new__(DynamicObstacleTracker)
+    tracker.cell_size = 0.10
+    tracker.mujoco_person_height = 1.70
+    detection = PersonDetection(1.2, -0.4, 0.85, 1.0, 0.42, 5.0, -0.3, 0.2)
+    tracker._active_mujoco_detections = lambda stamp: [detection]
+    noisy = tracker._cluster_from_detection(
+        PersonDetection(1.6, -0.1, 0.85, 0.5, 0.30, 5.0)
+    )
+    clusters = tracker._mujoco_authoritative_clusters([noisy], 5.0)
+    assert len(clusters) == 1
+    assert (clusters[0].x, clusters[0].y) == pytest.approx((1.2, -0.4))
+    assert (clusters[0].measured_vx, clusters[0].measured_vy) == pytest.approx((-0.3, 0.2))
+
+
 def test_prediction_interpolation_aligns_position_covariance_and_confidence():
     points = [
         PredictionSample(0.0, 1.0, 2.0, 1.0, 0.0, 0.2, 0.4, 0.9),
@@ -133,6 +154,128 @@ def test_prediction_interpolation_does_not_extrapolate_stale_horizon():
     points = [PredictionSample(0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 1.0)]
     assert interpolate_prediction(points, -0.01) is None
     assert interpolate_prediction(points, 0.01) is None
+
+
+def test_time_aligned_prediction_ignores_different_arrival_times():
+    # The geometric paths cross at x=1, but the person arrives three seconds
+    # after the robot, so this must not become timeless occupied space.
+    trajectory = [[
+        (0.0, 1.0, -1.5, 0.0, 0.0, 1.0),
+        (4.0, 1.0, 0.0, 0.0, 0.0, 1.0),
+    ]]
+    assert time_aligned_prediction_risk(
+        trajectory,
+        message_age=0.0,
+        robot_pose=(0.0, 0.0, 0.0),
+        command=(1.0, 0.0, 0.0),
+        horizon=5.0,
+        integration_dt=0.1,
+        collision_radius=0.8,
+        uncertainty_scale=0.0,
+        minimum_confidence=0.5,
+    ) is None
+
+
+def test_time_aligned_prediction_detects_same_time_conflict():
+    trajectory = [[
+        (0.0, 1.0, -1.0, 0.0, 0.0, 1.0),
+        (1.0, 1.0, 0.0, 0.0, 0.0, 1.0),
+    ]]
+    risk = time_aligned_prediction_risk(
+        trajectory,
+        message_age=0.0,
+        robot_pose=(0.0, 0.0, 0.0),
+        command=(1.0, 0.0, 0.0),
+        horizon=3.0,
+        integration_dt=0.1,
+        collision_radius=0.8,
+        uncertainty_scale=0.0,
+        minimum_confidence=0.5,
+    )
+    assert risk is not None
+    assert risk[:2] == pytest.approx((0.0, 1.0))
+
+
+def test_time_aligned_prediction_detects_conflict_between_sparse_samples():
+    trajectory = [[
+        (0.0, 1.0, -1.0, 0.0, 0.0, 1.0),
+        (2.0, 1.0, 1.0, 0.0, 0.0, 1.0),
+    ]]
+    risk = time_aligned_prediction_risk(
+        trajectory,
+        message_age=0.0,
+        robot_pose=(1.0, 0.0, 0.0),
+        command=(0.0, 0.0, 0.0),
+        horizon=3.0,
+        integration_dt=0.1,
+        collision_radius=0.4,
+        uncertainty_scale=0.0,
+        minimum_confidence=0.5,
+    )
+    assert risk is not None
+    assert risk[:2] == pytest.approx((0.0, 1.0))
+
+
+def test_time_aligned_prediction_rejects_future_epoch():
+    assert time_aligned_prediction_risk(
+        [[(1.0, 0.0, 0.0, 0.0, 0.0, 1.0)]],
+        message_age=-0.2,
+        robot_pose=(0.0, 0.0, 0.0),
+        command=(0.0, 0.0, 0.0),
+        horizon=3.0,
+        integration_dt=0.1,
+        collision_radius=1.0,
+        uncertainty_scale=0.0,
+        minimum_confidence=0.5,
+    ) is None
+
+
+def test_time_aligned_prediction_accounts_for_message_age():
+    trajectory = [[(2.0, 1.0, 0.0, 0.0, 0.0, 1.0)]]
+    risk = time_aligned_prediction_risk(
+        trajectory,
+        message_age=1.0,
+        robot_pose=(0.0, 0.0, 0.0),
+        command=(1.0, 0.0, 0.0),
+        horizon=3.0,
+        integration_dt=0.1,
+        collision_radius=0.8,
+        uncertainty_scale=0.0,
+        minimum_confidence=0.5,
+    )
+    assert risk is not None
+    assert risk[1] == pytest.approx(1.0)
+
+
+def test_normal_navigation_preserves_the_bounded_upstream_command():
+    planner = object.__new__(HumanAwareMotionPlanner)
+    planner.max_reverse_velocity = 0.1
+    planner.max_forward_near_human = 0.35
+    planner.max_lateral_near_human = 0.0
+    planner.max_angular_near_human = 0.4
+    raw = Twist()
+    raw.linear.x = 0.12
+    raw.angular.z = -0.08
+    candidates = planner._candidate_commands(raw, "NORMAL_NAVIGATION", (0.0, 0.0, 0.0), [])
+    assert len(candidates) == 1
+    assert candidates[0].name == "raw_limited"
+    assert (candidates[0].vx, candidates[0].vy, candidates[0].wz) == pytest.approx(
+        (0.12, 0.0, -0.08)
+    )
+
+
+def test_near_human_candidates_do_not_amplify_requested_forward_speed():
+    planner = object.__new__(HumanAwareMotionPlanner)
+    planner.max_reverse_velocity = 0.1
+    planner.max_forward_near_human = 0.35
+    planner.max_lateral_near_human = 0.0
+    planner.max_angular_near_human = 0.4
+    planner.side_commitment = 0.0
+    raw = Twist()
+    raw.linear.x = 0.04
+    candidates = planner._candidate_commands(raw, "HUMAN_CAUTION", (0.0, 0.0, 0.0), [])
+    assert all(candidate.vx <= 0.04 for candidate in candidates)
+    assert all(candidate.vy == 0.0 for candidate in candidates)
 
 
 def test_nearest_clear_patch_avoids_danger_corridor_and_static_obstacles():

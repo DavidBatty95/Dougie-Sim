@@ -38,6 +38,8 @@ setup(
             "human_aware_motion_planner = unitree_g1_mujoco_bridge.human_aware_motion_planner:main",
             "human_collision_avoidance = unitree_g1_mujoco_bridge.human_collision_avoidance:main",
             "human_aware_run_logger = unitree_g1_mujoco_bridge.human_aware_run_logger:main",
+            "g1_arm_command_compositor = unitree_g1_mujoco_bridge.arm_command_compositor:main",
+            "g1_sim_manipulation_io = unitree_g1_mujoco_bridge.sim_manipulation_io:main",
         ],
     },
 )

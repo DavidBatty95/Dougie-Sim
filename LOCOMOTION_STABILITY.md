@@ -97,6 +97,19 @@ absolute action-magnitude cost, and retains the forward and stopping objectives.
 After this short stage, freeze locomotion and progress social-navigation learning
 at the candidate-selection layer rather than continuing joint-policy tuning.
 
+For a controlled yaw experiment that retains the 99-observation policy contract,
+starts from the established navigation checkpoint, and includes bilateral pure-yaw
+and deployment-speed arc commands, run:
+
+```bash
+./scripts/mjlab_train_g1_yaw_finetune.sh
+```
+
+This conservative stage uses a lower learning rate and retains forward and stop
+samples to reduce catastrophic forgetting. Evaluate every saved checkpoint rather
+than assuming the final checkpoint is best. It defaults to a 50-iteration pilot;
+continue from an accepted checkpoint explicitly instead of extending a failed run.
+
 ## Acceptance Gates
 
 Do not deploy a checkpoint based only on training reward. Across multiple seeds,

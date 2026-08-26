@@ -122,8 +122,19 @@ Run all commands below from the repository root after completing `./install.sh`.
 
 ### 🎬 Key Demo Scripts
 
+For repeatable scored runs with manifests and persistent artifacts, start with
+the [G1 Demo Suite](docs/DEMO_SUITE.md):
+
+```bash
+./scripts/run_demo_suite.sh --suite quick --headless
+./scripts/run_demo_suite.sh --suite locomotion --headless
+./scripts/run_demo_suite.sh --case social-endurance --headless
+./scripts/run_demo_suite.sh --case waypoint-visual
+```
+
 | Script | Demonstrates | Fresh clone |
 | --- | --- | --- |
+| `run_demo_suite.sh` | Reproducible scored presets, visual showcases, manifests, and persistent artifacts | Yes, for quick/locomotion and bundled-scene visual cases |
 | `run_waypoint_navigation_demo.sh` | G1 locomotion, SLAM, Nav2, continuous waypoint goals, and RViz | Yes, with a bundled scene |
 | `run_collision_avoidance_demo.sh` | Pedestrian tracking, social planning, collision supervision, Nav2, and diagnostics | Requires Extreme Lab assets and a compatible policy |
 | `bringup_full_sim.sh` | Configurable integrated simulation without forcing a specific demo mode | Requires an explicit available scene and policy |

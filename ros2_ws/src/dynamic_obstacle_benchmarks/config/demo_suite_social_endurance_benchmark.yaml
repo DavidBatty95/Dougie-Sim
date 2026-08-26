@@ -1,0 +1,46 @@
+benchmark:
+  name: demo_suite_social_endurance
+  seed: 42
+  backend: mujoco
+  headless: true
+  use_sim_time: true
+  total_timeout_s: 120.0
+  output_dir: results/demo_suite
+
+environment:
+  name: extreme_lab
+  map_frame: map
+  robot_frame: base_footprint
+  bounds:
+    x_min: -4.35
+    x_max: 4.35
+    y_min: -3.0
+    y_max: 3.0
+
+robot:
+  radius_m: 0.35
+  nominal_speed_mps: 0.35
+  max_speed_mps: 0.50
+  goal_tolerance_m: 0.55
+  max_goal_time_s: 75.0
+
+people:
+  count: 2
+  radius_m: 0.42
+  scenario: demo_endurance
+
+goals:
+  count: 2
+  mode: fixed
+  fixed:
+    - {x: 2.0, y: 0.0, yaw: 0.0}
+    - {x: 3.2, y: 0.0, yaw: 0.0}
+  min_distance_between_goals_m: 1.0
+  min_distance_from_walls_m: 0.75
+  max_sampling_attempts: 30
+  path_validation_timeout_s: 1.5
+
+safety:
+  warning_margin_m: 0.75
+  near_miss_margin_m: 0.35
+  critical_margin_m: 0.10

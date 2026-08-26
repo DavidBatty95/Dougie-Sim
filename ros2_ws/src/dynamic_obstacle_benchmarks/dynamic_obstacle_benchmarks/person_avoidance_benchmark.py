@@ -37,7 +37,6 @@ def apply_overrides(config, args) -> None:
         config.goals_count = int(preset.get("goals", config.goals_count))
         config.behaviours = list(preset.get("behaviours", config.behaviours))
         config.goal_mode = str(preset.get("goal_mode", config.goal_mode))
-        config.max_goal_time_s = float(preset.get("max_goal_time_s", config.max_goal_time_s))
     if args.backend:
         config.backend = args.backend
     if args.seed is not None:

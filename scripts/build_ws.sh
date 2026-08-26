@@ -17,6 +17,7 @@ colcon --log-base "${LOG_BASE}" build \
   --install-base "${INSTALL_BASE}" \
   --merge-install \
   --symlink-install \
+  "$@" \
   --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 echo "ROS 2 workspace built at ${INSTALL_BASE}"

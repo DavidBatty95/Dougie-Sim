@@ -48,6 +48,7 @@ class BenchmarkConfig:
     path_validation_timeout_s: float = 5.0
     people_speed_min_mps: float = 0.2
     people_speed_max_mps: float = 1.2
+    pedestrian_scenario: str = "waypoints"
     behaviours: list[str] = field(default_factory=lambda: ["straight_line_crossing", "random_waypoint", "opposing_flow", "stop_start"])
     spawn_min_distance_from_robot_m: float = 1.5
     spawn_min_distance_from_goal_m: float = 1.0
@@ -94,6 +95,8 @@ class BenchmarkConfig:
             "nominal_speed_mps": self.nominal_speed_mps,
             "max_speed_mps": self.max_speed_mps,
             "goal_tolerance_m": self.goal_tolerance_m,
+            "max_goal_time_s": self.max_goal_time_s,
+            "total_timeout_s": self.total_timeout_s,
             "dt_s": self.dt_s,
             "path_validation_timeout_s": self.path_validation_timeout_s,
         }
@@ -140,7 +143,10 @@ def _apply_mapping(cfg: BenchmarkConfig, data: dict[str, Any]) -> None:
     cfg.headless = bool(benchmark.get("headless", cfg.headless))
     cfg.output_dir = str(benchmark.get("output_dir", cfg.output_dir))
     cfg.record_rosbag = bool(benchmark.get("record_rosbag", cfg.record_rosbag))
+    cfg.total_timeout_s = float(benchmark.get("total_timeout_s", cfg.total_timeout_s))
+    cfg.use_sim_time = bool(benchmark.get("use_sim_time", cfg.use_sim_time))
     cfg.map_frame = environment.get("map_frame", cfg.map_frame)
+    cfg.odom_frame = environment.get("odom_frame", cfg.odom_frame)
     cfg.robot_frame = environment.get("robot_frame", cfg.robot_frame)
     if "bounds" in environment:
         b = environment["bounds"]
@@ -154,7 +160,17 @@ def _apply_mapping(cfg: BenchmarkConfig, data: dict[str, Any]) -> None:
     cfg.person_radius_m = float(people.get("radius_m", cfg.person_radius_m))
     cfg.people_speed_min_mps = float(people.get("speed_min_mps", cfg.people_speed_min_mps))
     cfg.people_speed_max_mps = float(people.get("speed_max_mps", cfg.people_speed_max_mps))
+    cfg.pedestrian_scenario = str(people.get("scenario", cfg.pedestrian_scenario))
     cfg.behaviours = list(people.get("behaviours", cfg.behaviours))
+    cfg.spawn_min_distance_from_robot_m = float(
+        people.get("spawn_min_distance_from_robot_m", cfg.spawn_min_distance_from_robot_m)
+    )
+    cfg.spawn_min_distance_from_goal_m = float(
+        people.get("spawn_min_distance_from_goal_m", cfg.spawn_min_distance_from_goal_m)
+    )
+    cfg.spawn_min_distance_between_people_m = float(
+        people.get("spawn_min_distance_between_people_m", cfg.spawn_min_distance_between_people_m)
+    )
     cfg.goals_count = int(goals.get("count", cfg.goals_count))
     cfg.goal_mode = str(goals.get("mode", cfg.goal_mode))
     cfg.fixed_goals = list(goals.get("fixed", cfg.fixed_goals))
@@ -171,3 +187,4 @@ def _apply_mapping(cfg: BenchmarkConfig, data: dict[str, Any]) -> None:
     cfg.ttc_horizon_s = float(safety.get("ttc_horizon_s", cfg.ttc_horizon_s))
     cfg.ttc_warning_s = float(safety.get("ttc_warning_s", cfg.ttc_warning_s))
     cfg.ttc_critical_s = float(safety.get("ttc_critical_s", cfg.ttc_critical_s))
+    cfg.dt_s = float(simulation.get("dt_s", cfg.dt_s))

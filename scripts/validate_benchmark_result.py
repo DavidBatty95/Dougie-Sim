@@ -15,6 +15,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--minimum-score", type=float, default=95.0)
     parser.add_argument("--backend", choices=("mock", "mujoco"), default="mock")
     parser.add_argument("--people-free", action="store_true")
+    parser.add_argument("--require-avoidance", action="store_true")
     return parser.parse_args()
 
 
@@ -40,6 +41,26 @@ def main() -> int:
     require(data.get("speed_limit_violations") == 0, "speed limit violations must be zero", failures)
     if args.people_free:
         require(data.get("people_count") == 0, "people_count must be zero", failures)
+    if args.require_avoidance:
+        require(data.get("pedestrian_scenario") == "demo_endurance", "deterministic demo_endurance scenario is required", failures)
+        require(data.get("people_count", 0) >= 2, "at least two pedestrians are required", failures)
+        require(data.get("moving_pedestrian_time_s", 0.0) >= 10.0, "pedestrians must move for at least 10 seconds", failures)
+        require(data.get("avoidance_interventions", 0) >= 2, "at least two avoidance interventions are required", failures)
+        require(data.get("avoidance_time_s", 0.0) >= 1.0, "avoidance override must remain active for at least one second", failures)
+        require(data.get("moving_avoidance_time_s", 0.0) >= 2.0, "avoidance must overlap moving pedestrians for at least two seconds", failures)
+        require(data.get("post_avoidance_progress_m", 0.0) >= 0.75, "robot must make at least 0.75 m progress after avoidance", failures)
+        require(data.get("total_time_s", 0.0) >= 15.0, "avoidance trial must last at least 15 seconds", failures)
+        require(
+            isinstance(data.get("minimum_body_clearance_m"), (int, float))
+            and data["minimum_body_clearance_m"] > 0.0,
+            "minimum body clearance must remain positive",
+            failures,
+        )
+        require(
+            data.get("max_abs_safe_lateral_cmd_mps", math.inf) <= 0.01,
+            "safe command must not rely on unsupported lateral motion",
+            failures,
+        )
     require(
         data.get("goals_reached") == data.get("goals_requested")
         and isinstance(data.get("goals_requested"), int)

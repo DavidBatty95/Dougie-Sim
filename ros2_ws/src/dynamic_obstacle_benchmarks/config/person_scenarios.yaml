@@ -1,7 +1,6 @@
 smoke:
   people: 1
   goals: 2
-  max_goal_time_s: 20.0
   behaviours: [straight_line_crossing]
 standard:
   people: 8

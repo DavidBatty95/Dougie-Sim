@@ -4,6 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MODE="${1:-fast}"
+if [ -n "${TEST_RUN_RVIZ:-}" ]; then
+  RUN_RVIZ="${TEST_RUN_RVIZ}"
+elif [ -n "${DISPLAY:-}" ] && [ -z "${CI:-}" ]; then
+  RUN_RVIZ="true"
+else
+  RUN_RVIZ="false"
+fi
 
 case "${MODE}" in
   fast|precommit|smoke)
@@ -61,7 +68,7 @@ if [ "${MODE}" = "smoke" ]; then
   smoke_container="unitree-g1-workspace-smoke-$$"
   COLCON_INSTALL_BASE=/workspace/ros2_ws/.verification/install \
     UNITREE_G1_CONTAINER_NAME="${smoke_container}" \
-    ./scripts/bringup_full_sim.sh run_rviz:=false run_clamp_button:=false publish_camera:=true mujoco_scene:=scene_29dof_room.xml >/tmp/g1_workspace_smoke_launch.log 2>&1 &
+    ./scripts/bringup_full_sim.sh run_rviz:="${RUN_RVIZ}" run_clamp_button:=false publish_camera:=true mujoco_scene:=scene_29dof_room.xml >/tmp/g1_workspace_smoke_launch.log 2>&1 &
   launch_pid=$!
   cleanup() {
     kill "${launch_pid}" >/dev/null 2>&1 || true

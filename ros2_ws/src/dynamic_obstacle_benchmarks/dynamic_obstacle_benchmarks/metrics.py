@@ -76,6 +76,11 @@ class BenchmarkMetrics:
     actual_path_length_m: float = 0.0
     ideal_path_length_m: float = 0.0
     stop_time_s: float = 0.0
+    avoidance_time_s: float = 0.0
+    moving_avoidance_time_s: float = 0.0
+    post_avoidance_progress_m: float = 0.0
+    moving_pedestrian_time_s: float = 0.0
+    max_abs_safe_lateral_cmd_mps: float = 0.0
     minimum_separation_m: float = math.inf
     mean_separation_m: float = 0.0
     minimum_center_distance_m: float = math.inf
@@ -90,6 +95,7 @@ class BenchmarkMetrics:
     time_below_near_miss_distance_s: float = 0.0
     time_below_critical_distance_s: float = 0.0
     emergency_stops: int = 0
+    avoidance_interventions: int = 0
     stale_events: int = 0
     speed_limit_violations: int = 0
     left_valid_area: bool = False
@@ -156,6 +162,8 @@ class MetricsMonitor:
         if not people:
             self._expire_missing_people(set())
             return
+        if any(math.hypot(person.velocity.vx, person.velocity.vy) >= 0.10 for person in people):
+            self.metrics.moving_pedestrian_time_s += dt_s
         present_ids = {person.person_id for person in people}
         min_center_distance = math.inf
         min_clearance = math.inf

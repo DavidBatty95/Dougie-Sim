@@ -536,19 +536,6 @@ class HumanAwareMotionPlanner(Node):
         predictions, prediction_age, typed_predictions_fresh = self._fresh_predictions(now)
         predicted_points = [] if typed_predictions_fresh else self._fresh_predicted(now)
         if self._input_stale(now):
-            if (
-                pose is not None
-                and self.local_safe_space_enabled
-                and self.last_tilt <= self.safe_space_max_tilt
-            ):
-                selected, results = self._select_local_safe_space_command(
-                    pose, tracks, tentative_points, predicted_points, predictions, prediction_age
-                )
-                if selected is not None and selected.candidate.name == "nearest_clear_patch":
-                    cmd = self._twist_from_candidate(selected.candidate)
-                    self.last_cmd = cmd
-                    self._publish(cmd, "LOCAL_SAFE_SPACE", results, selected)
-                    return
             self._publish(Twist(), "NORMAL_NAVIGATION", [], None)
             return
         if pose is None:
@@ -670,6 +657,8 @@ class HumanAwareMotionPlanner(Node):
         raw_x = self._clamp(float(raw.linear.x), -self.max_reverse_velocity, self.max_forward_near_human)
         raw_y = self._clamp(float(raw.linear.y), -self.max_lateral_near_human, self.max_lateral_near_human)
         raw_w = self._clamp(float(raw.angular.z), -self.max_angular_near_human, self.max_angular_near_human)
+        if state == "NORMAL_NAVIGATION":
+            return [Candidate("raw_limited", raw_x, raw_y, raw_w)]
         side = self.side_commitment if self.side_commitment != 0.0 else 1.0
         candidates = [
             Candidate("raw_limited", raw_x, raw_y, raw_w),
@@ -703,6 +692,8 @@ class HumanAwareMotionPlanner(Node):
             return [Candidate("emergency_stop", 0.0, 0.0, 0.0)]
         for candidate in candidates:
             candidate.vx = no_unrequested_forward(candidate.vx, raw_x)
+            if raw_x >= 0.0:
+                candidate.vx = min(candidate.vx, raw_x)
         return candidates
 
     def _move_away_candidate(self, pose: tuple[float, float, float], tracks: list[HumanTrack]) -> Candidate | None:

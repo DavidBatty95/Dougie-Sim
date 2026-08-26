@@ -46,6 +46,8 @@ class Cluster:
     static_fraction: float = 0.0
     noise_fraction: float = 0.0
     rejection_reason: str = ""
+    measured_vx: float | None = None
+    measured_vy: float | None = None
 
 
 @dataclass
@@ -96,6 +98,8 @@ class PersonDetection:
     confidence: float
     radius: float
     stamp: float
+    vx: float | None = None
+    vy: float | None = None
 
 
 def _iter_detections(msg: PointCloud2) -> Iterable[tuple[float, float, float, float, float]]:
@@ -178,6 +182,7 @@ class DynamicObstacleTracker(Node):
         super().__init__("dynamic_obstacle_tracker")
         self.declare_parameter("cloud_topic", "/livox/lidar_world")
         self.declare_parameter("scan_topic", "/scan")
+        self.declare_parameter("use_sensor_input", True)
         self.declare_parameter("use_scan", True)
         self.declare_parameter("target_frame", "world")
         self.declare_parameter("robot_frame", "base_footprint")
@@ -446,6 +451,7 @@ class DynamicObstacleTracker(Node):
         self.safety_grid_caution_radius = float(self.get_parameter("safety_grid_caution_radius").value)
         self.use_ml_person_detections = bool(self.get_parameter("use_ml_person_detections").value)
         self.use_mujoco_people_detections = bool(self.get_parameter("use_mujoco_people_detections").value)
+        self.use_sensor_input = bool(self.get_parameter("use_sensor_input").value)
         self.mujoco_people_authoritative = bool(self.get_parameter("mujoco_people_authoritative").value)
         self.mujoco_people_timeout = float(self.get_parameter("mujoco_people_timeout").value)
         self.mujoco_person_height = float(self.get_parameter("mujoco_person_height").value)
@@ -525,14 +531,14 @@ class DynamicObstacleTracker(Node):
                 self._mujoco_people_callback,
                 10,
             )
-        if bool(self.get_parameter("use_scan").value):
+        if self.use_sensor_input and bool(self.get_parameter("use_scan").value):
             self.create_subscription(
                 LaserScan,
                 str(self.get_parameter("scan_topic").value),
                 self._scan_callback,
                 latest_sensor_qos,
             )
-        else:
+        elif self.use_sensor_input:
             self.create_subscription(
                 PointCloud2,
                 str(self.get_parameter("cloud_topic").value),
@@ -585,16 +591,19 @@ class DynamicObstacleTracker(Node):
             try:
                 x = float(person.get("x", 0.0))
                 y = float(person.get("y", 0.0))
+                vx = float(person.get("vx", 0.0))
+                vy = float(person.get("vy", 0.0))
                 radius = max(0.25, float(person.get("radius_m", 0.42)))
             except (TypeError, ValueError):
                 continue
+            if not all(math.isfinite(value) for value in (x, y, vx, vy, radius)):
+                continue
             if self._outside_local_tracking_radius(x, y, robot_xy):
                 continue
-            detections.append(PersonDetection(x, y, self.mujoco_person_height * 0.5, 1.0, radius, stamp))
+            detections.append(PersonDetection(x, y, self.mujoco_person_height * 0.5, 1.0, radius, stamp, vx, vy))
             synthetic_points.extend(self._synthetic_person_points(x, y, radius))
         self.mujoco_detections = detections
-        if synthetic_points:
-            self._publish_points(synthetic_points, stamp, self.target_frame)
+        self._publish_points(synthetic_points, stamp, self.target_frame)
 
     def _synthetic_person_points(self, x: float, y: float, radius: float) -> list[tuple[float, float, float]]:
         points = []
@@ -1524,6 +1533,18 @@ class DynamicObstacleTracker(Node):
             track.height = 0.70 * track.height + 0.30 * cluster.height
             if not track.history or math.hypot(track.x - track.history[-1][0], track.y - track.history[-1][1]) >= 0.03:
                 track.history.append((track.x, track.y))
+        if cluster.measured_vx is not None and cluster.measured_vy is not None:
+            track.x = cluster.x
+            track.y = cluster.y
+            track.vx = cluster.measured_vx
+            track.vy = cluster.measured_vy
+            track.speed = math.hypot(track.vx, track.vy)
+            track.kf_p = [
+                [0.02, 0.0, 0.0, 0.0],
+                [0.0, 0.02, 0.0, 0.0],
+                [0.0, 0.0, 0.04, 0.0],
+                [0.0, 0.0, 0.0, 0.04],
+            ]
         track.last_association_distance = best_distance if math.isfinite(best_distance) else 0.0
 
         detection_confidence = self._cluster_detection_confidence(cluster, stamp)
@@ -1623,29 +1644,7 @@ class DynamicObstacleTracker(Node):
         detections = self._active_mujoco_detections(stamp)
         if not detections:
             return clusters
-        selected: list[Cluster] = []
-        used_indexes: set[int] = set()
-        for detection in detections:
-            best_index = None
-            best_score = math.inf
-            for index, cluster in enumerate(clusters):
-                if index in used_indexes:
-                    continue
-                distance = math.hypot(cluster.x - detection.x, cluster.y - detection.y)
-                gate = max(0.75, detection.radius + cluster.radius + 0.20)
-                if distance > gate:
-                    continue
-                shape_penalty = 0.0 if self._person_rejection_reason(cluster, 0.0, existing_confirmed=True) == "" else 0.35
-                score = distance + shape_penalty
-                if score < best_score:
-                    best_score = score
-                    best_index = index
-            if best_index is None:
-                selected.append(self._cluster_from_detection(detection))
-            else:
-                used_indexes.add(best_index)
-                selected.append(clusters[best_index])
-        return selected
+        return [self._cluster_from_detection(detection) for detection in detections]
 
     def _cluster_from_detection(self, detection: PersonDetection) -> Cluster:
         radius = max(0.25, detection.radius)
@@ -1671,6 +1670,8 @@ class DynamicObstacleTracker(Node):
             bbox_volume=max(1e-3, diameter * diameter * self.mujoco_person_height),
             compactness=0.5,
             aspect_ratio=1.0,
+            measured_vx=detection.vx,
+            measured_vy=detection.vy,
         )
 
     def _object_score(self, cluster: Cluster) -> float:

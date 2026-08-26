@@ -41,6 +41,7 @@ class LaunchDescriptionTests(unittest.TestCase):
         for name in [
             "run_sim",
             "mujoco_scene",
+            "mujoco_pedestrian_scenario",
             "run_slam",
             "run_nav2",
             "run_human_collision_avoidance",
@@ -80,9 +81,11 @@ class LaunchDescriptionTests(unittest.TestCase):
             "policy_action_ramp_time": "0.0",
             "policy_action_rate_limit": "8.0",
             "mujoco_initial_keyframe": "policy_stand",
+            "mujoco_pedestrian_scenario": "waypoints",
             "max_lin_vel_y": "0.12",
             "max_ang_vel_z": "0.35",
             "policy_profile": "mjlab",
+            "livox_scan_points": "600",
         }
         for name, expected in expected_defaults.items():
             self.assertEqual(arguments[name].default_value[0].text, expected)
@@ -203,17 +206,44 @@ class LaunchDescriptionTests(unittest.TestCase):
         planner = controller["FollowPath"]
         smoother = config["velocity_smoother"]["ros__parameters"]
 
-        self.assertEqual(planner["max_vel_x"], 0.35)
+        self.assertEqual(controller["progress_checker"]["required_movement_radius"], 0.15)
+        self.assertEqual(controller["controller_frequency"], 15.0)
+        self.assertEqual(
+            config["local_costmap"]["local_costmap"]["ros__parameters"]["update_frequency"],
+            10.0,
+        )
+        self.assertEqual(controller["progress_checker"]["movement_time_allowance"], 20.0)
+        self.assertEqual(planner["max_vel_x"], 0.45)
         self.assertEqual(planner["min_vel_x"], 0.0)
         self.assertLessEqual(planner["max_vel_theta"], 0.45)
-        self.assertEqual(planner["acc_lim_x"], 0.22)
+        self.assertEqual(planner["acc_lim_x"], 0.35)
         self.assertEqual(planner["acc_lim_theta"], 0.35)
         self.assertGreaterEqual(controller["min_x_velocity_threshold"], 0.05)
-        self.assertEqual(smoother["max_velocity"], [0.35, 0.0, 0.45])
+        self.assertEqual(smoother["max_velocity"], [0.45, 0.0, 0.45])
         self.assertEqual(smoother["min_velocity"], [0.0, 0.0, -0.45])
-        self.assertEqual(smoother["max_accel"], [0.22, 0.0, 0.35])
+        self.assertEqual(smoother["max_accel"], [0.35, 0.0, 0.35])
         self.assertEqual(smoother["deadband_velocity"], [0.05, 0.0, 0.05])
         self.assertLessEqual(smoother["velocity_timeout"], 0.4)
+
+    def test_waypoint_explorer_prefers_short_forward_sector_goals(self) -> None:
+        launch_description = _load_launch_module().generate_launch_description()
+        waypoint_node = next(
+            action
+            for timer in launch_description.entities
+            if isinstance(timer, TimerAction)
+            for action in timer.actions
+            if isinstance(action, Node) and action._Node__node_name == "g1_waypoint_explorer"
+        )
+        parameters = {
+            "".join(part.text for part in key): value
+            for key, value in waypoint_node._Node__parameters[0].items()
+        }
+
+        self.assertEqual(parameters["goal_distance_min"], 1.5)
+        self.assertEqual(parameters["goal_distance_max"], 2.4)
+        self.assertLessEqual(parameters["max_goal_heading_error"], 0.8)
+        self.assertEqual(parameters["min_goal_distance"], 1.2)
+        self.assertTrue(parameters["forward_sector_goals_only"])
 
 
 if __name__ == "__main__":

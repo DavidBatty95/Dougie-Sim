@@ -3,6 +3,7 @@ g1_base_approach:
     # This enters the workspace's human-aware command filtering pipeline.
     cmd_vel_topic: "/cmd_vel"
     base_frame: "base_footprint"
+    fixed_frame: "map"
     min_speed_x_mps: 0.20
     min_speed_y_mps: 0.25
     max_speed_x_mps: 0.40

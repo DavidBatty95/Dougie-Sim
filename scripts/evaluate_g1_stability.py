@@ -22,6 +22,7 @@ from mjlab.utils.torch import configure_torch_backends
 
 TASK_ID = "Mjlab-Velocity-Flat-StandCreepStop-Unitree-G1"
 NAVIGATION_TASK_ID = "Mjlab-Velocity-Flat-NavigationFineTune-Unitree-G1"
+REACTIVE_TASK_ID = "Mjlab-Velocity-Flat-ReactiveAvoidanceFineTune-Unitree-G1"
 NATURAL_GAIT_TASK_ID = "Mjlab-Velocity-Flat-NaturalGaitFineTune-Unitree-G1"
 PHASE_GAIT_TASK_ID = "Mjlab-Velocity-Flat-PhaseGaitFineTune-Unitree-G1"
 PHASE_TURN_TASK_ID = "Mjlab-Velocity-Flat-PhaseTurnFineTune-Unitree-G1"
@@ -44,6 +45,43 @@ def command_schedule(task: str) -> list[Phase]:
       Phase("yaw_right", (0.0, 0.0, -0.20), 8.0, "move"),
       Phase("stop_after_yaw_right", (0.0, 0.0, 0.0), 3.0, "stop"),
     ]
+  if task == REACTIVE_TASK_ID:
+    phases = [Phase("zero_hold", (0.0, 0.0, 0.0), 10.0, "zero")]
+    commands = (
+      ("lateral_left_005", (0.0, 0.05, 0.0)),
+      ("lateral_right_005", (0.0, -0.05, 0.0)),
+      ("lateral_left_010", (0.0, 0.10, 0.0)),
+      ("lateral_right_010", (0.0, -0.10, 0.0)),
+      ("yaw_left_012", (0.0, 0.0, 0.12)),
+      ("yaw_right_012", (0.0, 0.0, -0.12)),
+      ("yaw_left_020", (0.0, 0.0, 0.20)),
+      ("yaw_right_020", (0.0, 0.0, -0.20)),
+      ("diagonal_arc_left", (0.08, 0.08, 0.12)),
+      ("diagonal_arc_right", (0.08, -0.08, -0.12)),
+      ("forward_010", (0.10, 0.0, 0.0)),
+      ("forward_020", (0.20, 0.0, 0.0)),
+    )
+    for name, command in commands:
+      phases.append(Phase(name, command, 5.0, "move"))
+      phases.append(Phase(f"stop_after_{name}", (0.0, 0.0, 0.0), 3.0, "stop"))
+    return phases
+  if task in (NAVIGATION_TASK_ID, NATURAL_GAIT_TASK_ID, PHASE_GAIT_TASK_ID):
+    phases = [Phase("zero_hold", (0.0, 0.0, 0.0), 10.0, "zero")]
+    commands = (
+      ("yaw_left_012", (0.0, 0.0, 0.12)),
+      ("yaw_right_012", (0.0, 0.0, -0.12)),
+      ("yaw_left_020", (0.0, 0.0, 0.20)),
+      ("yaw_right_020", (0.0, 0.0, -0.20)),
+      ("arc_left", (0.20, 0.0, 0.12)),
+      ("arc_right", (0.20, 0.0, -0.12)),
+      ("forward_005", (0.05, 0.0, 0.0)),
+      ("forward_010", (0.10, 0.0, 0.0)),
+      ("forward_020", (0.20, 0.0, 0.0)),
+    )
+    for name, command in commands:
+      phases.append(Phase(name, command, 5.0, "move"))
+      phases.append(Phase(f"stop_after_{name}", (0.0, 0.0, 0.0), 3.0, "stop"))
+    return phases
   phases = [Phase("zero_hold", (0.0, 0.0, 0.0), 30.0, "zero")]
   commands = (
     ("forward_005", (0.05, 0.0, 0.0)),
@@ -92,6 +130,7 @@ def parse_args() -> argparse.Namespace:
     choices=(
       TASK_ID,
       NAVIGATION_TASK_ID,
+      REACTIVE_TASK_ID,
       NATURAL_GAIT_TASK_ID,
       PHASE_GAIT_TASK_ID,
       PHASE_TURN_TASK_ID,
@@ -113,6 +152,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument("--max-action", type=float, default=1.0)
   parser.add_argument("--linear-error-floor", type=float, default=0.04)
   parser.add_argument("--yaw-error-floor", type=float, default=0.05)
+  parser.add_argument("--max-axis-leakage", type=float, default=0.04)
   parser.add_argument("--tracking-error-fraction", type=float, default=0.25)
   args = parser.parse_args()
   if args.num_envs < 1:
@@ -144,7 +184,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
 
   raw_env = ManagerBasedRlEnv(cfg=env_cfg, device=device, render_mode=None)
   env = RslRlVecEnvWrapper(raw_env, clip_actions=agent_cfg.clip_actions)
-  runner_cls = load_runner_cls(TASK_ID) or MjlabOnPolicyRunner
+  runner_cls = load_runner_cls(args.task) or MjlabOnPolicyRunner
   runner = runner_cls(env, asdict(agent_cfg), device=device)
   runner.load(
     str(checkpoint),
@@ -196,6 +236,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "foot_motion": torch.zeros(num_envs, dtype=torch.bool, device=dev),
         "foot_air": torch.zeros(num_envs, dtype=torch.bool, device=dev),
         "max_foot_speed": torch.zeros(num_envs, device=dev),
+        "max_axis_leakage": torch.zeros(num_envs, device=dev),
       }
 
       for step in range(steps):
@@ -247,14 +288,34 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
           zero_foot_air |= active & any_foot_air
 
         if phase.kind == "move" and elapsed >= phase.duration_s - 2.0:
-          if abs(phase.command[2]) > 0.0:
+          pure_yaw = phase.command[:2] == (0.0, 0.0) and phase.command[2] != 0.0
+          pure_lateral = (
+            phase.command[0] == 0.0
+            and phase.command[1] != 0.0
+            and phase.command[2] == 0.0
+          )
+          if pure_yaw:
             actual = robot.data.root_link_ang_vel_b[:, 2]
             target = phase.command[2]
+            leakage = torch.linalg.vector_norm(
+              robot.data.root_link_lin_vel_b[:, :2], dim=1
+            )
+          elif pure_lateral:
+            actual = robot.data.root_link_lin_vel_b[:, 1]
+            target = phase.command[1]
+            leakage = torch.maximum(
+              robot.data.root_link_lin_vel_b[:, 0].abs(),
+              robot.data.root_link_ang_vel_b[:, 2].abs(),
+            )
           else:
             actual = robot.data.root_link_lin_vel_b[:, 0]
             target = phase.command[0]
+            leakage = torch.zeros(num_envs, device=dev)
           stats["tracking_error_sum"] += active * (actual - target).abs()
           stats["tracking_samples"] += active
+          stats["max_axis_leakage"] = torch.maximum(
+            stats["max_axis_leakage"], active * leakage
+          )
 
         if phase.kind == "stop" and elapsed >= 1.0:
           planar_speed = torch.linalg.vector_norm(
@@ -294,11 +355,20 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         threshold = max(floor, args.tracking_error_fraction * target)
         passed = (stats["tracking_samples"] > 0) & (error <= threshold)
         checks[f"tracking_{phase.name}"] = passed.cpu().tolist()
+        pure_axis = (phase.command[:2] == (0.0, 0.0) and phase.command[2] != 0.0) or (
+          phase.command[0] == 0.0
+          and phase.command[1] != 0.0
+          and phase.command[2] == 0.0
+        )
+        if pure_axis:
+          leakage_ok = stats["max_axis_leakage"] <= args.max_axis_leakage
+          checks[f"axis_leakage_{phase.name}"] = leakage_ok.cpu().tolist()
         phase_results[phase.name] = {
           "mean_absolute_tracking_error": tensor_values(error),
           "threshold": threshold,
           "max_foot_speed": tensor_values(stats["max_foot_speed"]),
           "foot_became_airborne": stats["foot_air"].cpu().tolist(),
+          "max_axis_leakage": tensor_values(stats["max_axis_leakage"]),
         }
       elif phase.kind == "stop":
         speed_ok = stats["max_settled_speed"] <= args.max_stop_speed
@@ -340,6 +410,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "linear_error_floor_mps": args.linear_error_floor,
         "yaw_error_floor_radps": args.yaw_error_floor,
         "tracking_error_fraction": args.tracking_error_fraction,
+        "max_axis_leakage_mps_or_radps": args.max_axis_leakage,
       },
     }
     return result

@@ -12,6 +12,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Place.action"
   "action/Retreat.action"
   "action/SetArmPosture.action"
+  "action/TransportObject.action"
   DEPENDENCIES builtin_interfaces geometry_msgs
 )
 
