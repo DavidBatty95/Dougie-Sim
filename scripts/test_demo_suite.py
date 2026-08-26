@@ -45,6 +45,7 @@ def test_official_policy_cases_pin_profile_and_disable_lateral(tmp_path: Path) -
     waypoint = catalog["waypoint-live"]
     social = catalog["social-live"]
     endurance = catalog["social-endurance"]
+    visual = catalog["social-visual"]
     assert "--validate" in fixed.command
     assert "unitree_rl_lab_g1_29dof" in fixed.command
     assert "policy_profile:=unitree_rl_lab_g1_29dof" in social.command
@@ -63,6 +64,11 @@ def test_official_policy_cases_pin_profile_and_disable_lateral(tmp_path: Path) -
     assert "mujoco_pedestrian_start_delay:=30.0" in endurance.command
     assert "max_lin_vel_y:=0.0" in endurance.command
     assert any(arg.endswith("demo_suite_social_endurance_benchmark.yaml") for arg in endurance.command)
+    assert "--no-rviz" not in visual.command
+    assert "--require-avoidance" in visual.command
+    assert "mujoco_pedestrian_scenario:=demo_endurance" in visual.command
+    assert "tracker_use_sensor_input:=false" in visual.command
+    assert any(arg.endswith("social_navigation_oracle_v1.yaml") for arg in visual.command)
 
 
 def test_dry_run_catalog_uses_headless_live_benchmarks(tmp_path: Path) -> None:

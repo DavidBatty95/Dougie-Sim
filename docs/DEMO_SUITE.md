@@ -64,9 +64,9 @@ Visual cases are interactive and must be selected alone:
 
 `waypoint-visual` uses the bundled obstacle scene, the checksum-pinned official
 Unitree RL Lab policy, SLAM, Nav2, generated reachable goals, and RViz.
-`social-visual` requires the external Extreme Lab assets and adds pedestrians,
-tracking, conservative human-aware planning, final collision supervision, and a
-persistent JSONL diagnostics log.
+`social-visual` requires the external Extreme Lab assets and displays the same
+deterministic two-crossing oracle scenario and yield/resume gates as
+`social-endurance`, with MuJoCo and RViz visible.
 
 ## Safety And Policy Selection
 
