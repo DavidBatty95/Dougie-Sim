@@ -3,12 +3,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONTAINER_BUILD_BASE="/workspace/ros2_ws/.verification/build"
+CONTAINER_INSTALL_BASE="/workspace/ros2_ws/.verification/install"
+CONTAINER_LOG_BASE="/workspace/ros2_ws/.verification/log"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 HOST_RUN_LOG="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/demos/collision_avoidance_${STAMP}.jsonl"
 CONTAINER_RUN_LOG="/workspace/${HOST_RUN_LOG#${REPO_ROOT}/}"
 
 ARGS=("$@")
 mkdir -p "$(dirname "${HOST_RUN_LOG}")"
+
+printf 'Building the current ROS workspace for the collision-avoidance demo.\n'
+docker compose run --rm \
+  -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
+  -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+  -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
+  unitree-g1-sim /workspace/scripts/build_ws.sh
 
 append_default_arg() {
   local name="$1"
@@ -56,4 +66,5 @@ if [ "${#stale_containers[@]}" -gt 0 ]; then
   docker stop "${stale_containers[@]}" >/dev/null
 fi
 
+export COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}"
 exec "${SCRIPT_DIR}/bringup_full_sim.sh" "${ARGS[@]}"
