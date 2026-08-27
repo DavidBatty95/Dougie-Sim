@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" role="img" aria-labelledby="title desc">
+  <title id="title">Geoff-Sim cumulative verification tiers</title>
+  <desc id="desc">Three cumulative verification tiers. FAST checks shell syntax, Python compilation, XML and Xacro, assets, and launch loading. PRECOMMIT includes FAST and adds a clean ROS build, local package tests, and a deterministic benchmark. SMOKE includes PRECOMMIT and adds bounded live MuJoCo topic checks. GitHub Actions covers the container build, local ROS package tests, and deterministic benchmark; GUI and GPU simulation remains local or self-hosted.</desc>
+  <style>
+    :root {
+      --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
+      --panel:#f6f8fa; --card:#ffffff;
+      --fast:#0969da; --fast-soft:#ddf4ff;
+      --pre:#8250df; --pre-soft:#fbefff;
+      --smoke:#1a7f37; --smoke-soft:#dafbe1;
+      --local:#bc4c00; --local-soft:#fff1e5;
+    }
+    @media (prefers-color-scheme:dark) {
+      :root {
+        --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
+        --panel:#11161d; --card:#161b22;
+        --fast:#58a6ff; --fast-soft:#0c2d6b;
+        --pre:#bc8cff; --pre-soft:#35215d;
+        --smoke:#3fb950; --smoke-soft:#12351d;
+        --local:#db6d28; --local-soft:#4d2b00;
+      }
+    }
+    text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; fill:var(--fg) }
+    .title { font-size:23px; font-weight:750 }
+    .subtitle { font-size:11.5px; fill:var(--muted) }
+    .section { font-size:10px; font-weight:750; letter-spacing:.1em }
+    .tier { font-size:16px; font-weight:750 }
+    .name { font-size:11.5px; font-weight:650 }
+    .detail { font-size:10px; fill:var(--muted) }
+    .tag { font-size:8.5px; font-weight:750; letter-spacing:.06em }
+    .panel { fill:var(--panel); stroke:var(--border); stroke-width:1 }
+    .card { fill:var(--card); stroke:var(--border); stroke-width:1 }
+    .divider { stroke:var(--border); stroke-width:1 }
+    .check-ring { fill:var(--card); stroke-width:1.5 }
+    .check { fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round }
+    .inherit { stroke-width:1; stroke-dasharray:3 3 }
+    .connector { fill:none; stroke:var(--border); stroke-width:1.5; stroke-linecap:round }
+    .flow { fill:none; stroke-width:2.5; stroke-linecap:round; stroke-dasharray:7 93; animation:flow 4.8s linear infinite }
+    .halo { fill:none; stroke-width:2; opacity:0; transform-box:fill-box; transform-origin:center; animation:verify 4.8s ease-out infinite }
+    .d1 { animation-delay:.35s } .d2 { animation-delay:.7s } .d3 { animation-delay:1.05s }
+    .d4 { animation-delay:1.4s } .d5 { animation-delay:1.75s } .d6 { animation-delay:2.2s }
+    .d7 { animation-delay:2.65s } .d8 { animation-delay:3.1s } .d9 { animation-delay:3.65s }
+    @keyframes flow { to { stroke-dashoffset:-93 } }
+    @keyframes verify {
+      0%,8% { opacity:0; transform:scale(.75) }
+      12% { opacity:.7 }
+      24%,100% { opacity:0; transform:scale(1.65) }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .flow, .halo { display:none }
+    }
+  </style>
+  <defs>
+    <filter id="shadow" x="-10%" y="-12%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1f2328" flood-opacity=".10"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="var(--border)"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="400" fill="var(--bg)"/>
+  <text class="title" x="28" y="34">Verification tiers</text>
+  <text class="subtitle" x="28" y="54">Cumulative confidence, from static checks to a bounded live simulator probe</text>
+  <g transform="translate(895 27)">
+    <circle cx="0" cy="0" r="4" fill="var(--fast)"/><text class="detail" x="10" y="4">seconds</text>
+    <line x1="62" y1="0" x2="90" y2="0" stroke="var(--border)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <circle cx="108" cy="0" r="4" fill="var(--smoke)"/><text class="detail" x="118" y="4">live confidence</text>
+  </g>
+
+  <!-- Cumulative tier pipeline -->
+  <path class="connector" d="M308 202H330" marker-end="url(#arrow)"/>
+  <path class="flow" d="M308 202H330" pathLength="100" stroke="var(--pre)"/>
+  <path class="connector" d="M610 202H632" marker-end="url(#arrow)"/>
+  <path class="flow" d="M610 202H632" pathLength="100" stroke="var(--smoke)" style="animation-delay:2.2s"/>
+
+  <g filter="url(#shadow)">
+    <!-- FAST -->
+    <rect class="card" x="28" y="78" width="280" height="270" rx="10"/>
+    <rect x="28" y="78" width="280" height="4" rx="2" fill="var(--fast)"/>
+    <text class="section" x="44" y="104" fill="var(--fast)">TIER 1</text>
+    <text class="tier" x="44" y="128">FAST</text>
+    <rect x="238" y="104" width="52" height="20" rx="10" fill="var(--fast-soft)"/>
+    <text class="tag" x="264" y="117" text-anchor="middle" fill="var(--fast)">STATIC</text>
+    <text class="detail" x="44" y="146">Quick feedback, no ROS build required</text>
+    <line class="divider" x1="44" y1="158" x2="292" y2="158"/>
+
+    <g transform="translate(44 181)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--fast)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--fast)"/><circle class="halo d1" cx="8" cy="0" r="8" stroke="var(--fast)"/><text class="name" x="25" y="4">Shell syntax</text></g>
+    <g transform="translate(44 214)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--fast)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--fast)"/><circle class="halo d2" cx="8" cy="0" r="8" stroke="var(--fast)"/><text class="name" x="25" y="4">Python compilation</text></g>
+    <g transform="translate(44 247)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--fast)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--fast)"/><circle class="halo d3" cx="8" cy="0" r="8" stroke="var(--fast)"/><text class="name" x="25" y="4">XML / Xacro validation</text></g>
+    <g transform="translate(44 280)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--fast)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--fast)"/><circle class="halo d4" cx="8" cy="0" r="8" stroke="var(--fast)"/><text class="name" x="25" y="4">Asset checks</text></g>
+    <g transform="translate(44 313)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--fast)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--fast)"/><circle class="halo d5" cx="8" cy="0" r="8" stroke="var(--fast)"/><text class="name" x="25" y="4">Launch loading</text></g>
+
+    <!-- PRECOMMIT -->
+    <rect class="card" x="330" y="78" width="280" height="270" rx="10"/>
+    <rect x="330" y="78" width="280" height="4" rx="2" fill="var(--pre)"/>
+    <text class="section" x="346" y="104" fill="var(--pre)">TIER 2</text>
+    <text class="tier" x="346" y="128">PRECOMMIT</text>
+    <rect x="535" y="104" width="57" height="20" rx="10" fill="var(--pre-soft)"/>
+    <text class="tag" x="563.5" y="117" text-anchor="middle" fill="var(--pre)">BUILD</text>
+    <text class="detail" x="346" y="146">Build and regression confidence</text>
+    <rect x="346" y="166" width="248" height="40" rx="7" fill="var(--fast-soft)" stroke="var(--fast)" class="inherit"/>
+    <circle cx="362" cy="186" r="5" fill="var(--fast)"/>
+    <text class="name" x="375" y="182">Includes all FAST checks</text>
+    <text class="detail" x="375" y="196">Tier 1 is always part of this gate</text>
+    <text class="section" x="346" y="228" fill="var(--pre)">PLUS</text>
+    <g transform="translate(346 251)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--pre)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--pre)"/><circle class="halo d6" cx="8" cy="0" r="8" stroke="var(--pre)"/><text class="name" x="25" y="4">Clean ROS build</text></g>
+    <g transform="translate(346 284)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--pre)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--pre)"/><circle class="halo d7" cx="8" cy="0" r="8" stroke="var(--pre)"/><text class="name" x="25" y="4">Local package tests</text></g>
+    <g transform="translate(346 317)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--pre)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--pre)"/><circle class="halo d8" cx="8" cy="0" r="8" stroke="var(--pre)"/><text class="name" x="25" y="4">Deterministic benchmark</text></g>
+
+    <!-- SMOKE -->
+    <rect class="card" x="632" y="78" width="270" height="270" rx="10"/>
+    <rect x="632" y="78" width="270" height="4" rx="2" fill="var(--smoke)"/>
+    <text class="section" x="648" y="104" fill="var(--smoke)">TIER 3</text>
+    <text class="tier" x="648" y="128">SMOKE</text>
+    <rect x="829" y="104" width="55" height="20" rx="10" fill="var(--smoke-soft)"/>
+    <text class="tag" x="856.5" y="117" text-anchor="middle" fill="var(--smoke)">LIVE</text>
+    <text class="detail" x="648" y="146">Bounded runtime confidence</text>
+    <rect x="648" y="166" width="238" height="40" rx="7" fill="var(--pre-soft)" stroke="var(--pre)" class="inherit"/>
+    <circle cx="664" cy="186" r="5" fill="var(--pre)"/>
+    <text class="name" x="677" y="182">Includes all PRECOMMIT</text>
+    <text class="detail" x="677" y="196">FAST and Tier 2 remain required</text>
+    <text class="section" x="648" y="228" fill="var(--smoke)">PLUS</text>
+    <g transform="translate(648 254)"><circle class="check-ring" cx="8" cy="0" r="8" stroke="var(--smoke)"/><path class="check" d="M4 0l3 3 5-6" stroke="var(--smoke)"/><circle class="halo d9" cx="8" cy="0" r="8" stroke="var(--smoke)"/><text class="name" x="25" y="4">Live MuJoCo topic checks</text></g>
+    <text class="detail" x="673" y="276">Starts the simulator, observes topics,</text>
+    <text class="detail" x="673" y="291">then exits within a fixed time bound</text>
+    <rect x="648" y="311" width="96" height="20" rx="10" fill="var(--smoke-soft)"/>
+    <text class="tag" x="696" y="324" text-anchor="middle" fill="var(--smoke)">BOUNDED LIVE</text>
+
+    <!-- Execution coverage -->
+    <rect class="panel" x="920" y="78" width="252" height="270" rx="10"/>
+    <line x1="932" y1="79" x2="1160" y2="79" stroke="var(--fast)" stroke-width="3" stroke-linecap="round"/>
+    <text class="section" x="936" y="104" fill="var(--fast)">EXECUTION COVERAGE</text>
+    <rect class="card" x="936" y="120" width="220" height="112" rx="8"/>
+    <rect x="948" y="132" width="94" height="20" rx="10" fill="var(--fast-soft)"/>
+    <text class="tag" x="995" y="145" text-anchor="middle" fill="var(--fast)">GITHUB ACTIONS</text>
+    <g transform="translate(950 169)"><circle cx="5" cy="0" r="3.5" fill="var(--fast)"/><text class="name" x="16" y="4">Container build</text></g>
+    <g transform="translate(950 193)"><circle cx="5" cy="0" r="3.5" fill="var(--fast)"/><text class="name" x="16" y="4">Local ROS package tests</text></g>
+    <g transform="translate(950 217)"><circle cx="5" cy="0" r="3.5" fill="var(--fast)"/><text class="name" x="16" y="4">Deterministic benchmark</text></g>
+
+    <rect class="card" x="936" y="244" width="220" height="88" rx="8"/>
+    <rect x="948" y="256" width="112" height="20" rx="10" fill="var(--local-soft)"/>
+    <text class="tag" x="1004" y="269" text-anchor="middle" fill="var(--local)">LOCAL / SELF-HOSTED</text>
+    <text class="name" x="950" y="297">GUI / GPU simulation</text>
+    <text class="detail" x="950" y="315">Not covered by hosted CI</text>
+  </g>
+
+  <text class="subtitle" x="28" y="380">Each tier inherits every check to its left. Animation indicates verification order; the complete hierarchy remains visible without motion.</text>
+</svg>

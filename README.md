@@ -71,6 +71,10 @@ The installer:
 - Builds the ROS workspace, Unitree SDK2, and standalone MuJoCo simulator
 - Downloads and checksum-verifies the official Unitree G1 locomotion policy
 
+<p align="center">
+  <img src="docs/media/install-pipeline.svg" alt="Animated installation pipeline from repository clone to a verified, runnable simulation" width="100%">
+</p>
+
 Installation can take several minutes. Docker image and source downloads require a stable internet connection.
 
 After installation, start a people-free simulation in the included empty scene:
@@ -169,6 +173,10 @@ When the external Extreme Lab assets and the configured local policy are availab
 
 The script starts six pedestrians, RViz, SLAM, Nav2 waypoint exploration, dynamic tracking, the conservative social-navigation profile, the final collision supervisor, and a JSONL run logger. Safety commands are published on `/cmd_vel_safe`; diagnostics are available on `/human_collision_avoidance_debug`.
 
+<p align="center">
+  <img src="docs/media/social-navigation.svg" alt="Animated top-down social-navigation diagram showing pedestrian detection, prediction, path selection, and collision supervision" width="100%">
+</p>
+
 #### Configurable Bringup
 
 Use the general launcher to select individual subsystems or pass launch arguments directly:
@@ -239,6 +247,10 @@ Start keyboard teleoperation in another terminal:
 
 Publish commands to `/cmd_vel`; the integrated stack routes them through the human-aware planner and final safety filter before the locomotion policy consumes `/cmd_vel_safe`.
 
+<p align="center">
+  <img src="docs/media/command-safety.svg" alt="Animated command-authority diagram showing one active source and the safety path from cmd_vel to joint targets" width="100%">
+</p>
+
 Do not enable multiple command generators at the same time. Direct teleoperation, point goals, waypoint exploration, frontier exploration, random exploration, and waypoint patrol are separate control modes.
 
 <a id="architecture"></a>
@@ -284,6 +296,10 @@ Run verification from the repository root:
 ./scripts/test_workspace.sh precommit
 ./scripts/test_workspace.sh smoke
 ```
+
+<p align="center">
+  <img src="docs/media/verification-tiers.svg" alt="Animated diagram of the cumulative fast, precommit, and smoke verification tiers" width="100%">
+</p>
 
 | Tier | Coverage |
 | --- | --- |
