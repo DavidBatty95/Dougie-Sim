@@ -1,13 +1,16 @@
 import json
 import math
+import time
 
 import rclpy
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import Point, PoseStamped, Twist, TwistStamped
+from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import LaserScan, PointCloud2
 from std_msgs.msg import String
+from visualization_msgs.msg import MarkerArray, Marker
 from unitree_social_navigation_msgs.msg import PredictedTrajectories
 from tf2_ros import Buffer, TransformException, TransformListener
 
@@ -19,6 +22,10 @@ from .bridge_safety import (
     trajectory_static_cost,
 )
 from .pointcloud import iter_xyz
+from .motion_envelope import load_motion_envelope
+
+
+LATEST_SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
 
 
 def _duration_seconds(duration) -> float:
@@ -58,6 +65,7 @@ def time_aligned_prediction_risk(
     collision_radius: float,
     uncertainty_scale: float,
     minimum_confidence: float,
+    robot_trajectory: list[tuple[float, float, float, float]] | None = None,
 ) -> tuple[float, float, float, float] | None:
     """Return the nearest same-time human conflict as clearance, time, x, y."""
     if message_age < 0.0:
@@ -91,10 +99,18 @@ def time_aligned_prediction_risk(
             time_from_now = offset - max(0.0, message_age)
             if time_from_now < 0.0 or time_from_now > horizon or confidence < minimum_confidence:
                 continue
-            robot_x, robot_y = _robot_position_at(
-                robot_pose[0], robot_pose[1], robot_pose[2],
-                command[0], command[1], command[2], time_from_now, integration_dt,
-            )
+            if robot_trajectory:
+                index = min(len(robot_trajectory) - 1, int(time_from_now / max(1e-6, robot_trajectory[-1][3]) * (len(robot_trajectory) - 1)))
+                left = robot_trajectory[index]
+                right = robot_trajectory[min(index + 1, len(robot_trajectory) - 1)]
+                fraction = max(0.0, min(1.0, (time_from_now - left[3]) / max(1e-6, right[3] - left[3])))
+                robot_x = left[0] + fraction * (right[0] - left[0])
+                robot_y = left[1] + fraction * (right[1] - left[1])
+            else:
+                robot_x, robot_y = _robot_position_at(
+                    robot_pose[0], robot_pose[1], robot_pose[2],
+                    command[0], command[1], command[2], time_from_now, integration_dt,
+                )
             uncertainty = uncertainty_scale * math.sqrt(max(0.0, cov_xx, cov_yy))
             clearance = math.hypot(x - robot_x, y - robot_y) - uncertainty
             if best is None or clearance < best[0]:
@@ -173,6 +189,17 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("prediction_min_confidence", 0.35)
         self.declare_parameter("scan_timeout", 0.6)
         self.declare_parameter("static_escape_clearance", 0.48)
+        self.declare_parameter("odom_timeout", 0.4)
+        self.odom_timeout = float(self.get_parameter("odom_timeout").value)
+        self.declare_parameter("response_delay", 0.10)
+        self.motion_envelope = load_motion_envelope(self)
+        self.response_delay = float(self.get_parameter("response_delay").value)
+        self.latest_predictions = []
+        self.prediction_epoch = None
+        self.measured_velocity = (0.0, 0.0, 0.0)
+        self.policy_command = None
+        self.policy_command_stamp = None
+        self.odom_stamp = None
 
         self.target_frame = str(self.get_parameter("target_frame").value)
         self.robot_frame = str(self.get_parameter("robot_frame").value)
@@ -265,19 +292,21 @@ class HumanCollisionAvoidance(Node):
         input_topic = str(self.get_parameter("input_cmd_vel_topic").value)
         output_topic = str(self.get_parameter("output_cmd_vel_topic").value)
 
-        self.pub = self.create_publisher(Twist, output_topic, 10)
+        self.pub = self.create_publisher(Twist, output_topic, 1)
+        self.visual_pub = self.create_publisher(MarkerArray, "/navigation/command_markers", 1)
+        self.last_visual_publish = -math.inf
         self.debug_pub = self.create_publisher(String, str(self.get_parameter("debug_topic").value), 10)
         self.create_subscription(
             Twist,
             input_topic,
             self._cmd_callback,
-            10,
+            1,
         )
         self.create_subscription(
             String,
             str(self.get_parameter("planner_state_topic").value),
             self._planner_state_callback,
-            10,
+            1,
         )
         self.create_subscription(
             PoseStamped,
@@ -295,7 +324,7 @@ class HumanCollisionAvoidance(Node):
             PredictedTrajectories,
             str(self.get_parameter("predicted_trajectories_topic").value),
             self._predicted_trajectories_callback,
-            10,
+            1,
         )
         self.create_subscription(
             PointCloud2,
@@ -314,10 +343,24 @@ class HumanCollisionAvoidance(Node):
             LaserScan,
             str(self.get_parameter("scan_topic").value),
             self._scan_callback,
-            qos_profile_sensor_data,
+            LATEST_SENSOR_QOS,
         )
         self.create_timer(1.0 / rate_hz, self._timer_callback)
+        self.create_subscription(Odometry, "/odom", self._odom_callback, LATEST_SENSOR_QOS)
+        self.create_subscription(TwistStamped, "/g1/policy_cmd_vel", self._policy_command_callback, LATEST_SENSOR_QOS)
         self.get_logger().info(f"Human collision avoidance filter ready: {input_topic} -> {output_topic}")
+
+    def _odom_callback(self, msg: Odometry) -> None:
+        velocity = (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.angular.z)
+        if all(math.isfinite(value) for value in velocity):
+            self.measured_velocity = velocity
+            self.odom_stamp = _duration_seconds(msg.header.stamp)
+
+    def _policy_command_callback(self, msg: TwistStamped) -> None:
+        values = (msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z)
+        if all(math.isfinite(value) for value in values):
+            self.policy_command = values
+            self.policy_command_stamp = _duration_seconds(msg.header.stamp)
 
     def _cmd_callback(self, msg: Twist) -> None:
         self.latest_cmd = msg
@@ -361,6 +404,8 @@ class HumanCollisionAvoidance(Node):
         self.scan_obstacles = obstacles
 
     def _cloud_callback(self, msg: PointCloud2, source: str) -> None:
+        if self._typed_safety_fresh():
+            return
         msg_stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         now_seconds = self.get_clock().now().nanoseconds * 1e-9
         if msg_stamp > 0.0 and now_seconds - msg_stamp > self.person_cloud_timeout:
@@ -534,7 +579,7 @@ class HumanCollisionAvoidance(Node):
             self.get_logger().warn("Ignoring future-dated person prediction", throttle_duration_sec=2.0)
             return
         age = max(0.0, raw_age)
-        if age > self.person_cloud_timeout or self._input_stale() or not self._input_active():
+        if age > self.person_cloud_timeout:
             return
         pose = self._robot_pose()
         if pose is None:
@@ -552,31 +597,41 @@ class HumanCollisionAvoidance(Node):
                     float(point.confidence),
                 ))
             trajectories.append(samples)
-        risk = time_aligned_prediction_risk(
-            trajectories,
-            age,
-            pose,
-            (
-                float(self.latest_cmd.linear.x),
-                float(self.latest_cmd.linear.y),
-                float(self.latest_cmd.angular.z),
-            ),
-            self.trajectory_horizon,
-            self.trajectory_dt,
-            self.prediction_collision_radius,
-            self.prediction_uncertainty_scale,
-            self.prediction_min_confidence,
-        )
+        self.latest_predictions = trajectories
+        self.prediction_epoch = epoch
         self.person_cloud_times["predicted_typed"] = now
-        if risk is None:
-            return
-        clearance, time_to_conflict, x, y = risk
-        self.closest_risk = clearance
-        self.last_risk_source = "predicted_typed"
-        self.last_risk_point = ("predicted_typed", x, y, clearance)
-        self.avoid_cmd = Twist()
-        self.avoid_until = now + Duration(seconds=self.hold_time)
-        self.last_avoid_reason = f"predicted_space_time_stop_{time_to_conflict:.1f}s"
+
+    def _validate_final_command(self, cmd: Twist, pose, now) -> tuple[Twist, str | None]:
+        pose = pose[:3]
+        command = self.motion_envelope.normalize((cmd.linear.x, cmd.linear.y, cmd.angular.z))
+        seconds = now.nanoseconds * 1e-9
+        if self.prediction_epoch is None or not 0.0 <= seconds - self.prediction_epoch <= self.person_cloud_timeout:
+            return Twist(), "stale_predictions_stop"
+        if self.odom_stamp is None or not 0.0 <= seconds - self.odom_stamp <= getattr(self, "odom_timeout", 0.4):
+            return Twist(), "stale_odometry_stop"
+        # The planner handles long-range social choices; this final check covers
+        # response + braking with margin, re-evaluated for every output command.
+        braking_time = max(abs(self.measured_velocity[0]) / max(0.01, self.motion_envelope.accel_x), abs(self.measured_velocity[1]) / max(0.01, self.motion_envelope.accel_y))
+        horizon = min(self.trajectory_horizon, max(1.0, self.response_delay + braking_time + 0.5))
+        if self.planner_state == "CLEARANCE_RECOVERY" and self.planner_state_time is not None and (now - self.planner_state_time).nanoseconds * 1e-9 <= self.input_timeout:
+            horizon = min(horizon, 1.0)
+        filtered = self.policy_command if self.policy_command_stamp is not None and 0.0 <= seconds - self.policy_command_stamp <= 0.4 else None
+        rollout = self.motion_envelope.rollout(pose, command, self.measured_velocity, horizon, 0.1, self.response_delay, filtered_command=filtered)
+        risk = time_aligned_prediction_risk(self.latest_predictions, seconds - self.prediction_epoch, pose, command, horizon, 0.1, self.prediction_collision_radius, self.prediction_uncertainty_scale, self.prediction_min_confidence, rollout)
+        if risk is not None:
+            stop_rollout = self.motion_envelope.rollout(pose, (0.0, 0.0, 0.0), self.measured_velocity, horizon, 0.1, self.response_delay, filtered_command=filtered)
+            stop_risk = time_aligned_prediction_risk(self.latest_predictions, seconds - self.prediction_epoch, pose, (0.0, 0.0, 0.0), horizon, 0.1, math.inf, self.prediction_uncertainty_scale, self.prediction_min_confidence, stop_rollout)
+            if risk[0] >= 0.80 and stop_risk is not None and risk[0] > stop_risk[0] + 0.05:
+                return self._twist_from_velocity(command), "clearance_recovery"
+            clearance, conflict_time, x, y = risk
+            self.last_risk_source = "predicted_typed"
+            self.last_risk_point = ("predicted_typed", x, y, clearance)
+            self.last_avoid_reason = f"predicted_space_time_stop_{conflict_time:.1f}s"
+            return Twist(), "temporal_override"
+        return self._twist_from_velocity(command), None
+
+    def _typed_safety_fresh(self) -> bool:
+        return self.prediction_min_confidence <= 1.0 and self.prediction_epoch is not None and 0.0 <= self.get_clock().now().nanoseconds * 1e-9 - self.prediction_epoch <= self.person_cloud_timeout
 
     def _safe_patch_command_is_valid(
         self,
@@ -615,6 +670,10 @@ class HumanCollisionAvoidance(Node):
         )
 
     def _mujoco_people_callback(self, msg: String) -> None:
+        # The typed path checks the actual executable trajectory each tick.
+        # An additional timeless radius stop would veto every safe passing arc.
+        if self._typed_safety_fresh():
+            return
         try:
             payload = json.loads(msg.data)
         except json.JSONDecodeError:
@@ -952,14 +1011,16 @@ class HumanCollisionAvoidance(Node):
     def _timer_callback(self) -> None:
         now = self.get_clock().now()
         self._expire_stale_people_forces(now)
-        if self._robot_pose() is None:
+        pose = self._robot_pose()
+        if pose is None:
             cmd = Twist()
             self.pub.publish(cmd)
             self._publish_debug("missing_tf_stop", self.latest_cmd, cmd, now)
             return
         if now < self.avoid_until:
-            self.pub.publish(self.avoid_cmd)
-            self._publish_debug("override", self.latest_cmd, self.avoid_cmd, now)
+            cmd, reason = self._validate_final_command(self.avoid_cmd, pose, now)
+            self.pub.publish(cmd)
+            self._publish_debug(reason or "override", self.latest_cmd, cmd, now)
             self.get_logger().warn(
                 "Human collision risk in trajectory corridor: "
                 f"overriding cmd_vel, closest predicted point {self.closest_risk:.2f}m "
@@ -984,8 +1045,9 @@ class HumanCollisionAvoidance(Node):
             self._publish_debug("inactive_input_hold", self.latest_cmd, cmd, now)
             return
         cmd = self._apply_open_space_bias(self.latest_cmd)
+        cmd, reason = self._validate_final_command(cmd, pose, now)
         self.pub.publish(cmd)
-        mode = "open_space_bias" if self.enable_open_space_bias else "pass_through"
+        mode = reason or ("open_space_bias" if self.enable_open_space_bias else "pass_through")
         self._publish_debug(mode, self.latest_cmd, cmd, now)
 
     def _publish_debug(self, mode: str, input_cmd: Twist, output_cmd: Twist, now) -> None:
@@ -1020,6 +1082,45 @@ class HumanCollisionAvoidance(Node):
         msg = String()
         msg.data = json.dumps(payload, separators=(",", ":"), sort_keys=True)
         self.debug_pub.publish(msg)
+        if self.visual_pub.get_subscription_count() and time.monotonic()-self.last_visual_publish >= .1:
+            self.last_visual_publish = time.monotonic()
+            self.visual_pub.publish(self._command_markers(mode, output_cmd))
+
+    def _command_markers(self, mode, command):
+        array = MarkerArray()
+        arrow = Marker()
+        arrow.header.frame_id = self.robot_frame
+        arrow.ns, arrow.id = "safety_output", 0
+        arrow.frame_locked = True
+        arrow.pose.orientation.w = 1.
+        arrow.lifetime = Duration(seconds=.6).to_msg()
+        speed = math.hypot(command.linear.x, command.linear.y)
+        if speed < .01:
+            arrow.type = Marker.CYLINDER
+            arrow.pose.position.z = .05
+            arrow.scale.x = arrow.scale.y = .40
+            arrow.scale.z = .04
+            arrow.color.r, arrow.color.g, arrow.color.b, arrow.color.a = 1., .25, .1, .7
+        else:
+            arrow.type = Marker.ARROW
+            arrow.scale.x, arrow.scale.y, arrow.scale.z = .045, .10, .12
+            arrow.points = [Point(x=0., y=0., z=.2), Point(x=command.linear.x*2., y=command.linear.y*2., z=.2)]
+            arrow.color.r, arrow.color.g, arrow.color.b, arrow.color.a = .05, .9, 1., .95
+        array.markers.append(arrow)
+        label = Marker()
+        label.header.frame_id = self.robot_frame
+        label.ns, label.id = "safety_output", 1
+        label.type = Marker.TEXT_VIEW_FACING
+        label.frame_locked = True
+        label.pose.orientation.w = 1.
+        label.pose.position.z = .9
+        label.pose.position.y = -.55
+        label.scale.z = .12
+        label.color.r, label.color.g, label.color.b, label.color.a = .2, 1., 1., 1.
+        label.text = f"Safety:{mode}\nvx:{command.linear.x:+.2f},vy:{command.linear.y:+.2f}m/s\nw:{command.angular.z:+.2f}rad/s"
+        label.lifetime = Duration(seconds=.6).to_msg()
+        array.markers.append(label)
+        return array
 
     @staticmethod
     def _twist_dict(msg: Twist) -> dict[str, float]:

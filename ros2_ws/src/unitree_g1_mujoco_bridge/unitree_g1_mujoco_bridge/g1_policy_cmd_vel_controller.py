@@ -7,7 +7,7 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
@@ -15,6 +15,7 @@ from std_msgs.msg import Float64MultiArray
 from unitree_hg.msg import LowState
 
 from .g1_constants import G1_29DOF_JOINTS
+from .motion_envelope import load_motion_envelope
 from .policy_safety import (
     advance_gait_phase,
     apply_command_deadband,
@@ -435,6 +436,7 @@ class G1PolicyCmdVelController(Node):
         self.declare_parameter("policy_profile", "mjlab")
         self.declare_parameter("rate_hz", 50.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("policy_cmd_vel_topic", "/g1/policy_cmd_vel")
         self.declare_parameter("odom_topic", "/odom")
         self.declare_parameter("body_command_topic", "/g1/body_position_commands")
         self.declare_parameter("cmd_vel_timeout", 0.4)
@@ -560,6 +562,11 @@ class G1PolicyCmdVelController(Node):
         self.body_pub = self.create_publisher(
             Float64MultiArray,
             str(self.get_parameter("body_command_topic").value),
+            LATEST_RELIABLE_QOS,
+        )
+        self.policy_cmd_pub = self.create_publisher(
+            TwistStamped,
+            str(self.get_parameter("policy_cmd_vel_topic").value),
             LATEST_RELIABLE_QOS,
         )
         self.create_subscription(
@@ -919,18 +926,13 @@ class G1PolicyCmdVelController(Node):
     def _filtered_active_command(
         self, target: Sequence[float], dt: float, immediate_stop: bool = False
     ) -> List[float]:
+        envelope = load_motion_envelope(self)
+        target = envelope.normalize(target, stopped=self.command_stopped)
         turning = False
         if bool(self.get_parameter("axis_exclusive_cmd_vel").value):
             target, turning = axis_isolated_command(
                 target,
                 float(self.get_parameter("axis_exclusive_yaw_threshold").value),
-            )
-        else:
-            target = ensure_forward_turning_arc(
-                target,
-                float(self.get_parameter("axis_exclusive_yaw_threshold").value),
-                float(self.get_parameter("turning_arc_min_forward_speed").value),
-                float(self.get_parameter("turning_arc_min_yaw_speed").value),
             )
         limits = [
             float(self.get_parameter("cmd_accel_x").value),
@@ -947,6 +949,14 @@ class G1PolicyCmdVelController(Node):
             else:
                 self.filtered_command[2] = 0.0
         return list(self.filtered_command)
+
+    def _publish_policy_command(self, command: Sequence[float]) -> None:
+        message = TwistStamped()
+        message.header.stamp = self.get_clock().now().to_msg()
+        message.twist.linear.x = float(command[0])
+        message.twist.linear.y = float(command[1])
+        message.twist.angular.z = float(command[2])
+        self.policy_cmd_pub.publish(message)
 
     def _control_tick(self) -> None:
         if self.last_lowstate is None:
@@ -980,11 +990,13 @@ class G1PolicyCmdVelController(Node):
         command = self._filtered_active_command(active_command, dt, immediate_stop)
         self.last_active_command = command
         if self._startup_active():
+            self._publish_policy_command((0.0, 0.0, 0.0))
             self.gait_phase = 0.0
             self.control_state = "startup_hold"
             self._publish_startup_pose()
             return
         if self._tilt_guard_holding():
+            self._publish_policy_command((0.0, 0.0, 0.0))
             self.gait_phase = 0.0
             self.control_state = "tilt_guard_hold"
             self._publish_targets(self._safe_hold_positions())
@@ -997,12 +1009,14 @@ class G1PolicyCmdVelController(Node):
                 throttle_duration_sec=2.0,
             )
             state = "policy_deadline_hold" if result.deadline_missed else "policy_error_hold"
+            self._publish_policy_command((0.0, 0.0, 0.0))
             self._policy_safe_hold(state)
             return
         if self.policy_worker.invalidate_expired():
             self.get_logger().error(
                 "Policy inference deadline missed", throttle_duration_sec=2.0
             )
+            self._publish_policy_command((0.0, 0.0, 0.0))
             self._policy_safe_hold("policy_deadline_hold")
             return
 
@@ -1036,6 +1050,7 @@ class G1PolicyCmdVelController(Node):
                     f"Policy action handling failed: {exc}",
                     throttle_duration_sec=2.0,
                 )
+                self._publish_policy_command((0.0, 0.0, 0.0))
                 self._policy_safe_hold("policy_error_hold")
                 return
 
@@ -1045,6 +1060,7 @@ class G1PolicyCmdVelController(Node):
             dt,
             float(self.get_parameter("gait_cycle_time").value),
         )
+        self._publish_policy_command(command)
         candidates = self._build_inference_candidates(command)
         self.policy_worker.submit(
             candidates, deadline=time.monotonic() + self.policy_inference_deadline
@@ -1290,7 +1306,15 @@ class G1PolicyCmdVelController(Node):
 class OnnxPolicy:
     def __init__(self, path: str) -> None:
         assert ort is not None
-        self.session = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+        # Bound deployment CPU usage for this small control MLP. An unrestricted
+        # per-core spinning pool can compete with ROS/TF between control ticks.
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = 1
+        options.inter_op_num_threads = 1
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        options.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        options.add_session_config_entry("session.inter_op.allow_spinning", "0")
+        self.session = ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
         self.metadata = self.session.get_modelmeta().custom_metadata_map

@@ -6,13 +6,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
+import secrets
 import selectors
 import shlex
 import subprocess
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO
@@ -37,12 +39,18 @@ class DemoCase:
     scored: bool = True
     interactive: bool = False
     needs_official_policy: bool = False
-    needs_extreme_lab: bool = False
+    required_scene: str | None = None
 
 
-def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase]:
+def case_catalog(
+    run_dir: Path, seed: int, headless: bool, fast_start: bool = False, social_goals: int = 4,
+    visual_duration_s: float = 1800., visual_goals: int | None = None,
+    onboard_people: int = 8,
+) -> dict[str, DemoCase]:
     rviz = ("--no-rviz",) if headless else ()
     official_launch = (
+        "--sim-arg",
+        "policy_action_rate_limit:=0.0",
         "--sim-arg",
         f"policy_path:={OFFICIAL_POLICY}",
         "--sim-arg",
@@ -60,26 +68,31 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
         "--sim-arg",
         "max_lin_vel_x:=0.45",
         "--sim-arg",
-        "max_ang_vel_z:=0.20",
+        "max_ang_vel_z:=0.35",
         "--sim-arg",
         "cmd_accel_x:=0.35",
         "--sim-arg",
         "cmd_accel_yaw:=0.35",
         "--sim-arg",
-        "turning_arc_min_forward_speed:=0.20",
+        "turning_arc_min_forward_speed:=0.06",
         "--sim-arg",
         "turning_arc_min_yaw_speed:=0.12",
     )
     endurance_common = (
         str(SCRIPTS / "run_extreme_lab_person_avoidance_benchmark.sh"),
+        *(("--skip-build",) if fast_start else ()),
+        "--scene",
+        "scene_29dof_pedestrians.xml",
+        "--environment-name",
+        "pedestrian_plaza",
         "--mode",
         "smoke",
         "--seed",
         str(seed),
         "--people",
-        "2",
+        "4",
         "--goals",
-        "2",
+        "4",
         "--minimum-score",
         "70",
         "--require-avoidance",
@@ -90,9 +103,13 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
         *official_launch,
         *waypoint_motion,
         "--sim-arg",
-        "mujoco_pedestrian_scenario:=demo_endurance",
+        "mujoco_pedestrian_scenario:=demo_endurance_plaza",
         "--sim-arg",
-        "mujoco_pedestrian_start_delay:=30.0",
+        "mujoco_pedestrian_start_delay:=0.0",
+        "--sim-arg",
+        "max_ang_vel_z:=0.20",
+        "--sim-arg",
+        "turning_arc_min_forward_speed:=0.20",
         "--sim-arg",
         "tracker_use_sensor_input:=false",
         "--sim-arg",
@@ -102,7 +119,7 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
         "--sim-arg",
         "social_navigation_params_file:=/workspace/ros2_ws/src/unitree_g1_sim_bringup/config/social_navigation_oracle_v1.yaml",
     )
-    return {
+    cases = {
         "mock-avoidance": DemoCase(
             name="mock-avoidance",
             description="Deterministic person-avoidance benchmark mechanics",
@@ -128,6 +145,7 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
             description="Official-policy forward response and stop characterization",
             command=(
                 str(SCRIPTS / "run_g1_fixed_command_test.sh"),
+                *(("--skip-build",) if fast_start else ()),
                 "--policy",
                 str(OFFICIAL_POLICY),
                 "--policy-profile",
@@ -156,13 +174,14 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
         ),
         "waypoint-live": DemoCase(
             name="waypoint-live",
-            description="Scored people-free Nav2 waypoint baseline",
+            description="Scored map-wide reachable random waypoint navigation",
             command=(
                 str(SCRIPTS / "run_extreme_lab_waypoint_benchmark.sh"),
+                *(("--skip-build",) if fast_start else ()),
                 "--seed",
                 str(seed),
                 "--goals",
-                "2",
+                "4",
                 "--minimum-score",
                 "80",
                 "--config",
@@ -175,13 +194,14 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
             ),
             timeout_s=900,
             needs_official_policy=True,
-            needs_extreme_lab=True,
+            required_scene="scene_29dof_extreme_lab.xml",
         ),
         "social-live": DemoCase(
             name="social-live",
             description="Scored conservative live person avoidance",
             command=(
                 str(SCRIPTS / "run_extreme_lab_person_avoidance_benchmark.sh"),
+                *(("--skip-build",) if fast_start else ()),
                 "--mode",
                 "smoke",
                 "--seed",
@@ -200,7 +220,11 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
                 *official_launch,
                 *waypoint_motion,
                 "--sim-arg",
-                "mujoco_pedestrian_start_delay:=45.0",
+                "max_ang_vel_z:=0.20",
+                "--sim-arg",
+                "turning_arc_min_forward_speed:=0.20",
+                "--sim-arg",
+                "mujoco_pedestrian_start_delay:=30.0",
                 "--sim-arg",
                 "tracker_use_sensor_input:=false",
                 "--sim-arg",
@@ -212,11 +236,11 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
             ),
             timeout_s=900,
             needs_official_policy=True,
-            needs_extreme_lab=True,
+            required_scene="scene_29dof_extreme_lab.xml",
         ),
         "social-endurance": DemoCase(
             name="social-endurance",
-            description="Prolonged deterministic two-pedestrian yield-and-resume demonstration",
+            description="Seeded four-stage pedestrian yield-and-resume challenge",
             command=(
                 *endurance_common,
                 "--result-dir",
@@ -226,23 +250,75 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
             ),
             timeout_s=1200,
             needs_official_policy=True,
-            needs_extreme_lab=True,
+            required_scene="scene_29dof_pedestrians.xml",
         ),
         "waypoint-visual": DemoCase(
             name="waypoint-visual",
-            description="Interactive bundled-scene waypoint and RViz showcase",
+            description="Visual map-wide reachable random waypoint showcase",
             command=(
-                str(SCRIPTS / "run_waypoint_navigation_demo.sh"),
-                "mujoco_scene:=scene_29dof_obstacles.xml",
+                str(SCRIPTS / "run_extreme_lab_waypoint_benchmark.sh"),
+                *(("--skip-build",) if fast_start else ()),
+                "--seed",
+                str(seed),
+                "--goals",
+                "4",
+                "--minimum-score",
+                "80",
+                "--config",
+                "/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/demo_suite_waypoint_benchmark.yaml",
+                "--result-dir",
+                str(run_dir / "waypoint-visual"),
+                *official_launch,
+                *waypoint_motion,
             ),
             timeout_s=0,
             scored=False,
             interactive=True,
             needs_official_policy=True,
+            required_scene="scene_29dof_extreme_lab.xml",
+        ),
+        "social-waypoints": DemoCase(
+            name="social-waypoints",
+            description="Reachable Nav2 waypoints with independent people (oracle tracking, known static map)",
+            command=(
+                str(SCRIPTS / "run_extreme_lab_person_avoidance_benchmark.sh"),
+                *(("--skip-build",) if fast_start else ()),
+                "--scene", "scene_29dof_pedestrians.xml",
+                "--environment-name", "pedestrian_plaza",
+                "--mode", "smoke", "--seed", str(seed), "--people", "4", "--goals", str(social_goals),
+                "--minimum-score", "70",
+                "--config", "/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/demo_suite_social_waypoints_benchmark.yaml",
+                "--result-dir", str(run_dir / "social-waypoints"),
+                *rviz, *official_launch, *waypoint_motion,
+                "--sim-arg", "mujoco_pedestrian_scenario:=social_wandering_plaza",
+                "--sim-arg", "mujoco_pedestrian_start_delay:=15.0",
+                "--sim-arg", "nav2_observation_sources:=scan",
+                "--sim-arg", "nav2_max_vel_y:=0.35",
+                "--sim-arg", "nav2_min_vel_y:=-0.35",
+                "--sim-arg", "nav2_acc_lim_y:=0.60",
+                "--sim-arg", "nav2_decel_lim_y:=-0.60",
+                "--sim-arg", "nav2_vy_samples:=7",
+                "--sim-arg", "nav2_planner_plugin:=nav2_smac_planner/SmacPlanner2D",
+                "--sim-arg", "nav2_world_costmap:=true",
+                "--sim-arg", "nav2_static_scene_map:=true",
+                "--sim-arg", "nav2_people_layer:=true",
+                "--sim-arg", "rviz_config:=/workspace/ros2_ws/src/unitree_g1_sim_bringup/rviz/g1_social_waypoints.rviz",
+                "--sim-arg", "max_lin_vel_x:=0.65",
+                "--sim-arg", "max_lin_vel_y:=0.45",
+                "--sim-arg", "cmd_accel_x:=1.20",
+                "--sim-arg", "cmd_accel_y:=1.20",
+                "--sim-arg", "tracker_use_sensor_input:=false",
+                "--sim-arg", "tracker_local_tracking_radius:=0.0",
+                "--sim-arg", "livox_scan_points:=1200",
+                "--sim-arg", "social_navigation_params_file:=/workspace/ros2_ws/src/unitree_g1_sim_bringup/config/social_navigation_waypoints_oracle_v1.yaml",
+            ),
+            timeout_s=900,
+            needs_official_policy=True,
+            required_scene="scene_29dof_pedestrians.xml",
         ),
         "social-visual": DemoCase(
             name="social-visual",
-            description="Visual deterministic two-pedestrian yield-and-resume showcase",
+            description="Visual seeded four-stage pedestrian yield-and-resume challenge",
             command=(
                 *endurance_common,
                 "--result-dir",
@@ -253,9 +329,57 @@ def case_catalog(run_dir: Path, seed: int, headless: bool) -> dict[str, DemoCase
             scored=False,
             interactive=True,
             needs_official_policy=True,
-            needs_extreme_lab=True,
+            required_scene="scene_29dof_pedestrians.xml",
         ),
     }
+
+
+    oracle = cases["social-waypoints"]
+    command = tuple(arg.replace("demo_suite_social_waypoints_benchmark.yaml", "demo_suite_natural_crowd_benchmark.yaml")
+                    .replace(str(run_dir / "social-waypoints"), str(run_dir / "onboard-waypoints")) for arg in oracle.command)
+    overrides = (
+        # Isolated yaw trials support a bounded pivot rather than forcing a
+        # forward arc that can orbit nearby targets.
+        "turning_arc_min_forward_speed:=0.0", "turning_arc_min_yaw_speed:=0.0",
+        "max_ang_vel_z:=0.65", "cmd_accel_yaw:=0.70",
+        "mujoco_pedestrian_scenario:=social_natural_plaza", "mujoco_pedestrian_start_delay:=10.0",
+        "onboard_only:=true", "nav2_dynamic_replanning:=true", "nav2_world_costmap:=false", "nav2_static_scene_map:=false",
+        "tracker_use_sensor_input:=true", "tracker_local_tracking_radius:=10.0",
+        "livox_scan_points:=2400", "lidar_rate_hz:=15.0",
+        "publish_lidar_tf:=false", "use_mujoco_lidar_pose:=false",
+        "use_cmd_vel_lidar_fallback:=false", "run_slam_reset_monitor:=false",
+        "run_lidar_person_detector:=false", "lidar_output_frame:=mujoco_livox_frame",
+        "show_mujoco_goal:=true",
+        *(("publish_camera:=true", "camera_width:=160", "camera_height:=120", "camera_rate_hz:=1.0") if not headless else ()),
+        "rviz_config:=/workspace/ros2_ws/src/unitree_g1_sim_bringup/rviz/g1_onboard_waypoints.rviz",
+        "social_navigation_params_file:=/workspace/ros2_ws/src/unitree_g1_sim_bringup/config/social_navigation_onboard_v1.yaml",
+    )
+    override_names = {value.split(":=", 1)[0] for value in overrides}
+    filtered = []
+    index = 0
+    while index < len(command):
+        if command[index] == "--sim-arg" and command[index + 1].split(":=", 1)[0] in override_names:
+            index += 2
+            continue
+        filtered.append(command[index])
+        index += 1
+    filtered[filtered.index("--people") + 1] = str(onboard_people)
+    filtered[filtered.index("--scene") + 1] = "scene_29dof_natural_crowd.xml"
+    cases["onboard-waypoints"] = replace(oracle, name="onboard-waypoints",
+        description="Online SLAM, LiDAR tracking and event-driven routes; no scene map or truth localization",
+        required_scene="scene_29dof_natural_crowd.xml",
+        command=tuple(filtered) + tuple(arg for value in overrides for arg in ("--sim-arg", value)))
+    visual_command = list(cases["onboard-waypoints"].command)
+    threshold_index = visual_command.index("--minimum-score")
+    del visual_command[threshold_index:threshold_index + 2]
+    visual_command[visual_command.index("--goals") + 1] = str(visual_goals or 1_000_000)
+    visual_command[visual_command.index("--result-dir") + 1] = str(run_dir / "onboard-visual")
+    visual_command += ["--visual-session", "--duration-seconds", str(visual_duration_s)]
+    cases["onboard-visual"] = replace(cases["onboard-waypoints"], name="onboard-visual",
+        description="Long onboard visual session: MuJoCo goal overlay, RViz sensors, SLAM and predictions",
+        command=tuple(visual_command), scored=False, interactive=True,
+        timeout_s=math.ceil(visual_duration_s) + 300)
+    return cases
 
 
 PRESETS = {
@@ -357,8 +481,18 @@ def stream_process(
                     os.killpg(process.pid, 9)
                 break
     except KeyboardInterrupt:
-        os.killpg(process.pid, 15)
-        process.wait(timeout=10)
+        try:
+            os.killpg(process.pid, 15)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, 9)
+            except ProcessLookupError:
+                pass
+            process.wait()
         raise
     finally:
         selector.close()
@@ -390,14 +524,14 @@ def preflight(cases: list[DemoCase], dry_run: bool) -> dict[str, object]:
         checks["official_policy"] = (
             file_sha256(OFFICIAL_POLICY) if OFFICIAL_POLICY.is_file() else "dry-run"
         )
-    extreme_scene = (
-        REPO_ROOT
-        / "ros2_ws/src/unitree_mujoco/unitree_robots/g1/scene_29dof_extreme_lab.xml"
-    )
-    if any(case.needs_extreme_lab for case in cases):
-        if not extreme_scene.is_file():
-            raise RuntimeError(f"Extreme Lab scene is unavailable: {extreme_scene}")
-        checks["extreme_lab_scene"] = str(extreme_scene)
+    scene_root = REPO_ROOT / "ros2_ws/src/unitree_mujoco/unitree_robots/g1"
+    for scene_name in sorted(
+        {case.required_scene for case in cases if case.required_scene is not None}
+    ):
+        scene_path = scene_root / scene_name
+        if not scene_path.is_file():
+            raise RuntimeError(f"required MuJoCo scene is unavailable: {scene_path}")
+        checks[f"scene:{scene_name}"] = str(scene_path)
     return checks
 
 
@@ -408,14 +542,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--goals", type=int, default=None, help="waypoint goal budget (scored cases: 4; onboard-visual: continuous)")
+    parser.add_argument("--duration", type=float, default=1800., help="onboard-visual duration in seconds (default: 30 minutes)")
+    parser.add_argument("--people", type=int, choices=range(1, 9), default=8, help="pedestrians in onboard cases (default: 8)")
+    parser.add_argument(
+        "--fast-start",
+        action="store_true",
+        help="reuse existing builds to reduce launch overhead",
+    )
     parser.add_argument("--continue-on-failure", action="store_true")
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="replay a run with a fixed seed; omitted seeds are generated per run",
+    )
     parser.add_argument("--result-root", type=Path, default=DEFAULT_RESULTS)
     return parser.parse_args()
 
 
+def resolve_seed(requested_seed: int | None) -> int:
+    return requested_seed if requested_seed is not None else secrets.randbits(31)
+
+
 def main() -> int:
     args = parse_args()
+    seed = resolve_seed(args.seed)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = args.result_root.expanduser().resolve() / f"suite_{stamp}"
     if not run_dir.is_relative_to(REPO_ROOT):
@@ -424,7 +575,14 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    catalog = case_catalog(run_dir, args.seed, args.headless)
+    if args.goals is not None and args.goals < 1:
+        print("--goals must be positive", file=sys.stderr)
+        return 2
+    if not math.isfinite(args.duration) or args.duration <= 0:
+        print("--duration must be finite and positive", file=sys.stderr)
+        return 2
+    catalog = case_catalog(run_dir, seed, args.headless, args.fast_start, args.goals or 4,
+                           args.duration, args.goals, args.people)
     if args.list:
         print("Presets:")
         for name, cases in PRESETS.items():
@@ -448,8 +606,9 @@ def main() -> int:
         "repository": str(REPO_ROOT),
         "git_commit": git_output("rev-parse", "HEAD"),
         "git_dirty": bool(git_output("status", "--porcelain")),
-        "seed": args.seed,
+        "seed": seed,
         "headless": args.headless,
+        "fast_start": args.fast_start,
         "dry_run": args.dry_run,
         "preflight": checks,
         "cases": [
@@ -463,7 +622,7 @@ def main() -> int:
     }
     write_json(run_dir / "manifest.json", manifest)
     results: list[dict[str, object]] = []
-    overall_status = "dry-run" if args.dry_run else "passed"
+    overall_status = "dry-run" if args.dry_run else ("completed" if all(not case.scored for case in cases) else "passed")
     try:
         for case in cases:
             case_dir = run_dir / case.name
@@ -486,7 +645,7 @@ def main() -> int:
                 "status": (
                     "planned"
                     if args.dry_run
-                    else ("passed" if return_code == 0 else "failed")
+                    else (("passed" if case.scored else "completed") if return_code == 0 else "failed")
                 ),
             }
             results.append(result)
@@ -507,7 +666,7 @@ def main() -> int:
         write_json(run_dir / "status.json", status)
         print(f"\nSuite status: {overall_status}")
         print(f"Artifacts: {run_dir}")
-    return 0 if overall_status in ("passed", "dry-run") else 1
+    return 0 if overall_status in ("passed", "completed", "dry-run") else 1
 
 
 if __name__ == "__main__":

@@ -1,0 +1,83 @@
+# Sensor-only profile. Motion limits/response retain the agile controller.
+dynamic_obstacle_tracker:
+  ros__parameters:
+    cloud_topic: /onboard/lidar
+    target_frame: odom
+    use_sensor_input: true
+    use_mujoco_people_detections: false
+    mujoco_people_authoritative: false
+    use_ml_person_detections: false
+    use_object_motion_detection: true
+    use_track_conditioned_crops: true
+    enable_point_noise_filter: false
+    voxel_leaf_size: 0.12
+    max_cluster_points: 600
+    object_max_points: 600
+    object_min_height: 0.65
+    require_person_shape_for_object_detection: true
+    max_person_speed: 2.0
+    max_human_speed: 2.0
+    # Do not extrapolate noisy surface-centroid acceleration into future walking speed.
+    max_person_acceleration: 0.0
+    # Respond to walking onset after long idle periods without treating normal
+    # centimetre-scale centroid noise as persistent walking velocity.
+    tracking_process_noise: 1.2
+    measurement_noise_variance: 0.004
+    tracked_body_radius_floor: 0.40
+    robot_self_filter_radius: 0.25
+    confirmed_keep_missed_time: 2.0
+    max_prediction_coast_time: 2.0
+    stale_track_timeout: 2.0
+    point_accumulation_time: 0.20
+    max_visible_confirmed_tracks: 0
+    marker_lifetime: 1.2
+    marker_display_hold_time: 0.9
+
+human_aware_motion_planner:
+  ros__parameters:
+    target_frame: odom
+    tracked_persons_topic: /tracked_persons
+    predicted_trajectories_topic: /predicted_person_trajectories
+    use_legacy_person_inputs: false
+    local_safe_space_enabled: false
+    holonomic_avoidance: true
+    prefer_forward_travel: true
+    path_reference_speed: 0.60
+    path_reference_lookahead: 1.5
+    nav2_path_reference: true
+    retain_observed_routes: true
+    planning_budget_ms: 45.0
+    local_escape_enabled: true
+    use_static_scene_map: false
+    static_memory_seconds: 2.0
+    odom_timeout: 0.6
+    max_lateral_near_human: 0.45
+    max_forward_near_human: 0.65
+    max_reverse_velocity: 0.45
+    max_angular_near_human: 0.60
+    response_yaw_gain: 0.32
+    # Receding-horizon decisions: long constant-velocity forecasts were making
+    # every escape infeasible in rooms where actors frequently turn and pause.
+    prediction_horizon: 3.0
+    simulation_dt: 0.15
+    hard_collision_horizon: 3.0
+    social_cost_decay: 1.0
+    ttc_warning_threshold: 4.5
+    comfort_radius: 1.8
+    # Offline observed surface-centroid errors reached ~0.14 m in the pilot.
+    body_prediction_margin: 0.18
+    hard_safety_margin: 0.40
+    w_personal_space: 12.0
+    w_goal: 6.0
+    w_path: 0.5
+
+human_collision_avoidance:
+  ros__parameters:
+    response_yaw_gain: 0.32
+    odom_timeout: 0.6
+    target_frame: odom
+    use_mujoco_people: false
+    danger_radius: 1.60
+    critical_radius: 0.95
+    emergency_stop_radius: 0.70
+    max_lateral_linear: 0.45

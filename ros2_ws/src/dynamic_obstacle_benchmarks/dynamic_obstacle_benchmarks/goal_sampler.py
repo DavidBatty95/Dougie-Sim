@@ -73,15 +73,32 @@ class GoalSampler:
         return [Goal(index, right if index % 2 == 0 else left) for index in range(self.config.goals_count)]
 
     def _sample_valid_pose(self, previous: Pose2D, people: list[PersonState]) -> Pose2D:
-        b = self.config.bounds
+        b = self.config.goal_bounds or self.config.bounds
         margin = self.config.min_distance_from_walls_m
         for _ in range(self.config.max_sampling_attempts):
+            x = self.rng.uniform(b.x_min + margin, b.x_max - margin)
+            y = self.rng.uniform(b.y_min + margin, b.y_max - margin)
+            if self.config.onboard_only:
+                heading = previous.yaw + self.rng.uniform(-self.config.max_goal_heading_change_rad, self.config.max_goal_heading_change_rad)
+                distance = self.rng.uniform(self.config.min_goal_distance_m, self.config.max_goal_distance_m or 2.5)
+                x, y = previous.x + distance * math.cos(heading), previous.y + distance * math.sin(heading)
+                if not (b.x_min + margin <= x <= b.x_max - margin and b.y_min + margin <= y <= b.y_max - margin):
+                    continue
             pose = Pose2D(
-                self.rng.uniform(b.x_min + margin, b.x_max - margin),
-                self.rng.uniform(b.y_min + margin, b.y_max - margin),
-                self.rng.uniform(-math.pi, math.pi),
+                x,
+                y,
+                math.atan2(y - previous.y, x - previous.x),
             )
             if distance_xy(pose, previous) < self.config.min_goal_distance_m:
+                continue
+            inside_goal_bounds = b.x_min <= previous.x <= b.x_max and b.y_min <= previous.y <= b.y_max
+            if inside_goal_bounds and self.config.max_goal_distance_m is not None and distance_xy(pose, previous) > self.config.max_goal_distance_m:
+                continue
+            heading_change = math.atan2(
+                math.sin(pose.yaw - previous.yaw),
+                math.cos(pose.yaw - previous.yaw),
+            )
+            if abs(heading_change) > self.config.max_goal_heading_change_rad:
                 continue
             if min_person_distance(pose, people) < self.config.spawn_min_distance_from_goal_m:
                 continue

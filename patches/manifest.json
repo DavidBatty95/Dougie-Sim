@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "path": "ros2_ws/src/unitree_mujoco",
+      "base_commit": "fde35565f1816bf2c3ef0e56a6ab8e552ec50717",
+      "patch": "unitree_mujoco.patch",
+      "sha256": "12f3c97397e260c7c78c60a0adbbc43cf3581349bc093e560e669d7b522ad9dd",
+      "files": {
+        ".gitignore": "935e3d5f354bae0900f0e4bbbc28a4c0cf2273c080fe813b3f4324a5cdefcce2",
+        "simulate/CMakeLists.txt": "85c31281039ebec4947698f1aabccd16eb9c4d15d54cef2475e63b927be48395",
+        "simulate/src/main.cc": "dd35cc8a809793537b541fa4aa44b38f92ca239ef059c6ad97b989647732668d",
+        "unitree_robots/g1/scene_29dof_extreme_lab.xml": "7e4a412eed5ad3635bcb80cb0c1953b297b024695e9e05d8837a51a701c9f960",
+        "simulate/src/goal_overlay.cc": "616a952fa943c4a702f543932ca2984c7301d9befb15441161e42013098ff8e5",
+        "simulate/src/goal_overlay.h": "5737bbd07c7cc7a33876436fe3dd288d4d78e5d6c5d1d936c6716adea04c3731",
+        "simulate/src/natural_pedestrian_motion.h": "0a13861511700b88d61e2b5df1a04ba31f1a098dfa09f107163fca1712e58d6e",
+        "simulate/src/pedestrian_path_planner.h": "888e2cefec85b10fbf439553167ff710d1180dda96a5afaf2400f55f916b8992",
+        "simulate/src/pedestrian_scenarios.h": "90936599d47c693aafebfa1e962bfc30e467e88de0f61d1da597acfa39283824",
+        "simulate/test/goal_overlay_test.cc": "f64c5ac663b81d8f2be8f37b5c07c2440b9d314e9d6eb4a4c14ae044b5130c10",
+        "simulate/test/natural_pedestrians_test.cc": "bbbf26945fa266f8b9913d8be11aa0bcbe643ee47d88ac6c93c92fd59ddc4735",
+        "simulate/test/pedestrian_scenarios_test.cc": "37f57e299192fde62ebdc86b413e02e9e897087b0c8d43496610a185bbdd9ed0",
+        "tools/generate_natural_pedestrians.py": "e25c46a4cd2dc8f730a7bab4bb30fec84d7525a38fece3a03ef31d7b7682b02b",
+        "tools/test_natural_meshes.py": "7f691502deeed4710a51f7537a941d39f3d07e53b9bcec35b5040a7130e48366",
+        "unitree_robots/g1/scene_29dof_natural_crowd.xml": "59192074afc48cc59ad3ce3b19f6d45f3ba4e6ccd2cacb0eacc7f86207b38c6b"
+      }
+    },
+    {
+      "path": "vendor/mjlab",
+      "base_commit": "ebfc96fa17f40ecd15ed9891cfdf59cd43d0c7b3",
+      "patch": "mjlab.patch",
+      "sha256": "4a4e9d1eebf751c349a801e77f020e4be3ec3982d00329c7c7676fa60836a7a6",
+      "files": {
+        "docs/source/changelog.rst": "f7492c973de2d48d0515ebc6743db4b5215fd8f6d81c6e758e75fa1f39225804",
+        "src/mjlab/tasks/velocity/config/g1/__init__.py": "e6edb280dd8c920e6f9b651a2e5541c04a8ce7b594eb982f03660b5393f30204",
+        "src/mjlab/tasks/velocity/config/g1/env_cfgs.py": "b85c25cc32556bbe208379e07831f84c92140a79f45d53ecc5d9a6146d154a5d",
+        "src/mjlab/tasks/velocity/config/g1/rl_cfg.py": "96d05ee103943df474169a0894d68362c4a5583c478e4d56bdbccdfb49a369b6",
+        "tests/test_g1_stand_creep_stop_task.py": "800bf126dddc2587c8253172872a9925e4a3a92048bd17c8a61d58ee8ffdcdfc"
+      }
+    }
+  ]
+}

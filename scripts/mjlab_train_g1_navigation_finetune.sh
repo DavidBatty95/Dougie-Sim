@@ -14,6 +14,7 @@ SOURCE_RUN="${MJLAB_SOURCE_RUN:-}"
 CHECKPOINT="${MJLAB_CHECKPOINT:-}"
 NUM_ENVS="${MJLAB_NUM_ENVS:-4096}"
 ITERATIONS="${MJLAB_NAVIGATION_ITERATIONS:-1000}"
+SEED="${MJLAB_SEED:-42}"
 DRY_RUN=0
 PASSTHROUGH=()
 
@@ -28,6 +29,7 @@ resumed. If none exists, training starts from model_5597.pt.
 Options:
   --iterations N      Additional iterations (default: 1000)
   --num-envs N        Parallel environments (default: 4096)
+  --seed N            Explicit training seed (default: 42)
   --source-run NAME   Explicit source run directory
   --checkpoint FILE   Explicit checkpoint filename
   --from-5597         Restart from the original model_5597.pt
@@ -40,6 +42,7 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --iterations) ITERATIONS="$2"; shift 2 ;;
     --num-envs) NUM_ENVS="$2"; shift 2 ;;
+    --seed) SEED="$2"; shift 2 ;;
     --source-run) SOURCE_RUN="$2"; shift 2 ;;
     --checkpoint) CHECKPOINT="$2"; shift 2 ;;
     --from-5597) SOURCE_RUN="${BASE_RUN}"; CHECKPOINT="model_5597.pt"; shift ;;
@@ -50,8 +53,8 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if ! [[ "${NUM_ENVS}" =~ ^[1-9][0-9]*$ && "${ITERATIONS}" =~ ^[1-9][0-9]*$ ]]; then
-  printf 'Iterations and environment count must be positive integers.\n' >&2
+if ! [[ "${NUM_ENVS}" =~ ^[1-9][0-9]*$ && "${ITERATIONS}" =~ ^[1-9][0-9]*$ && "${SEED}" =~ ^[0-9]+$ ]]; then
+  printf 'Seed must be nonnegative; iterations and environment count must be positive integers.\n' >&2
   exit 2
 fi
 
@@ -95,7 +98,7 @@ if [ -z "${CHECKPOINT}" ] || [ ! -f "${LOG_ROOT}/${SOURCE_RUN}/${CHECKPOINT}" ];
   exit 2
 fi
 
-RUN_NAME="${RUN_NAME_PREFIX}_from_${CHECKPOINT%.pt}"
+RUN_NAME="${RUN_NAME_PREFIX}_from_${CHECKPOINT%.pt}_seed_${SEED}"
 COMMAND=("${SCRIPT_DIR}/run_mjlab_docker.sh" train
   "${TASK_ID}"
   --agent.logger tensorboard
@@ -104,18 +107,35 @@ COMMAND=("${SCRIPT_DIR}/run_mjlab_docker.sh" train
   --agent.load-run "^${SOURCE_RUN}$"
   --agent.load-checkpoint "^${CHECKPOINT//./[.]}$"
   --agent.max-iterations "${ITERATIONS}"
+  --agent.seed "${SEED}"
   --env.scene.num-envs "${NUM_ENVS}"
   --resume-optimizer False
   "${PASSTHROUGH[@]}")
 
 printf 'Source: %s/%s\n' "${SOURCE_RUN}" "${CHECKPOINT}"
 printf 'Training: %s environments, %s additional iterations\n' "${NUM_ENVS}" "${ITERATIONS}"
+printf 'Seed: %s\n' "${SEED}"
 if [ "${DRY_RUN}" = "1" ]; then
   printf 'Command:'
   printf ' %q' "${COMMAND[@]}"
   printf '\n'
   exit 0
 fi
+
+MANIFEST_DIR="${LOG_ROOT}/training_manifests"
+MANIFEST_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+MANIFEST_PATH="${MANIFEST_DIR}/${MANIFEST_STAMP}_${RUN_NAME}.json"
+python3 "${SCRIPT_DIR}/write_mjlab_training_manifest.py" \
+  --output "${MANIFEST_PATH}" \
+  --repository-root "${REPO_ROOT}" \
+  --stage "${RUN_NAME_PREFIX}" \
+  --task "${TASK_ID}" \
+  --run-name "${RUN_NAME}" \
+  --seed "${SEED}" \
+  --num-envs "${NUM_ENVS}" \
+  --iterations "${ITERATIONS}" \
+  --source-checkpoint "${LOG_ROOT}/${SOURCE_RUN}/${CHECKPOINT}" \
+  -- "${COMMAND[@]}"
 
 export MJLAB_WITH_GPUS=1
 export MJLAB_AUTO_RESUME=0

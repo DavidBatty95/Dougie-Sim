@@ -26,6 +26,8 @@ if [ "${MODE}" = "ci" ]; then
   INSTALL_BASE="${COLCON_INSTALL_BASE}"
   echo "[test] ROS workspace build"
   "${REPO_ROOT}/scripts/build_ws.sh"
+  "${REPO_ROOT}/scripts/build_unitree_mujoco.sh"
+  ctest --test-dir "${WORKSPACE}/src/unitree_mujoco/simulate/build" --output-on-failure
 fi
 
 set +u
@@ -60,6 +62,7 @@ paths = [
     root / 'src/unitree_g1_sim_bringup/package.xml',
     root / 'src/dynamic_obstacle_benchmarks/package.xml',
     root / 'src/unitree_social_navigation_msgs/package.xml',
+    root / 'src/unitree_social_costmap/package.xml',
     root / 'src/unitree_g1_description/urdf/g1_29dof_mode_15_brainco_hand.urdf',
 ]
 paths.extend(
@@ -92,6 +95,21 @@ else
 fi
 
 if [ "${MODE}" != "fast" ]; then
+  echo "[test] Host-side benchmark orchestration tests"
+  python3 -m pytest \
+    "${REPO_ROOT}/scripts/test_avoidance_dashboard.py" \
+    "${REPO_ROOT}/scripts/test_avoidance_worlds.py" \
+    "${REPO_ROOT}/scripts/test_benchmark_batch.py" \
+    "${REPO_ROOT}/scripts/test_benchmark_aggregation.py" \
+    "${REPO_ROOT}/scripts/test_live_benchmark_output.py" \
+    "${REPO_ROOT}/scripts/test_fixed_command_measurement.py" \
+    "${REPO_ROOT}/scripts/test_g1_response_extraction.py" \
+    "${REPO_ROOT}/scripts/test_g1_response_fitting_spec.py" \
+    "${REPO_ROOT}/scripts/test_process_g1_response_trial.py" \
+    "${REPO_ROOT}/scripts/test_benchmark_validator.py" \
+    "${REPO_ROOT}/scripts/test_demo_suite.py" \
+    "${REPO_ROOT}/scripts/test_mjlab_training_manifest.py"
+
   echo "[test] ROS package unit and integration tests"
   cd "${WORKSPACE}"
   colcon --log-base "${COLCON_LOG_BASE:-${WORKSPACE}/log}" test \
@@ -108,6 +126,7 @@ if [ "${MODE}" != "fast" ]; then
       unitree_g1_mujoco_bridge \
       unitree_g1_sim_bringup \
       unitree_social_navigation_msgs \
+      unitree_social_costmap \
     --event-handlers console_direct+
   colcon test-result \
     --test-result-base "${COLCON_BUILD_BASE:-${WORKSPACE}/build}" \

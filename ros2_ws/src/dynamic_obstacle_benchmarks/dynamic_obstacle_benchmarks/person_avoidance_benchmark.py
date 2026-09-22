@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 try:
@@ -24,6 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--record-rosbag", action="store_true", help="Reserved for MuJoCo/Nav2 backend rosbag recording.")
     parser.add_argument("--output", default=None, help="JSON output path.")
     parser.add_argument("--scenario-file", default=None, help="Reserved scenario replay file path.")
+    parser.add_argument("--visual-session", action="store_true", help="Unscored long visual session; contacts remain logged and do not end the session.")
+    parser.add_argument("--duration-seconds", type=float, default=None, help="Session/benchmark wall-time budget in seconds.")
     return parser
 
 
@@ -45,6 +48,18 @@ def apply_overrides(config, args) -> None:
         config.people_count = args.people
     if args.goals is not None:
         config.goals_count = args.goals
+    if getattr(args, "visual_session", False):
+        config.visual_session = True
+        config.name = "onboard_visual_session"
+        config.goal_tolerance_m = .50
+        config.total_timeout_s = 1800.
+        if args.goals is None:
+            config.goals_count = 1_000_000
+    duration = getattr(args, "duration_seconds", None)
+    if duration is not None:
+        if not math.isfinite(duration) or duration <= 0:
+            raise ValueError("duration-seconds must be finite and positive")
+        config.total_timeout_s = duration
     if args.headless:
         config.headless = True
     if args.record_rosbag:
@@ -77,12 +92,13 @@ def print_summary(config, score, result_path: str) -> None:
     import json
 
     data = json.loads(Path(result_path).read_text())
-    print("Person Avoidance Benchmark")
+    print("Visual Navigation Session (unscored)" if config.visual_session else "Person Avoidance Benchmark")
     print("--------------------------")
     print(f"Seed: {config.seed}")
     print(f"Backend: {config.backend}")
     print(f"People: {data['people_count']}")
-    print(f"Goals requested: {data['goals_requested']}")
+    if not config.visual_session:
+        print(f"Goals requested: {data['goals_requested']}")
     print(f"Goals reached: {data['goals_reached']}")
     print(f"Total time: {data['total_time_s']:.1f} s")
     print(f"Actual path length: {data['actual_path_length_m']:.2f} m")
@@ -94,11 +110,14 @@ def print_summary(config, score, result_path: str) -> None:
     print(f"Minimum center distance: {data['minimum_center_distance_m']} m")
     print(f"Minimum body clearance: {data['minimum_body_clearance_m']} m")
     print(f"Minimum TTC: {data['minimum_ttc_s']} s")
-    print(f"Safety score: {score.safety_score:.1f}")
-    print(f"Task score: {score.task_score:.1f}")
-    print(f"Speed score: {score.speed_score:.1f}")
-    print(f"Efficiency score: {score.efficiency_score:.1f}")
-    print(f"Final score: {score.final_score:.1f} / 100")
+    if config.visual_session:
+        print(f"Session ended: {data.get('session_end_reason', 'stopped')}")
+    if not config.visual_session:
+        print(f"Safety score: {score.safety_score:.1f}")
+        print(f"Task score: {score.task_score:.1f}")
+        print(f"Speed score: {score.speed_score:.1f}")
+        print(f"Efficiency score: {score.efficiency_score:.1f}")
+        print(f"Final score: {score.final_score:.1f} / 100")
     print(f"Result file: {result_path}")
 
 

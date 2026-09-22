@@ -4,7 +4,14 @@ import math
 from dataclasses import dataclass, field
 
 from .config import BenchmarkConfig
-from .geometry import Pose2D, Velocity2D, circle_clearance, distance_xy, time_to_collision
+from .geometry import (
+    Pose2D,
+    Velocity2D,
+    circle_clearance,
+    closest_approach,
+    distance_xy,
+    time_to_collision,
+)
 from .goal_sampler import Goal
 from .person_motion_models import PersonState
 
@@ -19,6 +26,8 @@ class SafetyEvent:
     robot_pose: Pose2D | None = None
     center_distance_m: float | None = None
     body_clearance_m: float | None = None
+    tcpa_s: float | None = None
+    dcpa_m: float | None = None
 
     def as_dict(self) -> dict:
         data = {
@@ -30,6 +39,8 @@ class SafetyEvent:
             "center_distance_m": self.center_distance_m if self.center_distance_m is not None else self.distance_m,
             "body_clearance_m": self.body_clearance_m,
             "ttc_s": self.ttc_s,
+            "tcpa_s": self.tcpa_s,
+            "dcpa_m": self.dcpa_m,
         }
         if self.robot_pose is not None:
             data["robot_pose"] = {"x": self.robot_pose.x, "y": self.robot_pose.y, "yaw": self.robot_pose.yaw}
@@ -88,25 +99,51 @@ class BenchmarkMetrics:
     minimum_body_clearance_m: float = math.inf
     mean_body_clearance_m: float = 0.0
     minimum_ttc_s: float = math.inf
+    minimum_dcpa_m: float = math.inf
+    tcpa_at_minimum_dcpa_s: float = math.inf
     collisions: int = 0
     near_misses: int = 0
     critical_near_misses: int = 0
     time_below_warning_distance_s: float = 0.0
     time_below_near_miss_distance_s: float = 0.0
     time_below_critical_distance_s: float = 0.0
+    warning_distance_wall_time_s: float = 0.0
+    near_miss_distance_wall_time_s: float = 0.0
+    critical_distance_wall_time_s: float = 0.0
+    warning_distance_person_time_s: float = 0.0
+    near_miss_distance_person_time_s: float = 0.0
+    critical_distance_person_time_s: float = 0.0
     emergency_stops: int = 0
     avoidance_interventions: int = 0
+    yield_episodes: int = 0
+    resume_episodes: int = 0
+    yield_time_s: float = 0.0
     stale_events: int = 0
+    people_observed: int = 0
+    people_active_initial: int = 0
+    people_active_minimum: int = 0
+    people_active_final: int = 0
+    max_odom_age_s: float = 0.0
+    max_pedestrian_age_s: float = 0.0
+    max_scan_age_s: float = 0.0
+    max_control_people_source_age_s: float = 0.0
+    max_odom_sample_stall_s: float = 0.0
+    max_pedestrian_sample_stall_s: float = 0.0
+    max_scan_sample_stall_s: float = 0.0
+    scan_messages_observed: int = 0
+    scan_source_observed: str = "not_observed"
+    control_people_source_observed: str = "not_observed"
     speed_limit_violations: int = 0
     left_valid_area: bool = False
     no_movement: bool = False
     fallen: bool = False
     valid_trial: bool = True
     invalid_reason: str | None = None
+    session_end_reason: str | None = None
     goal_metrics: list[GoalMetrics] = field(default_factory=list)
     events: list[SafetyEvent] = field(default_factory=list)
     _last_pose: Pose2D | None = None
-    _sample_count: int = 0
+    _people_observation_time_s: float = 0.0
     _separation_sum: float = 0.0
     _clearance_sum: float = 0.0
     _near_active: set[int] = field(default_factory=set)
@@ -167,45 +204,88 @@ class MetricsMonitor:
         present_ids = {person.person_id for person in people}
         min_center_distance = math.inf
         min_clearance = math.inf
+        warning_exposure = False
+        near_miss_exposure = False
+        critical_exposure = False
         for person in people:
             center_distance = distance_xy(robot_pose, person.pose)
             clearance = circle_clearance(robot_pose, self.config.robot_radius_m, person.pose, person.radius_m)
             min_center_distance = min(min_center_distance, center_distance)
             min_clearance = min(min_clearance, clearance)
-            self._update_distance_events(now_s, dt_s, person.person_id, center_distance, clearance, robot_pose)
+            warning, near_miss, critical = self._update_distance_events(
+                now_s,
+                dt_s,
+                person.person_id,
+                center_distance,
+                clearance,
+                robot_pose,
+            )
+            warning_exposure = warning_exposure or warning
+            near_miss_exposure = near_miss_exposure or near_miss
+            critical_exposure = critical_exposure or critical
+            combined_radius = self.config.robot_radius_m + person.radius_m
             ttc = time_to_collision(
                 robot_pose,
                 robot_velocity,
                 person.pose,
                 person.velocity,
-                self.config.collision_distance_m,
+                combined_radius,
                 self.config.ttc_horizon_s,
             )
+            tcpa, dcpa = closest_approach(
+                robot_pose,
+                robot_velocity,
+                person.pose,
+                person.velocity,
+                self.config.ttc_horizon_s,
+            )
+            if dcpa < self.metrics.minimum_dcpa_m:
+                self.metrics.minimum_dcpa_m = dcpa
+                self.metrics.tcpa_at_minimum_dcpa_s = tcpa
             if ttc is not None:
                 self.metrics.minimum_ttc_s = min(self.metrics.minimum_ttc_s, ttc)
                 if ttc <= self.config.ttc_critical_s:
                     if person.person_id not in self.metrics._critical_ttc_active:
                         self.metrics._critical_ttc_active.add(person.person_id)
                         self.metrics.events.append(SafetyEvent(
-                            now_s, "critical_ttc", person.person_id, center_distance, ttc, robot_pose,
-                            center_distance, clearance,
+                            time_s=now_s,
+                            type="critical_ttc",
+                            person_id=person.person_id,
+                            distance_m=center_distance,
+                            ttc_s=ttc,
+                            robot_pose=robot_pose,
+                            center_distance_m=center_distance,
+                            body_clearance_m=clearance,
+                            tcpa_s=tcpa,
+                            dcpa_m=dcpa,
                         ))
                 else:
                     self.metrics._critical_ttc_active.discard(person.person_id)
             else:
                 self.metrics._critical_ttc_active.discard(person.person_id)
 
+        if warning_exposure:
+            self.metrics.warning_distance_wall_time_s += dt_s
+        if near_miss_exposure:
+            self.metrics.near_miss_distance_wall_time_s += dt_s
+        if critical_exposure:
+            self.metrics.critical_distance_wall_time_s += dt_s
+
         self._expire_missing_people(present_ids)
 
         self.metrics.minimum_separation_m = min(self.metrics.minimum_separation_m, min_center_distance)
         self.metrics.minimum_center_distance_m = min(self.metrics.minimum_center_distance_m, min_center_distance)
         self.metrics.minimum_body_clearance_m = min(self.metrics.minimum_body_clearance_m, min_clearance)
-        self.metrics._sample_count += 1
-        self.metrics._separation_sum += min_center_distance
-        self.metrics._clearance_sum += min_clearance
-        self.metrics.mean_separation_m = self.metrics._separation_sum / self.metrics._sample_count
+        self.metrics._people_observation_time_s += dt_s
+        self.metrics._separation_sum += min_center_distance * dt_s
+        self.metrics._clearance_sum += min_clearance * dt_s
+        self.metrics.mean_separation_m = (
+            self.metrics._separation_sum / self.metrics._people_observation_time_s
+        )
         self.metrics.mean_center_distance_m = self.metrics.mean_separation_m
-        self.metrics.mean_body_clearance_m = self.metrics._clearance_sum / self.metrics._sample_count
+        self.metrics.mean_body_clearance_m = (
+            self.metrics._clearance_sum / self.metrics._people_observation_time_s
+        )
         if self.metrics.goal_metrics:
             goal = self.metrics.goal_metrics[-1]
             goal.minimum_separation_m = min(goal.minimum_separation_m, min_center_distance)
@@ -235,11 +315,24 @@ class MetricsMonitor:
             if person_id in present_ids
         }
 
-    def _update_distance_events(self, now_s: float, dt_s: float, person_id: int, center_distance: float, clearance: float, robot_pose: Pose2D) -> None:
-        if center_distance < self.config.warning_distance_m:
+    def _update_distance_events(
+        self,
+        now_s: float,
+        dt_s: float,
+        person_id: int,
+        center_distance: float,
+        clearance: float,
+        robot_pose: Pose2D,
+    ) -> tuple[bool, bool, bool]:
+        warning = clearance < self.config.warning_margin_m
+        near_miss = clearance < self.config.near_miss_margin_m
+        critical = clearance < self.config.critical_margin_m
+        if warning:
             self.metrics.time_below_warning_distance_s += dt_s
-        if center_distance < self.config.near_miss_distance_m:
+            self.metrics.warning_distance_person_time_s += dt_s
+        if near_miss:
             self.metrics.time_below_near_miss_distance_s += dt_s
+            self.metrics.near_miss_distance_person_time_s += dt_s
             duration = self.metrics._near_duration_s.get(person_id, 0.0) + dt_s
             self.metrics._near_duration_s[person_id] = duration
             if person_id not in self.metrics._near_active and duration + 1e-9 >= self.config.near_miss_min_duration_s:
@@ -255,8 +348,9 @@ class MetricsMonitor:
             self.metrics._near_active.discard(person_id)
             self.metrics._near_duration_s.pop(person_id, None)
 
-        if center_distance < self.config.critical_distance_m:
+        if critical:
             self.metrics.time_below_critical_distance_s += dt_s
+            self.metrics.critical_distance_person_time_s += dt_s
             duration = self.metrics._critical_duration_s.get(person_id, 0.0) + dt_s
             self.metrics._critical_duration_s[person_id] = duration
             if person_id not in self.metrics._critical_active and duration + 1e-9 >= self.config.near_miss_min_duration_s:
@@ -284,3 +378,4 @@ class MetricsMonitor:
                 ))
         elif clearance > 0.05:
             self.metrics._collision_active.discard(person_id)
+        return warning, near_miss, critical

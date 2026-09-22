@@ -1,0 +1,15 @@
+name: Feature request
+description: Propose a scoped improvement with an observable acceptance criterion
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Problem and proposed change
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Acceptance evidence
+      description: What test, demonstration or measurement would establish that this works?
+    validations:
+      required: true

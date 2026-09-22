@@ -1,12 +1,17 @@
 import dataclasses
+import math
 import struct
 from typing import Optional
 
 
 LIDAR_MAGIC_V1 = 0x524C4A4D
 LIDAR_MAGIC_V2 = 0x324C4A4D
+LIDAR_MAGIC_V3 = 0x334C4A4D
 CAMERA_MAGIC_V1 = 0x52434A4D
 CAMERA_MAGIC_V2 = 0x32434A4D
+PEDESTRIAN_MAGIC_V1 = 0x31444550
+PEDESTRIAN_MAGIC_V2 = 0x32444550
+PEDESTRIAN_MAGIC_V3 = 0x33444550
 
 
 @dataclasses.dataclass(frozen=True)
@@ -19,13 +24,29 @@ class SensorPacket:
     count: int = 0
     width: int = 0
     height: int = 0
+    root_origin: Optional[tuple] = None
+    root_quaternion_wxyz: Optional[tuple] = None
+    root_world_velocity: Optional[tuple] = None
+    root_body_angular_velocity: Optional[tuple] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class PedestrianPacket:
+    simulation_time: float
+    acquisition_time_ns: Optional[int]
+    population_count: Optional[int]
+    people: tuple[tuple[int, float, float, float, float, float], ...]
 
 
 def decode_lidar_packet(packet: bytes) -> Optional[SensorPacket]:
     if len(packet) < 4:
         return None
     magic = struct.unpack_from("<I", packet)[0]
-    if magic == LIDAR_MAGIC_V2:
+    if magic == LIDAR_MAGIC_V3:
+        header_format = "<IIdq3f4f3f4f3f3f"
+        acquisition_index = 3
+        pose_index = 4
+    elif magic == LIDAR_MAGIC_V2:
         header_format = "<IIdq3f4f"
         acquisition_index = 3
         pose_index = 4
@@ -44,6 +65,15 @@ def decode_lidar_packet(packet: bytes) -> Optional[SensorPacket]:
     if len(packet) < header_size + payload_size:
         return None
     acquisition_ns = values[acquisition_index] if acquisition_index is not None else None
+    root = {}
+    if magic == LIDAR_MAGIC_V3:
+        state = values[11:24]
+        if not all(math.isfinite(value) for value in state):
+            return None
+        # A zero root quaternion denotes unavailable root state on other models.
+        if sum(value * value for value in values[14:18]) > 0.5:
+            root = dict(root_origin=tuple(values[11:14]), root_quaternion_wxyz=tuple(values[14:18]),
+                        root_world_velocity=tuple(values[18:21]), root_body_angular_velocity=tuple(values[21:24]))
     return SensorPacket(
         simulation_time=values[2],
         acquisition_time_ns=acquisition_ns,
@@ -51,6 +81,7 @@ def decode_lidar_packet(packet: bytes) -> Optional[SensorPacket]:
         quaternion_wxyz=tuple(values[pose_index + 3 : pose_index + 7]),
         payload=packet[header_size : header_size + payload_size],
         count=count,
+        **root,
     )
 
 
@@ -94,4 +125,47 @@ def decode_camera_packet(packet: bytes) -> Optional[SensorPacket]:
         payload=packet[header_size : header_size + payload_size],
         width=width,
         height=height,
+    )
+
+
+def decode_pedestrian_packet(packet: bytes) -> Optional[PedestrianPacket]:
+    if len(packet) < 8:
+        return None
+    magic, count = struct.unpack_from("<II", packet)
+    if magic == PEDESTRIAN_MAGIC_V3:
+        header_format = "<IIIdq"
+        population_index = 2
+        simulation_index = 3
+        acquisition_index = 4
+    elif magic == PEDESTRIAN_MAGIC_V2:
+        header_format = "<IIdq"
+        population_index = None
+        simulation_index = 2
+        acquisition_index = 3
+    elif magic == PEDESTRIAN_MAGIC_V1:
+        header_format = "<IId"
+        population_index = None
+        simulation_index = 2
+        acquisition_index = None
+    else:
+        return None
+    header_size = struct.calcsize(header_format)
+    entry_format = "<iddddd"
+    entry_size = struct.calcsize(entry_format)
+    if count > 64 or len(packet) < header_size + count * entry_size:
+        return None
+    values = struct.unpack_from(header_format, packet)
+    people = tuple(
+        struct.unpack_from(entry_format, packet, header_size + index * entry_size)
+        for index in range(count)
+    )
+    population = int(values[population_index]) if population_index is not None else None
+    if population is not None and population < count:
+        return None
+    acquisition = int(values[acquisition_index]) if acquisition_index is not None else None
+    return PedestrianPacket(
+        simulation_time=float(values[simulation_index]),
+        acquisition_time_ns=acquisition,
+        population_count=population,
+        people=people,
     )

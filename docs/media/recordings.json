@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-09-21T23:18:44.300316+00:00",
+  "run": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/visual_session_20260921T231819Z/episode_001/onboard-visual/person_avoidance_pedestrian_plaza_smoke_seed_44_20260921T231819Z.json",
+  "source_sha256": "0628606284f518406f016b0bbfa068610c714b349f0f60435edfe54f89ec5f6d",
+  "kind": "unscored live visualization",
+  "fps": 4,
+  "clips": [
+    {
+      "file": "onboard-crowd.gif",
+      "frames": 32,
+      "bytes": 3196098
+    },
+    {
+      "file": "onboard-decisions.gif",
+      "frames": 32,
+      "bytes": 1370400
+    }
+  ]
+}

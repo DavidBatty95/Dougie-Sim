@@ -1,0 +1,9 @@
+human_collision_avoidance:
+  ros__parameters:
+    # Time-aligned constant-velocity prediction with a fixed, non-stochastic margin.
+    prediction_collision_radius: 1.0
+    prediction_uncertainty_scale: 0.0
+    prediction_min_confidence: 0.35
+    predicted_repulsion_range: 0.0
+    enable_open_space_bias: false
+    people_repulsion_gain: 0.0

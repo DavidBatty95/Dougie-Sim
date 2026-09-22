@@ -47,6 +47,9 @@ if [ ! -e "${SIM_DIR}/mujoco" ]; then
   ln -s "${MUJOCO_DIR}" "${SIM_DIR}/mujoco"
 fi
 
+python3 "${SRC_DIR}/tools/generate_natural_pedestrians.py" --robot-dir "${SRC_DIR}/unitree_robots/g1"
+python3 /workspace/scripts/avoidance_worlds.py
+
 cmake -S "${SIM_DIR}" -B "${BUILD_DIR}" \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_PREFIX_PATH="${SDK_INSTALL_DIR}" \

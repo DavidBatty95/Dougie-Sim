@@ -1,0 +1,90 @@
+schema_version: 1
+fitting_version: g1_response_envelope_fit_v1
+response_protocol_version: g1_response_v1
+
+splits:
+  calibration_seeds: [101, 103, 107, 109, 113, 127, 131]
+  held_out_seeds: [211, 223, 227, 229, 233]
+
+estimator:
+  method: binwise_extrema_with_leave_one_seed_out_spacing
+  grouping: exact_signed_command
+  minimum_evaluable_calibration_trials_per_bin: 6
+  upper_bound:
+    statistic: maximum_plus_largest_leave_one_seed_out_spacing
+  lower_bound:
+    statistic: minimum_minus_largest_leave_one_seed_out_spacing
+    floor: 0.0
+  shape_constraint:
+    upper_bounds: cumulative_maximum_with_command_magnitude
+    lower_capability_bounds: cumulative_minimum_with_command_magnitude
+
+metrics:
+  forward_step_stop:
+    upper:
+      - latency_s
+      - steady_response
+      - effective_acceleration
+      - stop_time_s
+      - stopping_distance_planar_m
+      - command_lateral_drift_m
+      - command_heading_drift_rad
+      - post_stop_drift_5s_m
+      - post_stop_yaw_drift_5s_rad
+      - max_tilt_rad
+    lower:
+      - steady_response
+      - effective_acceleration
+      - effective_deceleration
+      - minimum_base_height_m
+  yaw_step_stop:
+    upper:
+      - latency_s
+      - steady_response
+      - effective_acceleration
+      - stop_time_s
+      - stopping_angle_rad
+      - stopping_distance_planar_m
+      - post_stop_drift_5s_m
+      - post_stop_yaw_drift_5s_rad
+      - max_tilt_rad
+    lower:
+      - steady_response
+      - effective_acceleration
+      - effective_deceleration
+      - minimum_base_height_m
+
+interpolation:
+  method: adverse_neighbor_step
+  forward_axis: command_magnitude
+  yaw_branches: separate_positive_and_negative
+  upper_query: maximum_of_adjacent_knots
+  lower_query: minimum_of_adjacent_knots
+  extrapolation: prohibited
+  below_minimum_nonzero_command: map_to_zero
+
+coverage:
+  unit: complete_trial
+  target: 0.90
+  confidence_level: 0.95
+  interval: one_sided_clopper_pearson
+  scope: each_command_family_separately
+  familywise_confidence_claim: false
+  minimum_evaluable_trials_per_family: 29
+  planned_trials_per_family: 30
+  joint_trial_requirements:
+    - valid_trial
+    - no_fall
+    - motion_observed
+    - stable_steady_interval
+    - all_required_drift_horizons
+    - all_family_metric_bounds_satisfied
+
+failure_policy:
+  calibration_fall_or_no_motion: mark_command_bin_unsupported
+  missing_critical_metric: mark_command_bin_unsupported
+  insufficient_calibration_trials: mark_command_bin_unsupported
+  held_out_lower_confidence_bound_below_target: reject_envelope
+  held_out_failure_action: revise_protocol_and_use_new_unopened_held_out_seeds
+  tune_on_held_out_data: prohibited
+  remove_algorithmic_failures: prohibited

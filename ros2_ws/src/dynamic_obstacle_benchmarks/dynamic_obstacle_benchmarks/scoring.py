@@ -37,9 +37,9 @@ def score_benchmark(metrics: BenchmarkMetrics, config: BenchmarkConfig) -> Score
     safety -= 50.0 * metrics.collisions
     safety -= 25.0 * metrics.critical_near_misses
     safety -= 10.0 * metrics.near_misses
-    safety -= 0.5 * metrics.time_below_warning_distance_s
-    safety -= 2.0 * metrics.time_below_near_miss_distance_s
-    safety -= 5.0 * metrics.time_below_critical_distance_s
+    safety -= 0.5 * metrics.warning_distance_wall_time_s
+    safety -= 2.0 * metrics.near_miss_distance_wall_time_s
+    safety -= 5.0 * metrics.critical_distance_wall_time_s
     if metrics.minimum_ttc_s <= config.ttc_critical_s:
         safety -= 10.0
     safety -= 5.0 * metrics.stale_events

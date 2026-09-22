@@ -26,8 +26,11 @@ elif [ "${existing_repositories}" -ne "${#unitree_repositories[@]}" ]; then
 fi
 
 if ! git -C "/workspace/vendor/mjlab" rev-parse --git-dir >/dev/null 2>&1; then
-  git clone https://github.com/mujocolab/mjlab.git "/workspace/vendor/mjlab"
+  git clone https://github.com/DavidBatty95/Geoff-Sim-mjlab.git "/workspace/vendor/mjlab"
+  git -C "/workspace/vendor/mjlab" checkout --detach ebfc96fa17f40ecd15ed9891cfdf59cd43d0c7b3
 fi
+
+python3 /workspace/scripts/source_patches.py apply
 
 for ignore_dir in \
   "${WORKSPACE}/src/unitree_mujoco/example" \

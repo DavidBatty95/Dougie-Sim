@@ -1,9 +1,19 @@
 import argparse
+import math
 import random
 import unittest
 from types import SimpleNamespace
 
-from dynamic_obstacle_benchmarks.benchmark_runner import BenchmarkRosNode, LiveEventEpisodes, velocity_from_pose_delta
+from dynamic_obstacle_benchmarks.benchmark_runner import (
+    BenchmarkRosNode,
+    HumanAvoidanceEpisodes,
+    LiveEventEpisodes,
+    SampleProgress,
+    live_state_health_error,
+    people_from_payload,
+    transform_planar_state,
+    velocity_from_pose_delta,
+)
 from dynamic_obstacle_benchmarks.config import BenchmarkConfig
 from dynamic_obstacle_benchmarks.geometry import Pose2D, Velocity2D
 from dynamic_obstacle_benchmarks.goal_sampler import GoalSampler
@@ -11,6 +21,119 @@ from dynamic_obstacle_benchmarks.person_avoidance_benchmark import apply_overrid
 
 
 class RunnerSupportTests(unittest.TestCase):
+    def test_sample_progress_requires_advancement_and_rejects_stalls(self) -> None:
+        progress = SampleProgress("odom")
+        progress.update(1.0, 10.0)
+        self.assertEqual(progress.health_error(1.0, 10.1), "odom_sample_not_advancing")
+        progress.update(2.0, 10.2)
+        self.assertIsNone(progress.health_error(1.0, 10.3))
+        self.assertEqual(
+            progress.health_error(1.0, 11.3),
+            "odom_sample_stale:1.100s>1.000s",
+        )
+
+    def test_sample_progress_rejects_regression(self) -> None:
+        progress = SampleProgress("scan")
+        progress.update(2.0, 10.0)
+        progress.update(3.0, 10.1)
+        progress.update(1.0, 10.2)
+        self.assertEqual(progress.health_error(1.0, 10.2), "scan_sample_regressed")
+
+    def test_live_state_health_accepts_fresh_exact_population(self) -> None:
+        self.assertIsNone(live_state_health_error(
+            requested_people=4,
+            observed_people=4,
+            odom_age_s=0.1,
+            pedestrian_age_s=0.2,
+            scan_age_s=0.1,
+            scan_source_age_s=0.1,
+            scan_source_expected="mujoco_raycast",
+            scan_source_observed="mujoco_raycast",
+            odom_stale_timeout_s=1.0,
+            pedestrian_stale_timeout_s=1.0,
+            scan_stale_timeout_s=1.0,
+            require_exact_people_count=True,
+        ))
+
+    def test_live_state_health_rejects_stale_required_streams(self) -> None:
+        common = dict(
+            requested_people=4,
+            observed_people=4,
+            odom_stale_timeout_s=1.0,
+            pedestrian_stale_timeout_s=1.0,
+            scan_age_s=0.1,
+            scan_source_age_s=0.1,
+            scan_source_expected="mujoco_raycast",
+            scan_source_observed="mujoco_raycast",
+            scan_stale_timeout_s=1.0,
+            require_exact_people_count=True,
+        )
+        self.assertEqual(
+            live_state_health_error(odom_age_s=1.1, pedestrian_age_s=0.1, **common),
+            "odom_stale:1.100s>1.000s",
+        )
+        self.assertEqual(
+            live_state_health_error(odom_age_s=0.1, pedestrian_age_s=1.1, **common),
+            "pedestrian_truth_stale:1.100s>1.000s",
+        )
+
+    def test_live_state_health_rejects_population_mismatch(self) -> None:
+        error = live_state_health_error(
+            requested_people=4,
+            observed_people=3,
+            odom_age_s=0.1,
+            pedestrian_age_s=0.1,
+            scan_age_s=0.1,
+            scan_source_age_s=0.1,
+            scan_source_expected="mujoco_raycast",
+            scan_source_observed="mujoco_raycast",
+            odom_stale_timeout_s=1.0,
+            pedestrian_stale_timeout_s=1.0,
+            scan_stale_timeout_s=1.0,
+            require_exact_people_count=True,
+        )
+        self.assertEqual(error, "people_count_mismatch:requested=4,observed=3")
+
+    def test_live_state_health_rejects_stale_or_wrong_scan_source(self) -> None:
+        common = dict(
+            requested_people=0,
+            observed_people=None,
+            odom_age_s=0.1,
+            pedestrian_age_s=None,
+            scan_source_age_s=0.1,
+            scan_source_expected="mujoco_raycast",
+            scan_source_observed="mujoco_raycast",
+            odom_stale_timeout_s=1.0,
+            pedestrian_stale_timeout_s=1.0,
+            scan_stale_timeout_s=1.0,
+            require_exact_people_count=True,
+        )
+        self.assertEqual(
+            live_state_health_error(scan_age_s=1.1, **common),
+            "scan_stale:1.100s>1.000s",
+        )
+        common["scan_source_observed"] = "fallback_geometry"
+        self.assertEqual(
+            live_state_health_error(scan_age_s=0.1, **common),
+            "scan_source_mismatch:expected=mujoco_raycast,observed=fallback_geometry",
+        )
+
+    def test_people_free_health_does_not_require_truth_stream(self) -> None:
+        self.assertIsNone(live_state_health_error(
+            requested_people=0,
+            observed_people=None,
+            odom_age_s=0.1,
+            pedestrian_age_s=None,
+            scan_age_s=0.1,
+            scan_source_age_s=0.1,
+            scan_source_expected="mujoco_raycast",
+            scan_source_observed="mujoco_raycast",
+            odom_stale_timeout_s=1.0,
+            pedestrian_stale_timeout_s=1.0,
+            scan_stale_timeout_s=1.0,
+            require_exact_people_count=True,
+        ))
+
     def test_goal_path_validation_fails_closed_without_action_server(self) -> None:
         class UnavailablePathClient:
             def wait_for_server(self, timeout_sec):
@@ -39,11 +162,20 @@ class RunnerSupportTests(unittest.TestCase):
         node = object.__new__(BenchmarkRosNode)
         handle = GoalHandle()
         node.nav_goal_handle = handle
+        node.nav_result_future = None
+        node.nav_result_status = None
+        node.nav_goal_success = False
 
         node.cancel_nav_goal()
 
         self.assertIsNone(node.nav_goal_handle)
         self.assertEqual(handle.cancel_count, 1)
+
+    def test_nav_action_success_completes_goal(self) -> None:
+        node = object.__new__(BenchmarkRosNode)
+        node.nav_result_status = 4
+        node.nav_goal_success = True
+        self.assertTrue(node.nav_goal_succeeded())
 
     def test_live_debug_states_are_counted_as_episodes(self) -> None:
         episodes = LiveEventEpisodes()
@@ -59,6 +191,88 @@ class RunnerSupportTests(unittest.TestCase):
         for payload in ({"mode": "override"}, {"mode": "override"}, {"mode": "pass_through"}, {"mode": "override"}):
             episodes.update(payload)
         self.assertEqual(episodes.avoidance_interventions, 2)
+
+    def test_tracker_debug_records_runtime_control_source(self) -> None:
+        node = object.__new__(BenchmarkRosNode)
+        node.latest_control_people_source = None
+        node.latest_control_people_source_received_s = None
+        msg = type("Message", (), {"data": '{"effective_people_source":"mujoco_truth_oracle"}'})()
+
+        node._tracker_debug_callback(msg)
+
+        self.assertEqual(node.latest_control_people_source, "mujoco_truth_oracle")
+        self.assertIsNotNone(node.latest_control_people_source_received_s)
+
+    def test_yield_and_resume_transitions_are_counted_once(self) -> None:
+        episodes = HumanAvoidanceEpisodes()
+        episodes.update("NORMAL_NAVIGATION", 1.0)
+        episodes.update("YIELD_TO_HUMAN", 2.0)
+        episodes.update("YIELD_TO_HUMAN", 2.5)
+        episodes.update("NORMAL_NAVIGATION", 4.0)
+
+        self.assertEqual(episodes.yield_episodes, 1)
+        self.assertEqual(episodes.resume_episodes, 1)
+        self.assertAlmostEqual(episodes.total_yield_time(5.0), 2.0)
+        self.assertEqual(episodes.display_phase(5.0), "RESUME")
+
+    def test_deadlock_recovery_then_normal_completes_a_resume(self) -> None:
+        episodes = HumanAvoidanceEpisodes()
+        episodes.update("YIELD_TO_HUMAN", 1.0)
+        episodes.update("DEADLOCK_RECOVERY", 3.0)
+        episodes.update("NORMAL_NAVIGATION", 4.0)
+
+        self.assertEqual(episodes.yield_episodes, 1)
+        self.assertEqual(episodes.resume_episodes, 1)
+
+    def test_pause_excludes_inter_goal_yield_time_and_resume(self) -> None:
+        episodes = HumanAvoidanceEpisodes()
+        episodes.update("YIELD_TO_HUMAN", 1.0)
+        episodes.pause(2.0)
+
+        self.assertAlmostEqual(episodes.total_yield_time(20.0), 1.0)
+        episodes.update("NORMAL_NAVIGATION", 21.0)
+        self.assertEqual(episodes.resume_episodes, 0)
+
+    def test_planar_transform_rotates_people_positions_and_velocities(self) -> None:
+        pose, velocity = transform_planar_state(
+            Pose2D(1.0, 0.0, 0.0),
+            Velocity2D(1.0, 0.0, 0.0),
+            2.0,
+            3.0,
+            math.pi / 2.0,
+        )
+
+        self.assertAlmostEqual(pose.x, 2.0)
+        self.assertAlmostEqual(pose.y, 4.0)
+        self.assertAlmostEqual(velocity.vx, 0.0, places=7)
+        self.assertAlmostEqual(velocity.vy, 1.0)
+
+    def test_people_payload_uses_transformed_speed(self) -> None:
+        people = people_from_payload(
+            {"people": [{"id": 7, "x": 1.0, "y": 0.0, "vx": 0.0, "vy": 2.0}]},
+            default_radius_m=0.42,
+            transform=(1.0, -1.0, math.pi / 2.0),
+        )
+
+        self.assertEqual(people[0].person_id, 7)
+        self.assertAlmostEqual(people[0].pose.x, 1.0)
+        self.assertAlmostEqual(people[0].pose.y, 0.0)
+        self.assertAlmostEqual(people[0].speed_mps, 2.0)
+
+    def test_people_payload_rejects_duplicate_or_nonfinite_entries(self) -> None:
+        duplicate = {
+            "people": [
+                {"id": 1, "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0},
+                {"id": 1, "x": 1.0, "y": 0.0, "vx": 0.0, "vy": 0.0},
+            ]
+        }
+        with self.assertRaises(ValueError):
+            people_from_payload(duplicate, default_radius_m=0.3)
+        with self.assertRaises(ValueError):
+            people_from_payload(
+                {"people": [{"id": 1, "x": math.nan, "y": 0.0, "vx": 0.0, "vy": 0.0}]},
+                default_radius_m=0.3,
+            )
 
     def test_goal_sampler_resamples_when_live_validator_rejects(self) -> None:
         cfg = BenchmarkConfig(goals_count=1, people_count=0)
@@ -100,6 +314,7 @@ class RunnerSupportTests(unittest.TestCase):
         node._last_odom_pose = None
         node._last_odom_stamp = None
         node._derived_robot_velocity = node.latest_robot_velocity
+        node.odom_progress = SampleProgress("odom")
         node._odom_callback(odom(0.0, 1.0))
         node._odom_callback(odom(0.08, 1.1))
         self.assertAlmostEqual(node.latest_robot_velocity.vx, 0.0)

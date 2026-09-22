@@ -10,10 +10,13 @@ CONTAINER_LOG_BASE="/workspace/ros2_ws/.verification/log"
 SEED="42"
 GOALS="5"
 START_SIM="1"
+SKIP_BUILD="0"
 SIM_STARTUP_SECONDS="28"
 RUN_RVIZ="1"
 MINIMUM_SCORE="80"
 RESULT_DIR="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab_locomotion"
+RESULT_DIR_SET="0"
+OUTPUT=""
 CONTAINER_CONFIG="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/config/extreme_lab_locomotion_benchmark.yaml"
 SIM_ARGS=()
 
@@ -29,12 +32,14 @@ Options:
   --seed N                 Random seed (default: 42)
   --goals N                Number of sequential goals (default: 5)
   --no-sim                 Use an already-running simulation
+  --skip-build             Reuse the existing verification workspace build
   --no-rviz                Do not launch RViz
-  --startup-seconds N      Simulation startup wait (default: 28)
+  --startup-seconds N      Maximum simulation readiness wait (default: 28)
   --minimum-score N        Validation threshold (default: 80)
   --config PATH            Benchmark YAML path visible inside the container
   --sim-arg ARG            Additional g1_sim.launch.py argument
   --result-dir PATH        Host artifact directory
+  --output PATH            Exact JSON path under ros2_ws; exclusive with --result-dir
 EOF
 }
 
@@ -43,28 +48,33 @@ while [ "$#" -gt 0 ]; do
     --seed) SEED="$2"; shift 2 ;;
     --goals) GOALS="$2"; shift 2 ;;
     --no-sim) START_SIM="0"; shift ;;
+    --skip-build) SKIP_BUILD="1"; shift ;;
     --no-rviz) RUN_RVIZ="0"; shift ;;
     --startup-seconds) SIM_STARTUP_SECONDS="$2"; shift 2 ;;
     --minimum-score) MINIMUM_SCORE="$2"; shift 2 ;;
     --config) CONTAINER_CONFIG="$2"; shift 2 ;;
     --sim-arg) SIM_ARGS+=("$2"); shift 2 ;;
-    --result-dir) RESULT_DIR="$2"; shift 2 ;;
+    --result-dir)
+      [ "$#" -ge 2 ] || { printf '%s\n' '--result-dir requires PATH' >&2; exit 2; }
+      RESULT_DIR="$2"; RESULT_DIR_SET="1"; shift 2
+      ;;
+    --output)
+      [ "$#" -ge 2 ] || { printf '%s\n' '--output requires PATH' >&2; exit 2; }
+      OUTPUT="$2"; shift 2
+      ;;
     --help|-h) usage; exit 0 ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-mkdir -p "${RESULT_DIR}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-BASENAME="extreme_lab_locomotion_seed_${SEED}_${STAMP}"
-HOST_JSON="${RESULT_DIR}/${BASENAME}.json"
-HOST_TXT="${RESULT_DIR}/${BASENAME}.txt"
-if [[ "${RESULT_DIR}" == "${REPO_ROOT}"/* ]]; then
-  CONTAINER_RESULT_DIR="/workspace/${RESULT_DIR#${REPO_ROOT}/}"
-else
-  CONTAINER_RESULT_DIR="/workspace/ros2_ws/src/dynamic_obstacle_benchmarks/results/extreme_lab_locomotion"
-fi
-CONTAINER_JSON="${CONTAINER_RESULT_DIR}/${BASENAME}.json"
+DEFAULT_BASENAME="extreme_lab_locomotion_seed_${SEED}_${STAMP}"
+source "${SCRIPT_DIR}/benchmark_output_paths.sh"
+resolve_benchmark_output_paths \
+  "${REPO_ROOT}" "${OUTPUT}" "${RESULT_DIR}" "${RESULT_DIR_SET}" "${DEFAULT_BASENAME}"
+mkdir -p "${RESULT_DIR}"
+HOST_TXT="${HOST_STEM}.txt"
+HOST_SIM_LOG="${HOST_STEM}_sim.log"
 
 SIM_PID=""
 cleanup_sim_containers() {
@@ -81,15 +91,25 @@ trap cleanup EXIT
 
 if [ "${START_SIM}" = "1" ]; then
   cleanup_sim_containers
-  printf 'Building benchmark and bringup packages...\n'
-  docker compose run --rm \
-    -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
-    -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
-    -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
-    unitree-g1-sim /workspace/scripts/build_ws.sh --packages-select \
-      dynamic_obstacle_benchmarks \
-      unitree_g1_mujoco_bridge \
-      unitree_g1_sim_bringup
+  if [ "${SKIP_BUILD}" = "1" ]; then
+    if [ ! -f "${REPO_ROOT}/ros2_ws/.verification/install/setup.bash" ]; then
+      printf 'Fast start requires an existing verification build; run once without --skip-build.\n' >&2
+      exit 2
+    fi
+    printf 'Reusing existing ROS 2 workspace build...\n'
+  else
+    printf 'Building benchmark and bringup packages...\n'
+    docker compose run --rm \
+      -e COLCON_BUILD_BASE="${CONTAINER_BUILD_BASE}" \
+      -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+      -e COLCON_LOG_BASE="${CONTAINER_LOG_BASE}" \
+      unitree-g1-sim /workspace/scripts/build_ws.sh --packages-select \
+        unitree_social_navigation_msgs \
+        unitree_social_costmap \
+        dynamic_obstacle_benchmarks \
+        unitree_g1_mujoco_bridge \
+        unitree_g1_sim_bringup
+  fi
   printf 'Starting people-free Extreme Lab simulation...\n'
   COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" setsid "${SCRIPT_DIR}/bringup_full_sim.sh" \
     mujoco_scene:=scene_29dof_extreme_lab.xml \
@@ -128,10 +148,36 @@ if [ "${START_SIM}" = "1" ]; then
     run_rviz:="${RUN_RVIZ}" \
     publish_camera:=false \
     "${SIM_ARGS[@]}" \
-    >"${RESULT_DIR}/${BASENAME}_sim.log" 2>&1 &
+    >"${HOST_SIM_LOG}" 2>&1 &
   SIM_PID="$!"
-  printf 'Waiting %s seconds for Nav2 and SLAM startup...\n' "${SIM_STARTUP_SECONDS}"
-  sleep "${SIM_STARTUP_SECONDS}"
+  printf 'Waiting up to %s seconds for robot state, scan, map, and active Nav2...\n' "${SIM_STARTUP_SECONDS}"
+  if ! docker compose run --rm \
+    -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" \
+    -e READY_TIMEOUT="${SIM_STARTUP_SECONDS}" \
+    unitree-g1-sim bash -lc '
+      source /opt/ros/${ROS_DISTRO:-humble}/setup.bash
+      source "${COLCON_INSTALL_BASE}/setup.bash"
+      timeout "${READY_TIMEOUT}" bash -c '\''
+        wait_topic() {
+          topic="$1"
+          until ros2 topic type "${topic}" >/dev/null 2>&1; do sleep 0.2; done
+          ros2 topic echo --once "${topic}" >/dev/null
+        }
+        wait_nav2() {
+          until ros2 lifecycle get /bt_navigator 2>/dev/null | grep -q active; do sleep 0.2; done
+        }
+        wait_topic /lowstate & lowstate_pid=$!
+        wait_topic /scan & scan_pid=$!
+        wait_topic /map & map_pid=$!
+        wait_nav2 & nav2_pid=$!
+        wait "${lowstate_pid}" "${scan_pid}" "${map_pid}" "${nav2_pid}"
+      '\''
+    '; then
+    printf 'Simulation did not become ready within %s seconds. See %s.\n' \
+      "${SIM_STARTUP_SECONDS}" "${HOST_SIM_LOG}" >&2
+    exit 2
+  fi
+  printf 'Simulation ready; starting waypoint benchmark.\n'
 fi
 
 {
@@ -170,5 +216,5 @@ printf '  Report: %s\n' "${HOST_TXT}" | tee -a "${HOST_TXT}"
 printf '  Result: %s\n' "${HOST_JSON}" | tee -a "${HOST_TXT}"
 printf '  Goals: %s\n' "${HOST_JSON%.json}_goals.csv" | tee -a "${HOST_TXT}"
 printf '  Scenario: %s\n' "${HOST_JSON%.json}_scenario.yaml" | tee -a "${HOST_TXT}"
-printf '  Simulation: %s\n' "${RESULT_DIR}/${BASENAME}_sim.log" | tee -a "${HOST_TXT}"
+printf '  Simulation: %s\n' "${HOST_SIM_LOG}" | tee -a "${HOST_TXT}"
 exit "${VALIDATION_STATUS}"

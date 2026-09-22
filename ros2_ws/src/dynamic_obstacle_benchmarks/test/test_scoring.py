@@ -35,6 +35,25 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(score.final_score, 0.0)
         self.assertEqual(score.safety_score, 0.0)
 
+    def test_proximity_duration_penalty_uses_wall_time(self) -> None:
+        cfg = BenchmarkConfig(goals_count=1)
+        sparse = BenchmarkMetrics(
+            goals_requested=1,
+            warning_distance_wall_time_s=1.0,
+            warning_distance_person_time_s=1.0,
+            time_below_warning_distance_s=1.0,
+        )
+        crowded = BenchmarkMetrics(
+            goals_requested=1,
+            warning_distance_wall_time_s=1.0,
+            warning_distance_person_time_s=10.0,
+            time_below_warning_distance_s=10.0,
+        )
+        self.assertEqual(
+            score_benchmark(sparse, cfg).safety_score,
+            score_benchmark(crowded, cfg).safety_score,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,14 +1,17 @@
 name: Verification
 
-on:
+"on":
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
 
 concurrency:
-  group: verification-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build-test-benchmark:
@@ -18,10 +21,17 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          token: ${{ secrets.SUBMODULE_TOKEN }}
+          token: ${{ secrets.SUBMODULE_TOKEN || github.token }}
           submodules: recursive
+          persist-credentials: false
+
+      - name: Check documentation and generated diagrams
+        run: |
+          python3 scripts/check_docs.py
+          python3 scripts/generate_readme_graphics.py --check
+          python3 scripts/source_patches.py verify-pristine
 
       - name: Validate shell and Compose configuration
         run: |
@@ -49,11 +59,12 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: colcon-test-results
           path: |
             ros2_ws/.verification/build/**/*.xml
             ros2_ws/.verification/log/latest_test/**
+            ros2_ws/src/unitree_mujoco/simulate/build/Testing/**
           if-no-files-found: ignore
           retention-days: 14

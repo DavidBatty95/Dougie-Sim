@@ -8,10 +8,38 @@ from launch.substitutions import Command, FindExecutable, IfElseSubstitution, La
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
+from nav2_common.launch import RewrittenYaml
+
+
+class IndexedParameterRewrites(RewrittenYaml):
+    """Support array elements and explicitly opted-in new leaves on Humble."""
+
+    def __init__(self, *args, add_missing_keys=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_missing_keys = tuple(add_missing_keys)
+
+    def substitute_params(self, data, param_rewrites):
+        super().substitute_params(data, param_rewrites)
+        # Humble otherwise silently ignores rewrites for absent parameters.
+        # Opt in explicitly rather than activating unrelated historical rewrites.
+        for path in self.add_missing_keys:
+            if path not in self.pathify(data):
+                self.updateYamlPathVals(data, path.split("."), self.convert(param_rewrites[path]))
+
+    def updateYamlPathVals(self, yaml, yaml_key_list, rewrite_val):
+        target = yaml
+        for key in yaml_key_list[:-1]:
+            target = target[int(key)] if isinstance(target, list) else target.setdefault(key, {})
+        key = yaml_key_list[-1]
+        target[int(key) if isinstance(target, list) else key] = rewrite_val
+        return yaml
 
 
 DEFAULT_SOCIAL_NAVIGATION_PARAMS_FILE = str(
     Path(__file__).parents[1] / "config" / "social_navigation_perception_only_v1.yaml"
+)
+DEFAULT_SOCIAL_NAVIGATION_METHOD_PARAMS_FILE = str(
+    Path(__file__).parents[1] / "config" / "social_navigation_method_default_v1.yaml"
 )
 DEFAULT_POLICY_PATH = (
     "/workspace/vendor/mjlab/logs/rsl_rl/g1_stand_creep_stop/"
@@ -77,6 +105,9 @@ def generate_launch_description():
     policy_rate_hz = LaunchConfiguration("policy_rate_hz")
     raw_cmd_vel_topic = LaunchConfiguration("raw_cmd_vel_topic")
     cmd_vel_topic = LaunchConfiguration("cmd_vel_topic")
+    human_collision_input_cmd_vel_topic = LaunchConfiguration(
+        "human_collision_input_cmd_vel_topic"
+    )
     cmd_vel_timeout = LaunchConfiguration("cmd_vel_timeout")
     lowstate_timeout = LaunchConfiguration("lowstate_timeout")
     odom_timeout = LaunchConfiguration("odom_timeout")
@@ -112,6 +143,7 @@ def generate_launch_description():
     mujoco_pedestrians_count = LaunchConfiguration("mujoco_pedestrians_count")
     mujoco_pedestrian_scenario = LaunchConfiguration("mujoco_pedestrian_scenario")
     mujoco_pedestrian_start_delay = LaunchConfiguration("mujoco_pedestrian_start_delay")
+    mujoco_pedestrian_seed = LaunchConfiguration("mujoco_pedestrian_seed")
     lidar_rate_hz = LaunchConfiguration("lidar_rate_hz")
     livox_scan_points = LaunchConfiguration("livox_scan_points")
     livox_horizontal_min_deg = LaunchConfiguration("livox_horizontal_min_deg")
@@ -144,6 +176,9 @@ def generate_launch_description():
     slam_params_file = LaunchConfiguration("slam_params_file")
     nav2_params_file = LaunchConfiguration("nav2_params_file")
     social_navigation_params_file = LaunchConfiguration("social_navigation_params_file")
+    social_navigation_method_params_file = LaunchConfiguration(
+        "social_navigation_method_params_file"
+    )
     lidar_person_model_path = LaunchConfiguration("lidar_person_model_path")
     tracker_use_sensor_input = LaunchConfiguration("tracker_use_sensor_input")
     tracker_local_tracking_radius = LaunchConfiguration("tracker_local_tracking_radius")
@@ -250,6 +285,7 @@ def generate_launch_description():
         package="unitree_g1_mujoco_bridge",
         executable="g1_policy_cmd_vel_controller",
         name="g1_policy_cmd_vel_controller",
+        additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
         output="screen",
         parameters=[
             {
@@ -307,6 +343,25 @@ def generate_launch_description():
         name="g1_clamp_button",
         output="screen",
     )
+    onboard_odometry_node = Node(
+        condition=IfCondition(LaunchConfiguration("onboard_only")),
+        package="unitree_g1_mujoco_bridge",
+        executable="onboard_lidar_odometry",
+        name="onboard_lidar_odometry",
+        additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
+        output="screen",
+    )
+    route_monitor_node = Node(
+        condition=IfCondition(LaunchConfiguration("nav2_dynamic_replanning")),
+        package="unitree_g1_mujoco_bridge", executable="dynamic_route_monitor",
+        name="dynamic_route_monitor", output="screen",
+        additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
+    )
+    goal_visualizer_node = Node(
+        condition=IfCondition(LaunchConfiguration("show_mujoco_goal")),
+        package="unitree_g1_mujoco_bridge", executable="mujoco_goal_visualizer",
+        name="mujoco_goal_visualizer", output="screen",
+    )
     sensors_node = Node(
         condition=IfCondition(run_sensors),
         package="unitree_g1_mujoco_bridge",
@@ -316,6 +371,7 @@ def generate_launch_description():
         parameters=[
             {
                 "mujoco_scene": mujoco_scene,
+                "onboard_only": LaunchConfiguration("onboard_only"),
                 "lidar_rate_hz": lidar_rate_hz,
                 "livox_scan_points": livox_scan_points,
                 "livox_horizontal_min_deg": livox_horizontal_min_deg,
@@ -348,6 +404,7 @@ def generate_launch_description():
                 "livox_base_offset_y": livox_base_offset_y,
                 "livox_base_offset_z": livox_base_offset_z,
                 "pelvis_to_livox_z": pelvis_to_livox_z,
+                "publish_static_scene_map": LaunchConfiguration("nav2_static_scene_map"),
             }
         ],
     )
@@ -359,15 +416,16 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "cloud_topic": "/livox/lidar",
+                "cloud_topic": IfElseSubstitution(LaunchConfiguration("onboard_only"), "/onboard/lidar_level", "/livox/lidar"),
                 "scan_topic": "/scan_raw",
                 "range_min": 0.15,
                 "range_max": 25.0,
                 "angle_min": -3.141592653589793,
                 "angle_max": 3.141592653589793,
                 "angle_increment": 0.008726646259971648,
-                "min_height": -1.10,
-                "max_height": 0.65,
+                "target_frame": "base_footprint",
+                "min_height": 0.08,
+                "max_height": 1.80,
                 "min_floor_range": 1.0,
                 "fill_empty_bins": True,
                 "max_fill_gap_deg": 6.0,
@@ -380,7 +438,13 @@ def generate_launch_description():
         executable="async_slam_toolbox_node",
         name="slam_toolbox",
         output="screen",
-        parameters=[slam_params_file],
+        parameters=[slam_params_file, {
+            "odom_frame": IfElseSubstitution(LaunchConfiguration("onboard_only"), "odom", "world"),
+            "min_pass_through": ParameterValue(IfElseSubstitution(LaunchConfiguration("onboard_only"), "1", "2"), value_type=int),
+            "resolution": ParameterValue(IfElseSubstitution(LaunchConfiguration("onboard_only"), "0.10", "0.05"), value_type=float),
+            "minimum_travel_distance": ParameterValue(IfElseSubstitution(LaunchConfiguration("onboard_only"), "0.03", "0.08"), value_type=float),
+            "minimum_travel_heading": ParameterValue(IfElseSubstitution(LaunchConfiguration("onboard_only"), "0.02", "0.08"), value_type=float),
+        }],
     )
     scan_filter_node = Node(
         condition=IfCondition(run_slam),
@@ -407,7 +471,52 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": "false",
             "autostart": "true",
-            "params_file": nav2_params_file,
+            "params_file": IndexedParameterRewrites(
+                source_file=nav2_params_file,
+                add_missing_keys=(
+                    "bt_navigator.ros__parameters.default_nav_to_pose_bt_xml",
+                    "planner_server.ros__parameters.GridBased.max_planning_time",
+                    "global_costmap.global_costmap.ros__parameters.people_layer.prediction_horizon",
+                ),
+                param_rewrites={
+                    "bt_navigator.ros__parameters.default_nav_to_pose_bt_xml": IfElseSubstitution(
+                        LaunchConfiguration("nav2_dynamic_replanning"),
+                        PathJoinSubstitution([FindPackageShare("unitree_g1_sim_bringup"), "config", "nav2_dynamic_replanning.xml"]),
+                        PathJoinSubstitution([FindPackageShare("nav2_bt_navigator"), "behavior_trees", "navigate_to_pose_w_replanning_and_recovery.xml"])),
+                    "planner_server.ros__parameters.GridBased.max_planning_time": IfElseSubstitution(LaunchConfiguration("nav2_dynamic_replanning"), "0.15", "2.0"),
+                    "planner_server.ros__parameters.GridBased.tolerance": IfElseSubstitution(LaunchConfiguration("nav2_dynamic_replanning"), "0.25", "0.7"),
+                    "global_costmap.global_costmap.ros__parameters.people_layer.prediction_horizon": IfElseSubstitution(LaunchConfiguration("nav2_dynamic_replanning"), "1.2", "0.0"),
+                    "observation_sources": LaunchConfiguration("nav2_observation_sources"),
+                    "local_costmap.local_costmap.ros__parameters.global_frame": IfElseSubstitution(LaunchConfiguration("onboard_only"), "odom", "world"),
+                    "behavior_server.ros__parameters.global_frame": IfElseSubstitution(LaunchConfiguration("onboard_only"), "odom", "world"),
+                    "global_costmap.global_costmap.ros__parameters.track_unknown_space": LaunchConfiguration("onboard_only"),
+                    "planner_server.ros__parameters.GridBased.allow_unknown": IfElseSubstitution(LaunchConfiguration("onboard_only"), "false", "true"),
+                    "max_vel_y": LaunchConfiguration("nav2_max_vel_y"),
+                    "min_vel_y": LaunchConfiguration("nav2_min_vel_y"),
+                    "acc_lim_y": LaunchConfiguration("nav2_acc_lim_y"),
+                    "decel_lim_y": LaunchConfiguration("nav2_decel_lim_y"),
+                    "vy_samples": LaunchConfiguration("nav2_vy_samples"),
+                    "planner_server.ros__parameters.GridBased.plugin": LaunchConfiguration("nav2_planner_plugin"),
+                    "global_costmap.global_costmap.ros__parameters.global_frame": IfElseSubstitution(LaunchConfiguration("nav2_world_costmap"), "world", "map"),
+                    "global_costmap.global_costmap.ros__parameters.rolling_window": LaunchConfiguration("nav2_world_costmap"),
+                    "global_costmap.global_costmap.ros__parameters.width": IfElseSubstitution(LaunchConfiguration("nav2_world_costmap"), "20", "5"),
+                    "global_costmap.global_costmap.ros__parameters.height": IfElseSubstitution(LaunchConfiguration("nav2_world_costmap"), "20", "5"),
+                    "global_costmap.global_costmap.ros__parameters.static_layer.enabled": IfElseSubstitution(LaunchConfiguration("nav2_world_costmap"), LaunchConfiguration("nav2_static_scene_map"), "true"),
+                    "global_costmap.global_costmap.ros__parameters.static_layer.map_topic": IfElseSubstitution(LaunchConfiguration("nav2_static_scene_map"), "/simulation/static_map", "/map"),
+                    "local_costmap.local_costmap.ros__parameters.static_layer.enabled": LaunchConfiguration("nav2_static_scene_map"),
+                    "local_costmap.local_costmap.ros__parameters.static_layer.map_topic": IfElseSubstitution(LaunchConfiguration("nav2_static_scene_map"), "/simulation/static_map", "/map"),
+                    "global_costmap.global_costmap.ros__parameters.obstacle_layer.enabled": IfElseSubstitution(LaunchConfiguration("nav2_static_scene_map"), "false", "true"),
+                    "local_costmap.local_costmap.ros__parameters.obstacle_layer.enabled": IfElseSubstitution(LaunchConfiguration("nav2_static_scene_map"), "false", "true"),
+                    "global_costmap.global_costmap.ros__parameters.people_layer.enabled": LaunchConfiguration("nav2_people_layer"),
+                    "local_costmap.local_costmap.ros__parameters.people_layer.enabled": LaunchConfiguration("nav2_people_layer"),
+                    "global_costmap.global_costmap.ros__parameters.update_frequency": IfElseSubstitution(LaunchConfiguration("nav2_people_layer"), "5.0", "2.0"),
+                    "velocity_smoother.ros__parameters.max_velocity.1": LaunchConfiguration("nav2_max_vel_y"),
+                    "velocity_smoother.ros__parameters.min_velocity.1": LaunchConfiguration("nav2_min_vel_y"),
+                    "velocity_smoother.ros__parameters.max_accel.1": LaunchConfiguration("nav2_acc_lim_y"),
+                    "velocity_smoother.ros__parameters.max_decel.1": LaunchConfiguration("nav2_decel_lim_y"),
+                },
+                convert_types=True,
+            ),
         }.items(),
     )
     dynamic_obstacle_node = Node(
@@ -416,6 +525,7 @@ def generate_launch_description():
         executable="dynamic_obstacle_tracker",
         name="dynamic_obstacle_tracker",
         output="screen",
+        remappings=[("/mujoco/pedestrians", IfElseSubstitution(LaunchConfiguration("onboard_only"), "/disabled/oracle_people", "/mujoco/pedestrians"))],
         parameters=[
             {
                 "cloud_topic": "/livox/lidar_world",
@@ -509,16 +619,17 @@ def generate_launch_description():
                 "immediate_person_risk": tracker_immediate_person_risk,
                 "candidate_person_min_age": 2,
                 "candidate_person_min_confidence": 0.45,
-                "candidate_person_robot_radius": 2.0,
+                "candidate_person_robot_radius": 5.0,
                 "candidate_person_risk_radius": 0.80,
                 "robot_self_filter_radius": 0.60,
                 "personal_space_radius": 1.25,
                 "robot_avoidance_radius": 2.00,
                 "robot_risk_inflation_radius": 1.90,
                 "prediction_horizon": 6.0,
-                "prediction_dt": 0.40,
+                "prediction_dt": 0.20,
                 "publish_candidate_predictions": tracker_publish_candidate_predictions,
                 "publish_tentative_predictions": False,
+                "publish_legacy_prediction_cloud": False,
                 "tentative_prediction_radius_scale": 0.45,
                 "prediction_min_confidence": 0.50,
                 "prediction_min_person_score": 0.52,
@@ -526,7 +637,7 @@ def generate_launch_description():
                 "max_prediction_coast_time": 6.0,
                 "min_prediction_speed": 0.10,
                 # Livox-style scans are sparse; tune these with bags before real hardware use.
-                "point_accumulation_time": 0.20,
+                "point_accumulation_time": 0.12,
                 "accumulation_motion_compensation": True,
                 "max_accumulation_robot_yaw_rate": 0.8,
                 "max_accumulated_points": 5000,
@@ -603,12 +714,23 @@ def generate_launch_description():
             }
         ],
     )
+    # Planning and execution must agree on clamping, deadbands and turning arcs.
+    motion_envelope_parameters = {
+        name: LaunchConfiguration(name) for name in (
+            "max_lin_vel_x", "max_lin_vel_y", "max_ang_vel_z",
+            "cmd_accel_x", "cmd_accel_y", "cmd_accel_yaw", "cmd_vel_deadband",
+            "turning_arc_min_forward_speed", "turning_arc_min_yaw_speed",
+            "axis_exclusive_cmd_vel", "axis_exclusive_yaw_threshold", "allow_reverse_cmd_vel",
+        )
+    }
     human_aware_motion_planner_node = Node(
         condition=IfCondition(run_human_aware_motion_planner),
         package="unitree_g1_mujoco_bridge",
         executable="human_aware_motion_planner",
         name="human_aware_motion_planner",
+        additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
         output="screen",
+        remappings=[("/livox/lidar_world", IfElseSubstitution(LaunchConfiguration("onboard_only"), "/onboard/lidar", "/livox/lidar_world"))],
         parameters=[
             {
                 "input_cmd_vel_topic": raw_cmd_vel_topic,
@@ -621,18 +743,18 @@ def generate_launch_description():
                 "target_frame": "world",
                 "robot_frame": "base_footprint",
                 "rate_hz": 20.0,
-                "local_safe_space_enabled": True,
+                "local_safe_space_enabled": False,
                 "local_danger_radius": 4.0,
                 "predicted_danger_radius": 1.25,
                 "safe_space_max_speed": 0.05,
                 "safe_space_max_lateral": 0.0,
                 "safe_space_max_yaw": 0.08,
                 "prediction_horizon": 5.0,
-                "simulation_dt": 0.25,
-                "max_person_cloud_age": 1.4,
+                "simulation_dt": 0.10,
+                "max_person_cloud_age": 0.6,
                 "robot_radius": 0.38,
                 "human_body_radius": 0.35,
-                "hard_safety_margin": 0.25,
+                "hard_safety_margin": 0.40,
                 "comfort_radius": human_aware_comfort_radius,
                 "front_comfort_scale": 1.7,
                 "front_arc_risk_enabled": True,
@@ -673,6 +795,7 @@ def generate_launch_description():
                 "risk_grid_size": 8.0,
                 "risk_grid_resolution": 0.20,
             },
+            motion_envelope_parameters,
             social_navigation_params_file,
         ],
     )
@@ -682,9 +805,10 @@ def generate_launch_description():
         executable="human_collision_avoidance",
         name="human_collision_avoidance",
         output="screen",
+        remappings=[("/mujoco/pedestrians", IfElseSubstitution(LaunchConfiguration("onboard_only"), "/disabled/oracle_people", "/mujoco/pedestrians"))],
         parameters=[
             {
-                "input_cmd_vel_topic": "/cmd_vel_human_aware",
+                "input_cmd_vel_topic": human_collision_input_cmd_vel_topic,
                 "output_cmd_vel_topic": cmd_vel_topic,
                 "rate_hz": 20.0,
                 "debug_topic": "/human_collision_avoidance_debug",
@@ -717,7 +841,7 @@ def generate_launch_description():
                 "return_angular_speed": 0.40,
                 "return_linear_heading_tolerance": 0.50,
                 "return_max_tilt": 0.45,
-                "enable_open_space_bias": True,
+                "enable_open_space_bias": False,
                 "wall_repulsion_clearance": 1.15,
                 "wall_repulsion_range": 2.4,
                 "wall_repulsion_gain": 0.11,
@@ -740,7 +864,9 @@ def generate_launch_description():
                 "startup_grace_time": 2.0,
                 "person_cloud_timeout": 0.8,
             },
+            motion_envelope_parameters,
             social_navigation_params_file,
+            social_navigation_method_params_file,
         ],
     )
     human_aware_run_logger_node = Node(
@@ -926,6 +1052,9 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument("onboard_only", default_value="false"),
+            DeclareLaunchArgument("show_mujoco_goal", default_value=LaunchConfiguration("onboard_only")),
+            DeclareLaunchArgument("nav2_dynamic_replanning", default_value=LaunchConfiguration("onboard_only")),
             DeclareLaunchArgument(
                 "run_sim",
                 default_value="true",
@@ -1223,6 +1352,14 @@ def generate_launch_description():
                 description="Hard safety filter from /cmd_vel_human_aware to /cmd_vel_safe when tracked humans create near collision risk.",
             ),
             DeclareLaunchArgument(
+                "human_collision_input_cmd_vel_topic",
+                default_value="/cmd_vel_human_aware",
+                description=(
+                    "Command input to the final human collision supervisor. Set to /cmd_vel for "
+                    "supervisor-only baseline methods."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "run_human_aware_run_logger",
                 default_value="false",
                 description="Write timestamped human-aware planner/filter/debug snapshots to JSONL.",
@@ -1256,6 +1393,19 @@ def generate_launch_description():
             DeclareLaunchArgument("human_aware_max_reverse_velocity", default_value="0.10"),
             DeclareLaunchArgument("human_aware_max_angular_near_human", default_value="0.55"),
             DeclareLaunchArgument("human_aware_comfort_radius", default_value="1.40"),
+            DeclareLaunchArgument("nav2_max_vel_y", default_value="0.0"),
+            DeclareLaunchArgument("nav2_min_vel_y", default_value="0.0"),
+            DeclareLaunchArgument("nav2_acc_lim_y", default_value="0.0"),
+            DeclareLaunchArgument("nav2_decel_lim_y", default_value="0.0"),
+            DeclareLaunchArgument("nav2_vy_samples", default_value="1"),
+            DeclareLaunchArgument("nav2_planner_plugin", default_value="nav2_smac_planner/SmacPlannerHybrid"),
+            DeclareLaunchArgument("nav2_world_costmap", default_value="false"),
+            DeclareLaunchArgument("nav2_static_scene_map", default_value="false"),
+            DeclareLaunchArgument("nav2_people_layer", default_value="false"),
+            DeclareLaunchArgument(
+                "nav2_observation_sources", default_value="scan tracked_obstacles",
+                description="Use scan for temporal social planning; scan tracked_obstacles retains geometric Nav2 people marking.",
+            ),
             DeclareLaunchArgument("human_aware_front_arc_angle_deg", default_value="30.0"),
             DeclareLaunchArgument("human_aware_front_arc_distance", default_value="1.5"),
             DeclareLaunchArgument("human_aware_front_arc_weight", default_value="0.55"),
@@ -1327,6 +1477,14 @@ def generate_launch_description():
                     "Versioned parameter profile applied last to the social-navigation tracker, planner, "
                     "and safety filter. Defaults to perception-only sensing; the oracle profile is only "
                     "a simulator-truth upper-bound ablation."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "social_navigation_method_params_file",
+                default_value=DEFAULT_SOCIAL_NAVIGATION_METHOD_PARAMS_FILE,
+                description=(
+                    "Method-specific supervisor parameters applied after the sensing profile. "
+                    "This keeps oracle/perception selection separate from baseline method identity."
                 ),
             ),
             DeclareLaunchArgument(
@@ -1451,6 +1609,11 @@ def generate_launch_description():
                 "mujoco_pedestrian_start_delay",
                 default_value="0.0",
                 description="Seconds to hold pedestrians at their initial poses after simulation reset.",
+            ),
+            DeclareLaunchArgument(
+                "mujoco_pedestrian_seed",
+                default_value="42",
+                description="Seed for reproducible MuJoCo pedestrian trajectories.",
             ),
             DeclareLaunchArgument(
                 "lidar_rate_hz",
@@ -1609,6 +1772,7 @@ def generate_launch_description():
                     "UNITREE_MUJOCO_PEDESTRIANS_COUNT": mujoco_pedestrians_count,
                     "UNITREE_MUJOCO_PEDESTRIAN_SCENARIO": mujoco_pedestrian_scenario,
                     "UNITREE_MUJOCO_PEDESTRIAN_START_DELAY": mujoco_pedestrian_start_delay,
+                    "UNITREE_MUJOCO_PEDESTRIAN_SEED": mujoco_pedestrian_seed,
                     "UNITREE_MUJOCO_PEDESTRIAN_SOCKET": "/tmp/unitree_g1_mujoco_pedestrians.sock",
                     "UNITREE_MUJOCO_LIDAR_ENABLE": use_mujoco_raycast_lidar,
                     "UNITREE_MUJOCO_LIDAR_RATE_HZ": lidar_rate_hz,
@@ -1621,6 +1785,7 @@ def generate_launch_description():
                     "UNITREE_MUJOCO_LIDAR_DEAD_ZONE_HEIGHT": mujoco_lidar_dead_zone_height,
                     "UNITREE_MUJOCO_LIDAR_SOCKET": mujoco_lidar_socket,
                     "UNITREE_MUJOCO_CAMERA_ENABLE": publish_camera,
+                    "UNITREE_MUJOCO_GOAL_VISUAL_ENABLE": LaunchConfiguration("show_mujoco_goal"),
                     "UNITREE_MUJOCO_CAMERA_WIDTH": camera_width,
                     "UNITREE_MUJOCO_CAMERA_HEIGHT": camera_height,
                     "UNITREE_MUJOCO_CAMERA_RATE_HZ": camera_rate_hz,
@@ -1633,7 +1798,7 @@ def generate_launch_description():
                 output="screen",
             ),
             TimerAction(
-                period=3.0,
+                period=2.0,
                 actions=[
                     bridge_node,
                     arm_compositor_node,
@@ -1642,6 +1807,9 @@ def generate_launch_description():
                     policy_node,
                     clamp_button_node,
                     sensors_node,
+                    onboard_odometry_node,
+                    route_monitor_node,
+                    goal_visualizer_node,
                     livox_to_scan_node,
                     scan_filter_node,
                     slam_node,
@@ -1661,11 +1829,11 @@ def generate_launch_description():
                 ],
             ),
             TimerAction(
-                period=7.0,
+                period=5.0,
                 actions=[nav2_launch],
             ),
             TimerAction(
-                period=11.0,
+                period=8.0,
                 actions=[waypoint_explorer_node, point_goal_node],
             ),
         ]

@@ -1,0 +1,29 @@
+name: Bug report
+description: Reproducible simulation, visualization or tooling failure
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Command and reproduction steps
+      description: Include the scene, seed, people count and flags.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Environment and evidence
+      description: Commit/patch status, Docker image ID, host/GPU, relevant log excerpts and artifact paths. Remove credentials before posting.
+  - type: dropdown
+    attributes:
+      label: Run type
+      options:
+        - Onboard visual session (unscored)
+        - Onboard scored navigation
+        - Oracle diagnostic
+        - Fixed-command diagnostic
+        - Mock/CI tooling
+        - Other

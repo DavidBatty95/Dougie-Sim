@@ -18,6 +18,9 @@ setup(
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
+            "mujoco_goal_visualizer = unitree_g1_mujoco_bridge.mujoco_goal_visualizer:main",
+            "dynamic_route_monitor = unitree_g1_mujoco_bridge.dynamic_route_monitor:main",
+            "onboard_lidar_odometry = unitree_g1_mujoco_bridge.onboard_lidar_odometry:main",
             "g1_mujoco_bridge = unitree_g1_mujoco_bridge.g1_mujoco_bridge:main",
             "g1_cmd_vel_teleop = unitree_g1_mujoco_bridge.g1_cmd_vel_teleop:main",
             "g1_hold_pose_controller = unitree_g1_mujoco_bridge.g1_hold_pose_controller:main",

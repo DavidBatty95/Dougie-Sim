@@ -1,0 +1,18 @@
+{
+  "recorded_at": "2026-09-22T00:14:38.552044+00:00",
+  "run": "courtyard-visual-seed-44",
+  "kind": "unscored live visualization",
+  "fps": 4,
+  "clips": [
+    {
+      "file": "onboard-crowd.gif",
+      "frames": 12,
+      "bytes": 487857
+    },
+    {
+      "file": "onboard-decisions.gif",
+      "frames": 12,
+      "bytes": 560282
+    }
+  ]
+}

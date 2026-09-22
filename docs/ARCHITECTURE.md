@@ -18,8 +18,8 @@ The default runtime is a simulation-first, closed-loop ROS 2 locomotion and soci
 
 - The command path is layered: social trajectory selection, a final collision supervisor, policy inference, bridge validation, and a simulator watchdog each have distinct responsibilities.
 - The simulator uses the same Unitree low-level DDS contract as the intended robot boundary, reducing integration differences at the bridge.
-- Perception-only social navigation is the default. Simulator pedestrian truth is isolated to diagnostics, benchmarking, and explicit oracle ablations.
-- Current tracked people and time-indexed predictions remain separate; future occupancy is evaluated by the social planner instead of being flattened into a costmap.
+- The recommended onboard demo explicitly enables `onboard_only`: measured LiDAR, relative IMU heading and encoder transforms feed scan odometry and online SLAM. Simulator truth is isolated to diagnostics, scoring and explicit oracle ablations.
+- Current tracked people and time-indexed predictions remain separate. The social planner evaluates trajectories; the global PeopleLayer adds current lethal footprints and short, soft future costs.
 - Expensive simulated sensors use latest-only workers and private MuJoCo snapshots, keeping them off the physics loop.
 
 ### Risks And Constraints
@@ -42,3 +42,15 @@ The default runtime is a simulation-first, closed-loop ROS 2 locomotion and soci
 6. MuJoCo applies actuator PD and feed-forward torque, then returns state over DDS and sensor packets over Unix datagrams.
 
 Optional benchmark, logging, camera, detector, and goal-generation nodes are intentionally shown as sidecars or annotations rather than part of the primary command chain.
+
+## Onboard and experiment boundaries
+
+`/evaluation/odom` is scoring-only. Scan odometry owns navigation `/odom` and the
+odometry TF; online SLAM owns `/map`. The source-contract audit checks forbidden
+subscriptions and ownership. Goals are sampled from observed reachable free
+space. Event-driven route requests are latched through asynchronous planning.
+
+Generated avoidance worlds provide static geometry and bounds to the simulator's
+independent actor planner, never a prior map to onboard navigation. The results
+GUI is a separate read-only local HTTP process; it consumes published datasets
+without connecting to ROS or commanding the robot.

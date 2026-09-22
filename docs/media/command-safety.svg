@@ -1,180 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" width="1200" height="380" role="img" aria-labelledby="title desc">
-  <title id="title">Command authority and safety flow</title>
-  <desc id="desc">Teleop, Nav2, and Goal or Exploration are alternative command sources that operators must run one at a time. The selected source feeds cmd_vel through a human-aware planner and collision supervisor. Safe commands continue as cmd_vel_safe to the locomotion policy and joint targets. An unsafe command is blocked at the collision supervisor and replaced with a safe zero command.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
+  <title id="title">Command checks</title>
+  <desc id="desc">Layered command filtering is not a collision-free guarantee. Schematic illustration, not recorded benchmark footage.</desc>
   <style>
-    :root {
-      --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
-      --panel:#f6f8fa; --card:#ffffff;
-      --flow:#0969da; --flow-bright:#00a4c7; --flow-soft:#ddf4ff;
-      --danger:#cf222e; --danger-soft:#ffebe9;
-      --ok:#1a7f37; --ok-soft:#dafbe1;
-    }
-    @media (prefers-color-scheme:dark) {
-      :root {
-        --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
-        --panel:#11161d; --card:#161b22;
-        --flow:#58a6ff; --flow-bright:#39c5cf; --flow-soft:#0c2d6b;
-        --danger:#f85149; --danger-soft:#5c1a1a;
-        --ok:#3fb950; --ok-soft:#12351d;
-      }
-    }
-    text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; fill:var(--fg) }
-    .title { font-size:24px; font-weight:750 }
-    .subtitle { font-size:12px; fill:var(--muted) }
-    .section { font-size:9.5px; font-weight:750; letter-spacing:.11em }
-    .name { font-size:12px; font-weight:700 }
-    .detail { font-size:9.5px; fill:var(--muted) }
-    .micro { font-size:8.5px; font-weight:700; letter-spacing:.04em }
-    .panel { fill:var(--panel); stroke:var(--border) }
-    .card { fill:var(--card); stroke:var(--border) }
-    .source-edge { fill:none; stroke:var(--muted); stroke-width:1.4; stroke-dasharray:4 4; opacity:.7 }
-    .edge { fill:none; stroke:var(--flow); stroke-width:2; stroke-linecap:round; stroke-linejoin:round }
-    .danger-edge { fill:none; stroke:var(--danger); stroke-width:2; stroke-linecap:round }
-    .pulse { fill:none; stroke:var(--flow-bright); stroke-width:3.2; stroke-linecap:round;
-      stroke-dasharray:7 93; stroke-dashoffset:7; animation:flow 3.4s linear infinite }
-    .danger-pulse { fill:none; stroke:var(--danger); stroke-width:3.2; stroke-linecap:round;
-      stroke-dasharray:7 93; stroke-dashoffset:7; animation:flow 2.5s linear infinite }
-    .zero { animation:zero-pulse 2.5s ease-in-out infinite }
-    @keyframes flow { to { stroke-dashoffset:-93 } }
-    @keyframes zero-pulse { 0%,100% { opacity:.55 } 50% { opacity:1 } }
-    @media (prefers-reduced-motion:reduce) {
-      .pulse,.danger-pulse { display:none }
-      .zero { animation:none }
-    }
+    text {font-family:Arial,Helvetica,sans-serif}
+    .flow {stroke-dasharray:8 9;animation:flow 1.4s linear infinite}
+    .pulse {animation:pulse 2.4s ease-in-out infinite}
+    @keyframes flow {to {stroke-dashoffset:-34}}
+    @keyframes pulse {0%,100% {opacity:.45} 50% {opacity:1}}
+    @media (prefers-reduced-motion:reduce) {.flow,.pulse {animation:none}}
   </style>
-  <defs>
-    <filter id="shadow" x="-12%" y="-18%" width="124%" height="145%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1f2328" flood-opacity=".10"/>
-    </filter>
-    <marker id="arrow-flow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="var(--flow)"/>
-    </marker>
-    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="var(--muted)"/>
-    </marker>
-    <marker id="arrow-danger" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto">
-      <path d="M0 0L10 5L0 10z" fill="var(--danger)"/>
-    </marker>
-  </defs>
-
-  <rect width="1200" height="380" fill="var(--bg)"/>
-  <text class="title" x="28" y="36">Command Authority and Safety</text>
-  <text class="subtitle" x="28" y="56">One command owner at a time; every velocity command crosses the hard safety boundary.</text>
-  <g transform="translate(934 34)">
-    <line class="edge" x1="0" y1="0" x2="22" y2="0"/><text class="detail" x="29" y="3">safe packet</text>
-    <line class="danger-edge" x1="112" y1="0" x2="134" y2="0"/><text class="detail" x="141" y="3">blocked</text>
-  </g>
-
-  <rect class="panel" x="24" y="76" width="1152" height="276" rx="12"/>
-  <line x1="36" y1="77" x2="1164" y2="77" stroke="var(--flow)" stroke-width="3" stroke-linecap="round"/>
-
-  <text class="section" x="42" y="101" fill="var(--flow)">ALTERNATIVE COMMAND SOURCES</text>
-  <rect x="200" y="88" width="120" height="22" rx="11" fill="var(--flow-soft)" stroke="var(--flow)" stroke-width="1"/>
-  <text class="micro" x="260" y="102" text-anchor="middle" fill="var(--flow)">EXACTLY 1 ACTIVE</text>
-
-  <g filter="url(#shadow)">
-    <g>
-      <rect class="card" x="42" y="120" width="132" height="42" rx="7"/>
-      <circle cx="57" cy="141" r="5" fill="none" stroke="var(--flow)" stroke-width="1.5"/>
-      <text class="name" x="70" y="145">Teleop</text>
-    </g>
-    <g>
-      <rect class="card" x="42" y="184" width="132" height="42" rx="7"/>
-      <circle cx="57" cy="205" r="5" fill="none" stroke="var(--flow)" stroke-width="1.5"/>
-      <text class="name" x="70" y="209">Nav2</text>
-    </g>
-    <g>
-      <rect class="card" x="42" y="248" width="132" height="42" rx="7"/>
-      <circle cx="57" cy="269" r="5" fill="none" stroke="var(--flow)" stroke-width="1.5"/>
-      <text class="name" x="70" y="266">Goal /</text>
-      <text class="detail" x="70" y="279">Exploration</text>
-    </g>
-    <g>
-      <rect x="204" y="150" width="112" height="112" rx="10" fill="var(--flow-soft)" stroke="var(--flow)" stroke-width="1.8"/>
-       <text x="260" y="178" text-anchor="middle" font-size="10" font-weight="750" fill="var(--flow)">OPERATE</text>
-      <text x="260" y="215" text-anchor="middle" font-size="38" font-weight="800" fill="var(--flow)">1</text>
-       <text x="260" y="235" text-anchor="middle" font-size="10" font-weight="750" fill="var(--flow)">MODE AT A TIME</text>
-       <text class="detail" x="260" y="250" text-anchor="middle">operational rule</text>
-    </g>
-  </g>
-
-  <path class="source-edge" d="M174 141H190Q198 141 204 174" marker-end="url(#arrow-muted)"/>
-  <path class="source-edge" d="M174 205H204" marker-end="url(#arrow-muted)"/>
-  <path class="source-edge" d="M174 269H190Q198 269 204 238" marker-end="url(#arrow-muted)"/>
-  <path d="M184 132V278" fill="none" stroke="var(--flow)" stroke-width="1" opacity=".35"/>
-  <text class="micro" x="108" y="313" text-anchor="middle" fill="var(--muted)">MUTUALLY EXCLUSIVE</text>
-
-  <!-- Safe command pipeline -->
-  <path class="edge" d="M316 206H336" marker-end="url(#arrow-flow)"/>
-  <path class="edge" d="M416 206H436" marker-end="url(#arrow-flow)"/>
-  <path class="edge" d="M574 206H598" marker-end="url(#arrow-flow)"/>
-  <path class="edge" d="M760 206H784" marker-end="url(#arrow-flow)"/>
-  <path class="edge" d="M884 206H908" marker-end="url(#arrow-flow)"/>
-  <path class="edge" d="M1038 206H1062" marker-end="url(#arrow-flow)"/>
-  <path class="pulse" d="M316 206H336" pathLength="100"/>
-  <path class="pulse" d="M416 206H436" pathLength="100" style="animation-delay:.35s"/>
-  <path class="pulse" d="M574 206H598" pathLength="100" style="animation-delay:.7s"/>
-  <path class="pulse" d="M760 206H784" pathLength="100" style="animation-delay:1.05s"/>
-  <path class="pulse" d="M884 206H908" pathLength="100" style="animation-delay:1.4s"/>
-  <path class="pulse" d="M1038 206H1062" pathLength="100" style="animation-delay:1.75s"/>
-
-  <g filter="url(#shadow)">
-    <g>
-      <rect x="336" y="188" width="80" height="36" rx="18" fill="var(--flow-soft)" stroke="var(--flow)"/>
-      <text class="name" x="376" y="210" text-anchor="middle" fill="var(--flow)">/cmd_vel</text>
-    </g>
-    <g>
-      <rect class="card" x="436" y="174" width="138" height="64" rx="8"/>
-      <rect x="436" y="174" width="5" height="64" rx="2.5" fill="var(--flow)"/>
-      <text class="name" x="450" y="198">Human-aware</text>
-      <text class="name" x="450" y="213">planner</text>
-      <text class="detail" x="450" y="229">social trajectory</text>
-    </g>
-    <g>
-      <rect class="card" x="598" y="158" width="162" height="96" rx="9" stroke="var(--flow)" stroke-width="1.4"/>
-      <rect x="598" y="158" width="5" height="96" rx="2.5" fill="var(--flow)"/>
-      <text class="name" x="612" y="181">Collision supervisor</text>
-      <text class="detail" x="612" y="196">clearance + freshness gate</text>
-      <rect x="611" y="217" width="58" height="20" rx="10" fill="var(--ok-soft)"/>
-      <text class="micro" x="640" y="230" text-anchor="middle" fill="var(--ok)">PASS</text>
-      <rect x="675" y="217" width="72" height="20" rx="10" fill="var(--danger-soft)"/>
-      <text class="micro" x="711" y="230" text-anchor="middle" fill="var(--danger)">BLOCK = 0</text>
-    </g>
-    <g>
-      <rect x="784" y="188" width="100" height="36" rx="18" fill="var(--flow-soft)" stroke="var(--flow)"/>
-      <text class="name" x="834" y="210" text-anchor="middle" fill="var(--flow)">/cmd_vel_safe</text>
-    </g>
-    <g>
-      <rect class="card" x="908" y="174" width="130" height="64" rx="8"/>
-      <rect x="908" y="174" width="5" height="64" rx="2.5" fill="var(--flow)"/>
-      <text class="name" x="922" y="198">Locomotion</text>
-      <text class="name" x="922" y="213">policy</text>
-      <text class="detail" x="922" y="229">safe velocity only</text>
-    </g>
-    <g>
-      <rect class="card" x="1062" y="174" width="98" height="64" rx="8"/>
-      <rect x="1062" y="174" width="5" height="64" rx="2.5" fill="var(--flow)"/>
-      <text class="name" x="1076" y="199">Joint</text>
-      <text class="name" x="1076" y="214">targets</text>
-      <text class="detail" x="1076" y="230">actuation</text>
-    </g>
-  </g>
-
-  <!-- Unsafe payload terminates at the supervisor; only a newly issued safe zero may leave. -->
-  <rect x="617" y="99" width="128" height="24" rx="12" fill="var(--danger-soft)" stroke="var(--danger)"/>
-  <text class="micro" x="681" y="114" text-anchor="middle" fill="var(--danger)">UNSAFE COMMAND</text>
-  <path class="danger-edge" d="M681 123V150" marker-end="url(#arrow-danger)"/>
-  <path class="danger-pulse" d="M681 123V150" pathLength="100"/>
-  <line x1="668" y1="153" x2="694" y2="153" stroke="var(--danger)" stroke-width="4" stroke-linecap="round"/>
-  <text class="micro" x="704" y="149" fill="var(--danger)">REJECT</text>
-  <g class="zero">
-    <rect x="769" y="164" width="72" height="18" rx="9" fill="var(--flow-soft)"/>
-    <text class="micro" x="805" y="176" text-anchor="middle" fill="var(--flow)">SAFE ZERO</text>
-  </g>
-
-  <rect x="336" y="279" width="824" height="42" rx="8" fill="var(--card)" stroke="var(--border)"/>
-  <circle cx="354" cy="300" r="5" fill="var(--flow-bright)"/>
-  <text class="detail" x="367" y="304"><tspan font-weight="700" fill="var(--fg)">Safety invariant:</tspan> raw or rejected velocity data never reaches locomotion; the supervisor emits only a validated command or zero.</text>
-
-  <text class="subtitle" x="28" y="373">Source exclusivity is operational, not software-enforced. Animated pulses show packet direction and are disabled with reduced motion.</text>
+  <rect width="1200" height="330" rx="18" fill="#0b1727"/>
+  <text x="34" y="53" fill="#edf6ff" font-size="32" font-weight="bold">Command checks</text>
+  <text x="35" y="85" fill="#a8c1d6" font-size="17">Layered command filtering is not a collision-free guarantee</text>
+  <rect x="35" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#43d2ec"/>
+  <circle class="pulse" cx="57" cy="146" r="5" fill="#43d2ec"/>
+  <text x="73" y="153" fill="#43d2ec" font-size="21" font-weight="bold">Navigation intent</text>
+  <text x="53" y="192" fill="#edf6ff" font-size="16">/cmd_vel -&gt; social planner</text>
+  <text x="53" y="229" fill="#acc2d6" font-size="14">Swept body checks; selected trajectory</text>
+  <path class="flow" d="M381 192h40" stroke="#43d2ec" stroke-width="3"/><path d="M414 187l8 5-8 5" fill="none" stroke="#43d2ec" stroke-width="2"/>
+  <rect x="430" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#7de39a"/>
+  <circle class="pulse" cx="452" cy="146" r="5" fill="#7de39a"/>
+  <text x="468" y="153" fill="#7de39a" font-size="21" font-weight="bold">Final command</text>
+  <text x="448" y="192" fill="#edf6ff" font-size="16">/cmd_vel_safe -&gt; walking policy</text>
+  <text x="448" y="229" fill="#acc2d6" font-size="14">Freshness, limits, slew and response</text>
+  <path class="flow" d="M776 192h40" stroke="#43d2ec" stroke-width="3"/><path d="M809 187l8 5-8 5" fill="none" stroke="#43d2ec" stroke-width="2"/>
+  <rect x="825" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#d3a5ff"/>
+  <circle class="pulse" cx="847" cy="146" r="5" fill="#d3a5ff"/>
+  <text x="863" y="153" fill="#d3a5ff" font-size="21" font-weight="bold">Actuation feedback</text>
+  <text x="843" y="192" fill="#edf6ff" font-size="16">Joint targets -&gt; rt/lowcmd</text>
+  <text x="843" y="229" fill="#acc2d6" font-size="14">LowState + estimated odometry return</text>
+  <text x="35" y="302" fill="#8ca8c0" font-size="13">Simulation research prototype | Illustrative data flow | See DEMO_RESULTS.md for measured outcomes</text>
 </svg>

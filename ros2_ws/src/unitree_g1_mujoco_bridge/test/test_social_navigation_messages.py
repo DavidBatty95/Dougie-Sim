@@ -136,6 +136,24 @@ def test_authoritative_mujoco_clusters_preserve_exact_position_and_velocity():
     assert (clusters[0].measured_vx, clusters[0].measured_vy) == pytest.approx((-0.3, 0.2))
 
 
+def test_effective_people_source_reports_authoritative_truth_or_fallback():
+    tracker = object.__new__(DynamicObstacleTracker)
+    tracker.cell_size = 0.10
+    tracker.mujoco_person_height = 1.70
+    tracker.mujoco_people_authoritative = True
+    detection = PersonDetection(1.2, -0.4, 0.85, 1.0, 0.42, 5.0)
+    tracker._active_mujoco_detections = lambda stamp: [detection]
+    clusters, source = tracker._effective_people_clusters([], 5.0)
+    assert len(clusters) == 1
+    assert source == "mujoco_truth_oracle"
+
+    tracker._active_mujoco_detections = lambda stamp: []
+    fallback = tracker._cluster_from_detection(detection)
+    clusters, source = tracker._effective_people_clusters([fallback], 5.0)
+    assert clusters == [fallback]
+    assert source == "sensor_or_fused"
+
+
 def test_prediction_interpolation_aligns_position_covariance_and_confidence():
     points = [
         PredictionSample(0.0, 1.0, 2.0, 1.0, 0.0, 0.2, 0.4, 0.9),
@@ -266,6 +284,7 @@ def test_normal_navigation_preserves_the_bounded_upstream_command():
 
 def test_near_human_candidates_do_not_amplify_requested_forward_speed():
     planner = object.__new__(HumanAwareMotionPlanner)
+    planner.holonomic_avoidance = False
     planner.max_reverse_velocity = 0.1
     planner.max_forward_near_human = 0.35
     planner.max_lateral_near_human = 0.0

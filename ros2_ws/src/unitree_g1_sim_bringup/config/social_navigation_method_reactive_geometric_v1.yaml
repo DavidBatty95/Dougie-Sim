@@ -1,0 +1,7 @@
+human_collision_avoidance:
+  ros__parameters:
+    # Current-person geometric stop only: disable typed and legacy prediction influence.
+    prediction_min_confidence: 1.1
+    predicted_repulsion_range: 0.0
+    enable_open_space_bias: false
+    people_repulsion_gain: 0.0

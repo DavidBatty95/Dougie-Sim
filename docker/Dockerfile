@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:humble-desktop-full@sha256:1db1e4e941d4f77fab55bcd479158a75273329335e86ec468bff280859e8178c
 
 ARG USERNAME=ros
 ARG USER_UID=1000
@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mesa-utils \
     nano \
     python3-colcon-common-extensions \
+    python3-jsonschema \
     python3-pip \
     python3-rosdep \
     python3-yaml \
@@ -57,7 +58,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --no-cache-dir uv onnxruntime
+COPY docker/requirements.txt /tmp/geoff-requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/geoff-requirements.txt
 
 RUN if ! getent group ${USER_GID} >/dev/null; then groupadd --gid ${USER_GID} ${USERNAME}; fi \
     && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} \

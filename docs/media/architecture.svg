@@ -1,149 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 880" width="1200" height="880" role="img" aria-labelledby="title desc">
-  <title id="title">Geoff-Sim system architecture</title>
-  <desc id="desc">Layered architecture diagram showing command flow, perception, low-level control, simulation, and robot feedback without crossing component cards.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
+  <title id="title">Onboard runtime</title>
+  <desc id="desc">Navigation receives observations; simulator truth is evaluation-only. Schematic illustration, not recorded benchmark footage.</desc>
   <style>
-    :root {
-      --bg:#ffffff; --fg:#1f2328; --muted:#656d76; --border:#d0d7de;
-      --panel:#f6f8fa; --card:#ffffff;
-      --nav:#0969da; --nav-soft:#ddf4ff;
-      --social:#8250df; --social-soft:#fbefff;
-      --state:#1a7f37; --state-soft:#dafbe1;
-      --control:#bc4c00; --control-soft:#fff1e5;
-      --robot:#cf222e; --robot-soft:#ffebe9;
-    }
-    @media (prefers-color-scheme:dark) {
-      :root {
-        --bg:#0d1117; --fg:#e6edf3; --muted:#8b949e; --border:#30363d;
-        --panel:#11161d; --card:#161b22;
-        --nav:#58a6ff; --nav-soft:#0c2d6b;
-        --social:#bc8cff; --social-soft:#35215d;
-        --state:#3fb950; --state-soft:#12351d;
-        --control:#db6d28; --control-soft:#4d2b00;
-        --robot:#f85149; --robot-soft:#5c1a1a;
-      }
-    }
-    text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; fill:var(--fg) }
-    .title { font-size:24px; font-weight:750 }
-    .subtitle { font-size:12px; fill:var(--muted) }
-    .section { font-size:10px; font-weight:750; letter-spacing:.11em }
-    .name { font-size:13px; font-weight:700 }
-    .detail { font-size:10.5px; fill:var(--muted) }
-    .label { font-size:9.5px; fill:var(--muted); font-weight:600 }
-    .panel { fill:var(--panel); stroke:var(--border); stroke-width:1 }
-    .card { fill:var(--card); stroke:var(--border); stroke-width:1 }
-    .edge { fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; opacity:.62 }
-    .nav { stroke:var(--nav) } .social { stroke:var(--social) }
-    .state { stroke:var(--state) } .control { stroke:var(--control) }
-    .alternate { stroke-dasharray:5 5 }
-    .pulse { fill:none; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round;
-      stroke-dasharray:8 92; stroke-dashoffset:8; animation:flow 4s linear infinite }
-    .pulse-nav { stroke:var(--nav) } .pulse-social { stroke:var(--social) }
-    .pulse-state { stroke:var(--state) } .pulse-control { stroke:var(--control) }
-    @keyframes flow { to { stroke-dashoffset:-92 } }
-    @media (prefers-reduced-motion:reduce) { .pulse { display:none } .edge { opacity:.9 } }
+    text {font-family:Arial,Helvetica,sans-serif}
+    .flow {stroke-dasharray:8 9;animation:flow 1.4s linear infinite}
+    .pulse {animation:pulse 2.4s ease-in-out infinite}
+    @keyframes flow {to {stroke-dashoffset:-34}}
+    @keyframes pulse {0%,100% {opacity:.45} 50% {opacity:1}}
+    @media (prefers-reduced-motion:reduce) {.flow,.pulse {animation:none}}
   </style>
-  <defs>
-    <filter id="shadow" x="-10%" y="-15%" width="120%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1f2328" flood-opacity=".10"/>
-    </filter>
-    <marker id="arrow-nav" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--nav)"/></marker>
-    <marker id="arrow-social" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--social)"/></marker>
-    <marker id="arrow-state" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--state)"/></marker>
-    <marker id="arrow-control" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--control)"/></marker>
-  </defs>
-
-  <rect width="1200" height="880" fill="var(--bg)"/>
-
-  <!-- Header -->
-  <text class="title" x="32" y="38">Geoff-Sim Architecture</text>
-  <text class="subtitle" x="32" y="58">Unitree G1 · ROS 2 Humble · MuJoCo · simulation-first autonomy and locomotion</text>
-  <g transform="translate(826 30)">
-    <line x1="0" y1="0" x2="22" y2="0" class="edge state"/><text class="label" x="29" y="3">state</text>
-    <line x1="92" y1="0" x2="114" y2="0" class="edge nav"/><text class="label" x="121" y="3">navigation</text>
-    <line x1="215" y1="0" x2="237" y2="0" class="edge social"/><text class="label" x="244" y="3">safety</text>
-    <line x1="306" y1="0" x2="328" y2="0" class="edge control"/><text class="label" x="335" y="3">control</text>
-  </g>
-
-  <!-- Command layer -->
-  <rect class="panel" x="28" y="88" width="1144" height="174" rx="12"/>
-  <line x1="40" y1="89" x2="1160" y2="89" stroke="var(--nav)" stroke-width="3" stroke-linecap="round"/>
-  <text class="section" x="44" y="111" fill="var(--nav)">COMMAND AND AUTONOMY</text>
-
-  <g filter="url(#shadow)">
-    <g><rect class="card" x="40" y="142" width="200" height="66" rx="8"/><rect x="40" y="142" width="5" height="66" rx="2.5" fill="var(--nav)"/><text class="name" x="56" y="165">Command source</text><text class="detail" x="56" y="183">teleop or one goal mode</text><text class="detail" x="56" y="197">publishes /cmd_vel</text></g>
-    <g><rect class="card" x="264" y="142" width="200" height="66" rx="8"/><rect x="264" y="142" width="5" height="66" rx="2.5" fill="var(--nav)"/><text class="name" x="280" y="165">Nav2</text><text class="detail" x="280" y="183">global and local planning</text><text class="detail" x="280" y="197">costmaps and control</text></g>
-    <g><rect class="card" x="488" y="142" width="200" height="66" rx="8"/><rect x="488" y="142" width="5" height="66" rx="2.5" fill="var(--social)"/><text class="name" x="504" y="165">Human-aware planner</text><text class="detail" x="504" y="183">social trajectory selection</text><text class="detail" x="504" y="197">tracked and predicted people</text></g>
-    <g><rect class="card" x="712" y="142" width="200" height="66" rx="8"/><rect x="712" y="142" width="5" height="66" rx="2.5" fill="var(--social)"/><text class="name" x="728" y="165">Collision supervisor</text><text class="detail" x="728" y="183">hard stop and stale-input gate</text><text class="detail" x="728" y="197">publishes /cmd_vel_safe</text></g>
-    <g><rect class="card" x="936" y="142" width="200" height="66" rx="8"/><rect x="936" y="142" width="5" height="66" rx="2.5" fill="var(--control)"/><text class="name" x="952" y="165">Locomotion policy</text><text class="detail" x="952" y="183">safe velocity + LowState</text><text class="detail" x="952" y="197">12 or 29 joint targets</text></g>
-  </g>
-
-  <path class="edge nav" d="M240 175H264" marker-end="url(#arrow-nav)"/><path class="pulse pulse-nav" d="M240 175H264" pathLength="100"/>
-  <path class="edge nav" d="M464 175H488" marker-end="url(#arrow-nav)"/><path class="pulse pulse-nav" d="M464 175H488" pathLength="100" style="animation-delay:.4s"/>
-  <path class="edge social" d="M688 175H712" marker-end="url(#arrow-social)"/><path class="pulse pulse-social" d="M688 175H712" pathLength="100" style="animation-delay:.8s"/>
-  <path class="edge social" d="M912 175H936" marker-end="url(#arrow-social)"/><path class="pulse pulse-social" d="M912 175H936" pathLength="100" style="animation-delay:1.2s"/>
-  <text class="label" x="252" y="136" text-anchor="middle">goal</text><text class="label" x="476" y="136" text-anchor="middle">cmd</text><text class="label" x="700" y="136" text-anchor="middle">aware</text><text class="label" x="924" y="136" text-anchor="middle">safe</text>
-
-  <!-- Perception layer -->
-  <rect class="panel" x="28" y="300" width="1144" height="164" rx="12"/>
-  <line x1="40" y1="301" x2="1160" y2="301" stroke="var(--state)" stroke-width="3" stroke-linecap="round"/>
-  <text class="section" x="44" y="323" fill="var(--state)">PERCEPTION AND ROBOT STATE</text>
-
-  <g filter="url(#shadow)">
-    <g><rect class="card" x="40" y="350" width="245" height="64" rx="8"/><rect x="40" y="350" width="5" height="64" rx="2.5" fill="var(--state)"/><text class="name" x="56" y="373">MuJoCo sensor workers</text><text class="detail" x="56" y="391">LiDAR · RGB-D · IMU · actors</text><text class="detail" x="56" y="405">latest-only snapshots</text></g>
-    <g><rect class="card" x="325" y="350" width="245" height="64" rx="8"/><rect x="325" y="350" width="5" height="64" rx="2.5" fill="var(--state)"/><text class="name" x="341" y="373">ROS sensor bridge</text><text class="detail" x="341" y="391">odom · joint state · point clouds</text><text class="detail" x="341" y="405">Unix datagrams to ROS 2</text></g>
-    <g><rect class="card" x="610" y="350" width="245" height="64" rx="8"/><rect x="610" y="350" width="5" height="64" rx="2.5" fill="var(--social)"/><text class="name" x="626" y="373">Scan and people tracking</text><text class="detail" x="626" y="391">/scan · dynamic filtering</text><text class="detail" x="626" y="405">tracks and future trajectories</text></g>
-    <g><rect class="card" x="895" y="350" width="245" height="64" rx="8"/><rect x="895" y="350" width="5" height="64" rx="2.5" fill="var(--nav)"/><text class="name" x="911" y="373">SLAM, TF, and observability</text><text class="detail" x="911" y="391">map · robot frames · RViz</text><text class="detail" x="911" y="405">diagnostics and run logging</text></g>
-  </g>
-
-  <path class="edge state" d="M285 382H325" marker-end="url(#arrow-state)"/><path class="pulse pulse-state" d="M285 382H325" pathLength="100"/>
-  <path class="edge state" d="M570 382H610" marker-end="url(#arrow-state)"/><path class="pulse pulse-state" d="M570 382H610" pathLength="100" style="animation-delay:.4s"/>
-  <path class="edge state" d="M855 382H895" marker-end="url(#arrow-state)"/><path class="pulse pulse-state" d="M855 382H895" pathLength="100" style="animation-delay:.8s"/>
-  <text class="label" x="305" y="374" text-anchor="middle">packets</text><text class="label" x="590" y="374" text-anchor="middle">cloud</text><text class="label" x="875" y="374" text-anchor="middle">scan</text>
-
-  <!-- Routed perception inputs stay in dedicated gutters -->
-  <path class="edge social" d="M733 350V290H588V208" marker-end="url(#arrow-social)"/>
-  <path class="pulse pulse-social" d="M733 350V290H588V208" pathLength="100" style="animation-delay:1.1s"/>
-  <text class="label" x="652" y="285" text-anchor="middle">people + predictions</text>
-  <path class="edge nav" d="M1018 350V270H364V208" marker-end="url(#arrow-nav)"/>
-  <path class="pulse pulse-nav" d="M1018 350V270H364V208" pathLength="100" style="animation-delay:1.6s"/>
-  <text class="label" x="856" y="265" text-anchor="middle">map + TF</text>
-
-  <!-- Low-level layer -->
-  <rect class="panel" x="28" y="502" width="1144" height="126" rx="12"/>
-  <line x1="40" y1="503" x2="1160" y2="503" stroke="var(--control)" stroke-width="3" stroke-linecap="round"/>
-  <text class="section" x="44" y="525" fill="var(--control)">LOW-LEVEL ROBOT INTERFACE</text>
-
-  <g filter="url(#shadow)">
-    <g><rect class="card" x="100" y="548" width="260" height="58" rx="8"/><rect x="100" y="548" width="5" height="58" rx="2.5" fill="var(--control)"/><text class="name" x="116" y="571">g1_mujoco_bridge</text><text class="detail" x="116" y="589">limits · validation · fall damping</text></g>
-    <g><rect class="card" x="470" y="548" width="260" height="58" rx="8"/><rect x="470" y="548" width="5" height="58" rx="2.5" fill="var(--control)"/><text class="name" x="486" y="571">Unitree SDK2 + CycloneDDS</text><text class="detail" x="486" y="589">LowCmd · LowState · domain 42</text></g>
-    <g><rect class="card" x="840" y="548" width="260" height="58" rx="8"/><rect x="840" y="548" width="5" height="58" rx="2.5" fill="var(--robot)"/><text class="name" x="856" y="571">Actuator safety contract</text><text class="detail" x="856" y="589">29 motors · PD control · watchdog</text></g>
-  </g>
-  <path class="edge control" d="M360 577H470" marker-end="url(#arrow-control)"/><path class="pulse pulse-control" d="M360 577H470" pathLength="100" style="animation-delay:.3s"/>
-  <path class="edge control" d="M730 577H840" marker-end="url(#arrow-control)"/><path class="pulse pulse-control" d="M730 577H840" pathLength="100" style="animation-delay:.7s"/>
-  <text class="label" x="415" y="568" text-anchor="middle">rt/lowcmd</text><text class="label" x="785" y="568" text-anchor="middle">DDS</text>
-
-  <!-- Policy output uses the right gutter, never crossing cards -->
-  <path class="edge control" d="M1136 175H1160V482H230V548" marker-end="url(#arrow-control)"/>
-  <path class="pulse pulse-control" d="M1136 175H1160V482H230V548" pathLength="100" style="animation-delay:1.4s"/>
-  <text class="label" x="980" y="477">joint targets</text>
-
-  <!-- Endpoint layer -->
-  <rect class="panel" x="28" y="666" width="1144" height="142" rx="12"/>
-  <line x1="40" y1="667" x2="1160" y2="667" stroke="var(--robot)" stroke-width="3" stroke-linecap="round"/>
-  <text class="section" x="44" y="689" fill="var(--robot)">SELECT ONE DDS ENDPOINT</text>
-  <g filter="url(#shadow)">
-    <g><rect class="card" x="100" y="716" width="450" height="62" rx="8"/><rect x="100" y="716" width="5" height="62" rx="2.5" fill="var(--state)"/><text class="name" x="116" y="739">unitree_mujoco</text><text class="detail" x="116" y="757">physics · actuator PD · animated actors · sensor snapshots</text><rect x="494" y="729" width="40" height="18" rx="9" fill="var(--state-soft)"/><text x="514" y="738" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-weight="750" fill="var(--state)">SIM</text></g>
-    <g><rect class="card" x="650" y="716" width="450" height="62" rx="8"/><rect x="650" y="716" width="5" height="62" rx="2.5" fill="var(--robot)"/><text class="name" x="666" y="739">Physical Unitree G1</text><text class="detail" x="666" y="757">architectural target · hardware deployment is not validated</text><rect x="1032" y="729" width="52" height="18" rx="9" fill="var(--robot-soft)"/><text x="1058" y="738" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-weight="750" fill="var(--robot)">ROBOT</text></g>
-  </g>
-
-  <path class="edge control" d="M600 606V680H325V716" marker-end="url(#arrow-control)"/>
-  <path class="pulse pulse-control" d="M600 606V680H325V716" pathLength="100" style="animation-delay:1.8s"/>
-  <path class="edge control alternate" d="M600 606V680H875V716" marker-end="url(#arrow-control)"/>
-  <text class="label" x="600" y="675" text-anchor="middle">LowCmd / LowState contract</text>
-
-  <!-- Feedback is confined to outer gutters -->
-  <path class="edge state" d="M325 716V648H18V382H40" marker-end="url(#arrow-state)"/>
-  <path class="pulse pulse-state" d="M325 716V648H18V382H40" pathLength="100" style="animation-delay:2.2s"/>
-  <text class="label" x="29" y="635">sensor snapshots</text>
-  <text class="subtitle" x="32" y="846">Solid paths show the default simulation flow. Dashed paths show alternate endpoints. Animated pulses follow message direction and respect reduced-motion settings.</text>
+  <rect width="1200" height="330" rx="18" fill="#0b1727"/>
+  <text x="34" y="53" fill="#edf6ff" font-size="32" font-weight="bold">Onboard runtime</text>
+  <text x="35" y="85" fill="#a8c1d6" font-size="17">Navigation receives observations; simulator truth is evaluation-only</text>
+  <rect x="35" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#43d2ec"/>
+  <circle class="pulse" cx="57" cy="146" r="5" fill="#43d2ec"/>
+  <text x="73" y="153" fill="#43d2ec" font-size="21" font-weight="bold">Sense / estimate</text>
+  <text x="53" y="192" fill="#edf6ff" font-size="16">Local LiDAR, IMU, encoders</text>
+  <text x="53" y="229" fill="#acc2d6" font-size="14">odom -&gt; base_footprint; SLAM -&gt; map</text>
+  <path class="flow" d="M381 192h40" stroke="#43d2ec" stroke-width="3"/><path d="M414 187l8 5-8 5" fill="none" stroke="#43d2ec" stroke-width="2"/>
+  <rect x="430" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#7de39a"/>
+  <circle class="pulse" cx="452" cy="146" r="5" fill="#7de39a"/>
+  <text x="468" y="153" fill="#7de39a" font-size="21" font-weight="bold">Track / plan</text>
+  <text x="448" y="192" fill="#edf6ff" font-size="16">People tracks + CV forecasts</text>
+  <text x="448" y="229" fill="#acc2d6" font-size="14">Nav2 events up to 5 Hz; local 45 ms budget</text>
+  <path class="flow" d="M776 192h40" stroke="#43d2ec" stroke-width="3"/><path d="M809 187l8 5-8 5" fill="none" stroke="#43d2ec" stroke-width="2"/>
+  <rect x="825" y="119" width="340" height="144" rx="12" fill="#14273b" stroke="#d3a5ff"/>
+  <circle class="pulse" cx="847" cy="146" r="5" fill="#d3a5ff"/>
+  <text x="863" y="153" fill="#d3a5ff" font-size="21" font-weight="bold">Execute / evaluate</text>
+  <text x="843" y="192" fill="#edf6ff" font-size="16">Supervisor -&gt; policy -&gt; DDS</text>
+  <text x="843" y="229" fill="#acc2d6" font-size="14">Truth goes to scorer/logger, not planner</text>
+  <text x="35" y="302" fill="#8ca8c0" font-size="13">Simulation research prototype | Illustrative data flow | See DEMO_RESULTS.md for measured outcomes</text>
 </svg>

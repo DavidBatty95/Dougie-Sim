@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "scope": "Observed development runs; not pooled performance across configurations",
+  "records": [
+    {
+      "id": "natural-visual-8",
+      "role": "visual",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/visual_session_20260921T231819Z/episode_001/onboard-visual/person_avoidance_pedestrian_plaza_smoke_seed_44_20260921T231819Z.json",
+      "source_sha256": "0628606284f518406f016b0bbfa068610c714b349f0f60435edfe54f89ec5f6d",
+      "result": {
+        "run_id": "685fea1b-5f9d-4a29-abf4-90bc1b6a4c3a",
+        "timestamp": "2026-09-21T23:19:46.101553+00:00",
+        "seed": 44,
+        "backend": "mujoco",
+        "benchmark_name": "onboard_visual_session",
+        "pedestrian_scenario": "social_natural_plaza",
+        "onboard_only": true,
+        "visual_session": true,
+        "session_end_reason": "duration_elapsed",
+        "data_sources": {
+          "requested": {
+            "control_people": "sensor_or_fused",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          },
+          "observed": {
+            "control_people": "sensor_or_fused",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          }
+        },
+        "people_count": 8,
+        "goals_requested": 1000000,
+        "goals_reached": 2,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": false,
+        "failure_reason": "collision",
+        "total_time_s": 75.014,
+        "actual_path_length_m": 6.286,
+        "minimum_body_clearance_m": -0.24,
+        "collisions": 3,
+        "near_misses": 4,
+        "fallen": false,
+        "final_score": 0.0
+      }
+    },
+    {
+      "id": "natural-scored-8",
+      "role": "scored",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T232822Z/onboard-waypoints/person_avoidance_pedestrian_plaza_smoke_seed_44_20260921T232822Z.json",
+      "source_sha256": "1db5361b18691cd9d7244c296ccd9fcd98db1576fc313bf126b9788d1aa16bc2",
+      "result": {
+        "run_id": "13e9a8b7-6d7e-4adf-a0e8-94704daa272f",
+        "timestamp": "2026-09-21T23:29:09.790232+00:00",
+        "seed": 44,
+        "backend": "mujoco",
+        "benchmark_name": "onboard_natural_crowd_waypoints",
+        "pedestrian_scenario": "social_natural_plaza",
+        "onboard_only": true,
+        "visual_session": false,
+        "session_end_reason": null,
+        "data_sources": {
+          "requested": {
+            "control_people": "sensor_or_fused",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          },
+          "observed": {
+            "control_people": "sensor_or_fused",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          }
+        },
+        "people_count": 8,
+        "goals_requested": 3,
+        "goals_reached": 0,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": false,
+        "failure_reason": "collision",
+        "total_time_s": 34.637,
+        "actual_path_length_m": 5.156,
+        "minimum_body_clearance_m": -0.025,
+        "collisions": 1,
+        "near_misses": 2,
+        "fallen": false,
+        "final_score": 0.0
+      },
+      "suite_status": {
+        "name": "onboard-waypoints",
+        "return_code": 1,
+        "timed_out": false,
+        "duration_s": 48.438,
+        "status": "failed"
+      }
+    },
+    {
+      "id": "forward-response",
+      "role": "fixed-command",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T233056Z/fixed-forward/fixed_command_scene_29dof_empty_20260921T233057Z.json",
+      "source_sha256": "8fc3fa8423ba14a513bd98a38e78fad53cdfd5e05f99748ceeff41e22b409b7a",
+      "result": {
+        "fallen": false,
+        "metric_role": "online_diagnostic_only",
+        "provenance": {
+          "policy_path": "/workspace/vendor/unitree_rl_lab/policies/g1_29dof_velocity_v0/policy.onnx",
+          "policy_sha256": "610c27e463a8f666aa50a06346678c00b4df3859f10b54bcc1f817c28251406f",
+          "policy_profile": "unitree_rl_lab_g1_29dof",
+          "scene": "scene_29dof_empty.xml",
+          "limits": {
+            "max_linear_x": 0.45,
+            "max_linear_y": 0.12,
+            "max_angular_z": 0.3
+          },
+          "acceleration_limits": {
+            "linear_x": 0.35,
+            "linear_y": 0.16,
+            "angular_z": 0.35
+          }
+        },
+        "command": {
+          "linear_x": 0.35,
+          "linear_y": 0.0,
+          "angular_z": 0.0
+        },
+        "duration_s": 8.000084981002146,
+        "net_displacement_m": 2.1689167645862684,
+        "average_path_speed_mps": 0.2767564940513873,
+        "reactivity": {
+          "response_axis": "linear_x",
+          "motion_onset_threshold": 0.03,
+          "motion_onset_latency_s": 0.6167196739988867,
+          "rise_time_50_s": 1.1153748580036336,
+          "rise_time_90_s": 2.915259353998408,
+          "steady_state_response": 0.31250582986714553,
+          "steady_state_error": 0.03749417013285444,
+          "peak_response_p95": 0.47196324126149575,
+          "overshoot_fraction": 0.34846640360427367,
+          "stop_settling_threshold": 0.03,
+          "stop_settling_hold_time_s": 0.5,
+          "stop_settling_time_s": 0.8469749559953925,
+          "stop_duration_s": 5.0,
+          "final_stop_speed_p95": 0.00390805576764785,
+          "post_stop_net_drift_m": 0.13303295908200843,
+          "post_stop_path_length_m": 0.1963785230264885
+        },
+        "max_tilt_rad": 0.0632
+      },
+      "suite_status": {
+        "name": "fixed-forward",
+        "return_code": 0,
+        "timed_out": false,
+        "duration_s": 24.679,
+        "status": "passed"
+      }
+    },
+    {
+      "id": "mock-quick",
+      "role": "mock",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T233056Z/mock-avoidance/result.json",
+      "source_sha256": "2c4bc128d6defe2bbc2b0d91c12d7fd0d1783ae2f39e205eb3a93070cd943797",
+      "result": {
+        "run_id": "8b7668e0-63e8-4bd4-8259-a8142b3d9679",
+        "timestamp": "2026-09-21T23:30:57.652703+00:00",
+        "seed": 1,
+        "backend": "mock",
+        "benchmark_name": "person_avoidance_benchmark",
+        "pedestrian_scenario": "waypoints",
+        "onboard_only": false,
+        "visual_session": false,
+        "session_end_reason": null,
+        "data_sources": {
+          "requested": {
+            "control_people": "mock_goal_follower_no_people_input",
+            "scoring_people": "synthetic_ground_truth",
+            "scan": "not_used"
+          },
+          "observed": {
+            "control_people": "mock_goal_follower_no_people_input",
+            "scoring_people": "synthetic_ground_truth",
+            "scan": "not_used"
+          }
+        },
+        "people_count": 4,
+        "goals_requested": 3,
+        "goals_reached": 2,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": false,
+        "failure_reason": "collision",
+        "total_time_s": 16.0,
+        "actual_path_length_m": 10.368,
+        "minimum_body_clearance_m": -0.009,
+        "collisions": 1,
+        "near_misses": 1,
+        "fallen": false,
+        "final_score": 0.0
+      },
+      "suite_status": {
+        "name": "mock-avoidance",
+        "return_code": 1,
+        "timed_out": false,
+        "duration_s": 1.318,
+        "status": "failed"
+      }
+    },
+    {
+      "id": "oracle-42",
+      "role": "historical-oracle",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T153133Z/social-waypoints/person_avoidance_pedestrian_plaza_smoke_seed_42_20260921T153133Z.json",
+      "source_sha256": "de6eda61c52d7827c7cfe8360c771a9b24fb0766efa6d892fcd44b18fecc8527",
+      "result": {
+        "run_id": "db98c694-62a0-4a11-9b99-3cdef530dd8b",
+        "timestamp": "2026-09-21T15:33:14.021702+00:00",
+        "seed": 42,
+        "backend": "mujoco",
+        "benchmark_name": "social_reachable_waypoints",
+        "pedestrian_scenario": "social_wandering_plaza",
+        "data_sources": {
+          "requested": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          },
+          "observed": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          }
+        },
+        "people_count": 4,
+        "goals_requested": 8,
+        "goals_reached": 8,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": true,
+        "failure_reason": null,
+        "total_time_s": 91.567,
+        "actual_path_length_m": 22.88,
+        "minimum_body_clearance_m": 0.407,
+        "collisions": 0,
+        "near_misses": 0,
+        "fallen": false,
+        "final_score": 89.156
+      },
+      "suite_status": {
+        "name": "social-waypoints",
+        "return_code": 0,
+        "timed_out": false,
+        "duration_s": 101.503,
+        "status": "passed"
+      }
+    },
+    {
+      "id": "oracle-43",
+      "role": "historical-oracle",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T152713Z/social-waypoints/person_avoidance_pedestrian_plaza_smoke_seed_43_20260921T152713Z.json",
+      "source_sha256": "8c0839b78a9cc01f50849ab53d4d8af0aa03119c4f0b59ee9e0482292e8432ed",
+      "result": {
+        "run_id": "f2575f5c-094b-4db4-b062-b434d63d693e",
+        "timestamp": "2026-09-21T15:28:55.218474+00:00",
+        "seed": 43,
+        "backend": "mujoco",
+        "benchmark_name": "social_reachable_waypoints",
+        "pedestrian_scenario": "social_wandering_plaza",
+        "data_sources": {
+          "requested": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          },
+          "observed": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          }
+        },
+        "people_count": 4,
+        "goals_requested": 8,
+        "goals_reached": 8,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": true,
+        "failure_reason": null,
+        "total_time_s": 92.389,
+        "actual_path_length_m": 26.464,
+        "minimum_body_clearance_m": 0.567,
+        "collisions": 0,
+        "near_misses": 0,
+        "fallen": false,
+        "final_score": 88.823
+      },
+      "suite_status": {
+        "name": "social-waypoints",
+        "return_code": 0,
+        "timed_out": false,
+        "duration_s": 102.749,
+        "status": "passed"
+      }
+    },
+    {
+      "id": "oracle-44",
+      "role": "historical-oracle",
+      "source_artifact": "ros2_ws/src/dynamic_obstacle_benchmarks/results/demo_suite/suite_20260921T153314Z/social-waypoints/person_avoidance_pedestrian_plaza_smoke_seed_44_20260921T153314Z.json",
+      "source_sha256": "4146c0959eaf2cfadb9aaabda8ee4535f16f61ef33036fe4392576f91fe856cf",
+      "result": {
+        "run_id": "ad7d6be2-22cb-414b-afef-7329581321ad",
+        "timestamp": "2026-09-21T15:34:49.876104+00:00",
+        "seed": 44,
+        "backend": "mujoco",
+        "benchmark_name": "social_reachable_waypoints",
+        "pedestrian_scenario": "social_wandering_plaza",
+        "data_sources": {
+          "requested": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          },
+          "observed": {
+            "control_people": "mujoco_truth_oracle",
+            "scoring_people": "mujoco_simulator_truth",
+            "scan": "mujoco_raycast"
+          }
+        },
+        "people_count": 4,
+        "goals_requested": 8,
+        "goals_reached": 8,
+        "valid_trial": true,
+        "invalid_reason": null,
+        "success": true,
+        "failure_reason": null,
+        "total_time_s": 85.289,
+        "actual_path_length_m": 25.13,
+        "minimum_body_clearance_m": 0.532,
+        "collisions": 0,
+        "near_misses": 0,
+        "fallen": false,
+        "final_score": 89.628
+      },
+      "suite_status": {
+        "name": "social-waypoints",
+        "return_code": 0,
+        "timed_out": false,
+        "duration_s": 96.029,
+        "status": "passed"
+      }
+    }
+  ]
+}

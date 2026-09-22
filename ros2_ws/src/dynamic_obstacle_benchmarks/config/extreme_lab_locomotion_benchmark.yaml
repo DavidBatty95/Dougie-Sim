@@ -39,3 +39,14 @@ safety:
   warning_margin_m: 0.75
   near_miss_margin_m: 0.35
   critical_margin_m: 0.10
+
+data_health:
+  odom_stale_timeout_s: 1.0
+  pedestrian_stale_timeout_s: 1.0
+  scan_stale_timeout_s: 1.0
+  require_exact_people_count: true
+
+data_sources:
+  control_people: not_used
+  scoring_people: not_used
+  scan: mujoco_raycast

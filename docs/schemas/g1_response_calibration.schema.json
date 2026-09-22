@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "G1 command-response calibration dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "platform",
+    "collected_at",
+    "protocol_version",
+    "provenance",
+    "trials"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "dataset_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "platform": {"enum": ["mujoco", "unitree_g1_hardware"]},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "protocol_version": {"const": "g1_response_v1"},
+    "description": {"type": "string"},
+    "provenance": {"$ref": "#/definitions/provenance"},
+    "trials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/definitions/trial"}
+    }
+  },
+  "definitions": {
+    "nullableNumber": {"type": ["number", "null"]},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit",
+        "git_dirty",
+        "policy_sha256",
+        "robot_model_sha256",
+        "scene_sha256",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "git_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "git_dirty": {"type": "boolean"},
+        "simulator_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "container_image_id": {"type": ["string", "null"]},
+        "policy_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "robot_model_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "scene_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "configuration_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "firmware_version": {"type": ["string", "null"]},
+        "host": {"type": "object"}
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["linear_x_mps", "linear_y_mps", "angular_z_radps"],
+      "properties": {
+        "linear_x_mps": {"type": "number"},
+        "linear_y_mps": {"type": "number"},
+        "angular_z_radps": {"type": "number"}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "no_motion",
+        "velocity_filter",
+        "stability_filter",
+        "velocity_source",
+        "stable_steady_interval",
+        "steady_response_p90_p10",
+        "response_axis",
+        "response_unit",
+        "acceleration_unit",
+        "latency_s",
+        "rise_time_10_s",
+        "rise_time_90_s",
+        "steady_response",
+        "steady_tracking_error",
+        "steady_relative_tracking_error",
+        "effective_acceleration",
+        "effective_deceleration",
+        "steady_velocity_mps",
+        "stop_time_s",
+        "stopping_distance_longitudinal_m",
+        "stopping_distance_planar_m",
+        "command_lateral_drift_m",
+        "command_heading_drift_rad",
+        "post_stop_drift_1s_m",
+        "post_stop_drift_3s_m",
+        "post_stop_drift_5s_m",
+        "available_post_stop_drift_horizons_s",
+        "stopping_angle_rad",
+        "post_stop_yaw_drift_1s_rad",
+        "post_stop_yaw_drift_3s_rad",
+        "post_stop_yaw_drift_5s_rad",
+        "max_tilt_rad",
+        "minimum_base_height_m",
+        "fallen",
+        "first_fall_time_s"
+      ],
+      "properties": {
+        "no_motion": {"type": "boolean"},
+        "velocity_filter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "window_s"],
+          "properties": {
+            "type": {"const": "trailing_mean"},
+            "window_s": {"const": 0.1}
+          }
+        },
+        "stability_filter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "window_s"],
+          "properties": {
+            "type": {"const": "trailing_mean"},
+            "window_s": {"const": 0.8}
+          }
+        },
+        "velocity_source": {"const": "pose_derived_body_twist"},
+        "stable_steady_interval": {"type": "boolean"},
+        "steady_response_p90_p10": {"type": ["number", "null"], "minimum": 0.0},
+        "response_axis": {"enum": ["linear_x", "linear_y", "angular_z"]},
+        "response_unit": {"enum": ["m/s", "rad/s"]},
+        "acceleration_unit": {"enum": ["m/s^2", "rad/s^2"]},
+        "latency_s": {"$ref": "#/definitions/nullableNumber"},
+        "rise_time_10_s": {"$ref": "#/definitions/nullableNumber"},
+        "rise_time_90_s": {"$ref": "#/definitions/nullableNumber"},
+        "steady_response": {"$ref": "#/definitions/nullableNumber"},
+        "steady_tracking_error": {"$ref": "#/definitions/nullableNumber"},
+        "steady_relative_tracking_error": {"$ref": "#/definitions/nullableNumber"},
+        "effective_acceleration": {"$ref": "#/definitions/nullableNumber"},
+        "effective_deceleration": {"$ref": "#/definitions/nullableNumber"},
+        "steady_velocity_mps": {"$ref": "#/definitions/nullableNumber"},
+        "steady_tracking_error_mps": {"$ref": "#/definitions/nullableNumber"},
+        "stop_time_s": {"$ref": "#/definitions/nullableNumber"},
+        "stopping_distance_longitudinal_m": {"$ref": "#/definitions/nullableNumber"},
+        "stopping_distance_planar_m": {"$ref": "#/definitions/nullableNumber"},
+        "command_lateral_drift_m": {"$ref": "#/definitions/nullableNumber"},
+        "command_heading_drift_rad": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_drift_1s_m": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_drift_3s_m": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_drift_5s_m": {"$ref": "#/definitions/nullableNumber"},
+        "available_post_stop_drift_horizons_s": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": [1.0, 3.0, 5.0]}
+        },
+        "stopping_angle_rad": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_yaw_drift_1s_rad": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_yaw_drift_3s_rad": {"$ref": "#/definitions/nullableNumber"},
+        "post_stop_yaw_drift_5s_rad": {"$ref": "#/definitions/nullableNumber"},
+        "max_tilt_rad": {"$ref": "#/definitions/nullableNumber"},
+        "minimum_base_height_m": {"$ref": "#/definitions/nullableNumber"},
+        "fallen": {"type": "boolean"},
+        "first_fall_time_s": {"$ref": "#/definitions/nullableNumber"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"no_motion": {"const": true}}},
+          "then": {"properties": {"latency_s": {"type": "null"}}},
+          "else": {"properties": {"latency_s": {"type": "number"}}}
+        },
+        {
+          "if": {"properties": {"fallen": {"const": true}}},
+          "then": {"properties": {"first_fall_time_s": {"type": "number"}}},
+          "else": {"properties": {"first_fall_time_s": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"response_axis": {"const": "angular_z"}}},
+          "then": {
+            "properties": {
+              "response_unit": {"const": "rad/s"},
+              "acceleration_unit": {"const": "rad/s^2"},
+              "steady_velocity_mps": {"type": "null"}
+            }
+          },
+          "else": {
+            "properties": {
+              "response_unit": {"const": "m/s"},
+              "acceleration_unit": {"const": "m/s^2"}
+            }
+          }
+        }
+      ]
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trial_id",
+        "split",
+        "seed",
+        "repetition",
+        "command_family",
+        "command",
+        "valid_trial",
+        "invalid_reason",
+        "metrics",
+        "artifacts"
+      ],
+      "properties": {
+        "trial_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"},
+        "split": {"enum": ["calibration", "held_out"]},
+        "seed": {"type": "integer", "minimum": 0},
+        "repetition": {"type": "integer", "minimum": 1},
+        "command_family": {
+          "enum": ["forward_step_stop", "yaw_step_stop", "forward_transition", "emergency_stop"]
+        },
+        "command": {"$ref": "#/definitions/command"},
+        "initial_velocity_mps": {"type": "number"},
+        "valid_trial": {"type": "boolean"},
+        "invalid_reason": {"type": ["string", "null"]},
+        "sample_rate_hz": {"type": "number", "exclusiveMinimum": 0},
+        "dropped_samples": {"type": "integer", "minimum": 0},
+        "metrics": {"$ref": "#/definitions/metrics"},
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/artifact"}
+        }
+      }
+    }
+  }
+}

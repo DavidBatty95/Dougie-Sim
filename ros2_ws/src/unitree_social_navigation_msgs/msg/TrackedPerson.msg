@@ -16,3 +16,7 @@ uint8 TRACK_STATE_TENTATIVE=1
 uint8 TRACK_STATE_CONFIRMED=2
 uint8 TRACK_STATE_LOST=3
 uint8 track_state
+
+# Time since the last accepted observation, measured at the containing header.
+# A propagated LOST state is not a new observation.
+builtin_interfaces/Duration observation_age

@@ -1,0 +1,9 @@
+* text=auto eol=lf
+# Unified diffs require a leading space even for empty context lines.
+*.patch text eol=lf -whitespace
+*.svg text eol=lf
+*.gif binary
+*.png binary
+*.jpg binary
+*.onnx binary
+*.pt binary

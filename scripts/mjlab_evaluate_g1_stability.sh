@@ -98,8 +98,25 @@ else
   fi
 fi
 
-OUTPUT_HOST="${CHECKPOINT_HOST%.pt}_stability_evaluation.json"
-OUTPUT_CONTAINER="${CHECKPOINT_CONTAINER%.pt}_stability_evaluation.json"
+REPORT_MODE="nominal"
+REPORT_SEED="42"
+FORWARDED=("$@")
+for ((INDEX = 0; INDEX < ${#FORWARDED[@]}; INDEX++)); do
+  case "${FORWARDED[INDEX]}" in
+    --mode)
+      if ((INDEX + 1 < ${#FORWARDED[@]})); then REPORT_MODE="${FORWARDED[INDEX + 1]}"; fi
+      ;;
+    --seed)
+      if ((INDEX + 1 < ${#FORWARDED[@]})); then REPORT_SEED="${FORWARDED[INDEX + 1]}"; fi
+      ;;
+  esac
+done
+REPORT_SUFFIX="_stability_evaluation"
+if [ "${REPORT_MODE}" != "nominal" ] || [ "${REPORT_SEED}" != "42" ]; then
+  REPORT_SUFFIX="${REPORT_SUFFIX}_${REPORT_MODE}_seed_${REPORT_SEED}"
+fi
+OUTPUT_HOST="${CHECKPOINT_HOST%.pt}${REPORT_SUFFIX}.json"
+OUTPUT_CONTAINER="${CHECKPOINT_CONTAINER%.pt}${REPORT_SUFFIX}.json"
 echo "Evaluating: ${CHECKPOINT_HOST}"
 echo "Report:     ${OUTPUT_HOST}"
 

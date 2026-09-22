@@ -10,8 +10,9 @@ human_aware_motion_planner:
     predicted_trajectories_topic: /predicted_person_trajectories
     use_legacy_person_inputs: false
     max_forward_near_human: 0.25
-    max_lateral_near_human: 0.12
-    max_angular_near_human: 0.45
+    max_lateral_near_human: 0.0
+    max_angular_near_human: 0.20
+    local_safe_space_enabled: false
 
 human_collision_avoidance:
   ros__parameters:
@@ -21,4 +22,4 @@ human_collision_avoidance:
     emergency_stop_radius: 0.80
     max_avoid_linear: 0.22
     max_reverse_linear: 0.15
-    max_lateral_linear: 0.14
+    max_lateral_linear: 0.0

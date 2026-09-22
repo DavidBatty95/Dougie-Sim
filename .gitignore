@@ -24,6 +24,11 @@ ros2_ws/.colcon/
 ros2_ws/.verification/
 
 # Runtime logs and generated diagnostics
+/results/
+/core
+/core.[0-9]*
+docs/media/*.xwd
+docs/media/raw/
 *.log
 *.bag
 *.db3

@@ -4,8 +4,20 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan, PointCloud2
+from tf2_ros import Buffer, TransformException, TransformListener
 
 from .pointcloud import iter_xyz
+
+
+def transform_xyz(x, y, z, transform):
+    q = transform.transform.rotation
+    translation = transform.transform.translation
+    uvx, uvy, uvz = q.y * z - q.z * y, q.z * x - q.x * z, q.x * y - q.y * x
+    return (
+        x + 2.0 * (q.w * uvx + q.y * uvz - q.z * uvy) + translation.x,
+        y + 2.0 * (q.w * uvy + q.z * uvx - q.x * uvz) + translation.y,
+        z + 2.0 * (q.w * uvz + q.x * uvy - q.y * uvx) + translation.z,
+    )
 
 
 class LivoxToScan(Node):
@@ -18,11 +30,13 @@ class LivoxToScan(Node):
         self.declare_parameter("angle_increment", math.radians(0.5))
         self.declare_parameter("range_min", 0.15)
         self.declare_parameter("range_max", 25.0)
-        self.declare_parameter("min_height", -1.10)
-        self.declare_parameter("max_height", 0.65)
+        self.declare_parameter("target_frame", "base_footprint")
+        self.declare_parameter("min_height", 0.08)
+        self.declare_parameter("max_height", 1.80)
         self.declare_parameter("min_floor_range", 1.0)
         self.declare_parameter("fill_empty_bins", True)
         self.declare_parameter("max_fill_gap_deg", 12.0)
+        self.declare_parameter("max_fill_range_jump", 0.30)
         self.declare_parameter("scan_time", 0.1)
 
         self.angle_min = float(self.get_parameter("angle_min").value)
@@ -33,7 +47,11 @@ class LivoxToScan(Node):
         self.min_height = float(self.get_parameter("min_height").value)
         self.max_height = float(self.get_parameter("max_height").value)
         self.min_floor_range = float(self.get_parameter("min_floor_range").value)
+        self.target_frame = str(self.get_parameter("target_frame").value)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.fill_empty_bins = bool(self.get_parameter("fill_empty_bins").value)
+        self.max_fill_range_jump = float(self.get_parameter("max_fill_range_jump").value)
         if self.angle_increment <= 0.0:
             raise ValueError("angle_increment must be positive")
         if self.angle_max <= self.angle_min:
@@ -62,15 +80,21 @@ class LivoxToScan(Node):
         self.get_logger().info("Projecting Livox PointCloud2 to /scan for 2D SLAM")
 
     def _cloud_callback(self, msg: PointCloud2) -> None:
+        transform = None
+        if msg.header.frame_id != self.target_frame:
+            try:
+                transform = self.tf_buffer.lookup_transform(self.target_frame, msg.header.frame_id, rclpy.time.Time.from_msg(msg.header.stamp))
+            except TransformException as exc:
+                self.get_logger().warn(f"Waiting for ground-referenced LiDAR transform: {exc}", throttle_duration_sec=2.0)
+                return
         ranges = [math.inf] * self.bin_count
         for x, y, z in iter_xyz(msg):
+            if transform is not None:
+                x, y, z = transform_xyz(x, y, z, transform)
             if z < self.min_height or z > self.max_height:
                 continue
             distance = math.hypot(x, y)
             if distance < self.range_min or distance > self.range_max:
-                continue
-            # Keep low street furniture while rejecting near-field ground/floor returns.
-            if z < -1.05 and distance > self.min_floor_range:
                 continue
             angle = math.atan2(y, x)
             if angle < self.angle_min or angle >= self.angle_max:
@@ -84,7 +108,8 @@ class LivoxToScan(Node):
         self._debug_coverage(ranges)
 
         scan = LaserScan()
-        scan.header = msg.header
+        scan.header.stamp = msg.header.stamp
+        scan.header.frame_id = self.target_frame
         scan.angle_min = self.angle_min
         scan.angle_max = self.angle_min + (self.bin_count - 1) * self.angle_increment
         scan.angle_increment = self.angle_increment
@@ -110,6 +135,8 @@ class LivoxToScan(Node):
                 continue
             start_range = ranges[start_index]
             end_range = ranges[end_index]
+            if abs(start_range - end_range) > self.max_fill_range_jump:
+                continue  # Do not invent a wall between a person and background.
             for step in range(1, gap):
                 t = step / gap
                 filled[(start_index + step) % count] = (1.0 - t) * start_range + t * end_range

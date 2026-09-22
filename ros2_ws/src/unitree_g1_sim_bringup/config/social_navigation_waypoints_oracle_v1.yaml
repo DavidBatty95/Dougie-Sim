@@ -1,0 +1,43 @@
+# Simulation-only agile waypoint profile; compare with the zero-lateral oracle baseline.
+dynamic_obstacle_tracker:
+  ros__parameters:
+    use_mujoco_people_detections: true
+    mujoco_people_authoritative: true
+    # Wandering actors are configured at 0.55--0.85 m/s with 1.2 m/s² onset.
+    # Bound short acceleration forecasts to that walking population envelope.
+    max_person_speed: 1.0
+    max_human_speed: 1.0
+    max_person_acceleration: 1.2
+
+human_aware_motion_planner:
+  ros__parameters:
+    tracked_persons_topic: /tracked_persons
+    predicted_trajectories_topic: /predicted_person_trajectories
+    use_legacy_person_inputs: false
+    local_safe_space_enabled: false
+    holonomic_avoidance: true
+    nav2_path_reference: true
+    local_escape_enabled: true
+    use_static_scene_map: true
+    max_lateral_near_human: 0.45
+    max_forward_near_human: 0.65
+    max_reverse_velocity: 0.45
+    max_angular_near_human: 0.35
+    prediction_horizon: 6.0
+    simulation_dt: 0.15
+    hard_collision_horizon: 4.0
+    social_cost_decay: 1.0
+    ttc_warning_threshold: 4.5
+    comfort_radius: 1.4
+    hard_safety_margin: 0.40
+    w_personal_space: 12.0
+    w_goal: 4.0
+    w_path: 2.0
+
+human_collision_avoidance:
+  ros__parameters:
+    use_mujoco_people: true
+    danger_radius: 1.60
+    critical_radius: 0.95
+    emergency_stop_radius: 0.70
+    max_lateral_linear: 0.45

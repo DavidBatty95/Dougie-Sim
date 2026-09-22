@@ -43,6 +43,9 @@ class HumanAwareRunLogger(Node):
         self.create_subscription(Twist, str(self.get_parameter("planner_cmd_topic").value), lambda msg: self._twist_callback("planner_cmd", msg), 10)
         self.create_subscription(Twist, str(self.get_parameter("safe_cmd_topic").value), lambda msg: self._twist_callback("safe_cmd", msg), 10)
         self.create_subscription(Odometry, str(self.get_parameter("odom_topic").value), self._odom_callback, 10)
+        self.create_subscription(Odometry, "/evaluation/odom", lambda msg: self._odom_callback(msg, "evaluation_odom"), 10)
+        self.create_subscription(String, "/onboard/localization_status", lambda msg: self._string_callback("localization_status", msg), 10)
+        self.create_subscription(String, "/navigation/replanning_status", lambda msg: self._string_callback("replanning_status", msg), 10)
 
         self.get_logger().info(f"Human-aware run logger writing {self.output_path}")
 
@@ -57,12 +60,14 @@ class HumanAwareRunLogger(Node):
     def _twist_callback(self, topic: str, msg: Twist) -> None:
         self._write(topic, self._twist_dict(msg))
 
-    def _odom_callback(self, msg: Odometry) -> None:
+    def _odom_callback(self, msg: Odometry, topic: str = "odom") -> None:
         pose = msg.pose.pose
         twist = msg.twist.twist
         self._write(
-            "odom",
+            topic,
             {
+                "source_stamp": msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9,
+                "frame_id": msg.header.frame_id,
                 "x": round(float(pose.position.x), 4),
                 "y": round(float(pose.position.y), 4),
                 "z": round(float(pose.position.z), 4),

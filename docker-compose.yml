@@ -10,7 +10,7 @@ services:
     container_name: unitree-g1-ros2-mujoco
     network_mode: host
     ipc: host
-    privileged: true
+    privileged: false
     runtime: ${DOCKER_RUNTIME:-runc}
     environment:
       DISPLAY: ${DISPLAY:-:0}
@@ -25,10 +25,14 @@ services:
       - ./ros2_ws:/workspace/ros2_ws
       - ./vendor:/workspace/vendor
       - ./scripts:/workspace/scripts:ro
+      - ./tools:/workspace/tools:ro
+      - ./geoff:/workspace/geoff:ro
+      - ./docs:/workspace/docs:ro
+      - ./patches:/workspace/patches:ro
+      - ./.git:/workspace/.git:ro
       - ./integrations:/workspace/integrations:ro
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ${XAUTHORITY:-/tmp/.docker.xauth}:${XAUTHORITY:-/tmp/.docker.xauth}:ro
-      - /dev/dri:/dev/dri
     devices:
       - /dev/dri:/dev/dri
     working_dir: /workspace/ros2_ws

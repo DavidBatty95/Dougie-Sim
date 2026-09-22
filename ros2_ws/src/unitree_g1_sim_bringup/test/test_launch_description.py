@@ -13,6 +13,7 @@ from launch_ros.parameter_descriptions import ParameterFile
 LAUNCH_FILE = Path(__file__).parents[1] / "launch" / "g1_sim.launch.py"
 CONFIG_DIR = Path(__file__).parents[1] / "config"
 NAV2_CONFIG = CONFIG_DIR / "nav2_livox.yaml"
+RVIZ_CONFIG = Path(__file__).parents[1] / "rviz" / "g1_sim.rviz"
 PROFILE_NAMES = ["perception_only", "balanced", "conservative", "hardware_safe", "oracle"]
 SOCIAL_NODE_NAMES = {
     "dynamic_obstacle_tracker",
@@ -30,6 +31,94 @@ def _load_launch_module():
 
 
 class LaunchDescriptionTests(unittest.TestCase):
+    def test_onboard_view_shows_measured_sensors_map_and_predictions(self):
+        path = Path(__file__).parents[1] / "rviz" / "g1_onboard_waypoints.rviz"
+        manager = yaml.safe_load(path.read_text())["Visualization Manager"]
+        self.assertEqual(manager["Global Options"]["Fixed Frame"], "map")
+        visible = {d["Topic"]["Value"]: d for d in manager["Displays"] if d.get("Enabled") and "Topic" in d}
+        for topic in ("/onboard/lidar", "/scan_raw", "/map", "/dynamic_obstacles",
+                      "/camera/camera/color/image_raw", "/camera/camera/depth/image_rect_raw"):
+            self.assertIn(topic, visible)
+        self.assertEqual(visible["/onboard/lidar"]["Topic"]["Reliability Policy"], "Best Effort")
+        self.assertNotIn("/simulation/static_map", visible)
+        self.assertNotIn("/livox/lidar_world", visible)
+
+    def test_social_waypoint_view_uses_navigation_map_in_world_frame(self) -> None:
+        path = Path(__file__).parents[1] / "rviz" / "g1_social_waypoints.rviz"
+        manager = yaml.safe_load(path.read_text())["Visualization Manager"]
+        self.assertEqual(manager["Global Options"]["Fixed Frame"], "world")
+        maps = [display for display in manager["Displays"] if display["Class"] == "rviz_default_plugins/Map"]
+        self.assertEqual(maps[0]["Topic"]["Value"], "/simulation/static_map")
+        self.assertEqual(manager["Views"]["Current"]["Target Frame"], "base_footprint")
+
+    def test_velocity_smoother_array_rewrites_preserve_other_axes(self) -> None:
+        from launch import LaunchContext
+        rewrite = _load_launch_module().IndexedParameterRewrites(
+            source_file=str(NAV2_CONFIG), convert_types=True,
+            param_rewrites={"velocity_smoother.ros__parameters.max_velocity.1": "0.35"},
+        )
+        output = Path(rewrite.perform(LaunchContext()))
+        try:
+            values = yaml.safe_load(output.read_text())["velocity_smoother"]["ros__parameters"]["max_velocity"]
+            self.assertEqual(values, [0.45, 0.35, 0.45])
+        finally:
+            output.unlink()
+
+    def test_dynamic_route_parameters_are_inserted_when_absent_on_humble(self) -> None:
+        from launch import LaunchContext
+        rewrites = {
+            "bt_navigator.ros__parameters.default_nav_to_pose_bt_xml": str(CONFIG_DIR / "nav2_dynamic_replanning.xml"),
+            "planner_server.ros__parameters.GridBased.max_planning_time": "0.15",
+            "global_costmap.global_costmap.ros__parameters.people_layer.prediction_horizon": "1.2",
+        }
+        rewrite = _load_launch_module().IndexedParameterRewrites(
+            source_file=str(NAV2_CONFIG), convert_types=True,
+            param_rewrites=rewrites, add_missing_keys=tuple(rewrites))
+        output = Path(rewrite.perform(LaunchContext()))
+        try:
+            data = yaml.safe_load(output.read_text())
+            self.assertEqual(data["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"], rewrites[next(iter(rewrites))])
+            self.assertEqual(data["planner_server"]["ros__parameters"]["GridBased"]["max_planning_time"], .15)
+            self.assertEqual(data["global_costmap"]["global_costmap"]["ros__parameters"]["people_layer"]["prediction_horizon"], 1.2)
+        finally:
+            output.unlink()
+
+    def test_rviz_exposes_social_mission_and_hides_disabled_camera_panels(self) -> None:
+        config = yaml.safe_load(RVIZ_CONFIG.read_text(encoding="utf-8"))
+        displays = config["Visualization Manager"]["Displays"]
+        by_name = {display["Name"]: display for display in displays}
+
+        self.assertEqual(
+            by_name["Benchmark Mission Goal"]["Topic"]["Value"],
+            "/benchmark/current_goal",
+        )
+        self.assertEqual(
+            by_name["Social Demo Status (Oracle)"]["Topic"]["Value"],
+            "/benchmark/social_demo_oracle",
+        )
+        self.assertFalse(by_name["Dynamic Obstacles"]["Namespaces"]["dynamic_obstacle_labels"])
+        self.assertFalse(by_name["Dynamic Obstacles"]["Namespaces"]["tracked_object_paths"])
+        self.assertFalse(
+            by_name["Human-Aware Candidate Trajectories"]["Namespaces"]["human_aware_state"]
+        )
+        self.assertFalse(by_name["Projected Livox /scan"]["Enabled"])
+        self.assertTrue(by_name["SLAM Occupancy Map"]["Enabled"])
+        self.assertFalse(by_name["Tracked Object Footprints"]["Enabled"])
+        self.assertFalse(by_name["Predicted Object Risk"]["Enabled"])
+        self.assertFalse(by_name["Human Social Risk Grid"]["Enabled"])
+        self.assertTrue(by_name["Nav2 Global Path"]["Enabled"])
+        self.assertFalse(by_name["Nav2 Local Plan"]["Enabled"])
+        self.assertFalse(by_name["MuJoCo Livox mj_multiRay"]["Enabled"])
+        self.assertFalse(by_name["D435i Color"]["Enabled"])
+        self.assertFalse(by_name["D435i Camera View"]["Enabled"])
+        self.assertFalse(by_name["D435i Depth"]["Enabled"])
+        self.assertEqual(
+            config["Visualization Manager"]["Views"]["Current"]["Target Frame"],
+            "base_footprint",
+        )
+        self.assertTrue(config["Window Geometry"]["Hide Left Dock"])
+        self.assertTrue(config["Window Geometry"]["Hide Right Dock"])
+
     def test_key_launch_arguments_are_declared(self) -> None:
         launch_description = _load_launch_module().generate_launch_description()
         arguments = {
@@ -42,10 +131,13 @@ class LaunchDescriptionTests(unittest.TestCase):
             "run_sim",
             "mujoco_scene",
             "mujoco_pedestrian_scenario",
+            "mujoco_pedestrian_seed",
             "run_slam",
             "run_nav2",
             "run_human_collision_avoidance",
+            "human_collision_input_cmd_vel_topic",
             "social_navigation_params_file",
+            "social_navigation_method_params_file",
             "run_locomotion_diagnostics",
             "run_point_goal",
             "run_base_approach",
@@ -57,6 +149,10 @@ class LaunchDescriptionTests(unittest.TestCase):
 
         self.assertEqual(arguments["mujoco_scene"].default_value[0].text, "scene_29dof_extreme_lab.xml")
         self.assertEqual(arguments["run_human_collision_avoidance"].default_value[0].text, "true")
+        self.assertEqual(
+            arguments["human_collision_input_cmd_vel_topic"].default_value[0].text,
+            "/cmd_vel_human_aware",
+        )
         self.assertEqual(arguments["run_lidar_person_detector"].default_value[0].text, "false")
         self.assertEqual(arguments["tracker_publish_candidate_predictions"].default_value[0].text, "false")
         self.assertEqual(arguments["run_locomotion_diagnostics"].default_value[0].text, "true")
@@ -82,6 +178,7 @@ class LaunchDescriptionTests(unittest.TestCase):
             "policy_action_rate_limit": "8.0",
             "mujoco_initial_keyframe": "policy_stand",
             "mujoco_pedestrian_scenario": "waypoints",
+            "mujoco_pedestrian_seed": "42",
             "max_lin_vel_y": "0.12",
             "max_ang_vel_z": "0.35",
             "policy_profile": "mjlab",
@@ -93,6 +190,25 @@ class LaunchDescriptionTests(unittest.TestCase):
             arguments["social_navigation_params_file"].default_value[0].text,
             str(CONFIG_DIR / "social_navigation_perception_only_v1.yaml"),
         )
+        self.assertEqual(
+            arguments["social_navigation_method_params_file"].default_value[0].text,
+            str(CONFIG_DIR / "social_navigation_method_default_v1.yaml"),
+        )
+
+    def test_social_navigation_method_profiles_isolate_baseline_behavior(self) -> None:
+        reactive = yaml.safe_load(
+            (CONFIG_DIR / "social_navigation_method_reactive_geometric_v1.yaml").read_text()
+        )["human_collision_avoidance"]["ros__parameters"]
+        temporal = yaml.safe_load(
+            (CONFIG_DIR / "social_navigation_method_deterministic_temporal_v1.yaml").read_text()
+        )["human_collision_avoidance"]["ros__parameters"]
+
+        self.assertGreater(reactive["prediction_min_confidence"], 1.0)
+        self.assertEqual(reactive["predicted_repulsion_range"], 0.0)
+        self.assertFalse(reactive["enable_open_space_bias"])
+        self.assertEqual(temporal["prediction_uncertainty_scale"], 0.0)
+        self.assertGreater(temporal["prediction_collision_radius"], 0.0)
+        self.assertFalse(temporal["enable_open_space_bias"])
 
     def test_social_navigation_profiles_select_sources_and_preserve_radius_ordering(self) -> None:
         for profile_name in PROFILE_NAMES:
@@ -131,10 +247,12 @@ class LaunchDescriptionTests(unittest.TestCase):
                 final_source = node._Node__parameters[-1]
                 self.assertIsInstance(final_source, ParameterFile)
                 self.assertIsInstance(final_source.param_file[-1], LaunchConfiguration)
-                self.assertEqual(
-                    final_source.param_file[-1].variable_name[0].text,
-                    "social_navigation_params_file",
+                expected = (
+                    "social_navigation_method_params_file"
+                    if name == "human_collision_avoidance"
+                    else "social_navigation_params_file"
                 )
+                self.assertEqual(final_source.param_file[-1].variable_name[0].text, expected)
 
     def test_sim_process_is_conditioned_and_delayed_nodes_exist(self) -> None:
         launch_description = _load_launch_module().generate_launch_description()
@@ -145,9 +263,9 @@ class LaunchDescriptionTests(unittest.TestCase):
         self.assertIsInstance(sim_processes[0].condition, IfCondition)
         self.assertGreaterEqual(len(timers), 3)
         periods = sorted(float(timer.period) for timer in timers)
-        self.assertIn(3.0, periods)
-        self.assertIn(7.0, periods)
-        self.assertIn(11.0, periods)
+        self.assertIn(2.0, periods)
+        self.assertIn(5.0, periods)
+        self.assertIn(8.0, periods)
 
     def test_policy_node_uses_hard_safety_limits(self) -> None:
         launch_description = _load_launch_module().generate_launch_description()
@@ -224,6 +342,14 @@ class LaunchDescriptionTests(unittest.TestCase):
         self.assertEqual(smoother["max_accel"], [0.35, 0.0, 0.35])
         self.assertEqual(smoother["deadband_velocity"], [0.05, 0.0, 0.05])
         self.assertLessEqual(smoother["velocity_timeout"], 0.4)
+
+    def test_global_planner_respects_nonholonomic_motion(self) -> None:
+        config = yaml.safe_load(NAV2_CONFIG.read_text(encoding="utf-8"))
+        planner = config["planner_server"]["ros__parameters"]["GridBased"]
+
+        self.assertEqual(planner["plugin"], "nav2_smac_planner/SmacPlannerHybrid")
+        self.assertEqual(planner["motion_model_for_search"], "DUBIN")
+        self.assertGreater(planner["minimum_turning_radius"], 0.0)
 
     def test_waypoint_explorer_prefers_short_forward_sector_goals(self) -> None:
         launch_description = _load_launch_module().generate_launch_description()

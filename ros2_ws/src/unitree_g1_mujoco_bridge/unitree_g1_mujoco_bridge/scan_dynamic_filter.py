@@ -5,6 +5,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan, PointCloud2
+from unitree_social_navigation_msgs.msg import TrackedPerson, TrackedPersons
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from .pointcloud import iter_xyz
@@ -34,6 +35,7 @@ class ScanDynamicFilter(Node):
         if self.min_filter_range < 0.0:
             raise ValueError("min_filter_range must be non-negative")
         self.latest_cloud: PointCloud2 | None = None
+        self.latest_people = None
         self.latest_cloud_time = self.get_clock().now() - Duration(seconds=999.0)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -51,11 +53,15 @@ class ScanDynamicFilter(Node):
             self._cloud_callback,
             qos_profile_sensor_data,
         )
+        self.create_subscription(TrackedPersons, "/tracked_persons", self._people_callback, 1)
         self.get_logger().info("Filtering confirmed dynamic people out of /scan for SLAM")
 
     def _cloud_callback(self, msg: PointCloud2) -> None:
         self.latest_cloud = msg
         self.latest_cloud_time = self.get_clock().now()
+
+    def _people_callback(self, msg: TrackedPersons) -> None:
+        self.latest_people = msg
 
     def _scan_callback(self, msg: LaserScan) -> None:
         filtered = LaserScan()
@@ -70,36 +76,44 @@ class ScanDynamicFilter(Node):
         filtered.intensities = list(msg.intensities)
         filtered.ranges = list(msg.ranges)
 
-        if self.latest_cloud is None:
+        source = self.latest_people if self.latest_people is not None else self.latest_cloud
+        if source is None:
             self.pub.publish(filtered)
             return
-        cloud_age = (self.get_clock().now() - self.latest_cloud_time).nanoseconds * 1e-9
-        if cloud_age > self.cloud_timeout or self.latest_cloud.width == 0:
+        cloud_age = (self.get_clock().now() - rclpy.time.Time.from_msg(source.header.stamp)).nanoseconds * 1e-9
+        if not 0.0 <= cloud_age <= self.cloud_timeout:
             self.pub.publish(filtered)
             return
 
         transform = None
-        if self.latest_cloud.header.frame_id and self.latest_cloud.header.frame_id != msg.header.frame_id:
+        if source.header.frame_id and source.header.frame_id != msg.header.frame_id:
             try:
-                transform = self.tf_buffer.lookup_transform(msg.header.frame_id, self.latest_cloud.header.frame_id, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform(msg.header.frame_id, source.header.frame_id, rclpy.time.Time.from_msg(msg.header.stamp))
             except TransformException as exc:
                 self.get_logger().warn(
-                    f"No transform {msg.header.frame_id} <- {self.latest_cloud.header.frame_id}: {exc}",
+                    f"No transform {msg.header.frame_id} <- {source.header.frame_id}: {exc}",
                     throttle_duration_sec=2.0,
                 )
                 self.pub.publish(filtered)
                 return
 
         removed = 0
-        for x, y, z in iter_xyz(self.latest_cloud):
+        if self.latest_people is not None:
+            offset = (rclpy.time.Time.from_msg(msg.header.stamp) - rclpy.time.Time.from_msg(source.header.stamp)).nanoseconds * 1e-9
+            people = [(p.pose.pose.position.x + p.velocity.twist.linear.x * offset,
+                       p.pose.pose.position.y + p.velocity.twist.linear.y * offset, 0.0, p.body_radius + 0.10)
+                      for p in source.persons if p.confidence >= 0.5 and p.track_state == TrackedPerson.TRACK_STATE_CONFIRMED]
+        else:
+            people = [(x, y, z, None) for x, y, z in iter_xyz(source)]
+        for x, y, z, radius in people:
             if transform is not None:
                 x, y, z = self._transform_point(transform, x, y, z)
-            removed += self._remove_dynamic_return(filtered, x, y)
+            removed += self._remove_dynamic_return(filtered, x, y, radius)
         if removed:
             self.get_logger().info(f"Removed {removed} scan bins near confirmed dynamic people", throttle_duration_sec=2.0)
         self.pub.publish(filtered)
 
-    def _remove_dynamic_return(self, scan: LaserScan, x: float, y: float) -> int:
+    def _remove_dynamic_return(self, scan: LaserScan, x: float, y: float, body_radius=None) -> int:
         distance = math.hypot(x, y)
         if distance < max(scan.range_min, self.min_filter_range) or distance > scan.range_max:
             return 0
@@ -107,11 +121,18 @@ class ScanDynamicFilter(Node):
         if angle < scan.angle_min or angle > scan.angle_max:
             return 0
         center = int(round((angle - scan.angle_min) / scan.angle_increment))
-        half_width = max(1, int(math.ceil(math.atan2(self.filter_radius, max(distance, 1e-3)) / scan.angle_increment)))
+        radius = self.filter_radius if body_radius is None else body_radius
+        half_width = max(1, int(math.ceil(math.atan2(radius, max(distance, 1e-3)) / scan.angle_increment)))
         removed = 0
         for index in range(max(0, center - half_width), min(len(scan.ranges), center + half_width + 1)):
             value = scan.ranges[index]
             if not math.isfinite(value):
+                continue
+            if body_radius is not None:
+                ray_angle = scan.angle_min + index * scan.angle_increment
+                if math.hypot(value * math.cos(ray_angle) - x, value * math.sin(ray_angle) - y) <= body_radius:
+                    scan.ranges[index] = math.inf
+                    removed += 1
                 continue
             # Remove returns at the person range and any immediate background that would smear into the map.
             if value >= distance - self.filter_radius and value <= distance + self.filter_radius + self.range_padding:

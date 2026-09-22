@@ -47,9 +47,9 @@ append_default_arg "run_human_aware_motion_planner" "true"
 append_default_arg "run_human_collision_avoidance" "true"
 append_default_arg "run_human_aware_run_logger" "true"
 append_default_arg "human_aware_run_log_path" "${CONTAINER_RUN_LOG}"
-append_default_arg "max_lin_vel_x" "0.05"
+append_default_arg "max_lin_vel_x" "0.25"
 append_default_arg "max_lin_vel_y" "0.0"
-append_default_arg "max_ang_vel_z" "0.10"
+append_default_arg "max_ang_vel_z" "0.20"
 append_default_arg "social_navigation_params_file" \
   "/workspace/ros2_ws/src/unitree_g1_sim_bringup/config/social_navigation_conservative_v1.yaml"
 
