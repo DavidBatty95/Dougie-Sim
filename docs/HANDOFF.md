@@ -12,6 +12,8 @@
 ## Current engineering priorities
 
 - Reliable sensor-only avoidance: existing natural-crowd trials include contacts.
+- Latest representative cohort: 4/18 strict passes, 19/54 goals and 12 contacts;
+  crowd interactions and task progress remain the main acceptance blockers.
 - Perception latency/dropouts under eight-person rendering and GUI load.
 - RViz indexed-map GLSL sampler warnings on this host.
 - Longer endurance evidence: the recorded short sessions do not establish an
@@ -34,6 +36,13 @@ sessions may restart, log contacts and remain unscored.
 - Review Dependabot PRs; actions are pinned by commit and workflow permissions
   are read-only. Do not grant write credentials to untrusted pull requests.
 - Run a fresh image/build on the incoming team's hardware and retain its output.
+
+The development-host verification includes a fresh Docker image build, 196
+bridge tests, 81 benchmark tests, 18 bringup tests, 69 script tests and four
+Torch-specific tests; seven simulator and two costmap/BT CTest targets also passed.
+All six generated worlds were loaded by MuJoCo in the simulator tests. The GUI
+was checked in Firefox for dataset selection, filtering, details and replay.
+These software checks do not turn failed navigation trials into passes.
 
 The repository's maintained documentation is indexed [here](INDEX.md); research
 drafts are kept in [archive](../archive/README.md).

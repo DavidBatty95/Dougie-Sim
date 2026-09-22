@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
+  <title id="title">PhD — Radiation-aware autonomous exploration</title>
+  <desc id="desc">An abstract occupancy map with a flowing exploration route around a violet hazard region and a pulsing frontier target. Concept illustration, not experimental results.</desc>
+  <defs><pattern id="cells" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#29445b" stroke-width="1"/></pattern><radialGradient id="hazard"><stop stop-color="#d3a5ff" stop-opacity=".35"/><stop offset="1" stop-color="#d3a5ff" stop-opacity=".03"/></radialGradient></defs>
+  <style>
+    text{font-family:Arial,Helvetica,sans-serif}.label{font-family:monospace;letter-spacing:2px}
+    .route{stroke-dasharray:6 9;animation:route 3s linear infinite}.frontier{animation:frontier 4s ease-in-out infinite}
+    @keyframes route{to{stroke-dashoffset:-60}}@keyframes frontier{50%{opacity:.3}}
+    @media(prefers-reduced-motion:reduce){.route,.frontier{animation:none}}
+  </style>
+  <rect width="1200" height="240" rx="16" fill="#0b1727"/>
+  <rect x="1" y="1" width="1198" height="238" rx="16" fill="none" stroke="#29445b"/>
+  <path d="M32 35V205" stroke="#d3a5ff" stroke-width="3"/>
+  <text x="54" y="55" fill="#d3a5ff" font-size="12" class="label">02 / PHD RESEARCH</text>
+  <text x="54" y="102" fill="#edf6ff" font-size="31" font-weight="700">Exploring the unknown.</text>
+  <text x="54" y="140" fill="#a8c1d6" font-size="18">Radiation-aware navigation &amp; map abstraction</text>
+  <text x="54" y="191" fill="#8ca8c0" font-size="13">ALGORITHMS → SIMULATION → REAL-WORLD TESTING</text>
+  <rect x="674" y="24" width="480" height="192" rx="8" fill="#102133"/>
+  <rect x="674" y="24" width="480" height="192" rx="8" fill="url(#cells)"/>
+  <path d="M720 48H816V72H744V120H720ZM864 144H912V192H888V168H864ZM1032 48H1056V120H1032Z" fill="#3c5269"/>
+  <circle cx="935" cy="85" r="53" fill="url(#hazard)"/>
+  <circle cx="935" cy="85" r="34" fill="none" stroke="#d3a5ff" stroke-opacity=".6" stroke-dasharray="3 5"/>
+  <text x="935" y="90" fill="#d3a5ff" font-size="15" text-anchor="middle">RISK</text>
+  <path d="M702 187L779 187Q800 187 800 164V116Q800 96 823 96H848Q864 96 864 119V131Q864 140 885 140H986Q1003 140 1003 160V180H1105V77" fill="none" stroke="#43d2ec" stroke-opacity=".2" stroke-width="7" stroke-linejoin="round"/>
+  <path class="route" d="M702 187L779 187Q800 187 800 164V116Q800 96 823 96H848Q864 96 864 119V131Q864 140 885 140H986Q1003 140 1003 160V180H1105V77" fill="none" stroke="#43d2ec" stroke-width="2"/>
+  <circle cx="702" cy="187" r="6" fill="#43d2ec"/>
+  <circle class="frontier" cx="1105" cy="77" r="16" fill="#7de39a" fill-opacity=".12" stroke="#7de39a"/>
+  <path d="M1098 77H1112M1105 70V84" stroke="#7de39a" stroke-width="2"/>
+</svg>

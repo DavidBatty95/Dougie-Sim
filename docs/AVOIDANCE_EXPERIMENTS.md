@@ -54,7 +54,8 @@ Onboard navigation gets no scene map: SLAM and free-space goals remain sensor-dr
 
 ## Collect a cohort
 
-Complete installation and a ROS verification build first. Stop other simulation
+Complete installation first. The matrix refreshes the verification build once;
+`--fast-start` reuses an existing build. Stop other simulation
 sessions; the existing launch wrapper shares ROS/simulator resources and cleans
 up stale simulation containers. Run serially:
 

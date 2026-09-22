@@ -42,3 +42,6 @@ def test_matrix_keeps_onboard_contract(tmp_path):
     assert 'nav2_static_scene_map:=false' in command
     assert 'tracker_use_sensor_input:=true' in command
     assert '--visual-session' not in command
+    initial = command_for(tmp_path, 'medium_doorway', 44, 4, 3, '/workspace/benchmark.yaml', fast_start=False)
+    assert '--skip-build' not in initial
+    assert '--skip-build' in command

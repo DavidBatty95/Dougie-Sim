@@ -12,6 +12,9 @@
 - [Development and verification](DEVELOPMENT.md)
 - [Team handoff](HANDOFF.md)
 - [Training and response calibration](TRAINING_AND_CALIBRATION.md)
+- [Reliable transport implementation plan](TRANSPORT_DEMO_PLAN.md)
+- [Completed literature review and PDF](literature_review/README.md)
+- [GitHub profile package](../profile/SETUP.md)
 
 Research proposals and historical working notes are in [archive](../archive/README.md).
 The calibration JSON schema remains under `docs/schemas/` as a machine contract.

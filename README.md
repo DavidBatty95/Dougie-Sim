@@ -107,7 +107,7 @@ python3 scripts/run_avoidance_matrix.py
 python3 scripts/avoidance_results_gui.py --export docs/results/avoidance_dataset.csv
 ```
 
-The matrix reuses the existing ROS verification build, uses onboard-only
+The matrix refreshes the ROS/MuJoCo build once (or reuses it with `--fast-start`), uses onboard-only
 navigation and retains failed trials. It writes raw artifacts under the ROS
 workspace's ignored results directory and publishes a portable JSON dataset.
 

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
+  <title id="title">VEC — Robotics in development</title>
+  <desc id="desc">Animated packets connect sensing, planning and interaction. A speech waveform represents conversational robotics. Illustrative, not live status.</desc>
+  <style>
+    text{font-family:Arial,Helvetica,sans-serif}.label{font-family:monospace;letter-spacing:2px}
+    .flow{stroke-dasharray:5 10;animation:flow 2s linear infinite}
+    .wave{transform-box:fill-box;transform-origin:center;animation:wave 2.8s ease-in-out infinite}.delay{animation-delay:-1.4s}
+    @keyframes flow{to{stroke-dashoffset:-60}}@keyframes wave{50%{transform:scaleY(.4)}}
+    @media(prefers-reduced-motion:reduce){.flow,.wave{animation:none}}
+  </style>
+  <rect width="1200" height="220" rx="16" fill="#0b1727"/>
+  <rect x="1" y="1" width="1198" height="218" rx="16" fill="none" stroke="#29445b"/>
+  <path d="M32 35V185" stroke="#7de39a" stroke-width="3"/>
+  <text x="54" y="55" fill="#7de39a" font-size="12" class="label">01 / CURRENT WORK</text>
+  <text x="54" y="99" fill="#edf6ff" font-size="32" font-weight="700">Robotics at VEC</text>
+  <text x="54" y="131" fill="#a8c1d6" font-size="17">Humanoid autonomy. Natural interaction.</text>
+  <text x="54" y="174" fill="#8ca8c0" font-size="13">GEOFF-SIM + PEPPER</text>
+  <g fill="#14273b" stroke="#315668"><rect x="560" y="67" width="158" height="91" rx="12"/><rect x="754" y="67" width="158" height="91" rx="12"/><rect x="948" y="67" width="200" height="91" rx="12"/></g>
+  <g fill="none" stroke-width="2"><path class="flow" d="M719 113H753" stroke="#43d2ec"/><path class="flow" d="M913 113H947" stroke="#d3a5ff"/>
+    <circle cx="639" cy="98" r="15" stroke="#43d2ec"/><circle cx="639" cy="98" r="6" stroke="#43d2ec"/><path d="M639 79V86M619 98H627M651 98H659" stroke="#43d2ec"/>
+    <path d="M809 110L827 87L849 105L865 85" stroke="#7de39a"/><g fill="#7de39a" stroke="#7de39a"><circle cx="809" cy="110" r="3"/><circle cx="827" cy="87" r="3"/><circle cx="849" cy="105" r="3"/><circle cx="865" cy="85" r="3"/></g>
+  </g>
+  <g stroke="#d3a5ff" stroke-width="4" stroke-linecap="round"><path class="wave" d="M1018 94V104"/><path class="wave delay" d="M1028 87V111"/><path class="wave" d="M1038 81V117"/><path class="wave delay" d="M1048 88V110"/><path class="wave" d="M1058 84V114"/><path class="wave delay" d="M1068 92V106"/><path class="wave" d="M1078 96V102"/></g>
+  <g font-size="13" text-anchor="middle" class="label"><text x="639" y="141" fill="#43d2ec">SENSE</text><text x="833" y="141" fill="#7de39a">PLAN</text><text x="1048" y="141" fill="#d3a5ff">INTERACT</text></g>
+</svg>

@@ -82,17 +82,22 @@ sensor noise realism, and relocalization after extended loss remain unvalidated.
 
 ## Responsiveness
 
-The established motion envelope is retained: 0.65 m/s forward, 0.45 m/s lateral,
-1.20 m/s² software translational slew, and the existing yaw/turning-arc settings.
+The translational envelope is retained: 0.65 m/s forward, 0.45 m/s lateral and
+1.20 m/s² software slew. The current profile prefers bounded pivots (0.60 rad/s
+requested, 0.65 hard command limit, 0.70 rad/s² slew) instead of forced forward
+arcs. Isolated response tests inform the approximate 0.32 yaw-response gain.
+Official-policy demos and calibration now share disabled deployment-only
+joint-action slew limiting; command slew and bridge validation remain active.
 The policy still runs with its bounded non-spinning inference worker.
 
-A 45 ms candidate-search budget rechecks stop, the previous command, and the
-route command first. Remaining directions/refinements rotate across ticks. Every
+A 45 ms candidate-search target rechecks stop, early crossing escapes when
+relevant, the previous command and the route command first. Remaining
+directions/refinements rotate across ticks. Every
 selectable candidate receives its full collision check; the budget limits how
 many candidates are evaluated, not their prediction horizon. Individual checks
 and recovery can overrun the target, so this is not a hard real-time guarantee.
 
-In `suite_20260921T180949Z/onboard-waypoints/`:
+Historical timings in `suite_20260921T180949Z/onboard-waypoints/`:
 
 | Measurement | p95 | Maximum |
 | --- | --- | --- |

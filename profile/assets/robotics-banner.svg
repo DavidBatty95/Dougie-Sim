@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">David Batty — Robotics Engineer</title>
+  <desc id="desc">A midnight-blue robotics console with a gently animated humanoid, a Go2-style quadruped, a hovering drone, rotating LiDAR scan and flowing navigation path. Decorative schematic.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1727"/><stop offset="1" stop-color="#14273b"/></linearGradient>
+    <linearGradient id="accent"><stop stop-color="#43d2ec"/><stop offset=".55" stop-color="#7de39a"/><stop offset="1" stop-color="#d3a5ff"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#43d2ec" stop-opacity=".13"/><stop offset="1" stop-color="#43d2ec" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#a8c1d6" stroke-opacity=".07"/></pattern>
+  </defs>
+  <style>
+    text{font-family:Arial,Helvetica,sans-serif}.mono{font-family:monospace;letter-spacing:2px}
+    .scan{transform-origin:947px 204px;animation:scan 14s linear infinite}
+    .float{animation:float 5s ease-in-out infinite}.flow{stroke-dasharray:7 12;animation:flow 3s linear infinite}
+    .pulse{animation:pulse 4s ease-in-out infinite}
+    .drone{animation:hover 4s ease-in-out infinite}.rotor{animation:pulse .8s ease-in-out infinite}.step{transform-box:fill-box;transform-origin:top center;animation:step 2s ease-in-out infinite}.opposite{animation-delay:-1s}
+    @keyframes hover{50%{transform:translate(3px,-7px)}}@keyframes step{50%{transform:rotate(9deg)}}
+    @keyframes scan{to{transform:rotate(360deg)}}@keyframes float{50%{transform:translateY(-5px)}}
+    @keyframes flow{to{stroke-dashoffset:-76}}@keyframes pulse{50%{opacity:.35}}
+    @media(prefers-reduced-motion:reduce){.scan,.float,.flow,.pulse,.drone,.rotor,.step{animation:none}}
+  </style>
+  <rect width="1200" height="420" rx="20" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1198" height="418" rx="20" fill="url(#grid)" stroke="#29445b"/>
+  <path d="M40 1H1160" stroke="url(#accent)" stroke-width="3"/>
+  <circle cx="46" cy="44" r="4" fill="#7de39a" class="pulse"/>
+  <text x="61" y="49" fill="#a8c1d6" font-size="12" class="mono">DAVID BATTY / ROBOTICS &amp; AUTONOMY</text>
+  <text x="43" y="136" fill="#edf6ff" font-size="66" font-weight="700" letter-spacing="-2">David Batty</text>
+  <text x="46" y="187" fill="#43d2ec" font-size="32" font-weight="600">Robotics Engineer</text>
+  <text x="46" y="236" fill="#c0d2e2" font-size="19">Building the bridge from research to robot behaviour.</text>
+  <g font-size="13" class="mono">
+    <rect x="46" y="271" width="180" height="34" rx="6" fill="#14273b" stroke="#315668"/>
+    <text x="62" y="293" fill="#7de39a">AUTONOMOUS SYSTEMS</text>
+    <rect x="238" y="271" width="145" height="34" rx="6" fill="#14273b" stroke="#315668"/>
+    <text x="254" y="293" fill="#43d2ec">HUMANOID ROBOTS</text>
+    <rect x="395" y="271" width="171" height="34" rx="6" fill="#14273b" stroke="#315668"/>
+    <text x="411" y="293" fill="#d3a5ff">HUMAN–ROBOT HRI</text>
+  </g>
+  <path d="M46 342H645" stroke="#29445b"/>
+  <text x="46" y="376" fill="#a8c1d6" font-size="14">PhD research · Virtual Engineering Centre · University of Liverpool</text>
+  <circle cx="947" cy="204" r="195" fill="url(#halo)"/>
+  <g fill="none" stroke="#43d2ec">
+    <circle cx="947" cy="204" r="151" stroke-opacity=".24"/>
+    <circle cx="947" cy="204" r="111" stroke-opacity=".15" stroke-dasharray="3 9"/>
+    <circle cx="947" cy="204" r="73" stroke-opacity=".12"/>
+    <path d="M773 204H798M1097 204H1122M947 31V55M947 354V378" stroke-opacity=".5"/>
+    <g class="scan"><path d="M947 204L1080 133A151 151 0 0 1 1098 204Z" fill="#43d2ec" fill-opacity=".06" stroke="none"/><path d="M947 204H1098" stroke-opacity=".55"/><circle cx="1098" cy="204" r="3" fill="#43d2ec"/></g>
+  </g>
+  <path class="flow" d="M765 321H810Q841 321 851 294L866 258Q877 235 900 235H1014Q1041 235 1058 257L1123 314" fill="none" stroke="#7de39a" stroke-width="2" opacity=".65"/>
+  <g class="float" stroke-linejoin="round">
+    <ellipse cx="947" cy="321" rx="56" ry="9" fill="#050e1a" opacity=".7"/>
+    <g fill="#172f43" stroke="#9cbbcf" stroke-width="2">
+      <rect x="924" y="103" width="46" height="39" rx="13"/>
+      <path d="M918 153Q947 144 976 153L970 219Q947 230 924 219Z"/>
+      <path d="M922 226H972L965 247H930Z"/>
+      <path d="M907 159L895 194L902 229L890 233L881 193L893 155Z"/>
+      <path d="M987 159L999 194L992 229L1004 233L1013 193L1001 155Z"/>
+      <path d="M930 249L925 277L920 310H936L946 277L944 249Z"/>
+      <path d="M951 249L952 277L963 310H979L973 274L965 249Z"/>
+      <path d="M919 309H937V320H910V315Z"/><path d="M963 309H979L987 315V320H963Z"/>
+    </g>
+    <rect x="931" y="115" width="32" height="10" rx="5" fill="#43d2ec"/>
+    <path d="M934 170H961M931 180H963" stroke="#43d2ec" stroke-width="2" opacity=".6"/>
+    <circle cx="947" cy="202" r="5" fill="#7de39a" class="pulse"/>
+    <g fill="#43d2ec"><circle cx="899" cy="155" r="4"/><circle cx="995" cy="155" r="4"/><circle cx="934" cy="277" r="4"/><circle cx="962" cy="277" r="4"/></g>
+  </g>
+  <g class="drone" stroke="#d3a5ff" stroke-width="2" stroke-linejoin="round">
+    <path d="M1069 65L1049 51M1085 65L1105 51M1069 73L1049 87M1085 73L1105 87" fill="none"/>
+    <g class="rotor" fill="#d3a5ff" fill-opacity=".12"><ellipse cx="1047" cy="50" rx="19" ry="5"/><ellipse cx="1107" cy="50" rx="19" ry="5"/><ellipse cx="1047" cy="88" rx="19" ry="5"/><ellipse cx="1107" cy="88" rx="19" ry="5"/></g>
+    <path d="M1065 63L1077 59L1089 63V76L1077 81L1065 76Z" fill="#172f43"/>
+    <circle cx="1077" cy="70" r="3" fill="#d3a5ff"/>
+  </g>
+  <text x="1077" y="115" text-anchor="middle" fill="#a8c1d6" font-size="10" class="mono">DRONES</text>
+  <g transform="translate(733 265)" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="46" cy="70" rx="54" ry="6" fill="#050e1a" opacity=".7"/>
+    <g stroke="#6b94a5" stroke-width="6" fill="none"><path class="step opposite" d="M24 29L14 47L23 66"/><path class="step" d="M67 29L57 47L67 66"/></g>
+    <path d="M10 13Q39 8 70 14L80 30L65 36H18L7 28Z" fill="#172f43" stroke="#a8c1d6" stroke-width="2"/>
+    <g stroke="#b5d2dd" stroke-width="7" fill="none"><path class="step" d="M18 30L30 47L17 67"/><path class="step opposite" d="M64 31L78 47L65 67"/></g>
+    <path d="M73 15L90 20L87 33L76 34Z" fill="#14273b" stroke="#a8c1d6" stroke-width="2"/>
+    <rect x="25" y="7" width="18" height="7" rx="3" fill="#7de39a"/>
+    <circle cx="85" cy="25" r="3" fill="#43d2ec"/>
+    <g fill="#7de39a"><circle cx="18" cy="30" r="4"/><circle cx="64" cy="31" r="4"/></g>
+  </g>
+  <text x="778" y="362" text-anchor="middle" fill="#a8c1d6" font-size="10" class="mono">UNITREE GO2</text>
+  <text x="870" y="395" fill="#8ca8c0" font-size="11" class="mono">GEOFF-SIM / INSPIRED</text>
+</svg>

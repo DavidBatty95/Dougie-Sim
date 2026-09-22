@@ -4,6 +4,35 @@ The portable source-linked records are in [demo_results.json](results/demo_resul
 The newer multi-world cohort is documented in [avoidance experiments](AVOIDANCE_EXPERIMENTS.md)
 and published separately as [avoidance_dataset.json](results/avoidance_dataset.json).
 
+## Latest representative-world cohort
+
+Source commit: `7c4cd3e`; controller label `calibrated-actions-v12`.
+Six representative worlds × seeds 42/43/44, four people, three requested goals,
+90 s per trial. All 18 trials produced valid records. **4/18 passed the strict
+gate; 19/54 goals were reached and 12 contacts were recorded. Avoidance is still
+not reliable across these conditions.**
+
+| Environment | Strict passes | Goals reached | Contacts |
+| --- | --- | --- | --- |
+| Residential courtyard | 0/3 | 1/9 | 3 |
+| Café courtyard | 0/3 | 2/9 | 2 |
+| Station entrance | 0/3 | 2/9 | 2 |
+| Clinic | 1/3 | 3/9 | 2 |
+| Station concourse | 2/3 | 8/9 | 1 |
+| Office lobby | 1/3 | 3/9 | 2 |
+
+The simple-v1 baseline had 1/18 strict passes, 14/54 goals and 16 contacts. The
+representative-v8 and pivot-v10 cohorts are also retained. Geometry/appearance,
+controller settings and (between earlier cohorts) container dependencies changed;
+these descriptive counts are not an isolated or statistically proven speedup.
+The latest manifest records source hashes, commands and Docker image ID.
+
+The separate 90 s one-person clinic visual session reached four goals with zero
+contacts/near misses, handing off within 0.5 m. It establishes goal cycling under
+that condition, not scored crowd reliability. See [handoff evidence](results/visual_goal_handoffs.json).
+
+## Earlier demo evidence
+
 | Earlier run | Observed outcome | Interpretation |
 | --- | --- | --- |
 | Natural eight-person visual, seed 44 | 75 s; 2 goals; 3 contacts; 4 near misses | Unscored visualization, not a pass |

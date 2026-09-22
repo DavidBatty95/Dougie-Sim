@@ -35,7 +35,9 @@ jobs:
 
       - name: Validate shell and Compose configuration
         run: |
-          bash -n scripts/*.sh docker/scripts/*.sh
+          for script in geoff scripts/*.sh docker/scripts/*.sh docs/literature_review/build.sh; do
+            bash -n "$script"
+          done
           docker compose config --quiet
 
       - name: Build verification image

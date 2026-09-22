@@ -21,8 +21,8 @@ def publish_dataset(path, dataset):
     temporary.replace(path)
 
 
-def command_for(directory, world, seed, people, goals, config):
-    command = list(case_catalog(directory, seed, True, True, goals, onboard_people=people)['onboard-waypoints'].command)
+def command_for(directory, world, seed, people, goals, config, fast_start=True):
+    command = list(case_catalog(directory, seed, True, fast_start, goals, onboard_people=people)['onboard-waypoints'].command)
     for flag, value in {'--scene': f'scene_29dof_avoidance_{world}.xml',
                         '--environment-name': world, '--config': str(config),
                         '--result-dir': str(directory)}.items():
@@ -40,6 +40,7 @@ def main():
     parser.add_argument('--output', type=Path, default=DEFAULT_OUTPUT / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     parser.add_argument('--publish', type=Path, default=ROOT / 'docs/results/avoidance_dataset.json')
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--fast-start', action='store_true', help='Reuse an existing verification build instead of refreshing it for the first trial')
     parser.add_argument('--label', default='working-tree', help='Human-readable controller revision label')
     args = parser.parse_args()
     def interrupted_signal(signum, frame):
@@ -86,7 +87,8 @@ def main():
             run_id = f'{world}-people-{args.people}-seed-{seed}'
             directory = output / run_id
             directory.mkdir()
-            command = command_for(directory, world, seed, args.people, args.goals, container_config)
+            command = command_for(directory, world, seed, args.people, args.goals, container_config,
+                                  fast_start=args.fast_start or bool(attempts))
             attempt = dict(id=run_id, world=world, seed=seed, command=list(command),
                            scene_sha256=file_sha256(SCENES / f'scene_29dof_avoidance_{world}.xml'), status='planned')
             attempts.append(attempt)
@@ -128,6 +130,9 @@ def main():
             write_json(output / 'manifest.json', manifest)
             if interrupted:
                 raise SystemExit(130)
+            if source is None:
+                print('No benchmark artifact was produced; stopping after recording the infrastructure failure.')
+                return 1
     print(f'Manifest: {output / "manifest.json"}')
     if not args.dry_run:
         print(f'Dataset: {args.publish} ({len(records)} attempted trials)')
