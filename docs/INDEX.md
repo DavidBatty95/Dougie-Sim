@@ -69,7 +69,7 @@ collections. Start there for topic-based exploration, or use the catalogue below
 | [Reviewing results and evidence](RESULTS_REVIEW.md) | Evidence categories, metrics, provenance and reproducible reporting |
 | [Published demo evidence](DEMO_RESULTS.md) | Published v12 cohort and separately labelled historical demos |
 | [Navigation reliability investigation](NAVIGATION_RELIABILITY_INVESTIGATION.md) | Retained corrections, failed experiments and the iteration ledger |
-| [Literature review](literature_review/README.md) | PDF, 50-work evidence map, research gaps, reading audit and bibliography verification |
+| [Research gaps and literature review](literature_review/README.md) | Intended contributions first; 74-page PDF, 50 critical appraisals, systematic extraction, novelty roadmap and linked bibliography |
 | [Grove-G1 implementation review](GROVE_G1_REVIEW.md) | Dated source review, architecture comparisons and proposed transfer experiments; separate from the pinned integration profile |
 | [Training and calibration](TRAINING_AND_CALIBRATION.md) | Policy training, response measurements and calibration tools |
 | [Payload-aware training](PAYLOAD_POLICY_TRAINING.md) | Training cycle, native transport results and explicit checkpoint reproduction |

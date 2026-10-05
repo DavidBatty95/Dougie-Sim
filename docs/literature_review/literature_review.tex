@@ -7,10 +7,18 @@
 \usepackage{enumitem}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{xcolor}
-\usepackage{hyperref}
+\usepackage{xurl}
+\usepackage[pagebackref]{hyperref}
+\usepackage{bookmark}
 \hypersetup{colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black,
-  pdftitle={Humanoid Social Navigation: Literature Review and Research Opportunities for Geoff-Sim}}
+  bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=1,
+  pdftitle={From Social Navigation Fundamentals to Novel Humanoid Autonomy: An In-Depth Evidence Review}}
 \urlstyle{same}
+\newcommand{\doi}[1]{\href{https://doi.org/#1}{doi:\nolinkurl{#1}}}
+\renewcommand*{\backref}[1]{}
+\renewcommand*{\backrefalt}[4]{\ifcase #1\or Cited on page~#2.\else Cited on pages~#2.\fi}
+\renewcommand{\bibsection}{\section{Linked bibliography}\label{sec:bibliography}}
+\setcounter{tocdepth}{2}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.35em}
 \setlist{nosep,topsep=0.4em}
@@ -18,9 +26,9 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcommand{\repo}[1]{\path{#1}}
 \newcommand{\gap}[1]{\paragraph{Research implication.} #1}
-\title{Humanoid Social Navigation:\\State of the Art, Evidence Limitations,\\and Research Opportunities for Geoff-Sim}
-\author{Project literature review and research-positioning document}
-\date{Literature search and repository inspection: 22 September 2026}
+\title{From Social Navigation Fundamentals\\to Novel Humanoid Autonomy:\\An In-Depth Thematic and Systematic Evidence Review}
+\author{Geoff-Sim research synthesis and novelty roadmap}
+\date{Expanded edition: 5 October 2026\\Literature-discovery cutoff: 22 September 2026}
 
 \begin{document}
 \maketitle
@@ -28,7 +36,8 @@
 Geoff-Sim integrates Unitree G1 locomotion, MuJoCo, ROS~2, online mapping,
 pedestrian tracking, human-aware planning, collision supervision, and experimental
 benchmarking. This review evaluates 50 identity-verified research publications
-and preprints spanning 1995--2026. It connects classical collision avoidance,
+and preprints spanning 1995--2026, with selected primary full-text inspection
+for 46 works and explicit record-limited appraisals for four. It connects classical collision avoidance,
 learning-based crowd navigation, trajectory prediction, legged control,
 onboard perception, and social-navigation evaluation. Recent work already
 demonstrates LiDAR-conditioned humanoid avoidance, cross-embodiment navigation,
@@ -46,6 +55,15 @@ experimental replication; the latter was not undertaken.
 \end{abstract}
 \tableofcontents
 \newpage
+
+\noindent\textbf{How to read this single PDF.} Start with the executive question
+and the fundamentals narrative in Section~\ref{sec:fundamentals}. Follow the
+method families and the deeper comparisons in Section~\ref{sec:deep-synthesis};
+then use the ranked gaps and Section~\ref{sec:novelty-roadmap} to see what must be
+demonstrated for a defensible contribution. Appendix~\ref{app:appraisals} gives
+all 50 structured critical appraisals. Citations link to the complete bibliography,
+publication records link out to DOI/arXiv, and bibliography entries link back
+to their citing pages. The table of contents and PDF bookmarks are navigable.
 
 \section{Executive assessment}
 \label{sec:executive}
@@ -91,8 +109,10 @@ validation targets, not inferred from MuJoCo clearance measurements.
 \section{Scope, search procedure, and verification standard}
 \label{sec:method}
 \subsection{Review type and research questions}
-This is a \textbf{structured critical scoping review}, not an exhaustive
-systematic review or a meta-analysis. It asks:
+The original discovery was a \textbf{structured critical scoping search}. This
+expanded edition applies \textbf{systematic extraction and thematic synthesis to
+that defined corpus}; it is not an exhaustive database review or a meta-analysis.
+It asks:
 \begin{enumerate}
 \item What is already established about planning around people while respecting
 the dynamics and sensing constraints of a mobile or legged robot?
@@ -105,8 +125,8 @@ falsify the proposed advantages?
 
 The search cutoff is 22 September 2026. Foundational work is retained when it
 defines a necessary baseline or assumption. The latest included preprint,
-DPed-VLN, was submitted on 18 September 2026 \citep{dped}; its inclusion is an
-abstract-level horizon scan, not a claim of mature validation. Date and venue
+DPed-VLN, was submitted on 18 September 2026 \citep{dped}; the expansion inspects
+its primary text without treating a recent preprint as mature validation. Date and venue
 are taken from retrieved records, not inferred from identifier prefixes.
 
 \subsection{Search and inclusion procedure}
@@ -145,29 +165,40 @@ retrieved from Crossref or arXiv. Title, author list, year, DOI/arXiv identifier
 and source URL were extracted and checked. The evidence snapshot records the
 retrieval timestamp and SHA-256 of the response. This establishes that a
 matching paper record exists; it does not establish the truth of its findings.
-\item[Content inspection.] Registry abstracts and additional arXiv abstracts
-were inspected where available. The closest recent competitors---ASAP,
-Safe and Comfortable Locomotion, FLUX, and OmniNavBench---received selected
-full-text methods/evaluation analysis. Specific table-level criticisms below
-refer to those inspected versions. Other works primarily supply conceptual
-context and candidate baselines; uninspected numerical claims are avoided.
+\item[Content inspection.] The expanded edition adds selected full-text
+inspection for 46 works, including foundations, surveys, methods, datasets and
+close competitors. Each appraisal identifies its inspected material. Four
+unavailable originals remain record-limited. Specific table-level observations
+refer to the inspected copies; a preprint is not silently equated with every
+later version of record.
 \item[Replication.] No external algorithm was reimplemented or rerun for this
 review. No new robot experiment or human-subject evaluation was performed.
 Repository results are explicitly attributed to existing development records.
 \end{description}
 
 \repo{verified_sources.json} retains the identity evidence and available
-abstracts. \repo{READING_AUDIT.md} identifies the inspected material and remaining
-access limitations. \repo{verify_sources.py} checks the local snapshot,
-bibliography, and citation keys offline, and can refresh the online records.
-Full-text access was uneven: the HAL copy of the 2016 biped paper presented an
-access challenge, so this review does not attribute detailed experimental
-claims to it. Search ranking, indexing delays, language coverage, and a
-single-pass synthesis limit completeness. A final publication should extend
-forward/backward citation screening and independently review its novelty claim.
+abstracts. \repo{READING_AUDIT.md} preserves the original audit;
+\repo{FULLTEXT_AUDIT.md} and \repo{paper_appraisals.json} record the expanded
+inspection. \repo{verify_sources.py} checks the identity snapshot, bibliography
+and citation keys offline. The 2016 biped manuscript was successfully retrieved
+in this expansion and now receives a detailed appraisal. Search ranking,
+indexing delays, language coverage and single-workflow synthesis still limit
+completeness. Publication work should extend citation screening and independently
+review the novelty claims.
+
+\input{systematic_method}
+\input{fundamentals}
 
 \section{The current work and its evidence boundary}
 \label{sec:project}
+This section retains the original repository-inspection context from
+22 September 2026 so that its numerical observations remain attributable.
+The later published development baseline and current priorities are linked from
+\href{https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/PROJECT_STATUS.md}{the project status page}.
+The retained v84 full matrix reports 10/18 strict passes, 46/54 goals and six
+contacts; the payload report documents two consecutive isolated zero-person
+fixture completions. These later records do not establish navigation or crowd
+transport acceptance, and no new robot trial was run for this review.
 \subsection{Architecture relevant to the review}
 Geoff-Sim is a simulation-first Unitree G1 research platform. Its documented
 pipeline connects MuJoCo/DDS robot state and simulated sensors to ROS~2,
@@ -504,12 +535,13 @@ These observations are not a re-evaluation of the paper's code or raw data.
 They identify which claims its printed evidence can support and which
 quantities would need harmonization in a comparative experiment.
 
-Omni-Perception is another close 2025 comparator: its abstract describes raw
-LiDAR, spatiotemporal risk processing, omnidirectional avoidance, and a
-simulation toolkit compatible with multiple engines \citep{omni}. It prevents
-novelty from being assigned merely to direct point-cloud perception or
-multi-simulator raycasting. Its detailed comparative results were not
-independently inspected in this review.
+Omni-Perception is another close 2025 comparator. The expanded reading of its
+v2 manuscript examines proximal/distal point-cloud processing, recurrent features,
+sensor rendering, ablations and physical scenarios \citep{omni}. Its architecture
+prevents novelty from being assigned merely to direct point-cloud perception or
+multi-simulator raycasting. Its reported success and collision percentages require
+careful event interpretation; Section~\ref{sec:deep-synthesis} and its detailed
+appraisal explain why they cannot be read as complementary outcomes.
 
 \subsection{FLUX: a 2026 cross-embodiment navigation competitor}
 FLUX uses rectified-flow trajectory generation followed by dynamic-scene
@@ -639,13 +671,14 @@ full-body contact sensor. Geoff-Sim's proposed advantage should therefore
 be fine-grained control/measurement provenance and calibrated execution
 analysis, rather than the first physically embodied multi-task benchmark.
 
-The very recent DPed-VLN abstract describes language navigation with dynamic
+The very recent DPed-VLN manuscript describes language navigation with dynamic
 pedestrians, paired instructions, and social-safety metrics \citep{dped}.
 It is adjacent rather than a direct baseline for a LiDAR/Nav2 waypoint stack.
 Its inclusion demonstrates why ``navigation in dynamic pedestrian scenes''
-is too broad a novelty claim. This review does not infer its low-level
-humanoid dynamics or deployment properties from the presence of humanoid
-pedestrian avatars.
+is too broad a novelty claim. The expanded reading includes its protocol and
+tables, which expose different success--risk tradeoffs across imitation and
+reinforcement learning. Humanoid pedestrian avatars are not evidence of a
+low-level humanoid robot controller; that distinction remains explicit.
 
 \subsection{Safety is necessary but not sufficient for social navigation}
 The evaluation guidelines articulate safety, comfort, legibility,
@@ -681,6 +714,8 @@ The current project spans the first three levels with incomplete reliability
 at level three. Reporting the hierarchy avoids overstating either the mock
 tests or the passing oracle demonstrations.
 
+\input{thematic_synthesis}
+
 \section{Comparative synthesis and ranked research gaps}
 \label{sec:gaps}
 \begin{table}[htbp]
@@ -702,6 +737,7 @@ Social-navigation guidelines and proxemics taxonomy & Multidimensional human-cen
 \end{table}
 
 \subsection{Gap 1: calibrated executable avoidance under stale observations}
+\label{gap:response}
 \textbf{Priority: highest; fit: direct; novelty confidence: moderate and
 conditional.} Established feasible-velocity methods, biped planning, and
 recent LiDAR policies already address parts of the problem
@@ -728,6 +764,7 @@ model complexity would still be useful if established through controlled
 interventions.
 
 \subsection{Gap 2: causal explanation of the oracle-to-onboard gap}
+\label{gap:causal}
 \textbf{Priority: high; fit: direct; novelty confidence: moderate.}
 Benchmarks and perception datasets already exist
 \citep{socnavbench,jrdb,omninav}. What can be distinctive is a source-audited
@@ -752,6 +789,7 @@ rather than perception. If the accepted goals or actor exposure change
 between sensing modes, the comparison is confounded and needs redesign.
 
 \subsection{Gap 3: coordinated safety and liveness across planning layers}
+\label{gap:liveness}
 \textbf{Priority: high; fit: direct; novelty confidence: moderate-to-low
 until a specific decision rule is defined.} Freezing, cooperation, and
 hierarchical navigation are already studied
@@ -776,6 +814,7 @@ the hypothesis. Likewise, reduced timeouts bought by more contacts do not
 establish a better trade-off unless the full frontier is reported.
 
 \subsection{Gap 4: full-body risk beyond planar clearance}
+\label{gap:body}
 \textbf{Priority: medium; fit: requires extensions; novelty confidence:
 conditional.} Whole-body control and three-dimensional avoidance already
 exist \citep{expressive,asap,safehumanoid,omni}. A useful narrower question
@@ -793,6 +832,7 @@ about contact injury or human safety would need a different validation
 scope than collision counting.
 
 \subsection{Gap 5: contextual comfort and nonreciprocal crowds}
+\label{gap:comfort}
 \textbf{Priority: longer term; fit: requires human evaluation and richer
 actors.} Social principles and contextual proxemics are well developed
 \citep{guidelines,proxemics2026}. The opportunity is to test whether
@@ -911,6 +951,8 @@ commands, and physical outcomes.
 by those experiments.
 \end{enumerate}
 
+\input{novelty_roadmap}
+
 \section{Recommended positioning and conclusion}
 \textbf{Suggested working title:}
 \emph{Observation-Age-Aware, Response-Calibrated Social Navigation for a
@@ -989,7 +1031,7 @@ Trajectron++ \citep{trajectron} & Dynamical, heterogeneous, optionally ego-condi
 Rudenko et al. \citep{prediction} & Forecasting taxonomy, context, datasets, and metrics; motivates matching the prediction task to planning. \\
 CBF-QP \citep{cbf} & Formal safety filtering under assumptions; distinguishes invariant conditions from empirical rollout checks. \\
 Safe learning survey \citep{safecontrol} & Separates safe control, robustness, and certification; prevents overclaiming trained or heuristic safety. \\
-Biped crowd navigation \citep{biped2016} & Direct historical prior art on biped safety in crowds; detailed experiments were not inspected because of access limitations. \\
+Biped crowd navigation \citep{biped2016} & Direct prior art combining viability, uncertainty and stopping; the expansion inspects its MPC hierarchies and numerical failure analysis. \\
 RMA \citep{rma} & Rapid locomotion adaptation; adaptation competence is not a pedestrian-planning policy. \\
 Massively parallel walking \citep{rudin} & Efficient locomotion training; does not establish social mission completion. \\
 Perceptive locomotion \citep{rough} & Robust exteroceptive/proprioceptive integration; primarily terrain competence rather than social acceptability. \\
@@ -1002,12 +1044,14 @@ ASAP \citep{asap} & Residual action alignment and G1 transfer; full-text methods
 Safe humanoid locomotion \citep{safehumanoid} & Closest LiDAR/G1 safety/comfort competitor; inspected costs and tables support a qualified, scenario-dependent comparison. \\
 FLUX \citep{flux} & Recent generative navigation and G1 transfer; inspected metric definitions and deployment timing constrain cross-paper comparisons. \\
 OmniNavBench \citep{omninav} & Physically embodied, multi-task benchmark; inspected protocol narrows the open benchmark contribution. \\
-MetaUrban \citep{metaurban} & Compositional urban micromobility simulation; abstract-screened broader environment/embodiment coverage. \\
-Habitat 3.0 \citep{habitat3} & Human/avatar collaboration and human-in-loop evaluation; abstract-screened scope differs from low-level G1 response. \\
-DPed-VLN \citep{dped} & September 2026 dynamic-pedestrian language-navigation benchmark; abstract-only emerging evidence, not a direct Nav2 comparator. \\
-Omni-Perception \citep{omni} & Raw-LiDAR omnidirectional legged avoidance; abstract-screened close competitor requiring deeper comparison before publication. \\
+MetaUrban \citep{metaurban} & Compositional urban micromobility simulation; inspected task/metric definitions expose the cost--completion tradeoff. \\
+Habitat 3.0 \citep{habitat3} & Human/avatar collaboration and human-in-loop evaluation; inspected sensor contracts differ from an unprivileged G1 pipeline. \\
+DPed-VLN \citep{dped} & September 2026 dynamic-pedestrian language-navigation benchmark; inspected tables separate goal success from human-related risk. \\
+Omni-Perception \citep{omni} & Raw-LiDAR legged avoidance; inspected architecture, ablations and limitations require careful interpretation of success and collision metrics. \\
 \end{longtable}
 \normalsize
+
+\input{paper_appraisals}
 
 \section{Claim audit and immediate priorities}
 \begin{longtable}{P{0.43\textwidth}P{0.50\textwidth}}

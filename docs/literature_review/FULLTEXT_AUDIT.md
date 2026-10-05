@@ -1,0 +1,80 @@
+# Full-text access and expanded inspection audit
+
+Expansion date: **5 October 2026**. This supersedes the original reading-depth summary,
+while preserving the earlier identity/retrieval snapshot. The scientific corpus remains
+**50 unique works**; this is systematic extraction within a previously selected corpus.
+
+**46 selected full-text appraisals; 4 record-limited appraisals.**
+
+Full texts were located through existing arXiv records, author/institutional copies and
+DOI-matched OpenAlex location records. OpenAlex supplied locators, not primary results.
+All attempts and PDF/text fingerprints are in [fulltext_retrieval.json](fulltext_retrieval.json).
+Retrieved PDFs and extracted text remain in the ignored `build/fulltexts/` cache.
+Retrieval is not reading: the inspection anchors and critical appraisals below are the
+review record. No external algorithm or user study was replicated.
+
+| Key / publication | Inspection | Material and source anchor |
+| --- | --- | --- |
+| [`survey2013`](https://doi.org/10.1016/j.robot.2013.05.007) | Selected full-text inspection | Author manuscript: introduction, human-awareness requirements, Section 3 architecture discussion. [Inspected copy](https://hal.science/hal-01684295v1/document); SHA-256 `42a55efa65f537b8…`. |
+| [`survey2024`](https://doi.org/10.1177/02783649241230562) | Selected full-text inspection | Accepted manuscript: abstract and taxonomy definitions, especially planning/decision-making, situation awareness and evaluation diagrams. [Inspected copy](https://publications.aston.ac.uk/id/eprint/46055/1/Singamaneni_et_al_AAM_2311.06922_Survey_on_Socially_Aware_Robot_Navigation_taxonomy_and_future_challenges.pdf); SHA-256 `2347ca76655b6628…`. |
+| [`survey2023`](https://doi.org/10.3389/frobt.2025.1658643) | Selected full-text inspection | 2025 publisher PDF: Tables 1, 2 and 4; Sections 2.4 and 2.5 on prediction, hybrid planning and safety-aware navigation. The stable citation key does not denote its publication year. [Inspected copy](https://public-pages-files-2025.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1658643/pdf); SHA-256 `6cece8928d86567c…`. |
+| [`guidelines`](https://doi.org/10.1145/3700599) | Selected full-text inspection | HAL manuscript: principles/guidelines overview and scenario-design methodology, including scenario cards. [Inspected copy](https://hal.science/hal-04164243/document); SHA-256 `8c7ded746328cf90…`. |
+| [`proxemics2026`](https://doi.org/10.3389/frobt.2026.1800762) | Selected full-text inspection | Publisher PDF: Section 3 methodology, Table 1 shape-model comparison and variable-classification discussion. [Inspected copy](https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2026.1800762/pdf); SHA-256 `89fc10dee8af71e2…`. |
+| [`dwa`](https://doi.org/10.1109/100.580977) | Selected full-text inspection | Author technical manuscript: abstract, Sections 1-4, motion-model and dynamic-window explanation. [Inspected copy](https://publications.ri.cmu.edu/storage/publications/pub_files/pub1/fox_dieter_1997_1/fox_dieter_1997_1.pdf); SHA-256 `7b398d18448ca622…`. |
+| [`vo`](https://doi.org/10.1177/027836499801700706) | Record-limited inspection | Verified DOI metadata and recorded abstract; attempted institutional full-text locator was unavailable. See the retained failed/unavailable locator attempts. |
+| [`orca`](https://doi.org/10.1007/978-3-642-19457-3_1) | Selected full-text inspection | Author chapter: introduction, reciprocal formulation, Section 6 experiments and Section 7 limitations. [Inspected copy](https://gamma.cs.unc.edu/ORCA/publications/ORCA.pdf); SHA-256 `3738db18ea5d24ac…`. |
+| [`teb`](https://doi.org/10.1109/ecmr.2013.6698833) | Record-limited inspection | Verified DOI record and the authors' maintained teb_local_planner description; the original 2013 paper PDF was not retrieved. See the retained failed/unavailable locator attempts. |
+| [`socialforce`](https://doi.org/10.1103/physreve.51.4282) | Selected full-text inspection | Author preprint: abstract, force-model exposition and collective-behavior illustrations, including lane formation. [Inspected copy](https://arxiv.org/pdf/cond-mat/9805244); SHA-256 `9eee6fd44b92129e…`. |
+| [`freezing`](https://doi.org/10.1109/icra.2013.6630866) | Record-limited inspection | Verified DOI record and Caltech institutional abstract; the landing record was metadata-only. See the retained failed/unavailable locator attempts. |
+| [`biped2016`](https://doi.org/10.1109/humanoids.2016.7803304) | Selected full-text inspection | HAL manuscript: Sections II-V; equations 4-12; hierarchy definitions; Tables I-V and failure discussion. [Inspected copy](https://inria.hal.science/hal-01418340/document); SHA-256 `6adb47d4a86003f4…`. |
+| [`cbf`](https://doi.org/10.1109/tac.2016.2638961) | Selected full-text inspection | Author manuscript: abstract; Sections II-IV definitions and invariance discussion; automotive application framing. [Inspected copy](https://arxiv.org/pdf/1609.06408); SHA-256 `633464b5b99c322d…`. |
+| [`safecontrol`](https://doi.org/10.1146/annurev-control-042920-020211) | Selected full-text inspection | Author survey: introduction and Section 3 taxonomy of learned dynamics, safe RL and certification. [Inspected copy](https://arxiv.org/pdf/2108.06266); SHA-256 `28264ab01f26f432…`. |
+| [`cadrl`](https://doi.org/10.1109/icra.2017.7989037) | Selected full-text inspection | Author preprint: abstract, robot-centric parameterization, value-function action selection and training algorithm. [Inspected copy](https://arxiv.org/pdf/1609.07845); SHA-256 `fe94391698135e96…`. |
+| [`sarl`](https://doi.org/10.1109/icra.2019.8794134) | Selected full-text inspection | arXiv v2 full HTML and PDF: Sections II-IV, implementation details and Tables I-II. [Inspected copy](https://arxiv.org/pdf/1809.08835); SHA-256 `6cac169d2a47ef3c…`. |
+| [`rgl`](https://doi.org/10.1109/iros45743.2020.9340705) | Selected full-text inspection | Author preprint: model/training description, Table I, planning-budget discussion and physical demonstration description. [Inspected copy](https://arxiv.org/pdf/1909.13165); SHA-256 `aacf41772f9b15fd…`. |
+| [`dsrnn`](https://doi.org/10.1109/icra48506.2021.9561595) | Selected full-text inspection | Retrieved arXiv v4: experiment setup, field-of-view/group evaluation, real-world section and limitations. [Inspected copy](https://arxiv.org/pdf/2011.04820); SHA-256 `4ed7dd69efbdc30b…`. |
+| [`prediction`](https://doi.org/10.1177/0278364920917446) | Selected full-text inspection | Author survey: taxonomy/classification rules and physics-based, pattern-based and contextual-model discussion. [Inspected copy](https://arxiv.org/pdf/1905.06113); SHA-256 `97ea54b775a272a1…`. |
+| [`sociallstm`](https://doi.org/10.1109/cvpr.2016.110) | Selected full-text inspection | CVPR paper: problem description, social-pooling formulation, Section 4 and Table 1. [Inspected copy](https://openaccess.thecvf.com/content_cvpr_2016/papers/Alahi_Social_LSTM_Human_CVPR_2016_paper.pdf); SHA-256 `d4825dd25b86a09e…`. |
+| [`socialgan`](https://doi.org/10.1109/cvpr.2018.00240) | Selected full-text inspection | Author preprint: model overview, Section 4 protocol, sampling/variety-loss analysis and pooling discussion. [Inspected copy](https://arxiv.org/pdf/1803.10892); SHA-256 `f2d80201b3b00c80…`. |
+| [`trajectron`](https://doi.org/10.1007/978-3-030-58523-5_40) | Selected full-text inspection | Author preprint: desiderata and architecture description; Section 5 datasets, metrics and comparator definitions. [Inspected copy](https://arxiv.org/pdf/2001.03093); SHA-256 `fe972cbd24b236ad…`. |
+| [`drow`](https://doi.org/10.1109/lra.2016.2645131) | Selected full-text inspection | Author preprint: Section II preprocessing/voting and Section III dataset and split design. [Inspected copy](https://arxiv.org/pdf/1603.02636); SHA-256 `fd1235d936664d70…`. |
+| [`drspaam`](https://doi.org/10.1109/iros45743.2020.9341689) | Selected full-text inspection | Author preprint: Section III temporal aggregation; Section IV, Table I and dataset split description. [Inspected copy](https://arxiv.org/pdf/2004.14079); SHA-256 `2766b83aa3dc34eb…`. |
+| [`fastlio`](https://doi.org/10.1109/tro.2022.3141876) | Selected full-text inspection | Author preprint: contribution/estimation discussion and Section VI data-structure benchmark setup. [Inspected copy](https://arxiv.org/pdf/2107.06829); SHA-256 `ba5072e06e75dec5…`. |
+| [`orbslam`](https://doi.org/10.1109/tro.2021.3075644) | Selected full-text inspection | Accepted author manuscript: overview of visual/inertial/multi-map contributions and MAP/IMU-initialization formulation. [Inspected copy](https://arxiv.org/pdf/2007.11898); SHA-256 `4d119517be7565c9…`. |
+| [`jrdb`](https://doi.org/10.1109/tpami.2021.3070543) | Selected full-text inspection | Author preprint: dataset overview and detection/tracking results, including Tables 3-4 and occlusion discussion. [Inspected copy](https://arxiv.org/pdf/1910.11792); SHA-256 `74e54f2d90f5672c…`. |
+| [`scand`](https://doi.org/10.1109/lra.2022.3184025) | Selected full-text inspection | Author manuscript: dataset description, local-planner evaluation summary/Figure 7, anticipated use cases and conclusion. [Inspected copy](https://arxiv.org/pdf/2203.15041); SHA-256 `b82d5775bc1f2f0a…`. |
+| [`socnavbench`](https://doi.org/10.1145/3476413) | Selected full-text inspection | Author preprint: framework overview, Section 4 algorithms/protocol and Section 5 metric interpretation. [Inspected copy](https://arxiv.org/pdf/2103.00047); SHA-256 `aac52ef1eb017f04…`. |
+| [`socialgym`](https://doi.org/10.1609/aaai.v38i21.30562) | Selected full-text inspection | AAAI paper: simulator architecture, observations/rewards, environment configuration and limitations. [Inspected copy](https://ojs.aaai.org/index.php/AAAI/article/download/30562/32724); SHA-256 `2276a77bb9c861e2…`. |
+| [`metaurban`](https://arxiv.org/abs/2407.08725) | Selected full-text inspection | arXiv v2: platform overview, Section 4 tasks/protocol and Table 1 benchmarks. [Inspected copy](https://arxiv.org/pdf/2407.08725); SHA-256 `86b0e3459ff556c1…`. |
+| [`habitat3`](https://arxiv.org/abs/2310.13724) | Selected full-text inspection | Author report: Section 3 avatar/simulator design and social-navigation baseline/sensor-ablation discussion. [Inspected copy](https://arxiv.org/pdf/2310.13724); SHA-256 `6383018901acbf76…`. |
+| [`omninav`](https://arxiv.org/abs/2605.09441v1) | Selected full-text inspection | arXiv v1: evaluation platform, Tables II-IV and task/metric definitions. [Inspected copy](https://arxiv.org/pdf/2605.09441v1); SHA-256 `6675c0444caf9455…`. |
+| [`dped`](https://arxiv.org/abs/2609.21504) | Selected full-text inspection | September 2026 arXiv v1: dataset and protocol overview, Tables 2-4 and pedestrian-dynamics ablation. [Inspected copy](https://arxiv.org/pdf/2609.21504); SHA-256 `ba04d6ccfc46cd7f…`. |
+| [`rma`](https://doi.org/10.15607/rss.2021.xvii.011) | Selected full-text inspection | Author preprint: overview of base policy/adaptation, simulation and hardware evaluation, adaptation analysis and conclusion. [Inspected copy](https://arxiv.org/pdf/2107.04034); SHA-256 `d8660da881851756…`. |
+| [`rudin`](https://arxiv.org/abs/2109.11978) | Selected full-text inspection | Retrieved author preprint v3: training overview, Section 4 parallelism experiments, simulation setup and conclusion. [Inspected copy](https://arxiv.org/pdf/2109.11978); SHA-256 `48014ee8af3e5a7f…`. |
+| [`rough`](https://doi.org/10.1126/scirobotics.abk2822) | Selected full-text inspection | Author manuscript: recurrent-belief explanation, field deployment results, Figure 4 and discussion/method overview. [Inspected copy](https://arxiv.org/pdf/2201.08117); SHA-256 `f54ecada187bd059…`. |
+| [`parkour`](https://doi.org/10.1126/scirobotics.adi7566) | Selected full-text inspection | Corresponding 2023 arXiv manuscript: overview and architecture/skill description; bibliographic citation remains the 2024 journal record. [Inspected copy](https://arxiv.org/pdf/2306.14874); SHA-256 `10196a89a951eb8f…`. |
+| [`wheeledleg`](https://doi.org/10.1126/scirobotics.adi9641) | Selected full-text inspection | Accepted manuscript: Figure 7 comparison/failure analysis, discussion and hierarchical-learning methods. [Inspected copy](https://arxiv.org/pdf/2405.01792); SHA-256 `1084638f40dd9ee6…`. |
+| [`expressive`](https://doi.org/10.15607/rss.2024.xx.107) | Selected full-text inspection | Author preprint: retargeting, reference-state initialization, rewards, Table IV ablations and physical examples. [Inspected copy](https://arxiv.org/pdf/2402.16796); SHA-256 `3529a700d69a37c2…`. |
+| [`deepmimic`](https://doi.org/10.1145/3197517.3201311) | Selected full-text inspection | Author preprint: overview, Sections 10-11, Table 4 and initialization/termination ablations. [Inspected copy](https://arxiv.org/pdf/1804.02717); SHA-256 `4bd4cc353bd2dc19…`. |
+| [`domain`](https://doi.org/10.1109/icra.2018.8460528) | Selected full-text inspection | Author preprint: Section IV objective, dynamics-parameter distribution and Fetch pushing-task description. [Inspected copy](https://arxiv.org/pdf/1710.06537); SHA-256 `a15cb24630a11218…`. |
+| [`asap`](https://arxiv.org/abs/2502.01143v3) | Selected full-text inspection | arXiv v3: Sections III-IV, Tables III-IV, data collection and sim-to-sim/physical setup. [Inspected copy](https://arxiv.org/pdf/2502.01143v3); SHA-256 `8ca60229d7e56076…`. |
+| [`safehumanoid`](https://arxiv.org/abs/2508.07611v1) | Selected full-text inspection | arXiv v1: Sections III-V, equations 1-9, Tables I-III and physical deployment description. [Inspected copy](https://arxiv.org/pdf/2508.07611v1); SHA-256 `5554415b72d5c879…`. |
+| [`omni`](https://arxiv.org/abs/2505.19214) | Selected full-text inspection | Retrieved arXiv v2: Section 3 architecture; Sections 4-6; Tables 1, 3 and 4; failure cases. [Inspected copy](https://arxiv.org/pdf/2505.19214); SHA-256 `f5c123855cd9236d…`. |
+| [`flux`](https://arxiv.org/abs/2603.12806v1) | Selected full-text inspection | arXiv v1: dynamic-scene protocol, metric definitions, Sections V-VI and Tables II-IV. [Inspected copy](https://arxiv.org/pdf/2603.12806v1); SHA-256 `49498848061149ca…`. |
+| [`mujoco`](https://doi.org/10.1109/iros.2012.6386109) | Record-limited inspection | Verified 2012 DOI identity; accessible current official overview for software context. Attempts to obtain the original author PDF were unsuccessful. See the retained failed/unavailable locator attempts. |
+| [`ros2`](https://doi.org/10.1126/scirobotics.abm6074) | Selected full-text inspection | Author preprint: architecture overview, networking experiments and deployment-case discussion. [Inspected copy](https://arxiv.org/pdf/2211.07752); SHA-256 `015fc2693f3d8a04…`. |
+| [`nav2`](https://doi.org/10.1109/iros45743.2020.9341207) | Selected full-text inspection | Author preprint: architecture overview, experimental setup and Tables II-III. [Inspected copy](https://arxiv.org/pdf/2003.00368); SHA-256 `3b032eaf555c40a1…`. |
+| [`slam`](https://doi.org/10.21105/joss.02783) | Selected full-text inspection | JOSS paper: summary, feature description, graph serialization and synchronous/asynchronous mode discussion. [Inspected copy](https://www.theoj.org/joss-papers/joss.02783/10.21105.joss.02783.pdf); SHA-256 `001428ab44c8861b…`. |
+
+## Interpretation
+
+Paper-specific numbers in the PDF are attributed to an inspected table or explicitly
+labelled abstract. Results are not pooled across incompatible task, sensing, metric
+or embodiment definitions. Critical interpretations and proposed experiments are
+the review synthesis, not claims made by every cited author.
+
+The four record-limited originals are MuJoCo (2012), sparse trajectory optimization
+(2013), velocity obstacles (1998), and cooperation in dense crowds (2013).
+Accessible software descriptions/institutional abstracts are labelled context, not
+replacement full-text experimental evidence. Obtain those originals and extend
+citation screening before claiming exhaustive state-of-the-art coverage.

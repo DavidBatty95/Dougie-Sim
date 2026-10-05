@@ -94,13 +94,27 @@ def paper_catalogue(root):
     root = Path(root)
     sources = json.loads((root/'docs/literature_review/verified_sources.json').read_text())
     records = {source['key']: source for source in sources}
+    appraisal_path = root/'docs/literature_review/paper_appraisals.json'
+    appraisals = {}
+    if appraisal_path.exists():
+        items = json.loads(appraisal_path.read_text())
+        appraisals = {item['key']: item for item in items}
+        if len(appraisals) != len(items) or set(appraisals) != set(records):
+            raise ValueError('Expanded appraisals must match the complete verified bibliography')
     keys = [key for _, _, group in PAPER_GROUPS for key in group]
     if len(records) != len(sources) or len(keys) != len(set(keys)) or set(keys) != set(records):
         raise ValueError('Research topic groups must cover each verified source exactly once')
     path = root/'docs/resources/RESEARCH.md'
     parts = ['# Research and paper archive\n\n', menu(path, root), '''
 
-[← Resource library](README.md) · [Experiments and evidence](EXPERIMENTS.md) · [Forward plan](../PROJECT_PLAN.md)
+[← Resource library](README.md) · [Research gaps and intended contributions](../literature_review/README.md#research-gaps-and-intended-contributions)
+· [Experiments and evidence](EXPERIMENTS.md) · [Forward plan](../PROJECT_PLAN.md)
+
+**Start with the intended contributions:** the
+[gap-first Research page](../literature_review/README.md#research-gaps-and-intended-contributions)
+sets out calibrated observation/execution coupling, causal onboard diagnosis,
+safety–liveness coordination, body/payload risk and contextual human validation.
+It links the latest single-PDF review and the evidence needed to support novelty.
 
 [![Research and paper collection](../media/resources/research.svg)](#complete-paper-index)
 
@@ -109,9 +123,10 @@ def paper_catalogue(root):
 | Resource | Use it for |
 | --- | --- |
 | [Literature-review guide](../literature_review/README.md) | Scope, main argument, build commands and update procedure |
-| [Review PDF](../literature_review/literature_review.pdf) | Critical synthesis, research gaps, hypotheses, ablations and evaluation guidance |
+| [Review PDF](../literature_review/literature_review.pdf) | One consolidated expanded review: fundamentals, thematic synthesis, detailed appraisals, novelty roadmap and linked bibliography |
 | [Editable LaTeX](../literature_review/literature_review.tex) | Maintaining the review document |
 | [Reading audit](../literature_review/READING_AUDIT.md) | What was inspected for each paper, beyond identity verification |
+| [Expanded full-text audit](../literature_review/FULLTEXT_AUDIT.md) | Current selected full-text coverage, source copies and explicitly limited appraisals |
 | [Search log](../literature_review/SEARCH_LOG.md) | Search scope, cutoff, screening and unresolved follow-up |
 | [Verified metadata](../literature_review/verified_sources.json) / [BibTeX](../literature_review/references.bib) | Source identities, recorded retrieval evidence and citations |
 | [Grove-G1 review](../GROVE_G1_REVIEW.md) | A separate implementation review informing integration experiments |
@@ -124,11 +139,12 @@ and evaluation principles when designing an experiment.
 
 ## Complete paper index
 
-This index groups all **50 works** in the checked-in bibliography. Titles, years,
-URLs and inspection labels come from the existing verified metadata snapshot;
-the topic grouping is an editorial navigation aid. The review's search cutoff is
-**22 September 2026**. This archive does not claim a new literature search or new
-full-text review. A verified identity is not an experimental replication.
+This index groups all **50 works** in the checked-in bibliography. Titles, years
+and URLs come from the verified metadata snapshot; inspection labels use the
+expanded structured appraisals when available. The topic grouping is an editorial
+navigation aid. The literature-discovery cutoff remains **22 September 2026**;
+the **5 October expansion** adds systematic extraction and selected primary
+full-text analysis. A verified identity or appraisal is not an experimental replication.
 
 Use browser Find to search a title or citation key. DOI links resolve to publisher
 records; arXiv links retain the versions recorded by the review. Access to full
@@ -143,7 +159,11 @@ texts may depend on the publisher. See the reading audit for inspection depth.
             if urlsplit(url).scheme != 'https':
                 raise ValueError(f'Expected an HTTPS bibliographic identity for {key}')
             title = record['title'].replace('|', '\\|').replace('[', '\\[').replace(']', '\\]').replace('\n', ' ')
-            reading = record['reading_level'].replace('|', '\\|')
+            if key in appraisals:
+                reading = ('Selected full text (expanded review)' if appraisals[key]['inspection'] == 'selected-full-text'
+                           else 'Record-limited; original full text unavailable')
+            else:
+                reading = record['reading_level'].replace('|', '\\|')
             parts.append(f"| {record['year']} | [{title}]({url}) | `{key}` | {reading} |\n")
         parts.append('\n[Back to the paper index](#complete-paper-index) · [Resource library](README.md)\n\n')
     parts.append('''## Maintaining the index

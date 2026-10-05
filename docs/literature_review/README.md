@@ -1,4 +1,4 @@
-# Literature review: humanoid social navigation
+# Research gaps and literature review
 
 <!-- geoff-nav:start -->
 <p align="center">
@@ -16,49 +16,133 @@
 </p>
 <!-- geoff-nav:end -->
 
-**Read the PDF:** [`literature_review.pdf`](literature_review.pdf)
+**Research objective:** determine whether a measured model of what a walking
+humanoid can actually execute, combined with the age and uncertainty of its
+observations, can improve collision-free mission completion around people.
 
-**Edit the document:** [`literature_review.tex`](literature_review.tex)
+**Latest review — expanded 5 October 2026:**
+[Download the complete 74-page PDF](literature_review.pdf) ·
+[Research gaps, p. 26](literature_review.pdf#page=26) ·
+[Novelty roadmap, p. 30](literature_review.pdf#page=30).
 
-**Browse every reference by topic:** [50-paper archive](../resources/RESEARCH.md).
-For code, experiment and upstream links, open the [resource library](../resources/README.md).
+## Research gaps and intended contributions
 
-This review evaluates **50 verified research works**, with a search cutoff of
-**22 September 2026**, and positions the current Geoff-Sim implementation against
-classical avoidance, learned crowd navigation, perception/prediction, humanoid
-control, recent sensor-driven G1 navigation, and evaluation research.
+These are **proposed research directions**, not claims that the capabilities are
+already accepted or that no related method exists. The review distinguishes
+project deficits from under-tested interfaces in its corpus and from contributions
+that still need a precise method, comparison and evidence.
 
-It includes:
+| Priority / gap | Intended contribution | What would demonstrate it? |
+| --- | --- | --- |
+| **G1 — Calibrated avoidance under stale observations** | A policy-conditioned, measured motion envelope combined with acquisition-age-aware person occupancy | Held-out response/coverage accuracy **and** better collision–completion tradeoffs than generic dynamics and equally conservative fixed margins |
+| **G2 — Explain the oracle-to-onboard gap** | A source-audited causal account of how perception, time alignment and execution interact to cause failures | Matched interventions on tracks, pose, maps, delay and response; reproducible effects across held-out encounters, including negative results |
+| **G3 — Coordinate safety and liveness** | A defined planner/supervisor handoff or decision rule that checks the motion actually executed | Fewer prolonged veto loops, oscillations and timeouts without increasing contacts or falls, under matched sensing and compute budgets |
+| **G4 — Account for body, arms and payload** | A validated boundary for base-only approximations, followed by an efficient posture/load-aware model where needed | Link/payload contact or clearance reference data showing when the approximation changes decisions, plus a measured fidelity–latency tradeoff |
+| **G5 — Validate contextual humanoid comfort** | Evidence that a response-aware behavior is more predictable or comfortable in a defined humanoid interaction | Controlled human evaluation separating the method from speed, clearance, morphology and task context; objective outcomes reported alongside judgments |
 
-- A critical state-of-the-art synthesis and detailed analysis of close recent competitors.
-- Five ranked research gaps and an explicit distinction between existing
-  implementation, documented development results, and proposed contributions.
-- Falsifiable hypotheses, baseline choices, ablations, metrics, and statistical guidance.
-- An annotated evidence map covering all 50 works and a claim audit.
-- A machine-readable verified bibliography, reading audit, and search log.
+**Recommended first-paper focus:** G1, supported by the controlled diagnosis in
+G2. Include G3 if a specific coordination mechanism is necessary and independently
+testable. G4 and G5 are subsequent studies with additional measurement and
+validation requirements. The [PDF roadmap](literature_review.pdf#page=30) gives
+the concrete N1–N3 goals and extension targets; the
+[engineering project plan](../PROJECT_PLAN.md) tracks the implementation work.
 
-The principal recommendation is **observation-age-aware, response-calibrated
-navigation**, evaluated through controlled oracle-to-onboard experiments.
-The review acknowledges the project's documented onboard collisions/timeouts
-and the existence of prior humanoid-navigation systems.
+### What prior work already establishes
 
-## Reading paths
+The novelty claim must begin where the closest prior work ends:
 
-- **Project overview:** read the synthesis and ranked research gaps, then compare
-  the proposed contributions with the [recorded implementation evidence](../RESULTS_REVIEW.md).
-- **Experiment design:** use the hypotheses, baseline choices, ablations and
-  statistical guidance alongside the [avoidance methodology](../AVOIDANCE_EXPERIMENTS.md).
-- **Source review:** inspect [the reading audit](READING_AUDIT.md) and
-  [search log](SEARCH_LOG.md) to understand selection and inspection depth, then
-  follow the identities in `sources.json` and the retrieved verification records.
-- **Maintenance:** run the offline check below before editing citations; refresh
-  identities and rebuild when updating the reviewed snapshot.
+- **Dynamics and stopping are established:** [DWA](https://doi.org/10.1109/100.580977)
+  already searches reachable/stoppable velocities. The
+  [2016 biped crowd paper](https://doi.org/10.1109/humanoids.2016.7803304)
+  already combines balance, uncertainty, stopping and nonreactive crowds.
+- **Learned interaction and partial observability are established:**
+  [SARL](https://doi.org/10.1109/icra.2019.8794134),
+  [RGL](https://doi.org/10.1109/iros45743.2020.9340705) and
+  [DS-RNN](https://doi.org/10.1109/icra48506.2021.9561595)
+  provide substantive attention, graph and temporal baselines.
+- **Sensor-driven humanoid avoidance already exists:**
+  [safe humanoid locomotion](https://arxiv.org/abs/2508.07611v1),
+  [Omni-Perception](https://arxiv.org/abs/2505.19214) and
+  [FLUX](https://arxiv.org/abs/2603.12806v1) constrain broad integration claims.
+- **Human evaluation is not absent from the field:**
+  [SCAND](https://doi.org/10.1109/lra.2022.3184025) includes participant evaluation;
+  [evaluation guidelines](https://doi.org/10.1145/3700599) and
+  [contextual proxemics](https://doi.org/10.3389/frobt.2026.1800762)
+  provide an established methodological foundation.
+
+The intended novelty is therefore a **specific, validated coupling of observation,
+execution and decision-making**, or new controlled findings about that coupling—not
+the first use of a humanoid, a safety filter, uncertainty or a social cost.
+
+### Evidence gates for a defensible contribution
+
+1. **Freeze the baseline:** source, policy, configuration, scenarios and evaluator semantics.
+2. **Measure the interface:** stopping, turns, reversals, delay and residual error on held-out trajectories.
+3. **Specify the new method:** equations, assumptions, uncertainty treatment, timing budget and fallback.
+4. **Challenge it fairly:** matched baselines, fixed-margin alternatives and ablations isolating each claimed mechanism.
+5. **Test generalization:** complete missions, held-out conditions, repeats, uncertainty and retained failures/invalid attempts.
+6. **Explain and bound the claim:** publish causal traces, counterexamples and the conditions where the method does not help.
+
+Current onboard collisions and incomplete missions remain visible in the
+[project evidence](../PROJECT_STATUS.md). Passing implementation tests is progress
+toward a trustworthy experiment, not completion of these research gates.
+
+## Latest review: one comprehensive PDF
+
+The **74-page expanded edition** tells the story from navigation fundamentals to
+candidate novel work. It includes:
+
+- A systematic extraction method for the defined **50-work corpus**, with
+  **46 selected full-text appraisals and four explicitly record-limited originals**.
+- The progression from geometry and reciprocity to interaction learning,
+  prediction, onboard perception, embodied control and complete-mission evaluation.
+- Detailed comparisons of methods, sensor/action contracts, metrics, timing,
+  physical validity, human evaluation and contradictory tradeoffs.
+- Five ranked research gaps, falsifiable hypotheses, a staged experimental
+  programme and a concrete novelty roadmap.
+- **All 50 critical paper appraisals**, followed by a complete linked bibliography.
+- Clickable citations, publication URLs, table of contents, bookmarks and
+  bibliography back-links to citing pages.
+
+| Read for… | PDF entry point |
+| --- | --- |
+| The fundamentals-to-state-of-the-art story | [Fundamentals, p. 9](literature_review.pdf#page=9) |
+| Cross-paper interpretation and methodological differences | [Deeper thematic synthesis, p. 22](literature_review.pdf#page=22) |
+| The intended research gaps | [Ranked gaps, p. 26](literature_review.pdf#page=26) |
+| Goals required to support novelty | [Novelty roadmap, p. 30](literature_review.pdf#page=30) |
+| Individual methods, evidence and limitations | [Paper-by-paper appraisals, p. 36](literature_review.pdf#page=36) |
+| Full citations and source links | [Linked bibliography, p. 70](literature_review.pdf#page=70) |
+
+Page links work in PDF viewers that support page fragments; the embedded
+bookmarks and table of contents provide navigation within the downloaded PDF.
+[PDF validation record](pdf_validation.json): 50 linked references, 648 resolved
+internal links and 92 bookmarks in this edition.
+
+## Review scope and evidence transparency
+
+The original literature-discovery cutoff remains **22 September 2026**. The
+5 October expansion deepens inspection and applies consistent extraction to that
+corpus; it is **not an exhaustive new database search or an experimental replication**.
+The review records its purposive initial selection, single AI-assisted workflow,
+copy/version differences and lack of independent dual screening.
+
+[Full-text audit](FULLTEXT_AUDIT.md) · [Structured appraisals](paper_appraisals.json)
+· [Search and expansion record](SEARCH_LOG.md) · [Original September audit](READING_AUDIT.md).
+
+The four original full texts still unavailable are MuJoCo (2012), sparse
+trajectory optimization (2013), velocity obstacles (1998) and dense-crowd
+cooperation (2013). Their limited appraisal is explicit. The previously inaccessible
+biped paper was recovered and materially sharpened the novelty assessment.
+
+**Browse the references:** [50-paper topic archive](../resources/RESEARCH.md).
+**Find implementation and upstream context:** [resource library](../resources/README.md).
 
 ## Build the PDF
 
 From the repository root:
 
 ```bash
+python3 docs/literature_review/generate_review_appendix.py
 bash docs/literature_review/build.sh
 ```
 
@@ -67,6 +151,11 @@ Compilation intermediates go into `docs/literature_review/build/`, which is
 locally ignored by Git. The checked PDF is also published beside this README so
 the GitHub link works without a local build. It checks bibliography consistency before
 compilation and rejects unresolved references, missing glyphs, and overfull boxes.
+
+The main TeX file includes the fundamentals, systematic method, thematic synthesis,
+novelty roadmap and generated paper appraisals into this **single PDF**. Edit
+`paper_appraisals.json` for the structured records, then regenerate their TeX/audit
+outputs. The build checks those generated outputs before compiling.
 
 Supported toolchains, in selection order:
 
@@ -119,6 +208,24 @@ Project-evidence hashes describe the inspection snapshot. Later controller
 iterations and measured outcomes have their own provenance in
 [the avoidance datasets](../AVOIDANCE_EXPERIMENTS.md).
 
+To repeat PDF link/bookmark checks, install `pypdf` in your document-tooling
+environment and run:
+
+```bash
+python3 docs/literature_review/verify_pdf.py --write-report
+```
+
+Optional primary-text retrieval is explicit and network-dependent:
+
+```bash
+python3 docs/literature_review/collect_fulltexts.py --locate
+python3 docs/literature_review/collect_fulltexts.py --fetch
+```
+
+This caches accessible PDFs/text under ignored `build/fulltexts/` and records
+failures. Retrieval does not mark a paper as read; update its appraisal and audit
+only after inspecting the material. Publisher PDFs are not bundled in Git.
+
 ## Evidence files
 
 | File | Purpose |
@@ -130,9 +237,13 @@ iterations and measured outcomes have their own provenance in
 | `supplemental_reading.json` | Additional arXiv abstract records inspected for DOI-cited papers |
 | `SEARCH_LOG.md` | Search families, screening decisions, cutoff, limitations, and unresolved follow-up |
 | `project_evidence.json` | Hashes and revision context for inspected project files |
+| `paper_appraisals.json` | All 50 structured method/evidence/critique/novelty appraisals and inspection anchors |
+| `FULLTEXT_AUDIT.md` | Expanded inspection coverage, source copies and access limitations |
+| `fulltext_retrieval.json` | Locator/retrieval URLs, timestamps, failed attempts and PDF/text fingerprints |
+| `paper_appraisals.tex` | Generated appraisal appendix included in the single PDF |
+| `fundamentals.tex`, `systematic_method.tex`, `thematic_synthesis.tex`, `novelty_roadmap.tex` | Expanded narrative and research-goal chapters |
+| `pdf_validation.json` | Delivered PDF hash, page count, citation/link checks and bookmark/page map |
 
-**Verification boundary:** all 50 works have matching primary bibliographic
-records. Content inspection varies by paper; four close recent competitors
-received selected full-text methods/evaluation analysis. This is a structured
-critical scoping review, not an exhaustive systematic review or experimental
-replication. The PDF and audit explicitly preserve this distinction.
+**Verification boundary:** bibliography identity, primary-material appraisal,
+document integrity and experimental replication are different checks. The
+expanded review strengthens the first three; it does not claim the fourth.

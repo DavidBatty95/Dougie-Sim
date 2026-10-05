@@ -1,5 +1,46 @@
 # Literature discovery and screening record
 
+## Expansion record — 5 October 2026
+
+The expanded review retains the original 50-work corpus and discovery cutoff.
+It applies a common extraction instrument to every work, rather than claiming
+an exhaustive new search or inventing retrospective database-hit counts.
+All 50 works have a structured appraisal; 46 have selected full-text passages
+inspected and four remain record-limited. No external method was replicated.
+
+Retrieval used the existing arXiv/supplemental identities, DOI-matched OpenAlex
+location records, author copies and institutional repositories. OpenAlex was a
+locator, not the authority for experimental findings. The exact endpoints,
+timestamps, access failures and hashes are recorded in
+[fulltext_retrieval.json](fulltext_retrieval.json). Selected primary passages and
+critical interpretations are identified in [FULLTEXT_AUDIT.md](FULLTEXT_AUDIT.md)
+and [paper_appraisals.json](paper_appraisals.json).
+
+Additional targeted locator checks included an arXiv title search for
+[SocNavBench](https://arxiv.org/search/?query=SocNavBench&searchtype=title&abstracts=show&order=-announced_date_first&size=50)
+(one matching work), the [Parkour arXiv record](https://arxiv.org/abs/2306.14874),
+the [Caltech cooperation record](https://authors.library.caltech.edu/47456/),
+and the authors' [TEB repository](https://github.com/rst-tu-dortmund/teb_local_planner).
+These were full-text location checks within the corpus, not a new exhaustive
+discovery sweep. The Caltech record was metadata-only; software descriptions
+are labelled context rather than substitutes for original-paper experiments.
+
+The four unavailable originals are MuJoCo (2012), the 2013 sparse trajectory
+optimization paper, velocity obstacles (1998) and the 2013 dense-crowd cooperation
+paper. The earlier HAL access limitation for the biped paper was resolved.
+Primary PDFs stay in the ignored build cache; the published package contains
+original appraisals and links, not redistributed publisher papers.
+
+The systematic analysis is bounded by purposive initial selection, uneven copy
+versions and a single AI-assisted extraction/synthesis workflow. There was no
+preregistered protocol or independent dual coding. A submission must extend
+nearest-prior-work screening for uncertainty-aware MPC, delayed/sampled-data
+CBFs, learned reachable sets and uncertainty calibration before making a
+first-of-kind claim. The PDF explicitly distinguishes project deficits,
+under-tested interfaces in this corpus and proposed contributions.
+
+## Original discovery record — 22 September 2026
+
 Search date/cutoff: **2026-09-22**. Scope: Geoff-Sim's G1/MuJoCo/ROS 2
 human-aware navigation, sensing, locomotion response, and experimental validity.
 

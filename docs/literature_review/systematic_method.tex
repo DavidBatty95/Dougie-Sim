@@ -1,0 +1,146 @@
+\subsection{Expanded systematic extraction within the defined corpus}
+\label{sec:systematic-extraction}
+The expansion performed on 5 October 2026 changes the depth of inspection, not
+the declared September literature-discovery cutoff. The unit of inclusion remains
+the 50 distinct works in the original identifier manifest. All 50 receive the
+same structured appraisal fields; 46 have selected primary full-text passages
+inspected, while four retain explicitly limited evidence. A source being available
+as a PDF is not counted as an independently replicated result or as proof that
+every appendix has been read.
+
+This is a \textbf{systematic evidence review of a defined, purposively assembled
+corpus}, with thematic synthesis. It is not an exhaustive systematic search of
+the entire robotics literature. The original discovery process did not retain a
+complete export of all database hits, and there was no independent dual screening.
+Those facts cannot be repaired by retrospectively inventing a PRISMA count or
+calling an automated download a second reviewer. The systematic contribution of
+this expansion is the explicit extraction instrument, source-level access record,
+consistent critical questions and traceable synthesis across every retained work.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Corpus accounting for this expansion. These are review-workflow counts,
+not counts of every potentially relevant paper in the field.}
+\begin{tabularx}{\textwidth}{Y r}
+\toprule Stage & Number \\ \midrule
+Inherited, identifier-verified unique works & 50 \\
+Works retained for structured appraisal & 50 \\
+Corresponding full texts retrieved and selected passages inspected & 46 \\
+Original papers remaining record-limited & 4 \\
+Independent external algorithm replications performed & 0 \\
+New human-subject experiments performed for this review & 0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Retrieval, version control and access limitations}
+Existing arXiv identifiers and corresponding-preprint locators were combined with
+DOI-matched OpenAlex location records, institutional repositories and author
+copies. OpenAlex was used to locate documents, not as the source of experimental
+results. Accessible PDFs were cached locally, converted to text and inspected
+at the loci recorded in \repo{paper_appraisals.json}. URLs, timestamps, failed
+attempts and content hashes are retained in \repo{fulltext_retrieval.json}.
+The copyrighted primary PDFs remain in the ignored local build cache; the
+delivered PDF contains original analysis and links, not a redistributed bundle
+of the papers.
+
+An author manuscript and a publisher version can differ. For example, the
+retrieved DS-RNN text identifies a later arXiv revision than the conference year,
+while the Parkour manuscript predates its journal publication. Social Force also
+has a later repository deposit than its original journal date. The bibliography
+continues to identify the selected work; the appraisal identifies the inspected
+copy. Fine-grained claims belong to that copy until checked against the final
+version. Unversioned repository URLs are additionally fingerprinted by their
+retrieved PDF hash.
+
+The original full texts that remain unavailable in this pass are MuJoCo (2012),
+the 2013 sparse timed-trajectory paper, the 1998 velocity-obstacle paper and the
+2013 dense-crowd cooperation paper. Their identities are verified. Available
+abstracts, institutional records and author software descriptions support bounded
+context, but they are not silently substituted for original methods and results.
+In particular, no new table-level quantitative claim is extracted from those
+unavailable texts. The four limitations are visible in the appraisals and audit.
+
+\subsection{Extraction instrument and thematic coding}
+Every paper is appraised using the following fields:
+\begin{enumerate}
+\item \textbf{Problem and contribution:} what question it addresses and which
+part of the autonomy pipeline it changes.
+\item \textbf{Mechanism:} representation, policy/planner structure, information
+inputs, action interface and important modeling assumptions.
+\item \textbf{Evidence:} the inspected study type, scenario, comparator,
+measurement boundary and reported result where directly supported.
+\item \textbf{Critical appraisal:} limitations in internal validity,
+comparability, deployment relevance or interpretation; these are identified as
+the review's analysis rather than attributed wholesale to the authors.
+\item \textbf{Novelty implication:} what the paper rules out as new, and which
+more specific experiment or contribution it motivates.
+\item \textbf{Source anchor:} inspected sections/tables, source copy and reading
+level, so the claim can be traced back to material rather than a citation count.
+\end{enumerate}
+The appraisals are grouped into eight analytical themes: social requirements;
+geometric interaction and safety; learned interaction/prediction; perception and
+estimation; datasets/evaluation; locomotion/transfer; sensor-level humanoid
+navigation; and enabling systems. These analytical themes overlap in substance:
+the grouping is a reading order, not a claim that each method belongs to only one
+scientific category. The separate web resource index uses a different set of
+navigation-oriented clusters for discoverability.
+
+The synthesis asks the same cross-cutting questions across themes. Is an agent
+state observed, inferred or privileged? Does the action mean velocity, trajectory,
+joint target or torque? Is the crowd reciprocal, replayed or independent? Does
+``collision'' mean contact, body overlap or a distance intrusion? Does runtime
+measure inference, an entire callback or the age of the observation at actuation?
+Are real people providing outcome judgments, or are geometric proxies being used?
+These distinctions make apparently similar success numbers scientifically
+nonexchangeable.
+
+\subsection{Quality appraisal without a misleading total score}
+The review does not assign a synthetic ``quality score'' to dissimilar papers.
+A theorem, a dataset, a taxonomy and a hardware deployment supply different
+forms of evidence. Instead, six appraisal dimensions are applied where relevant:
+\begin{description}
+\item[Source validity.] Are sensing inputs, privileged training inputs and
+evaluation truth identifiable and separated?
+\item[Comparator validity.] Do baselines share task conditions, tuning budget,
+observations and unavoidable actuation limits? Are adapters disclosed?
+\item[Execution validity.] Is the claimed motion physically executed, and are
+its dynamics and contact model appropriate to the claim?
+\item[Temporal validity.] Are acquisition time, processing delay and applied
+command identity distinguishable?
+\item[Statistical validity.] Are exposure, denominators, repeats, uncertainty
+and failed/invalid trials described sufficiently for the claim?
+\item[Construct and transfer validity.] Does the metric measure the stated
+construct, and what changes between simulation, hardware and human evaluation?
+\end{description}
+``Not established by inspected material'' is not equivalent to ``absent from the
+entire paper or codebase''. This wording is particularly important for supplements,
+private evaluation logs and newer revisions that were not inspected. Likewise,
+an author's empirical success is not discredited simply because a different
+application needs stronger evidence; the review identifies the transfer boundary.
+
+\subsection{Synthesis rules and strength of gap claims}
+No meta-analysis of success rates is attempted. The corpus mixes different
+robots, information sources, trial lengths, task definitions and risk metrics.
+Quantitative values are used to explain a method's own evidence and its limits,
+not to form a cross-paper leaderboard. Thematic conclusions are instead built
+from converging mechanisms, explicit counterexamples and repeated methodological
+issues. For example, DWA and the biped MPC paper invalidate broad claims that
+dynamics or stopping were ignored; SCAND invalidates a claim that human judgments
+are absent from social-navigation evaluation \citep{dwa,biped2016,scand}.
+
+A gap is described at one of three levels: a \emph{demonstrated project deficit},
+such as recorded contact failures; an \emph{under-tested interface in this corpus},
+such as calibrated observation-age/execution coupling; or a \emph{candidate
+research contribution} requiring a more extensive nearest-neighbor literature
+search and a new mechanism. These levels must not be collapsed. The bounded
+corpus does not establish the absence of every delayed-CBF, robust/chance-constrained
+MPC, conformal-calibration or contact-aware manipulation method. Those literatures
+are explicit pre-submission search priorities.
+
+The extraction and synthesis were prepared in a single AI-assisted review
+workflow, without independent second-person adjudication. The delivered structured
+records make such review possible but do not replace it. No literature-review
+protocol was preregistered, and no new physical trial was performed. These
+limitations define the strength of the conclusions while preserving a substantial
+increase in primary-material analysis over the previous abstract-led report.

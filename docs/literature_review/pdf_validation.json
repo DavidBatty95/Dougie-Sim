@@ -1,0 +1,382 @@
+{
+  "checked_at": "2026-10-05T15:05:59.374536+00:00",
+  "pdf": "literature_review.pdf",
+  "pdf_sha256": "da860e9562e61aec5690d76cc32439727060d8d06cac2443df3148950920408c",
+  "pages": 74,
+  "extracted_word_count": 32899,
+  "bibliographic_identities_with_linked_citations_and_publication_urls": 50,
+  "unique_external_urls": 97,
+  "internal_link_annotations": 648,
+  "bookmark_count": 92,
+  "outline": [
+    {
+      "title": "1 Executive assessment",
+      "page": 5
+    },
+    {
+      "title": "2 Scope, search procedure, and verification standard",
+      "page": 5
+    },
+    {
+      "title": "2.1 Review type and research questions",
+      "page": 5
+    },
+    {
+      "title": "2.2 Search and inclusion procedure",
+      "page": 6
+    },
+    {
+      "title": "2.3 What ``verified'' means here",
+      "page": 6
+    },
+    {
+      "title": "2.4 Expanded systematic extraction within the defined corpus",
+      "page": 7
+    },
+    {
+      "title": "2.5 Retrieval, version control and access limitations",
+      "page": 7
+    },
+    {
+      "title": "2.6 Extraction instrument and thematic coding",
+      "page": 8
+    },
+    {
+      "title": "2.7 Quality appraisal without a misleading total score",
+      "page": 8
+    },
+    {
+      "title": "2.8 Synthesis rules and strength of gap claims",
+      "page": 9
+    },
+    {
+      "title": "3 The story begins: what makes navigation social?",
+      "page": 9
+    },
+    {
+      "title": "3.1 From reaching a coordinate to sharing a space",
+      "page": 9
+    },
+    {
+      "title": "3.2 Five objectives that should not be collapsed",
+      "page": 10
+    },
+    {
+      "title": "3.3 A decision model that exposes the hidden assumptions",
+      "page": 10
+    },
+    {
+      "title": "3.4 What geometric methods solved, and what they left open",
+      "page": 11
+    },
+    {
+      "title": "3.5 Why cooperation and freezing are two sides of the same problem",
+      "page": 11
+    },
+    {
+      "title": "3.6 Why learning changed the representation of the crowd",
+      "page": 12
+    },
+    {
+      "title": "3.7 Prediction is an input to a decision, not the final objective",
+      "page": 12
+    },
+    {
+      "title": "3.8 Embodiment closes the loop",
+      "page": 12
+    },
+    {
+      "title": "3.9 From a successful maneuver to dependable social autonomy",
+      "page": 13
+    },
+    {
+      "title": "4 The current work and its evidence boundary",
+      "page": 13
+    },
+    {
+      "title": "4.1 Architecture relevant to the review",
+      "page": 13
+    },
+    {
+      "title": "4.2 Oracle and sensor-only modes are different experiments",
+      "page": 13
+    },
+    {
+      "title": "4.3 What the recorded trials establish",
+      "page": 14
+    },
+    {
+      "title": "4.4 The key technical opening",
+      "page": 14
+    },
+    {
+      "title": "5 Classical and learning-based social navigation",
+      "page": 14
+    },
+    {
+      "title": "5.1 Geometric and dynamically constrained avoidance",
+      "page": 14
+    },
+    {
+      "title": "5.2 Interaction, reciprocity, and freezing",
+      "page": 15
+    },
+    {
+      "title": "5.3 Learned interaction models",
+      "page": 15
+    },
+    {
+      "title": "6 Prediction and onboard perception",
+      "page": 16
+    },
+    {
+      "title": "6.1 From point forecasts to interaction-conditioned distributions",
+      "page": 16
+    },
+    {
+      "title": "6.2 Detection and tracking are not solved by geometry alone",
+      "page": 16
+    },
+    {
+      "title": "6.3 Localization, mapping, and the moving sensor",
+      "page": 17
+    },
+    {
+      "title": "7 Legged control and the closest humanoid competitors",
+      "page": 17
+    },
+    {
+      "title": "7.1 Locomotion competence versus navigation competence",
+      "page": 17
+    },
+    {
+      "title": "7.2 ASAP: why nominal simulator dynamics are not enough",
+      "page": 18
+    },
+    {
+      "title": "7.3 LiDAR-conditioned safe and comfortable humanoid locomotion",
+      "page": 18
+    },
+    {
+      "title": "7.4 FLUX: a 2026 cross-embodiment navigation competitor",
+      "page": 19
+    },
+    {
+      "title": "8 Safety, middleware, and whole-system timing",
+      "page": 19
+    },
+    {
+      "title": "8.1 Filtering commands versus guaranteeing safety",
+      "page": 19
+    },
+    {
+      "title": "8.2 Planner–supervisor interaction",
+      "page": 20
+    },
+    {
+      "title": "8.3 ROS 2, Nav2, and SLAM are enabling infrastructure",
+      "page": 20
+    },
+    {
+      "title": "9 Benchmarking and social validity",
+      "page": 21
+    },
+    {
+      "title": "9.1 Existing benchmarks already cover important parts of the problem",
+      "page": 21
+    },
+    {
+      "title": "9.2 Safety is necessary but not sufficient for social navigation",
+      "page": 21
+    },
+    {
+      "title": "9.3 A useful validity hierarchy",
+      "page": 21
+    },
+    {
+      "title": "10 Deeper thematic synthesis: where the methods agree and disagree",
+      "page": 22
+    },
+    {
+      "title": "10.1 The action interface is the hidden organizing variable",
+      "page": 22
+    },
+    {
+      "title": "10.2 Reciprocity is an intervention, not a harmless simulator setting",
+      "page": 22
+    },
+    {
+      "title": "10.3 A better representation can conceal a different experiment",
+      "page": 23
+    },
+    {
+      "title": "10.4 Prediction quality has at least three distinct meanings",
+      "page": 23
+    },
+    {
+      "title": "10.5 The 2016 biped paper changes the novelty boundary substantially",
+      "page": 23
+    },
+    {
+      "title": "10.6 Read recent end-to-end safety claims at the level of constraints",
+      "page": 24
+    },
+    {
+      "title": "10.7 General-purpose navigation broadens the task but not automatically the guarantee",
+      "page": 24
+    },
+    {
+      "title": "10.8 Perception and execution uncertainty interact rather than simply add",
+      "page": 25
+    },
+    {
+      "title": "10.9 Embodied adaptation makes the ``same controller'' a qualified statement",
+      "page": 25
+    },
+    {
+      "title": "10.10 The social-validity gap is contextual, not the absence of human research",
+      "page": 25
+    },
+    {
+      "title": "10.11 What this synthesis supports",
+      "page": 26
+    },
+    {
+      "title": "11 Comparative synthesis and ranked research gaps",
+      "page": 26
+    },
+    {
+      "title": "11.1 Gap 1: calibrated executable avoidance under stale observations",
+      "page": 26
+    },
+    {
+      "title": "11.2 Gap 2: causal explanation of the oracle-to-onboard gap",
+      "page": 27
+    },
+    {
+      "title": "11.3 Gap 3: coordinated safety and liveness across planning layers",
+      "page": 27
+    },
+    {
+      "title": "11.4 Gap 4: full-body risk beyond planar clearance",
+      "page": 27
+    },
+    {
+      "title": "11.5 Gap 5: contextual comfort and nonreciprocal crowds",
+      "page": 28
+    },
+    {
+      "title": "12 A concrete experimental programme",
+      "page": 28
+    },
+    {
+      "title": "12.1 Stage A: characterize the frozen locomotion interface",
+      "page": 28
+    },
+    {
+      "title": "12.2 Stage B: controlled oracle planning study",
+      "page": 28
+    },
+    {
+      "title": "12.3 Stage C: factorial onboard robustness study",
+      "page": 29
+    },
+    {
+      "title": "12.4 Stage D: metrics and statistical interpretation",
+      "page": 29
+    },
+    {
+      "title": "12.5 Minimum publishable evidence package",
+      "page": 29
+    },
+    {
+      "title": "13 A novelty roadmap: what the work must become",
+      "page": 30
+    },
+    {
+      "title": "13.1 Separate an engineering milestone from a research contribution",
+      "page": 30
+    },
+    {
+      "title": "13.2 Primary contribution target: a joint observation–execution model",
+      "page": 30
+    },
+    {
+      "title": "13.3 Secondary contribution target: causal diagnosis of the onboard gap",
+      "page": 31
+    },
+    {
+      "title": "13.4 Third contribution target: consistent supervision with liveness",
+      "page": 31
+    },
+    {
+      "title": "13.5 Extension target: body, arm and payload risk",
+      "page": 32
+    },
+    {
+      "title": "13.6 Extension target: contextual human validation",
+      "page": 32
+    },
+    {
+      "title": "13.7 A staged evidence ladder for the first paper",
+      "page": 32
+    },
+    {
+      "title": "13.8 What would make the first submission defensible?",
+      "page": 33
+    },
+    {
+      "title": "14 Recommended positioning and conclusion",
+      "page": 34
+    },
+    {
+      "title": "A Annotated evidence map of the 50 retained works",
+      "page": 34
+    },
+    {
+      "title": "B Detailed paper-by-paper critical appraisals",
+      "page": 36
+    },
+    {
+      "title": "B.1 Foundations and social requirements",
+      "page": 36
+    },
+    {
+      "title": "B.2 Geometric avoidance, interaction and safety",
+      "page": 40
+    },
+    {
+      "title": "B.3 Learning interaction and predicting motion",
+      "page": 45
+    },
+    {
+      "title": "B.4 Perception and state estimation",
+      "page": 50
+    },
+    {
+      "title": "B.5 Datasets, benchmarks and social validity",
+      "page": 53
+    },
+    {
+      "title": "B.6 Locomotion, embodiment and transfer",
+      "page": 58
+    },
+    {
+      "title": "B.7 Sensor-level humanoid navigation",
+      "page": 64
+    },
+    {
+      "title": "B.8 Enabling technology and systems",
+      "page": 66
+    },
+    {
+      "title": "C Claim audit and immediate priorities",
+      "page": 68
+    },
+    {
+      "title": "D Linked bibliography",
+      "page": 70
+    }
+  ],
+  "scope": "PDF structure and link integrity; not independent scientific peer review"
+}

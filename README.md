@@ -241,7 +241,7 @@ artifacts; reproduction requires the explicit policy identified in each report.
 | Navigation investigation, consolidated v82 cohort | 14/18 strict passes, 49/54 goals, four contacts; navigation acceptance remains unmet | [Investigation and iteration ledger](docs/NAVIGATION_RELIABILITY_INVESTIGATION.md) |
 | Later complete matrix (v84) and alignment audit (v85) | v84: 10/18 strict passes, 46/54 goals, six contacts; v85 confirms geometric overlaps in audited failures | [Current evidence snapshot](docs/PROJECT_STATUS.md#current-evidence) |
 | Payload-policy fixture | Two consecutive complete zero-person transport runs; 2 complete passes among 11 recorded native candidate attempts with evolving integration code | [Training and transport evidence](docs/PAYLOAD_POLICY_TRAINING.md) |
-| Literature review | 50 verified bibliographic identities, critical synthesis, research gaps and evaluation proposals | [Review guide and PDF](docs/literature_review/README.md) |
+| Research gaps and literature review | 74-page fundamentals-to-novelty review; 50 appraisals, with 46 selected full-text inspections; five intended research gaps | [Research goals and complete PDF](docs/literature_review/README.md) |
 
 These records cover different configurations and evaluation conditions. The
 [results-review guide](docs/RESULTS_REVIEW.md) explains how to inspect provenance,

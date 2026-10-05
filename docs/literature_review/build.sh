@@ -13,6 +13,7 @@ if [[ $# -gt 1 || ( $# -eq 1 && "$1" != "--check-only" ) ]]; then
     printf 'Unknown argument. Use --help.\n' >&2
     exit 2
 fi
+python3 "$HERE/generate_review_appendix.py" --check
 python3 "$HERE/verify_sources.py"
 if [[ "${1:-}" == "--check-only" ]]; then
     exit 0

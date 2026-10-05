@@ -1,5 +1,13 @@
 # Source identity and content-inspection audit
 
+**Expanded edition — 5 October 2026:** see [FULLTEXT_AUDIT.md](FULLTEXT_AUDIT.md)
+for the current 46 selected full-text and four record-limited appraisals, with
+source anchors and retrieval hashes. The original 2016 biped manuscript was
+successfully retrieved in the expansion. The table below is the preserved
+**22 September inspection snapshot**, not the current reading-depth summary.
+
+## Original inspection snapshot — 22 September 2026
+
 All 50 primary identity records were retrieved and checked. This table separates that
 check from the depth of content inspected. “Record only” is **not** a full-text review.
 The bibliography is generated from the verified primary metadata, not search snippets.
