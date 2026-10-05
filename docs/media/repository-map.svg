@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 956" role="img" aria-labelledby="title desc">
+  <title id="title">Find your way around Geoff-Sim</title>
+  <desc id="desc">A task-oriented map of the repository | Start with README.md and ./geoff. Folder guide: docs/REPOSITORY_GUIDE.md | Source is versioned; builds, policies and raw logs are local artifacts.</desc>
+  <style>
+    text {font-family:Arial,Helvetica,sans-serif}
+    .marker {animation:glow 3s ease-in-out infinite}
+    @keyframes glow {0%,100% {opacity:.6} 50% {opacity:1}}
+    @media (prefers-reduced-motion:reduce) {.marker {animation:none}}
+  </style>
+  <rect width="1200" height="956" rx="20" fill="#0b1727"/>
+  <rect x="34" y="32" width="5" height="56" rx="2" fill="#43d2ec"/>
+  <text x="54" y="56" fill="#edf6ff" font-size="29" font-weight="bold">Find your way around Geoff-Sim</text>
+  <text x="54" y="87" fill="#a8c1d6" font-size="16">A task-oriented map of the repository | Start with README.md and ./geoff</text>
+  <rect x="34" y="120" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="137" width="4" height="40" rx="2" fill="#43d2ec"/>
+  <text x="54" y="152" fill="#43d2ec" font-size="21" font-weight="bold">01 / Run and automate</text>
+  <text x="54" y="178" fill="#edf6ff" font-size="17">scripts/ + geoff</text>
+  <text x="54" y="206" fill="#b5c9dc" font-size="15">Demo launchers, world generators, training helpers and</text>
+  <text x="54" y="226" fill="#b5c9dc" font-size="15">repeatable experiment commands.</text>
+  <circle class="marker" cx="58" cy="271" r="4" fill="#43d2ec"/>
+  <text x="70" y="275" fill="#43d2ec" font-size="11" font-weight="bold" letter-spacing="1">RUN A DEMO</text>
+  <rect x="614" y="120" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="137" width="4" height="40" rx="2" fill="#7de39a"/>
+  <text x="634" y="152" fill="#7de39a" font-size="21" font-weight="bold">02 / Understand and review</text>
+  <text x="634" y="178" fill="#edf6ff" font-size="17">docs/</text>
+  <text x="634" y="206" fill="#b5c9dc" font-size="15">Runbooks, architecture, project status, forward plan,</text>
+  <text x="634" y="226" fill="#b5c9dc" font-size="15">literature review and published results.</text>
+  <circle class="marker" cx="638" cy="271" r="4" fill="#7de39a"/>
+  <text x="650" y="275" fill="#7de39a" font-size="11" font-weight="bold" letter-spacing="1">READ THE EVIDENCE</text>
+  <rect x="34" y="314" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="331" width="4" height="40" rx="2" fill="#43d2ec"/>
+  <text x="54" y="346" fill="#43d2ec" font-size="21" font-weight="bold">03 / Change robot behavior</text>
+  <text x="54" y="372" fill="#edf6ff" font-size="17">ros2_ws/src/</text>
+  <text x="54" y="400" fill="#b5c9dc" font-size="15">ROS 2 perception, planning, locomotion, manipulation, messages</text>
+  <text x="54" y="420" fill="#b5c9dc" font-size="15">and benchmark packages.</text>
+  <circle class="marker" cx="58" cy="465" r="4" fill="#43d2ec"/>
+  <text x="70" y="469" fill="#43d2ec" font-size="11" font-weight="bold" letter-spacing="1">DEVELOP THE STACK</text>
+  <rect x="614" y="314" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="331" width="4" height="40" rx="2" fill="#d3a5ff"/>
+  <text x="634" y="346" fill="#d3a5ff" font-size="21" font-weight="bold">04 / Reproduce upstream changes</text>
+  <text x="634" y="372" fill="#edf6ff" font-size="17">patches/</text>
+  <text x="634" y="400" fill="#b5c9dc" font-size="15">Reviewed simulator and MJLab source changes, pinned bases and</text>
+  <text x="634" y="420" fill="#b5c9dc" font-size="15">checksum manifests.</text>
+  <circle class="marker" cx="638" cy="465" r="4" fill="#d3a5ff"/>
+  <text x="650" y="469" fill="#d3a5ff" font-size="11" font-weight="bold" letter-spacing="1">VERIFY THE SOURCE</text>
+  <rect x="34" y="508" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="525" width="4" height="40" rx="2" fill="#7de39a"/>
+  <text x="54" y="540" fill="#7de39a" font-size="21" font-weight="bold">05 / Build and verify</text>
+  <text x="54" y="566" fill="#edf6ff" font-size="17">docker/ + .github/</text>
+  <text x="54" y="594" fill="#b5c9dc" font-size="15">Container dependencies, runtime setup, CI checks, issue forms</text>
+  <text x="54" y="614" fill="#b5c9dc" font-size="15">and contribution workflow.</text>
+  <circle class="marker" cx="58" cy="659" r="4" fill="#7de39a"/>
+  <text x="70" y="663" fill="#7de39a" font-size="11" font-weight="bold" letter-spacing="1">CHECK THE BUILD</text>
+  <rect x="614" y="508" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="525" width="4" height="40" rx="2" fill="#d3a5ff"/>
+  <text x="634" y="540" fill="#d3a5ff" font-size="21" font-weight="bold">06 / Explore external systems</text>
+  <text x="634" y="566" fill="#edf6ff" font-size="17">vendor/ + integrations/</text>
+  <text x="634" y="594" fill="#b5c9dc" font-size="15">Pinned training sources and the optional Grove-G1 profile with</text>
+  <text x="634" y="614" fill="#b5c9dc" font-size="15">its own runtime boundary.</text>
+  <circle class="marker" cx="638" cy="659" r="4" fill="#d3a5ff"/>
+  <text x="650" y="663" fill="#d3a5ff" font-size="11" font-weight="bold" letter-spacing="1">FOLLOW THE BOUNDARIES</text>
+  <rect x="34" y="702" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="719" width="4" height="40" rx="2" fill="#43d2ec"/>
+  <text x="54" y="734" fill="#43d2ec" font-size="21" font-weight="bold">07 / Inspect runs</text>
+  <text x="54" y="760" fill="#edf6ff" font-size="17">tools/ + docs/results/</text>
+  <text x="54" y="788" fill="#b5c9dc" font-size="15">Browser dashboard and portable datasets. Raw simulation logs</text>
+  <text x="54" y="808" fill="#b5c9dc" font-size="15">stay in ignored result folders.</text>
+  <circle class="marker" cx="58" cy="853" r="4" fill="#43d2ec"/>
+  <text x="70" y="857" fill="#43d2ec" font-size="11" font-weight="bold" letter-spacing="1">COMPARE OUTCOMES</text>
+  <rect x="614" y="702" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="719" width="4" height="40" rx="2" fill="#7de39a"/>
+  <text x="634" y="734" fill="#7de39a" font-size="21" font-weight="bold">08 / Explore the context</text>
+  <text x="634" y="760" fill="#edf6ff" font-size="17">archive/ + profile/</text>
+  <text x="634" y="788" fill="#b5c9dc" font-size="15">Historical research notes and the companion GitHub profile.</text>
+  <text x="634" y="808" fill="#b5c9dc" font-size="15">Current guidance lives in docs/.</text>
+  <circle class="marker" cx="638" cy="853" r="4" fill="#7de39a"/>
+  <text x="650" y="857" fill="#7de39a" font-size="11" font-weight="bold" letter-spacing="1">FOLLOW THE STORY</text>
+  <text x="34" y="930" fill="#a8c1d6" font-size="13">Folder guide: docs/REPOSITORY_GUIDE.md | Source is versioned; builds, policies and raw logs are local artifacts.</text>
+</svg>

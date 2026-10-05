@@ -38,9 +38,18 @@ dataset and its configuration using the [results-review guide](RESULTS_REVIEW.md
 | [Command safety](media/command-safety.svg) | Command supervision concept |
 | [Social navigation](media/social-navigation.svg) | Perception/planning concept |
 | [Verification tiers](media/verification-tiers.svg) | Layers of implementation and integration checks |
+| [Repository map](media/repository-map.svg) | Task-oriented folder overview; the [folder guide](REPOSITORY_GUIDE.md) provides the text equivalent |
+| [Project progression](media/project-progression.svg) | Dated development milestones, with source and evidence in [project status](PROJECT_STATUS.md) |
+| [Forward roadmap](media/project-roadmap.svg) | Eight acceptance-driven stages; detailed deliverables are in [the plan](PROJECT_PLAN.md) |
 
 The SVGs are schematics, not sensor output. The dashboard screenshot is a static
 example; launch `./geoff results` to inspect the checked-in datasets interactively.
+
+The folder, progression and roadmap graphics use a shared two-column layout with
+readable static content, descriptive SVG titles and reduced-motion support.
+Their source text lives in `BOARDS` in the graphics generator. Status graphics
+are dated snapshots: update their text alongside the status/plan pages rather
+than treating animation or a colored label as a live progress indicator.
 
 ## Updating the gallery
 

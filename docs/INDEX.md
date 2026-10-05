@@ -4,6 +4,16 @@ Geoff-Sim combines Unitree G1 locomotion, MuJoCo simulation, ROS 2 onboard
 navigation and source-linked evaluation. Choose a reading path below, or browse
 the reference tables.
 
+## Project orientation
+
+| Page | Purpose |
+| --- | --- |
+| [Repository and folder guide](REPOSITORY_GUIDE.md) | Visual map, annotated tree, package ownership and where to make a change |
+| [Project status and progression](PROJECT_STATUS.md) | Dated published baseline, milestone timeline, latest evidence and blockers |
+| [Detailed project plan](PROJECT_PLAN.md) | Work packages, dependencies, exit criteria and update process |
+| [ROS workspace map](../ros2_ws/src/README.md) | Every local package and the two manipulation integration paths |
+| [Published dataset catalogue](results/README.md) | Entry points into the portable experiment records |
+
 ## Start here
 
 - **Run your first demo:** [installation](../README.md#quick-start) →
@@ -14,6 +24,8 @@ the reference tables.
   [source boundaries](ONBOARD_SOCIAL_NAVIGATION.md) → [route planning](DYNAMIC_ROUTE_PLANNING.md).
 - **Contribute:** [development checks](DEVELOPMENT.md) →
   [contribution guide](../CONTRIBUTING.md) → [handoff](HANDOFF.md).
+- **Follow progress:** [status](PROJECT_STATUS.md) → [forward plan](PROJECT_PLAN.md) →
+  [technical implementation ledger](SOCIAL_LOCOMANIPULATION_ROADMAP.md).
 
 ## Demos and experiments
 
@@ -35,6 +47,7 @@ the reference tables.
 | [Published demo evidence](DEMO_RESULTS.md) | Published v12 cohort and separately labelled historical demos |
 | [Navigation reliability investigation](NAVIGATION_RELIABILITY_INVESTIGATION.md) | Retained corrections, failed experiments and the iteration ledger |
 | [Literature review](literature_review/README.md) | PDF, 50-work evidence map, research gaps, reading audit and bibliography verification |
+| [Grove-G1 implementation review](GROVE_G1_REVIEW.md) | Dated source review, architecture comparisons and proposed transfer experiments; separate from the pinned integration profile |
 | [Training and calibration](TRAINING_AND_CALIBRATION.md) | Policy training, response measurements and calibration tools |
 | [Payload-aware training](PAYLOAD_POLICY_TRAINING.md) | Training cycle, native transport results and explicit checkpoint reproduction |
 | [Transport implementation plan](TRANSPORT_DEMO_PLAN.md) | Mission design, integration requirements and acceptance goals |

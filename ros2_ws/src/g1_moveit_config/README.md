@@ -1,5 +1,7 @@
 # Geoff-Sim G1 MoveIt Config
 
+[Workspace map](../README.md) · [Robot description](../unitree_g1_description/README.md) · [Manipulation actions](../g1_manipulation/README.md)
+
 This package is the first MoveIt gate for the local Geoff-Sim G1 model. It plans only while the
 robot is stationary and uses the checked-in
 `unitree_g1_description/urdf/g1_29dof_mode_15_brainco_hand.urdf` description.
@@ -39,6 +41,9 @@ bringup must provide the action and complete `/joint_states` before execution ca
 
 Launch planning with:
 
+Run inside a sourced ROS container; the robot state and controller prerequisites
+above must be satisfied separately.
+
 ```bash
 ros2 launch g1_moveit_config move_group.launch.py
 ```
@@ -50,9 +55,10 @@ URDF limits; they are starting postures, not substitutes for runtime collision c
 ## Deliberate Omissions
 
 There is no octomap configuration. A future perception gate must name a real local pointcloud topic
-and a TF-connected frame before adding one. There are no hand groups or end effectors, and Geoff-Sim
-does not currently provide hand contact physics suitable for validating grasps. Attached collision
-objects and hand actuation therefore remain out of scope.
+and a TF-connected frame before adding one. There are no hand groups or end effectors
+in this configuration. Experimental BrainCo contact-bench work exists separately;
+it does not establish a validated mobile grasp pipeline. Attached-object lifecycle
+is handled by the manipulation server rather than this configuration package.
 
 The allowed-collision matrix contains only direct URDF adjacency where both links have collision
 geometry. It includes the non-planning legs and fingers because MoveIt collision-checks the whole
@@ -67,3 +73,11 @@ collision disable. It requires no simulator or ROS graph.
 ```bash
 colcon test --packages-select g1_moveit_config
 ```
+
+## Configuration map and next steps
+
+[`config/`](config/) contains the SRDF, kinematics, limits and controller/planner
+settings. [`launch/`](launch/) loads them, and [`test/`](test/) checks their
+consistency against the local model. Update these together when changing joint
+groups or arm limits. S3–S5 of the [project plan](../../../docs/PROJECT_PLAN.md)
+cover contact grasping, collision-aware approaches and coordinated loaded motion.

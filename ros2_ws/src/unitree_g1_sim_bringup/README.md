@@ -1,0 +1,54 @@
+# G1 simulation bringup
+
+[Workspace map](../README.md) · [Demo walkthrough](../../../docs/DEMO_GUIDE.md) · [Architecture](../../../docs/ARCHITECTURE.md)
+
+Bringup connects the simulator, robot description, bridge, sensors, localization,
+navigation and visualization into selectable launch configurations.
+
+## Folder guide
+
+| Path | Purpose |
+| --- | --- |
+| [`launch/`](launch/) | Launch descriptions; `g1_sim.launch.py` is the main composition point |
+| [`config/`](config/) | Navigation, controller and social-navigation parameter profiles |
+| [`rviz/`](rviz/) | Viewer layouts for onboard and diagnostic modes |
+| [`test/`](test/) | Launch-description and manipulation-control contract checks |
+
+The onboard profile is `config/social_navigation_onboard_v1.yaml`. The demo
+catalogue in `scripts/demo_suite.py` supplies case-specific launch overrides;
+the effective configuration is therefore the profile **plus launch arguments**.
+Record both when comparing experiments.
+
+## Recommended entry points
+
+From the repository root:
+
+```bash
+./geoff demo plaza
+./geoff demo clinic --people 4 --duration 300 --fast-start
+./scripts/run_demo_suite.sh --list
+```
+
+For launch-argument inspection inside a sourced ROS container:
+
+```bash
+ros2 launch unitree_g1_sim_bringup g1_sim.launch.py --show-args
+```
+
+Use `--fast-start` only with current builds. `--headless` suppresses RViz; the
+standalone MuJoCo viewer may still require the display environment. Only one
+simulator and intended command source should own the runtime at once.
+
+## Modes and boundaries
+
+- Onboard cases enable sensor-derived localization, online mapping and observed
+  person tracking; they do not receive a static scene map or truth localization.
+- Historical oracle cases intentionally use different sources and must stay
+  labelled separately in reports.
+- Arm composition, stationary holding and walking-policy authority require
+  deliberate configuration; see the manipulation package guides before combining them.
+- Timer-based node startup and wrapper-level readiness checks serve different
+  roles. Reliable startup/reset orchestration remains part of the forward plan.
+
+For verification use [development checks](../../../docs/DEVELOPMENT.md).
+For planned lifecycle improvements see [S0/S1](../../../docs/PROJECT_PLAN.md).

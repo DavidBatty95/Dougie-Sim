@@ -4,6 +4,12 @@ Start with [the handoff](docs/HANDOFF.md), [architecture](docs/ARCHITECTURE.md)
 and [development guide](docs/DEVELOPMENT.md). This is a simulation research
 prototype; reproducible failures are useful evidence.
 
+Use the [repository guide](docs/REPOSITORY_GUIDE.md) to locate components and the
+[project plan](docs/PROJECT_PLAN.md) to choose a bounded work package. Link its
+S0–S7 or R1–R6 identifier in the issue/PR, state the expected evidence, and assign
+an owner when work begins. Update [project status](docs/PROJECT_STATUS.md) when a
+published milestone changes the assessment; keep historical experiment reports dated.
+
 1. Work on a focused branch and describe the acceptance criterion.
 2. Keep simulator truth out of onboard localization, tracking, planning and goal
    selection. Visualization/scoring may use explicitly isolated diagnostics.

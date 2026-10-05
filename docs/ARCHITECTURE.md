@@ -1,5 +1,7 @@
 # Geoff-Sim Architecture
 
+[Repository guide](REPOSITORY_GUIDE.md) · [ROS package map](../ros2_ws/src/README.md) · [Project plan](PROJECT_PLAN.md)
+
 ![Animated system architecture](media/architecture.svg)
 
 The default runtime is a simulation-first, closed-loop ROS 2 locomotion and social-navigation system. `g1_sim.launch.py` starts MuJoCo first, the bridge and autonomy nodes after 3 seconds, Nav2 after 7 seconds, and optional goal clients after 11 seconds.

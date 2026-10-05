@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the six lightweight, accessible animated README illustrations."""
+"""Generate lightweight, accessible README diagrams and project guide boards."""
 import argparse
 from html import escape
 from pathlib import Path
+from textwrap import wrap
 
 ROOT = Path(__file__).resolve().parents[1]
 PANELS = {
@@ -31,6 +32,89 @@ PANELS = {
         ("Visual integration", "Eight walkers, sensors and HUD", "Unscored; contacts logged; episode restarts"),
         ("Scored acceptance", "Goal completion + collision gates", "Current eight-person avoidance still fails")]),
 }
+
+BOARDS = {
+    "repository-map.svg": (
+        "Find your way around Geoff-Sim",
+        "A task-oriented map of the repository | Start with README.md and ./geoff",
+        [
+            ("01 / Run and automate", "scripts/ + geoff", "Demo launchers, world generators, training helpers and repeatable experiment commands.", "RUN A DEMO", "#43d2ec"),
+            ("02 / Understand and review", "docs/", "Runbooks, architecture, project status, forward plan, literature review and published results.", "READ THE EVIDENCE", "#7de39a"),
+            ("03 / Change robot behavior", "ros2_ws/src/", "ROS 2 perception, planning, locomotion, manipulation, messages and benchmark packages.", "DEVELOP THE STACK", "#43d2ec"),
+            ("04 / Reproduce upstream changes", "patches/", "Reviewed simulator and MJLab source changes, pinned bases and checksum manifests.", "VERIFY THE SOURCE", "#d3a5ff"),
+            ("05 / Build and verify", "docker/ + .github/", "Container dependencies, runtime setup, CI checks, issue forms and contribution workflow.", "CHECK THE BUILD", "#7de39a"),
+            ("06 / Explore external systems", "vendor/ + integrations/", "Pinned training sources and the optional Grove-G1 profile with its own runtime boundary.", "FOLLOW THE BOUNDARIES", "#d3a5ff"),
+            ("07 / Inspect runs", "tools/ + docs/results/", "Browser dashboard and portable datasets. Raw simulation logs stay in ignored result folders.", "COMPARE OUTCOMES", "#43d2ec"),
+            ("08 / Explore the context", "archive/ + profile/", "Historical research notes and the companion GitHub profile. Current guidance lives in docs/.", "FOLLOW THE STORY", "#7de39a"),
+        ],
+        "Folder guide: docs/REPOSITORY_GUIDE.md | Source is versioned; builds, policies and raw logs are local artifacts.",
+    ),
+    "project-progression.svg": (
+        "From simulation integration to delivery research",
+        "Publication milestones and dated experiments | Snapshot reviewed 5 October 2026",
+        [
+            ("01 / Simulation foundation", "July 2026", "G1 integration, ROS interfaces and reproducible verification formed the initial platform.", "INTEGRATED", "#43d2ec"),
+            ("02 / Demonstration workflows", "August 2026", "Locomotion, oracle social demos, manipulation interfaces and visual documentation expanded.", "DEMONSTRATED", "#43d2ec"),
+            ("03 / Onboard experiments", "22 September 2026", "Six worlds and a results dashboard made onboard failures visible: v12 passed 4 of 18 trials.", "MEASURED", "#7de39a"),
+            ("04 / Reliability investigation", "September development records", "Iteration datasets and alignment audits retained regressions. v84 passed 10 of 18 trials.", "ACCEPTANCE OPEN", "#f4c978"),
+            ("05 / Payload transport", "25 September experiment report", "Two consecutive isolated fixture passes with a trained payload policy and magnetic attachment.", "ISOLATED EVIDENCE", "#d3a5ff"),
+            ("06 / Published development baseline", "5 October 2026 | 3a7ceac", "Source, reviewed patches and evidence published together; regression checks documented.", "PUBLISHED", "#7de39a"),
+        ],
+        "These are different experiment conditions, not a single performance curve. See docs/PROJECT_STATUS.md.",
+    ),
+    "project-roadmap.svg": (
+        "The route to people-aware indoor delivery",
+        "Acceptance-driven stages | No promised dates or implied completion percentages",
+        [
+            ("S0 / Reproducible baseline", "Freeze source and runtime identity", "Repeat a clean build and native baseline with complete configuration and retained attempts.", "OPEN", "#43d2ec"),
+            ("S1 / Trustworthy mission state", "Measurement and action lifecycle", "Close attachment ambiguity, cancellation, evaluator coverage and command ownership gaps.", "IN PROGRESS", "#43d2ec"),
+            ("S2 / Reliable navigation", "Onboard sensing and avoidance", "Pass the full existing matrix, then held-out encounters without weakening the strict gates.", "OPEN", "#f4c978"),
+            ("S3 / Physical finger grasp", "BrainCo contact-only validation", "Demonstrate repeated grasp, lift, hold and release with actual contacts and no magnetic weld.", "OPEN", "#d3a5ff"),
+            ("S4 / Recoverable missions", "Wait, reobserve, redock and resume", "Recover within bounded retries; preserve known object and command-authority state on failure.", "OPEN", "#d3a5ff"),
+            ("S5 / Smooth loaded transport", "Loaded geometry and response", "Repeat empty-room deliveries across objects and layouts with declared motion tolerances.", "OPEN", "#d3a5ff"),
+            ("S6 / Social transport", "Integrate S2 through S5", "Complete held-out deliveries around people with valid evaluation and no prohibited contacts.", "GATED", "#f4c978"),
+            ("S7 / Physical deployment", "Calibrated G1 hardware adapters", "Validate the same contracts on the physical robot within a declared operating envelope.", "FUTURE", "#a8c1d6"),
+        ],
+        "S3 isolated work may run alongside S2. Promotion gates and deliverables: docs/PROJECT_PLAN.md.",
+    ),
+}
+
+
+def board(title, subtitle, cards, footer):
+    """Two-column cards remain readable as a standalone GitHub image."""
+    rows = (len(cards) + 1) // 2
+    height = 142 + rows * 194 + 38
+    parts = [f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 {height}" role="img" aria-labelledby="title desc">
+  <title id="title">{escape(title)}</title>
+  <desc id="desc">{escape(subtitle)}. {escape(footer)}</desc>
+  <style>
+    text {{font-family:Arial,Helvetica,sans-serif}}
+    .marker {{animation:glow 3s ease-in-out infinite}}
+    @keyframes glow {{0%,100% {{opacity:.6}} 50% {{opacity:1}}}}
+    @media (prefers-reduced-motion:reduce) {{.marker {{animation:none}}}}
+  </style>
+  <rect width="1200" height="{height}" rx="20" fill="#0b1727"/>
+  <rect x="34" y="32" width="5" height="56" rx="2" fill="#43d2ec"/>
+  <text x="54" y="56" fill="#edf6ff" font-size="29" font-weight="bold">{escape(title)}</text>
+  <text x="54" y="87" fill="#a8c1d6" font-size="16">{escape(subtitle)}</text>
+''']
+    for index, (heading, path, body, label, color) in enumerate(cards):
+        x, y = 34 + (index % 2) * 580, 120 + (index // 2) * 194
+        parts.append(f'''  <rect x="{x}" y="{y}" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="{x}" y="{y+17}" width="4" height="40" rx="2" fill="{color}"/>
+  <text x="{x+20}" y="{y+32}" fill="{color}" font-size="21" font-weight="bold">{escape(heading)}</text>
+  <text x="{x+20}" y="{y+58}" fill="#edf6ff" font-size="17">{escape(path)}</text>
+''')
+        lines = wrap(body, width=62)
+        if len(lines) > 3:
+            raise ValueError(f"Too much text in graphic card: {heading}")
+        for line, text in enumerate(lines):
+            parts.append(f'  <text x="{x+20}" y="{y+86+line*20}" fill="#b5c9dc" font-size="15">{escape(text)}</text>\n')
+        parts.append(f'''  <circle class="marker" cx="{x+24}" cy="{y+151}" r="4" fill="{color}"/>
+  <text x="{x+36}" y="{y+155}" fill="{color}" font-size="11" font-weight="bold" letter-spacing="1">{escape(label)}</text>
+''')
+    parts.append(f'  <text x="34" y="{height-26}" fill="#a8c1d6" font-size="13">{escape(footer)}</text>\n</svg>\n')
+    return "".join(parts)
 
 
 def graphic(title, subtitle, panels):
@@ -68,9 +152,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    for name, content in PANELS.items():
+    graphics = {name: graphic(*content) for name, content in PANELS.items()}
+    graphics.update({name: board(*content) for name, content in BOARDS.items()})
+    for name, expected in graphics.items():
         path = ROOT/"docs/media"/name
-        expected = graphic(*content)
         if args.check:
             if not path.exists() or path.read_text() != expected:
                 raise SystemExit(f"Outdated graphic: {path}")

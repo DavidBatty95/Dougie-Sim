@@ -1,5 +1,7 @@
 # Grove-G1 source profile
 
+[Integration overview](../README.md) · [Project home](../../README.md) · [Workspace map](../../ros2_ws/src/README.md)
+
 This optional profile pins the complete
 [`Adyansh04/grove-g1`](https://github.com/Adyansh04/grove-g1) repository under
 `vendor/grove-g1`. Grove-G1 is a self-contained ROS 2 Jazzy/Ubuntu 24.04 stack with its own
@@ -38,6 +40,23 @@ The stacks are alternative owners of the same interfaces, not composable overlay
 
 Process isolation alone is insufficient when host networking places both containers on the same
 DDS graph. Use only one complete stack at a time for a given simulator or robot.
+
+## Relationship to Geoff-Sim development
+
+Selected local `g1_msgs`, locomotion and manipulation components carry their own
+pinned Grove-G1 attribution. That local port is distinct from fetching and running
+the complete optional Jazzy profile. The [workspace map](../../ros2_ws/src/README.md)
+identifies the local Humble packages; the [project plan](../../docs/PROJECT_PLAN.md)
+tracks their integration with the newer sensor-driven transport workflow.
+
+The optional profile is verified by
+`python3 integrations/grove_g1/test/test_profile.py` from the repository root.
+This checks the source-profile contract, not a complete external-stack deployment.
+
+The [October source review](../../docs/GROVE_G1_REVIEW.md) inspects a newer Grove
+revision than this profile's pin. Its recommendations feed the
+[R1–R6 response workstream](../../docs/SOCIAL_LOCOMANIPULATION_ROADMAP.md#reactive-simulation-workstream-s1-s2-s4-and-s5);
+they do not automatically update the checkout or establish benchmark compatibility.
 
 ## Attribution and license
 

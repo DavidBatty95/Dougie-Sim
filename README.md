@@ -6,6 +6,9 @@
     <a href="#quick-start">Quick start</a> ·
     <a href="docs/DEMO_GUIDE.md">Demo guide</a> ·
     <a href="docs/INDEX.md">Documentation</a> ·
+    <a href="docs/REPOSITORY_GUIDE.md">Folder guide</a> ·
+    <a href="docs/PROJECT_STATUS.md">Project status</a> ·
+    <a href="docs/PROJECT_PLAN.md">Roadmap</a> ·
     <a href="docs/RESULTS_REVIEW.md">Results review</a> ·
     <a href="docs/literature_review/README.md">Literature review</a>
   </p>
@@ -18,6 +21,14 @@ human-aware navigation and reproducible avoidance experiments.
 collision-free navigation is not yet reliable. Published datasets include
 collisions, incomplete goals and invalid attempts. Historical oracle results
 and unscored visual sessions are labelled separately.
+
+**Project update — 5 October 2026:** the published development baseline is
+[`3a7ceac`](https://github.com/DavidBatty95/Geoff-Sim/commit/3a7ceac).
+The latest retained full navigation matrix, v84, passed **10/18** strict trials;
+the isolated payload fixture has **two consecutive complete runs**. The next
+priorities are reproducibility, mission-state correctness and reliable onboard
+navigation. [Read the status and progression](docs/PROJECT_STATUS.md) ·
+[Follow the forward plan](docs/PROJECT_PLAN.md).
 
 ## Explore Geoff-Sim
 
@@ -207,6 +218,7 @@ artifacts; reproduction requires the explicit policy identified in each report.
 | --- | --- | --- |
 | Published representative-world cohort (`calibrated-actions-v12`) | 4/18 strict passes, 19/54 goals, 12 contacts | [Published demo evidence](docs/DEMO_RESULTS.md) |
 | Navigation investigation, consolidated v82 cohort | 14/18 strict passes, 49/54 goals, four contacts; navigation acceptance remains unmet | [Investigation and iteration ledger](docs/NAVIGATION_RELIABILITY_INVESTIGATION.md) |
+| Later complete matrix (v84) and alignment audit (v85) | v84: 10/18 strict passes, 46/54 goals, six contacts; v85 confirms geometric overlaps in audited failures | [Current evidence snapshot](docs/PROJECT_STATUS.md#current-evidence) |
 | Payload-policy fixture | Two consecutive complete zero-person transport runs; 2 complete passes among 11 recorded native candidate attempts with evolving integration code | [Training and transport evidence](docs/PAYLOAD_POLICY_TRAINING.md) |
 | Literature review | 50 verified bibliographic identities, critical synthesis, research gaps and evaluation proposals | [Review guide and PDF](docs/literature_review/README.md) |
 
@@ -216,7 +228,42 @@ failures and metrics before making comparisons. The research review distinguishe
 implemented capabilities from proposed contributions and documents the depth of
 reading for each source.
 
+## Project progression and next steps
+
+![Six milestones from simulation integration to the published navigation and transport development baseline](docs/media/project-progression.svg)
+
+The project has progressed from simulator integration and oracle demonstrations
+to sensor-driven experiments, inspectable failure datasets and experimental
+payload transport. Each phase has its own configuration and evidence; the
+timeline is a development history rather than a claim of steadily improving
+performance. [Detailed timeline and current status](docs/PROJECT_STATUS.md).
+
+The next reactivity work targets end-to-end latency, command ownership, fast
+collision response and measured stopping behaviour. The
+[R1–R6 workstream](docs/PROJECT_PLAN.md#reactivity-workstream) defines the tests
+and promotion gates, including a controlled comparison with Grove-G1's locomotion
+backend. These are planned improvements, not new performance claims.
+
+<details>
+<summary><strong>View the forward roadmap: reproducibility → reliable navigation → people-aware delivery</strong></summary>
+
+![Eight acceptance-driven stages covering reproducibility, mission correctness, navigation, grasping, recovery, loaded transport, social transport and hardware deployment](docs/media/project-roadmap.svg)
+
+The [project plan](docs/PROJECT_PLAN.md) provides deliverables, dependencies,
+completion criteria and an update process for every stage. The
+[technical roadmap](docs/SOCIAL_LOCOMANIPULATION_ROADMAP.md) retains the detailed
+implementation ledger. Dates are recorded for completed work; future stages are
+ordered by evidence requirements rather than promised delivery dates.
+
+</details>
+
 ## Repository map
+
+![Task-oriented repository map: scripts and geoff; docs; ROS packages; patches; Docker and CI; external integrations; dashboard and results; archive and profile](docs/media/repository-map.svg)
+
+**New to the codebase?** Use the [folder-by-folder guide](docs/REPOSITORY_GUIDE.md)
+for an annotated tree, package responsibilities, edit locations and artifact
+boundaries. The [ROS workspace README](ros2_ws/src/README.md) maps individual packages.
 
 | Path | Contents |
 | --- | --- |
@@ -224,8 +271,10 @@ reading for each source.
 | [`scripts/`](scripts/README.md) | Demo launchers, experiment tools, diagnostics and verification |
 | [`docs/`](docs/INDEX.md) | User guides, architecture, research and portable results |
 | [`patches/`](patches/README.md) | Reviewed modifications to pinned upstream sources |
-| [`docker/`](docker/) | Container runtime and dependency definitions |
-| [`integrations/`](integrations/) | Supporting integration assets |
+| [`docker/`](docker/README.md) | Container runtime and dependency definitions |
+| [`tools/`](tools/README.md) | Results-dashboard frontend |
+| [`.github/`](.github/) | Verification workflow, dependency updates and contribution templates |
+| [`integrations/`](integrations/README.md) | Optional integration profiles and runtime boundaries |
 | [`vendor/`](vendor/) | External sources, including the optional MJLab training environment |
 | [`archive/`](archive/README.md) | Historical proposals and experiment notes |
 
@@ -234,6 +283,7 @@ reading for each source.
 ![Verification tiers schematic](docs/media/verification-tiers.svg)
 
 - [Documentation index](docs/INDEX.md)
+- [Project status and progression](docs/PROJECT_STATUS.md) · [Detailed forward plan](docs/PROJECT_PLAN.md)
 - [Development and checks](docs/DEVELOPMENT.md)
 - [Team handoff and remaining work](docs/HANDOFF.md)
 - [Training and calibration tools](docs/TRAINING_AND_CALIBRATION.md)

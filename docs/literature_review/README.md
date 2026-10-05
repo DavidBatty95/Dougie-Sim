@@ -2,6 +2,8 @@
 
 [Documentation index](../INDEX.md) · [Project results review](../RESULTS_REVIEW.md)
 
+[Project progression](../PROJECT_STATUS.md) · [Forward experimental plan](../PROJECT_PLAN.md)
+
 **Read the PDF:** [`literature_review.pdf`](literature_review.pdf)
 
 **Edit the document:** [`literature_review.tex`](literature_review.tex)

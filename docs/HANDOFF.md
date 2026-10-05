@@ -1,8 +1,12 @@
 # Team handoff
 
+[Current status](PROJECT_STATUS.md) · [Forward plan](PROJECT_PLAN.md) · [Repository guide](REPOSITORY_GUIDE.md)
+
+Reviewed 5 October 2026 against published development baseline `3a7ceac`.
+
 ## First session
 
-1. Read the [README](../README.md), [architecture](ARCHITECTURE.md), and
+1. Read the [README](../README.md), [folder guide](REPOSITORY_GUIDE.md), [architecture](ARCHITECTURE.md), and
    [dataset methodology](AVOIDANCE_EXPERIMENTS.md).
 2. Install on a Linux graphics host, verify fork access and apply the pinned
    [source patches](../patches/README.md).
@@ -12,8 +16,11 @@
 ## Current engineering priorities
 
 - Reliable sensor-only avoidance: existing natural-crowd trials include contacts.
-- Latest representative cohort: 4/18 strict passes, 19/54 goals and 12 contacts;
-  crowd interactions and task progress remain the main acceptance blockers.
+- Latest retained full matrix v84: 10/18 strict passes, 46/54 goals and six
+  contacts. The default published dashboard cohort remains v12 (4/18 passes).
+  See [the evidence snapshot](PROJECT_STATUS.md#current-evidence) before comparing them.
+- Reproducible source/runtime identity and complete mission-state/evaluator
+  qualification, especially uncertain attachment and bounded action termination.
 - Perception latency/dropouts under eight-person rendering and GUI load.
 - RViz indexed-map GLSL sampler warnings on this host.
 - Longer endurance evidence: the recorded short sessions do not establish an
@@ -24,6 +31,10 @@
 The navigation input contract, goal criteria and scoring definitions must remain
 explicit. Historical oracle passes cannot establish onboard acceptance. Visual
 sessions may restart, log contacts and remain unscored.
+
+Use the [project plan](PROJECT_PLAN.md) to select a reviewable S0–S7 work package.
+Assign an owner and issue when starting work; preserve the distinction between
+implemented helpers, regression checks and a satisfied native acceptance gate.
 
 ## Publication and ownership
 
@@ -37,7 +48,15 @@ sessions may restart, log contacts and remain unscored.
   are read-only. Do not grant write credentials to untrusted pull requests.
 - Run a fresh image/build on the incoming team's hardware and retain its output.
 
-The development-host verification includes a fresh Docker image build, 196
+## Verification history
+
+The October publication built 15 ROS packages and passed 333 bridge tests, 83
+benchmark tests, 18 bringup tests, 79 general script tests, seven training tests
+and all ten simulator CTests. Both source patches reproduced from their pinned
+bases. See [development](DEVELOPMENT.md#publication-verification--5-october-2026)
+for environment details and the three payload tests rerun in MJLab.
+
+The earlier September development-host verification included a fresh Docker image build, 196
 bridge tests, 81 benchmark tests, 18 bringup tests, 69 script tests and four
 Torch-specific tests; seven simulator and two costmap/BT CTest targets also passed.
 All six generated worlds were loaded by MuJoCo in the simulator tests. The GUI

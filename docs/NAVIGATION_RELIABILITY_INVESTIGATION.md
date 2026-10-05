@@ -5,6 +5,9 @@ implementation and reviewed source patches. For subsequent transport
 results, see [payload training](PAYLOAD_POLICY_TRAINING.md); the transport-gate
 statement at the end records the state on this report's date.
 
+For later complete matrices, publication history and the active forward plan,
+see [project status](PROJECT_STATUS.md) and [the project plan](PROJECT_PLAN.md).
+
 ## Acceptance status
 
 **Navigation acceptance has not been achieved. Locomanipulation is not qualified.**

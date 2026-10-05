@@ -40,6 +40,11 @@ A **Unitree G1 simulation research platform** built with MuJoCo and ROS 2: bring
 
 [Explore Geoff-Sim →](https://github.com/DavidBatty95/Geoff-Sim) · [Architecture](https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/ARCHITECTURE.md) · [Experiments](https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/AVOIDANCE_EXPERIMENTS.md)
 
+Follow the project's [dated progress updates](https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/PROJECT_STATUS.md),
+[folder guide](https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/REPOSITORY_GUIDE.md)
+and [forward roadmap](https://github.com/DavidBatty95/Geoff-Sim/blob/main/docs/PROJECT_PLAN.md)
+for the path from onboard navigation experiments to people-aware indoor delivery.
+
 ### Pepper / conversational robotics
 
 A **voice-driven assistant for VEC tours, demonstrations and visitor Q&A**, connecting wake-word activation, speech recognition, AI dialogue and a robot-side speech bridge with live monitoring.

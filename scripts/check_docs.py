@@ -12,6 +12,15 @@ def main():
     failures = []
     files = list(ROOT.glob('*.md')) + list((ROOT / 'docs').glob('*.md'))
     files += list((ROOT / 'docs/literature_review').glob('*.md')) + list((ROOT / 'profile').glob('*.md'))
+    # Check the project-owned navigation surfaces, without treating historical
+    # archive contents or upstream submodule documentation as maintained guides.
+    for directory in ('scripts', 'patches', 'docker', 'tools', 'integrations',
+                      'integrations/grove_g1', 'archive', 'docs/results', 'ros2_ws/src'):
+        files.extend((ROOT / directory).glob('README.md'))
+    external = {'unitree_mujoco', 'unitree_ros2', 'unitree_sdk2'}
+    files.extend(path for path in (ROOT / 'ros2_ws/src').glob('*/README.md')
+                 if path.parent.name not in external)
+    files = sorted(set(files))
     for path in files:
         text = path.read_text()
         links = re.findall(r'\]\(([^)]+)\)', text) + re.findall(r'(?:href|src)="([^"]+)"', text)
