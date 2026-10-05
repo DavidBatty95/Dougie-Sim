@@ -1,5 +1,7 @@
 # Literature review: humanoid social navigation
 
+[Documentation index](../INDEX.md) · [Project results review](../RESULTS_REVIEW.md)
+
 **Read the PDF:** [`literature_review.pdf`](literature_review.pdf)
 
 **Edit the document:** [`literature_review.tex`](literature_review.tex)
@@ -22,6 +24,18 @@ The principal recommendation is **observation-age-aware, response-calibrated
 navigation**, evaluated through controlled oracle-to-onboard experiments.
 The review acknowledges the project's documented onboard collisions/timeouts
 and the existence of prior humanoid-navigation systems.
+
+## Reading paths
+
+- **Project overview:** read the synthesis and ranked research gaps, then compare
+  the proposed contributions with the [recorded implementation evidence](../RESULTS_REVIEW.md).
+- **Experiment design:** use the hypotheses, baseline choices, ablations and
+  statistical guidance alongside the [avoidance methodology](../AVOIDANCE_EXPERIMENTS.md).
+- **Source review:** inspect [the reading audit](READING_AUDIT.md) and
+  [search log](SEARCH_LOG.md) to understand selection and inspection depth, then
+  follow the identities in `sources.json` and the retrieved verification records.
+- **Maintenance:** run the offline check below before editing citations; refresh
+  identities and rebuild when updating the reviewed snapshot.
 
 ## Build the PDF
 

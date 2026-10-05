@@ -1,5 +1,9 @@
 # G1 Demo Suite
 
+For a first visit, start with the [demo walkthrough and selection table](DEMO_GUIDE.md).
+This page is the detailed suite reference; [results review](RESULTS_REVIEW.md)
+explains how to interpret its artifacts.
+
 The demo suite provides one entry point for reproducible locomotion, navigation,
 and social-navigation demonstrations. Scored runs save their commands, logs,
 policy identity, Git revision, durations, and exit status under a timestamped
@@ -104,7 +108,8 @@ Visual cases are interactive and must be selected alone:
 RL Lab policy, SLAM, Nav2, generated reachable goals, and RViz. Goal positions
 are sampled across the full configured map bounds and are submitted only after
 the active Smac planner returns a nonempty path from the robot's current pose.
-`social-visual` is the recommended live showcase. It uses the bundled pedestrian
+`social-visual` is the historical oracle live showcase. For the current onboard
+showcase, use `./geoff demo plaza`. The oracle case uses the bundled pedestrian
 plaza and displays the same seeded four-crossing oracle scenario and yield/resume
 gates as `social-endurance`, with MuJoCo and RViz visible. RViz follows the robot
 and emphasizes the occupancy map, mission goal, global route, tracked and
@@ -121,7 +126,8 @@ yaw, stop-settling, and action-clip acceptance gates. They remain research
 artifacts and are not demo defaults.
 
 Clean-clone suite cases use the official Unitree RL Lab G1-29DoF velocity policy.
-The downloader verifies SHA-256 before every required suite. Social cases keep
+The downloader verifies SHA-256 before every required suite. Staged social cases
+(`social-live`, `social-visual` and `social-endurance`) keep
 `max_lin_vel_y:=0.0`; avoidance therefore relies on early stopping and stable
 forward arcs rather than unsupported last-moment sidesteps.
 

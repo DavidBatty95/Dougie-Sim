@@ -4,7 +4,12 @@ The portable source-linked records are in [demo_results.json](results/demo_resul
 The newer multi-world cohort is documented in [avoidance experiments](AVOIDANCE_EXPERIMENTS.md)
 and published separately as [avoidance_dataset.json](results/avoidance_dataset.json).
 
-## Latest representative-world cohort
+For a guided inspection workflow, see [Reviewing results and evidence](RESULTS_REVIEW.md).
+Later tuning matrices and diagnostics are retained in the
+[navigation reliability investigation](NAVIGATION_RELIABILITY_INVESTIGATION.md).
+The cohort below describes the published v12 snapshot, not the latest working controller.
+
+## Published representative-world cohort (v12)
 
 Source commit: `7c4cd3e`; controller label `calibrated-actions-v12`.
 Six representative worlds × seeds 42/43/44, four people, three requested goals,
@@ -25,7 +30,7 @@ The simple-v1 baseline had 1/18 strict passes, 14/54 goals and 16 contacts. The
 representative-v8 and pivot-v10 cohorts are also retained. Geometry/appearance,
 controller settings and (between earlier cohorts) container dependencies changed;
 these descriptive counts are not an isolated or statistically proven speedup.
-The latest manifest records source hashes, commands and Docker image ID.
+The cohort manifest records source hashes, commands and Docker image ID.
 
 The separate 90 s one-person clinic visual session reached four goals with zero
 contacts/near misses, handing off within 0.5 m. It establishes goal cycling under

@@ -1,7 +1,14 @@
 <div align="center">
   <img src="docs/media/banner.svg" width="100%" alt="Geoff-Sim humanoid simulation">
   <p><strong>Unitree G1 · MuJoCo · ROS 2 Humble · Onboard social navigation</strong></p>
-  <a href="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml">Verification workflow</a>
+  <a href="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml"><img src="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml/badge.svg" alt="Verification workflow status"></a>
+  <p>
+    <a href="#quick-start">Quick start</a> ·
+    <a href="docs/DEMO_GUIDE.md">Demo guide</a> ·
+    <a href="docs/INDEX.md">Documentation</a> ·
+    <a href="docs/RESULTS_REVIEW.md">Results review</a> ·
+    <a href="docs/literature_review/README.md">Literature review</a>
+  </p>
 </div>
 
 Geoff-Sim is a simulation research platform for locomotion, online mapping,
@@ -11,6 +18,45 @@ human-aware navigation and reproducible avoidance experiments.
 collision-free navigation is not yet reliable. Published datasets include
 collisions, incomplete goals and invalid attempts. Historical oracle results
 and unscored visual sessions are labelled separately.
+
+## Explore Geoff-Sim
+
+| Capability | What you can explore |
+| --- | --- |
+| **Humanoid locomotion** | A checksum-pinned Unitree G1 policy, command-response measurements and stop diagnostics |
+| **Onboard navigation** | Simulated LiDAR, IMU and encoders driving localization, online SLAM and observed-free goals |
+| **Human-aware planning** | Person tracking, motion prediction, route selection and collision supervision |
+| **Representative worlds** | Six procedural environments plus the original pedestrian plaza |
+| **Reproducible experiments** | Seeded trials, strict result validation, source-linked datasets and a browser dashboard |
+| **Experimental transport** | RGB-D pickup, physically positioned arms, magnetic attachment and payload-aware locomotion |
+
+Start with the [demo walkthrough](docs/DEMO_GUIDE.md) for a guided tour, or the
+[documentation index](docs/INDEX.md) for implementation and research references.
+
+## Recorded demo gallery
+
+### Pedestrian plaza: simulation and onboard decisions
+
+| MuJoCo crowd | RViz perception and planning |
+| --- | --- |
+| ![Recorded G1 walking among eight pedestrians in MuJoCo](docs/media/onboard-crowd.gif) | ![Recorded RViz view of onboard sensing, tracks and navigation decisions](docs/media/onboard-decisions.gif) |
+
+### Representative environments
+
+| Residential courtyard | Courtyard sensing and planning |
+| --- | --- |
+| ![Recorded residential courtyard simulation](docs/media/courtyard/onboard-crowd.gif) | ![Recorded courtyard RViz perception and planning](docs/media/courtyard/onboard-decisions.gif) |
+
+<p align="center">
+  <img src="docs/media/station/onboard-crowd.gif" width="720" alt="Recorded G1 simulation in the representative station entrance">
+  <br><em>Station entrance — one of six procedural benchmark worlds.</em>
+</p>
+
+All five previews are recorded visualizations. They illustrate the scene and
+viewer outputs, not collision-free endurance or the performance of the latest
+controller. See the [media catalogue](docs/MEDIA.md) for provenance and the
+[visual runbook](docs/ONBOARD_VISUAL_DEMO.md) to launch your own session.
+The SVG diagrams below are architectural schematics.
 
 ## Quick start
 
@@ -35,6 +81,11 @@ The convenient daily entry point is `./geoff`:
 ./geoff results
 ```
 
+The experimental magnetic transport demo now has two full native passes in its
+zero-person fixture. It uses physically positioned arms and a locally trained
+payload policy. See [training, results and the single-command launcher](docs/PAYLOAD_POLICY_TRAINING.md)
+for the checkpoint and tested command; this is separate from crowd-navigation acceptance.
+
 The installer initializes pinned sources, applies the reviewed [source patches](patches/README.md),
 builds dependencies and generates pedestrian animation/world assets. The official
 Unitree policy is downloaded and checksum-verified. Fork access may require your
@@ -56,12 +107,8 @@ online SLAM, measured LiDAR, tracks, predictions, route candidates and the final
 command. Visual goals hand off within 0.5 m. Sessions log contacts and may restart
 after falls/data loss; they are **unscored**. Only run one simulator at a time.
 
-| Recorded eight-person crowd | Recorded RViz decisions |
-| --- | --- |
-| ![MuJoCo crowd recording](docs/media/onboard-crowd.gif) | ![RViz decision recording](docs/media/onboard-decisions.gif) |
-
-These previews are short recordings, not evidence of collision-free endurance.
-The SVG illustrations are schematics. [Visual runbook](docs/ONBOARD_VISUAL_DEMO.md).
+For a step-by-step explanation of both viewers, expected behavior, stopping a
+session and finding its logs, see the [demo guide](docs/DEMO_GUIDE.md).
 
 ## Results GUI and avoidance dataset
 
@@ -90,8 +137,6 @@ remain visible. See [worlds and dataset methodology](docs/AVOIDANCE_EXPERIMENTS.
 | `medium_doorway` / `clinic` | 12 × 10 m | Clinic partitions, glazing and a 2 m doorway |
 | `large_pillars` / `concourse` | 16 × 14 m | Station concourse, columns and platform signage |
 | `large_office` / `office` | 16 × 14 m | Office lobby, partitions and wooden seating |
-
-![Recorded residential courtyard preview](docs/media/courtyard/onboard-crowd.gif)
 
 The world IDs remain stable for dataset comparison. Representative-v2 scenes
 add original procedural surfaces, façades, furnishings and signage; simple-v1
@@ -141,8 +186,8 @@ world geometry constrains actor motion; it is not supplied as a navigation map.
 ![Command safety schematic](docs/media/command-safety.svg)
 ![Social navigation schematic](docs/media/social-navigation.svg)
 
-Forward/lateral command limits remain 0.65/0.45 m/s with 1.20 m/s² software
-acceleration in the onboard demo. These are simulation settings, not validated
+The documented investigation configuration uses forward/lateral command limits
+of 0.65/0.45 m/s with 2.40 m/s² software acceleration. These are simulation settings, not validated
 hardware limits. See [architecture](docs/ARCHITECTURE.md) and [source boundaries](docs/ONBOARD_SOCIAL_NAVIGATION.md).
 
 Route following prefers turning toward the route before walking forward. The
@@ -151,7 +196,40 @@ and avoidance escapes may still use lateral movement. See [script entry points](
 The official-policy demos use the same joint-action settings as the response
 tests; forward/lateral command slew and low-level command validation remain active.
 
-## Development and handoff
+## Evidence and research
+
+The investigation and payload reports describe local development snapshots.
+This documentation publication includes their recorded evidence; corresponding
+controller and transport implementation changes are still pending publication.
+Commands for those development features require the matching source snapshot.
+
+| Evidence track | Recorded scope | Read more |
+| --- | --- | --- |
+| Published representative-world cohort (`calibrated-actions-v12`) | 4/18 strict passes, 19/54 goals, 12 contacts | [Published demo evidence](docs/DEMO_RESULTS.md) |
+| Navigation investigation, consolidated v82 cohort | 14/18 strict passes, 49/54 goals, four contacts; navigation acceptance remains unmet | [Investigation and iteration ledger](docs/NAVIGATION_RELIABILITY_INVESTIGATION.md) |
+| Payload-policy fixture | Two consecutive complete zero-person transport runs; 2 complete passes among 11 recorded native candidate attempts with evolving integration code | [Training and transport evidence](docs/PAYLOAD_POLICY_TRAINING.md) |
+| Literature review | 50 verified bibliographic identities, critical synthesis, research gaps and evaluation proposals | [Review guide and PDF](docs/literature_review/README.md) |
+
+These records cover different configurations and evaluation conditions. The
+[results-review guide](docs/RESULTS_REVIEW.md) explains how to inspect provenance,
+failures and metrics before making comparisons. The research review distinguishes
+implemented capabilities from proposed contributions and documents the depth of
+reading for each source.
+
+## Repository map
+
+| Path | Contents |
+| --- | --- |
+| [`ros2_ws/src/`](ros2_ws/src/) | ROS 2 bridge, bringup, messages, manipulation and benchmark packages |
+| [`scripts/`](scripts/README.md) | Demo launchers, experiment tools, diagnostics and verification |
+| [`docs/`](docs/INDEX.md) | User guides, architecture, research and portable results |
+| [`patches/`](patches/README.md) | Reviewed modifications to pinned upstream sources |
+| [`docker/`](docker/) | Container runtime and dependency definitions |
+| [`integrations/`](integrations/) | Supporting integration assets |
+| [`vendor/`](vendor/) | External sources, including the optional MJLab training environment |
+| [`archive/`](archive/README.md) | Historical proposals and experiment notes |
+
+## Development and contributing
 
 ![Verification tiers schematic](docs/media/verification-tiers.svg)
 
