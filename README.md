@@ -2,16 +2,21 @@
   <img src="docs/media/title-banner.svg" width="100%" alt="Geoff-Sim — animated humanoid autonomy title banner with a LiDAR sweep and flowing data">
   <p><strong>Unitree G1 · MuJoCo · ROS 2 Humble · Onboard social navigation</strong></p>
   <a href="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml"><img src="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml/badge.svg" alt="Verification workflow status"></a>
-  <p>
-    <a href="#quick-start">Quick start</a> ·
-    <a href="docs/DEMO_GUIDE.md">Demo guide</a> ·
-    <a href="docs/INDEX.md">Documentation</a> ·
-    <a href="docs/REPOSITORY_GUIDE.md">Folder guide</a> ·
-    <a href="docs/PROJECT_STATUS.md">Project status</a> ·
-    <a href="docs/PROJECT_PLAN.md">Roadmap</a> ·
-    <a href="docs/RESULTS_REVIEW.md">Results review</a> ·
-    <a href="docs/literature_review/README.md">Literature review</a>
-  </p>
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="README.md"><img src="docs/media/navigation/home-current.svg" width="132" height="44" alt="Home (current page)"></a>
+  <a href="README.md#quick-start"><img src="docs/media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="docs/DEMO_GUIDE.md"><img src="docs/media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="docs/INDEX.md"><img src="docs/media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="docs/REPOSITORY_GUIDE.md"><img src="docs/media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
+  <br>
+  <a href="docs/PROJECT_STATUS.md"><img src="docs/media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
+  <a href="docs/PROJECT_PLAN.md"><img src="docs/media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="docs/RESULTS_REVIEW.md"><img src="docs/media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="docs/literature_review/README.md"><img src="docs/media/navigation/research.svg" width="132" height="44" alt="Research"></a>
+  <a href="docs/DEVELOPMENT.md"><img src="docs/media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
 </div>
 
 Geoff-Sim is a simulation research platform for locomotion, online mapping,

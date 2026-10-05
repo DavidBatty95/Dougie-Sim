@@ -1,6 +1,20 @@
 # Repository and folder guide
 
-[Project home](../README.md) · [Documentation](INDEX.md) · [Project status](PROJECT_STATUS.md) · [Forward plan](PROJECT_PLAN.md)
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="../README.md"><img src="media/navigation/home.svg" width="132" height="44" alt="Home"></a>
+  <a href="../README.md#quick-start"><img src="media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="DEMO_GUIDE.md"><img src="media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="INDEX.md"><img src="media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="REPOSITORY_GUIDE.md"><img src="media/navigation/folders-current.svg" width="132" height="44" alt="Folders (current page)"></a>
+  <br>
+  <a href="PROJECT_STATUS.md"><img src="media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
+  <a href="PROJECT_PLAN.md"><img src="media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="RESULTS_REVIEW.md"><img src="media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="literature_review/README.md"><img src="media/navigation/research.svg" width="132" height="44" alt="Research"></a>
+  <a href="DEVELOPMENT.md"><img src="media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
 
 Use this page to find the right command, source package or result without having
 to understand the entire stack first. Paths and commands below are relative to

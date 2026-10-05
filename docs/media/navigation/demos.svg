@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="44" viewBox="0 0 132 44" role="img" aria-labelledby="title desc">
+  <title id="title">Demos</title>
+  <desc id="desc">Geoff-Sim navigation: Demos. The surrounding link opens this section.</desc>
+  <defs>
+    <linearGradient id="surface" x2="1" y2="1"><stop stop-color="#172e43"/><stop offset="1" stop-color="#0b1727"/></linearGradient>
+  </defs>
+  <style>
+    .trace {animation:travel 8s linear infinite;stroke-dasharray:22 314}
+    .signal {animation:breathe 4s ease-in-out infinite}
+    @keyframes travel {to {stroke-dashoffset:-336}}
+    @keyframes breathe {0%,100% {opacity:.55} 50% {opacity:1}}
+    @media (prefers-reduced-motion:reduce) {.trace,.signal {animation:none}}
+  </style>
+  <rect x="1" y="3" width="130" height="38" rx="9" fill="url(#surface)" stroke="#38566f"/>
+  <rect class="trace" x="1" y="3" width="130" height="38" rx="9" pathLength="336" fill="none" stroke="#43d2ec" stroke-width="1.2" opacity=".75"/>
+  <path d="M5 3h14v18H5zM10 8l6 4-6 4z" transform="translate(12 12) scale(.78)" fill="none" stroke="#43d2ec" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="39" y="27" fill="#edf6ff" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="600">Demos</text>
+  <circle class="signal" cx="121" cy="11" r="2" fill="#43d2ec"/>
+</svg>

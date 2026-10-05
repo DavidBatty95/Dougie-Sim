@@ -1,6 +1,20 @@
 # Project status and progression
 
-[Project home](../README.md) · [Repository guide](REPOSITORY_GUIDE.md) · [Forward plan](PROJECT_PLAN.md) · [Results review](RESULTS_REVIEW.md)
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="../README.md"><img src="media/navigation/home.svg" width="132" height="44" alt="Home"></a>
+  <a href="../README.md#quick-start"><img src="media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="DEMO_GUIDE.md"><img src="media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="INDEX.md"><img src="media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="REPOSITORY_GUIDE.md"><img src="media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
+  <br>
+  <a href="PROJECT_STATUS.md"><img src="media/navigation/progress-current.svg" width="132" height="44" alt="Progress (current page)"></a>
+  <a href="PROJECT_PLAN.md"><img src="media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="RESULTS_REVIEW.md"><img src="media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="literature_review/README.md"><img src="media/navigation/research.svg" width="132" height="44" alt="Research"></a>
+  <a href="DEVELOPMENT.md"><img src="media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
 
 **Last reviewed: 5 October 2026.** This page summarizes the published development
 baseline [`3a7ceac`](https://github.com/DavidBatty95/Geoff-Sim/commit/3a7ceac).

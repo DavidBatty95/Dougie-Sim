@@ -1,6 +1,20 @@
 # Historical material
 
-[Project home](../README.md) · [Current status](../docs/PROJECT_STATUS.md) · [Forward plan](../docs/PROJECT_PLAN.md)
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="../README.md"><img src="../docs/media/navigation/home.svg" width="132" height="44" alt="Home"></a>
+  <a href="../README.md#quick-start"><img src="../docs/media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="../docs/DEMO_GUIDE.md"><img src="../docs/media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="../docs/INDEX.md"><img src="../docs/media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="../docs/REPOSITORY_GUIDE.md"><img src="../docs/media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
+  <br>
+  <a href="../docs/PROJECT_STATUS.md"><img src="../docs/media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
+  <a href="../docs/PROJECT_PLAN.md"><img src="../docs/media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="../docs/RESULTS_REVIEW.md"><img src="../docs/media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="../docs/literature_review/README.md"><img src="../docs/media/navigation/research.svg" width="132" height="44" alt="Research"></a>
+  <a href="../docs/DEVELOPMENT.md"><img src="../docs/media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
 
 This directory preserves earlier research drafts, design plans and development
 records without mixing them into the maintained `docs/` runbooks. Their claims,

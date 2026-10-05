@@ -8,19 +8,23 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def main():
-    failures = []
-    files = list(ROOT.glob('*.md')) + list((ROOT / 'docs').glob('*.md'))
-    files += list((ROOT / 'docs/literature_review').glob('*.md')) + list((ROOT / 'profile').glob('*.md'))
+def maintained_documents(root=ROOT):
+    files = list(root.glob('*.md')) + list((root / 'docs').glob('*.md'))
+    files += list((root / 'docs/literature_review').glob('*.md')) + list((root / 'profile').glob('*.md'))
     # Check the project-owned navigation surfaces, without treating historical
     # archive contents or upstream submodule documentation as maintained guides.
     for directory in ('scripts', 'patches', 'docker', 'tools', 'integrations',
                       'integrations/grove_g1', 'archive', 'docs/results', 'ros2_ws/src'):
-        files.extend((ROOT / directory).glob('README.md'))
+        files.extend((root / directory).glob('README.md'))
     external = {'unitree_mujoco', 'unitree_ros2', 'unitree_sdk2'}
-    files.extend(path for path in (ROOT / 'ros2_ws/src').glob('*/README.md')
+    files.extend(path for path in (root / 'ros2_ws/src').glob('*/README.md')
                  if path.parent.name not in external)
-    files = sorted(set(files))
+    return sorted(set(files))
+
+
+def main():
+    failures = []
+    files = maintained_documents()
     for path in files:
         text = path.read_text()
         links = re.findall(r'\]\(([^)]+)\)', text) + re.findall(r'(?:href|src)="([^"]+)"', text)
@@ -34,7 +38,7 @@ def main():
         if re.search(r'bitbucket\.org|vec-uol', text, re.I):
             failures.append(f'{path.relative_to(ROOT)}: work-account reference')
     for directory in (ROOT / 'docs/media', ROOT / 'profile/assets'):
-        for path in directory.glob('*.svg'):
+        for path in directory.rglob('*.svg'):
             try:
                 ET.parse(path)
             except ET.ParseError as error:

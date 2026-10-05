@@ -1,5 +1,21 @@
 # Demo media catalogue
 
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="../README.md"><img src="media/navigation/home.svg" width="132" height="44" alt="Home"></a>
+  <a href="../README.md#quick-start"><img src="media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="DEMO_GUIDE.md"><img src="media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="INDEX.md"><img src="media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="REPOSITORY_GUIDE.md"><img src="media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
+  <br>
+  <a href="PROJECT_STATUS.md"><img src="media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
+  <a href="PROJECT_PLAN.md"><img src="media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="RESULTS_REVIEW.md"><img src="media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="literature_review/README.md"><img src="media/navigation/research.svg" width="132" height="44" alt="Research"></a>
+  <a href="DEVELOPMENT.md"><img src="media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
+
 [README gallery](../README.md#recorded-demo-gallery) · [Demo walkthrough](DEMO_GUIDE.md)
 
 The README features all five project demo GIFs under `docs/media/`. These are
@@ -57,6 +73,39 @@ readable static content, descriptive SVG titles and reduced-motion support.
 Their source text lives in `BOARDS` in the graphics generator. Status graphics
 are dated snapshots: update their text alongside the status/plan pages rather
 than treating animation or a colored label as a live progress indicator.
+
+## Shared navigation buttons
+
+The README, maintained project guides and local package READMEs use the same
+two-row menu: **Home · Quick start · Demos · Docs · Folders**, followed by
+**Progress · Roadmap · Results · Research · Develop**. Labels, order, icons and
+132 × 44 px image dimensions are consistent. Exact destination pages use a mint
+border and an accessible current-page label; other links use cyan accents.
+
+Each button is a local SVG image inside a normal HTML link. This makes the whole
+image clickable in GitHub Markdown without JavaScript or embedded interactive
+SVG links. Standard browser link focus and keyboard activation still apply.
+Buttons wrap on narrow screens and remain readable with animation disabled.
+The small border trace and indicator pulse respect `prefers-reduced-motion`.
+
+Assets live in [`media/navigation/`](media/navigation/) and are generated from
+[`scripts/readme_navigation.py`](../scripts/readme_navigation.py). The companion
+GitHub profile is a separate site's landing page and retains its own navigation.
+Historical archive contents and upstream READMEs retain their original context;
+the archive index and local workspace guides use the shared menu.
+
+To update all buttons and links, edit the shared `LINKS` definitions and run:
+
+```bash
+python3 scripts/generate_readme_graphics.py
+python3 scripts/generate_readme_graphics.py --check
+python3 scripts/check_docs.py
+```
+
+The generator only replaces content between a page's paired `geoff-nav` HTML
+comments. Copy that block into a new maintained page and regenerate to calculate
+the correct relative paths. Page content outside the markers is preserved.
+The existing graphics check in CI also checks that menu blocks match their source.
 
 ## Updating the gallery
 

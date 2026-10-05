@@ -1,8 +1,20 @@
 # Literature review: humanoid social navigation
 
-[Documentation index](../INDEX.md) · [Project results review](../RESULTS_REVIEW.md)
-
-[Project progression](../PROJECT_STATUS.md) · [Forward experimental plan](../PROJECT_PLAN.md)
+<!-- geoff-nav:start -->
+<p align="center">
+  <a href="../../README.md"><img src="../media/navigation/home.svg" width="132" height="44" alt="Home"></a>
+  <a href="../../README.md#quick-start"><img src="../media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
+  <a href="../DEMO_GUIDE.md"><img src="../media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
+  <a href="../INDEX.md"><img src="../media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
+  <a href="../REPOSITORY_GUIDE.md"><img src="../media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
+  <br>
+  <a href="../PROJECT_STATUS.md"><img src="../media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
+  <a href="../PROJECT_PLAN.md"><img src="../media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
+  <a href="../RESULTS_REVIEW.md"><img src="../media/navigation/results.svg" width="132" height="44" alt="Results"></a>
+  <a href="README.md"><img src="../media/navigation/research-current.svg" width="132" height="44" alt="Research (current page)"></a>
+  <a href="../DEVELOPMENT.md"><img src="../media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
+</p>
+<!-- geoff-nav:end -->
 
 **Read the PDF:** [`literature_review.pdf`](literature_review.pdf)
 

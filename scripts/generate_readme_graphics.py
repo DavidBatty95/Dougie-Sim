@@ -5,6 +5,9 @@ from html import escape
 from pathlib import Path
 from textwrap import wrap
 
+from check_docs import maintained_documents
+from readme_navigation import graphics as navigation_graphics, update_navigation
+
 ROOT = Path(__file__).resolve().parents[1]
 PANELS = {
     "banner.svg": ("Geoff-Sim", "Sensor-only G1 navigation and an eight-person visual crowd", [
@@ -154,14 +157,27 @@ def main():
     args = parser.parse_args()
     graphics = {name: graphic(*content) for name, content in PANELS.items()}
     graphics.update({name: board(*content) for name, content in BOARDS.items()})
+    graphics = {str(Path('docs/media') / name): content for name, content in graphics.items()}
+    graphics.update(navigation_graphics())
     for name, expected in graphics.items():
-        path = ROOT/"docs/media"/name
+        path = ROOT/name
         if args.check:
             if not path.exists() or path.read_text() != expected:
                 raise SystemExit(f"Outdated graphic: {path}")
         else:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(expected)
-    print("README graphics are current")
+    navigation_count = 0
+    for path in maintained_documents(ROOT):
+        text = path.read_text()
+        expected = update_navigation(text, path, ROOT)
+        if '<!-- geoff-nav:start -->' in text:
+            navigation_count += 1
+        if text != expected:
+            if args.check:
+                raise SystemExit(f"Outdated navigation: {path}")
+            path.write_text(expected)
+    print(f"README graphics and navigation are current ({navigation_count} pages)")
 
 
 if __name__ == "__main__":
