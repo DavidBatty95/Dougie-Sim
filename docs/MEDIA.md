@@ -32,7 +32,8 @@ dataset and its configuration using the [results-review guide](RESULTS_REVIEW.md
 | Asset | Purpose |
 | --- | --- |
 | [Results dashboard](media/results-dashboard.png) | Screenshot of dataset filtering and recorded-trajectory replay |
-| [Banner](media/banner.svg) | Project identity and simulation theme |
+| [Animated title banner](media/title-banner.svg) | Original title-led design restored for the README, with animated humanoid, LiDAR sweep and data flow |
+| [Overview banner](media/banner.svg) | Generated three-panel summary of the onboard demonstration |
 | [Installation pipeline](media/install-pipeline.svg) | Setup stages and dependency flow |
 | [Architecture](media/architecture.svg) | High-level system organization |
 | [Command safety](media/command-safety.svg) | Command supervision concept |
@@ -44,6 +45,12 @@ dataset and its configuration using the [results-review guide](RESULTS_REVIEW.md
 
 The SVGs are schematics, not sensor output. The dashboard screenshot is a static
 example; launch `./geoff results` to inspect the checked-in datasets interactively.
+
+The title banner adapts the original design from commit
+[`3176006`](https://github.com/DavidBatty95/Geoff-Sim/commit/3176006).
+It is maintained directly in `title-banner.svg`, separately from the generated
+overview diagrams. Its CSS animation respects reduced-motion preferences; the
+decorative indicators describe project components rather than live system status.
 
 The folder, progression and roadmap graphics use a shared two-column layout with
 readable static content, descriptive SVG titles and reduced-motion support.

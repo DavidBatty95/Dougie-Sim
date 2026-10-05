@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/media/banner.svg" width="100%" alt="Geoff-Sim humanoid simulation">
+  <img src="docs/media/title-banner.svg" width="100%" alt="Geoff-Sim — animated humanoid autonomy title banner with a LiDAR sweep and flowing data">
   <p><strong>Unitree G1 · MuJoCo · ROS 2 Humble · Onboard social navigation</strong></p>
   <a href="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml"><img src="https://github.com/DavidBatty95/Geoff-Sim/actions/workflows/verification.yml/badge.svg" alt="Verification workflow status"></a>
   <p>
