@@ -16,6 +16,11 @@
 </p>
 <!-- geoff-nav:end -->
 
+For a picture-led index of useful links across both current and historical
+content, open the [resource library](../docs/resources/README.md). The
+[history collection](../docs/resources/HISTORY.md) links each earlier research
+note to its current counterpart.
+
 This directory preserves earlier research drafts, design plans and development
 records without mixing them into the maintained `docs/` runbooks. Their claims,
 checkpoint paths, links and proposed procedures reflect earlier working states;

@@ -74,6 +74,22 @@ Their source text lives in `BOARDS` in the graphics generator. Status graphics
 are dated snapshots: update their text alongside the status/plan pages rather
 than treating animation or a colored label as a live progress indicator.
 
+## Resource-library artwork
+
+The [resource library](resources/README.md) uses a linked cover illustration and
+eight original topic cards under [`media/resources/`](media/resources/). Each
+picture links to an annotated collection: demos, navigation, manipulation,
+experiments, research, upstream tools, development or history. Cards share the
+README palette, remain readable without animation, and respect reduced-motion
+preferences. Text links provide an alternative to image navigation.
+
+`scripts/resource_library.py` defines their labels, descriptions and icons and
+builds the complete research index from the existing verified bibliography.
+The shared graphics generator regenerates these outputs; its `--check` mode
+detects stale cards/catalogue content and missing or duplicated research keys.
+Existing GIFs and screenshots are reused only with links back to their runbooks
+or evidence guide. No third-party images are copied into the library.
+
 ## Shared navigation buttons
 
 The README, maintained project guides and local package READMEs use the same

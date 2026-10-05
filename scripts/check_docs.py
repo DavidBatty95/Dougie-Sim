@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def maintained_documents(root=ROOT):
     files = list(root.glob('*.md')) + list((root / 'docs').glob('*.md'))
     files += list((root / 'docs/literature_review').glob('*.md')) + list((root / 'profile').glob('*.md'))
+    files += list((root / 'docs/resources').glob('*.md'))
     # Check the project-owned navigation surfaces, without treating historical
     # archive contents or upstream submodule documentation as maintained guides.
     for directory in ('scripts', 'patches', 'docker', 'tools', 'integrations',

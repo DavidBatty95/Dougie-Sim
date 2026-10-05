@@ -49,6 +49,22 @@ navigation. [Read the status and progression](docs/PROJECT_STATUS.md) ·
 Start with the [demo walkthrough](docs/DEMO_GUIDE.md) for a guided tour, or the
 [documentation index](docs/INDEX.md) for implementation and research references.
 
+## Explore the resource library
+
+[![Open the Geoff-Sim resource library: guides, code, results, research, official tools and project history](docs/media/resources/library.svg)](docs/resources/README.md)
+
+Browse [eight topic collections](docs/resources/README.md#browse-by-topic) with
+clickable pictures and annotated links to demos, perception/navigation, locomotion
+and manipulation, experiments, research, upstream tools, development and history.
+The [paper archive](docs/resources/RESEARCH.md) groups all 50 bibliography entries
+by research topic; the [historical collection](docs/resources/HISTORY.md) connects
+earlier notes to their current guides.
+
+For external references, open the
+[online tutorials, repositories and libraries directory](docs/resources/SIMULATION.md):
+ROS 2 Humble learning paths, package APIs, Nav2, MoveIt, MuJoCo, Unitree, training,
+perception and diagnostic tools—all grouped on one page.
+
 ## Recorded demo gallery
 
 ### Pedestrian plaza: simulation and onboard decisions

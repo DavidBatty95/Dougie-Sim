@@ -20,6 +20,9 @@ Use this page to find the right command, source package or result without having
 to understand the entire stack first. Paths and commands below are relative to
 the repository root unless noted otherwise.
 
+For content grouped by subject rather than folder, use the
+[visual resource library](resources/README.md).
+
 ![Task-oriented map of the Geoff-Sim repository](media/repository-map.svg)
 
 ## Start with the task
@@ -57,6 +60,7 @@ Geoff-Sim/
 │   ├── PROJECT_PLAN.md         # Deliverables and promotion criteria
 │   ├── media/                  # GIFs, screenshots and generated SVGs
 │   ├── results/                # Portable published measurements
+│   ├── resources/              # Visual topic collections and complete paper index
 │   ├── literature_review/      # Review PDF, source and bibliography audit
 │   └── schemas/                # Machine-readable calibration contracts
 ├── scripts/                    # Builds, demos, experiments, training and checks

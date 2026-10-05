@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate lightweight, accessible README diagrams and project guide boards."""
+"""Generate README graphics, shared navigation and the research resource index."""
 import argparse
 from html import escape
 from pathlib import Path
@@ -7,6 +7,7 @@ from textwrap import wrap
 
 from check_docs import maintained_documents
 from readme_navigation import graphics as navigation_graphics, update_navigation
+from resource_library import graphics as resource_graphics, paper_catalogue
 
 ROOT = Path(__file__).resolve().parents[1]
 PANELS = {
@@ -159,11 +160,13 @@ def main():
     graphics.update({name: board(*content) for name, content in BOARDS.items()})
     graphics = {str(Path('docs/media') / name): content for name, content in graphics.items()}
     graphics.update(navigation_graphics())
+    graphics.update(resource_graphics())
+    graphics['docs/resources/RESEARCH.md'] = paper_catalogue(ROOT)
     for name, expected in graphics.items():
         path = ROOT/name
         if args.check:
             if not path.exists() or path.read_text() != expected:
-                raise SystemExit(f"Outdated graphic: {path}")
+                raise SystemExit(f"Outdated generated asset or catalogue: {path}")
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(expected)
@@ -177,7 +180,7 @@ def main():
             if args.check:
                 raise SystemExit(f"Outdated navigation: {path}")
             path.write_text(expected)
-    print(f"README graphics and navigation are current ({navigation_count} pages)")
+    print(f"README graphics, resource catalogue and navigation are current ({navigation_count} pages)")
 
 
 if __name__ == "__main__":

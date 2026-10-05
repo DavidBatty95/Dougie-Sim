@@ -18,6 +18,11 @@
 
 ## Pick a reading path
 
+[![Browse the visual resource library](media/resources/library.svg)](resources/README.md)
+
+The [resource library](resources/README.md) provides a topic-based way to explore
+guides, source code, results, research papers, upstream documentation and history.
+
 | Reader | Recommended path |
 | --- | --- |
 | First-time visitor | [Project status](PROJECT_STATUS.md) → [recorded gallery](../README.md#recorded-demo-gallery) → [demo walkthrough](DEMO_GUIDE.md) |

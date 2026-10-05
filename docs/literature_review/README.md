@@ -20,6 +20,9 @@
 
 **Edit the document:** [`literature_review.tex`](literature_review.tex)
 
+**Browse every reference by topic:** [50-paper archive](../resources/RESEARCH.md).
+For code, experiment and upstream links, open the [resource library](../resources/README.md).
+
 This review evaluates **50 verified research works**, with a search cutoff of
 **22 September 2026**, and positions the current Geoff-Sim implementation against
 classical avoidance, learned crowd navigation, perception/prediction, humanoid

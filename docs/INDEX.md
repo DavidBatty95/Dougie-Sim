@@ -20,10 +20,17 @@ Geoff-Sim combines Unitree G1 locomotion, MuJoCo simulation, ROS 2 onboard
 navigation and source-linked evaluation. Choose a reading path below, or browse
 the reference tables.
 
+**Browse visually:** the [resource library](resources/README.md) groups useful
+guides, code, evidence, upstream references and historical notes into eight
+collections. Start there for topic-based exploration, or use the catalogue below.
+
 ## Project orientation
 
 | Page | Purpose |
 | --- | --- |
+| [Visual resource library](resources/README.md) | Clickable topic cards and annotated links across project content |
+| [Complete paper archive](resources/RESEARCH.md) | All 50 reviewed source identities grouped into seven research themes |
+| [Online tutorials, repositories and libraries](resources/SIMULATION.md) | Central external directory: ROS 2, Nav2, MoveIt, simulation, learning, perception, diagnostics and development |
 | [Repository and folder guide](REPOSITORY_GUIDE.md) | Visual map, annotated tree, package ownership and where to make a change |
 | [Project status and progression](PROJECT_STATUS.md) | Dated published baseline, milestone timeline, latest evidence and blockers |
 | [Detailed project plan](PROJECT_PLAN.md) | Work packages, dependencies, exit criteria and update process |
