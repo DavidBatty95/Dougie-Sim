@@ -18,6 +18,7 @@ setup(
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
+            "pedestrian_start_bridge = unitree_g1_mujoco_bridge.pedestrian_start_bridge:main",
             "mujoco_goal_visualizer = unitree_g1_mujoco_bridge.mujoco_goal_visualizer:main",
             "dynamic_route_monitor = unitree_g1_mujoco_bridge.dynamic_route_monitor:main",
             "onboard_lidar_odometry = unitree_g1_mujoco_bridge.onboard_lidar_odometry:main",

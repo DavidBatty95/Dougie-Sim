@@ -87,6 +87,7 @@ class UnitreeRLLabG1PolicyAdapter:
         gyroscope: Sequence[float],
         quaternion_wxyz: Sequence[float],
         last_action: Sequence[float],
+        external_arms: bool = False,
     ) -> np.ndarray:
         if len(command) != 3 or len(gyroscope) != 3 or len(quaternion_wxyz) != 4:
             raise ValueError("Expected 3D command/gyro and a wxyz quaternion")
@@ -100,6 +101,13 @@ class UnitreeRLLabG1PolicyAdapter:
 
         policy_pos = self.sdk_to_policy(sdk_joint_pos)
         policy_vel = self.sdk_to_policy(sdk_joint_vel)
+        previous_action = list(last_action)
+        if external_arms:
+            for index,sdk_index in enumerate(UNITREE_RL_LAB_G1_JOINT_IDS_MAP):
+                if sdk_index >= 15:
+                    policy_pos[index] = UNITREE_RL_LAB_G1_DEFAULT_POS[index]
+                    policy_vel[index] = 0.
+                    previous_action[index] = 0.
         terms = {
             "base_ang_vel": [0.2 * float(value) for value in gyroscope],
             "projected_gravity": _quat_rotate(
@@ -111,7 +119,7 @@ class UnitreeRLLabG1PolicyAdapter:
                 for value, default in zip(policy_pos, UNITREE_RL_LAB_G1_DEFAULT_POS)
             ],
             "joint_vel_rel": [0.05 * value for value in policy_vel],
-            "last_action": [float(value) for value in last_action],
+            "last_action": [float(value) for value in previous_action],
         }
 
         for name in self._TERM_NAMES:

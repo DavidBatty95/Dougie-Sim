@@ -45,7 +45,8 @@ def _nodes(description):
 def _parameters(node):
     return {
         "".join(part.text for part in key): value
-        for key, value in node._Node__parameters[0].items()
+        for block in node._Node__parameters if isinstance(block, dict)
+        for key, value in block.items()
     }
 
 

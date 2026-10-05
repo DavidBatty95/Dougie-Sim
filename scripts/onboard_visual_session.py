@@ -12,13 +12,16 @@ import time
 
 from demo_suite import DEFAULT_RESULTS, REPO_ROOT, case_catalog, preflight, resolve_seed, stream_process, write_json
 from avoidance_worlds import WORLDS, generate
+from transport_worlds import TRANSPORT_WORLDS, INITIAL_KEYFRAME, generate as generate_transport_worlds
 
 
 def in_world(case, world):
     if world == 'plaza':
         return case
     command = list(case.command)
-    scene = f'scene_29dof_avoidance_{world}.xml'
+    scene = f'scene_29dof_transport_{world}.xml' if world in TRANSPORT_WORLDS else f'scene_29dof_avoidance_{world}.xml'
+    if world in TRANSPORT_WORLDS:
+        command = [f'mujoco_initial_keyframe:={INITIAL_KEYFRAME}' if value.startswith('mujoco_initial_keyframe:=') else value for value in command]
     command[command.index('--scene')+1] = scene
     command[command.index('--environment-name')+1] = world
     return replace(case, command=tuple(command), required_scene=scene)
@@ -39,11 +42,11 @@ def main():
     parser.add_argument("--headless", action="store_true", help="disable RViz")
     parser.add_argument("--fast-start", action="store_true", help="reuse existing ROS and simulator builds")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--world", choices=['plaza', *WORLDS], default='plaza')
+    parser.add_argument("--world", choices=['plaza', *WORLDS, *TRANSPORT_WORLDS], default='plaza')
     parser.add_argument("--result-root", type=Path, default=DEFAULT_RESULTS)
     args = parser.parse_args()
     if args.people is None:
-        args.people = 2 if args.world.startswith('small_') else 4 if args.world.startswith('medium_') else 8
+        args.people = 4 if args.world in TRANSPORT_WORLDS else 2 if args.world.startswith('small_') else 4 if args.world.startswith('medium_') else 8
     if not math.isfinite(args.duration) or args.duration <= 0:
         parser.error("--duration must be finite and positive")
     if args.goals is not None and args.goals < 1:
@@ -53,7 +56,9 @@ def main():
         parser.error("--result-root must be inside the repository")
     root /= "visual_session_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     base_seed = resolve_seed(args.seed)
-    if args.world != 'plaza':
+    if args.world in TRANSPORT_WORLDS:
+        generate_transport_worlds()
+    elif args.world != 'plaza':
         generate()
     first = case_catalog(root / "episode_001", base_seed, args.headless, args.fast_start,
                          visual_duration_s=args.duration, visual_goals=args.goals, onboard_people=args.people)["onboard-visual"]

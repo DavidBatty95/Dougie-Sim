@@ -9,8 +9,17 @@ NAVIGATION_NODES = {
 FORBIDDEN_TOPICS = {
     "/mujoco/pedestrians", "/simulation/static_map", "/evaluation/odom",
     "/livox/lidar_world", "/rt/sportmodestate", "/benchmark/people_states",
+    "/evaluation/objects",
+    "/evaluation/aligned_state",
+    "/benchmark/metrics",
 }
-OPTIONAL_NAVIGATION_NODES = {"dynamic_route_monitor", "mujoco_goal_visualizer"}
+OPTIONAL_NAVIGATION_NODES = {"dynamic_route_monitor", "mujoco_goal_visualizer", "pedestrian_start_bridge",
+                              "g1_transport_server", "g1_manipulation_server", "g1_base_approach",
+                              "g1_transport_demo", "transport_perception", "g1_frontier_explorer"}
+REQUIRED_FEEDBACK = {
+    "human_aware_motion_planner": {"/odom", "/g1/policy_cmd_vel"},
+    "human_collision_avoidance": {"/odom", "/g1/policy_cmd_vel"},
+}
 
 
 def audit_onboard_graph(node):
@@ -21,6 +30,8 @@ def audit_onboard_graph(node):
             continue
         present.add(name)
         topics = {topic for topic, _ in node.get_subscriber_names_and_types_by_node(name, namespace)}
+        for topic in sorted(REQUIRED_FEEDBACK.get(name,set()) - topics):
+            errors.append(f"{namespace}/{name} missing required feedback {topic}")
         for topic in sorted(topics & FORBIDDEN_TOPICS):
             errors.append(f"{namespace}/{name} consumes privileged {topic}")
     missing = NAVIGATION_NODES - present
@@ -34,4 +45,6 @@ def audit_onboard_graph(node):
         errors.append("unexpected /map owners: " + ",".join(sorted(map_publishers)))
     if node.get_publishers_info_by_topic("/simulation/static_map"):
         errors.append("scene-derived map publisher present")
+    if any(endpoint.node_name == "g1_sim_manipulation_io" for endpoint in node.get_publishers_info_by_topic("/objects")):
+        errors.append("simulator object truth exposed as onboard /objects perception")
     return errors

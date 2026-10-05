@@ -7,7 +7,7 @@ from collections import deque
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped,Vector3Stamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
@@ -16,7 +16,7 @@ from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
 from unitree_hg.msg import LowState
 
-from .lidar_odometry import ScanOdometry, rotation
+from .lidar_odometry import ScanOdometry, registration_points, rotation
 
 
 def axis_rotation(axis, angle):
@@ -52,6 +52,7 @@ class OnboardLidarOdometry(Node):
         self.previous_xy = np.zeros(2)
         self.velocity = np.zeros(2)
         self.odom_pub = self.create_publisher(Odometry, "/odom", 1)
+        self.attitude_pub = self.create_publisher(Vector3Stamped, "/onboard/measured_rpy", qos)
         self.cloud_pub = self.create_publisher(PointCloud2, "/onboard/lidar", qos)
         self.level_pub = self.create_publisher(PointCloud2, "/onboard/lidar_level", qos)
         self.status_pub = self.create_publisher(String, "/onboard/localization_status", 1)
@@ -77,6 +78,11 @@ class OnboardLidarOdometry(Node):
         joints = min(self.joints, key=lambda item: abs(item[0] - stamp))
         if abs(imu[0] - stamp) > 0.15 or abs(joints[0] - stamp) > 0.15:
             return
+        attitude_msg = Vector3Stamped()
+        attitude_msg.header.stamp = rclpy.time.Time(seconds=imu[0]).to_msg()
+        attitude_msg.header.frame_id = 'pelvis'
+        attitude_msg.vector.x,attitude_msg.vector.y,attitude_msg.vector.z = map(float,imu[1])
+        self.attitude_pub.publish(attitude_msg)
         if max(abs(imu[1][0]), abs(imu[1][1])) > 0.65:
             return
         # The transport contract is packed local xyz/intensity float32.
@@ -91,12 +97,13 @@ class OnboardLidarOdometry(Node):
             ground = float(np.median(floor_candidates))
             if np.quantile(np.abs(floor_candidates - ground), 0.7) < 0.04:
                 data[:, 2] -= ground
-        usable = ((data[:, 2] > 0.25) & (data[:, 2] < 1.8) & (radius > 1.0) & (radius < 18.0))
-        accepted = self.estimator.update(data[usable, :2], imu[1][2])
+        registration,band = registration_points(data[:,:3])
+        accepted = self.estimator.update(registration, imu[1][2])
         status = String()
         status.data = json.dumps({**self.estimator.quality, "source": "lidar_imu_joint_encoders",
                                   "source_stamp": stamp, "input_age_s": self.get_clock().now().nanoseconds * 1e-9 - stamp,
-                                  "cloud_points": len(data), "floor_points": len(floor_candidates),
+                                   "cloud_points": len(data), "floor_points": len(floor_candidates),
+                                   "registration_band": band,
                                   "processing_ms": (time.monotonic() - start) * 1000})
         self.status_pub.publish(status)
         self.get_logger().info(f"Registration {status.data}", throttle_duration_sec=3.0)

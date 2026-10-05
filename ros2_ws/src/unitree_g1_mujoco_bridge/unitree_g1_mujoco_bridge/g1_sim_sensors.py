@@ -23,6 +23,7 @@ from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformL
 from unitree_go.msg import SportModeState
 
 from .sensor_packets import decode_camera_packet, decode_lidar_packet, decode_pedestrian_packet
+from .evaluation_alignment import EvaluationAlignment
 
 
 def world_to_body_velocity(rotation: tuple, velocity: tuple) -> tuple[float, float, float]:
@@ -237,12 +238,14 @@ class G1SimSensors(Node):
             durability=QoSDurabilityPolicy.VOLATILE,
         )
 
-        self.color_pub = self.create_publisher(Image, "/camera/camera/color/image_raw", sensor_qos)
+        # Registered pairs span several UDP fragments; reliable keep-last-one
+        # avoids losing whole RGB-D pairs to local burst-buffer overflow.
+        self.color_pub = self.create_publisher(Image, "/camera/camera/color/image_raw", info_qos)
         self.color_info_pub = self.create_publisher(CameraInfo, "/camera/camera/color/camera_info", info_qos)
         self.depth_pub = self.create_publisher(Image, "/camera/camera/depth/image_rect_raw", sensor_qos)
         self.depth_info_pub = self.create_publisher(CameraInfo, "/camera/camera/depth/camera_info", info_qos)
         self.aligned_depth_pub = self.create_publisher(
-            Image, "/camera/camera/aligned_depth_to_color/image_raw", sensor_qos
+            Image, "/camera/camera/aligned_depth_to_color/image_raw", info_qos
         )
         self.aligned_depth_info_pub = self.create_publisher(
             CameraInfo, "/camera/camera/aligned_depth_to_color/camera_info", info_qos
@@ -256,6 +259,8 @@ class G1SimSensors(Node):
         self.livox_imu_pub = self.create_publisher(Imu, "/livox/imu", sensor_qos)
         self.livox_head_height_pub = self.create_publisher(Float32, "/livox/ground_to_head_top", sensor_qos)
         self.odom_pub = self.create_publisher(Odometry, "/evaluation/odom" if self.onboard_only else "/odom", 10)
+        self.evaluation_alignment = EvaluationAlignment()
+        self.aligned_evaluation_pub = self.create_publisher(String,"/evaluation/aligned_state",10)
         self.base_height_pub = self.create_publisher(Float32, "/g1/base_height", 10)
         self.mujoco_pedestrians_pub = self.create_publisher(String, "/mujoco/pedestrians", 10)
         self.sensor_status_pub = self.create_publisher(String, "/g1/sim_sensor_status", 10)
@@ -399,6 +404,14 @@ class G1SimSensors(Node):
             "people": people,
         })
         self.mujoco_pedestrians_pub.publish(msg)
+        if self.onboard_only:
+            self._publish_aligned_evaluation(self.evaluation_alignment.add_people(decoded.simulation_time,population_count,people))
+
+    def _publish_aligned_evaluation(self,states):
+        for state in states:
+            message = String()
+            message.data = json.dumps(state,separators=(',',':'))
+            self.aligned_evaluation_pub.publish(message)
 
     def _mujoco_state_callback(self, msg: SportModeState) -> None:
         self.mujoco_pose_count += 1
@@ -984,6 +997,13 @@ class G1SimSensors(Node):
                 q = decoded.root_quaternion_wxyz
                 truth.pose.pose.orientation.w, truth.pose.pose.orientation.x, truth.pose.pose.orientation.y, truth.pose.pose.orientation.z = q
                 self.odom_pub.publish(truth)
+                if decoded.root_world_velocity is not None and hasattr(self,'evaluation_alignment'):
+                    self._publish_aligned_evaluation(self.evaluation_alignment.add_root(dict(
+                        frame_id='world',sim_time=decoded.simulation_time,
+                        stamp=acquisition_stamp.sec+acquisition_stamp.nanosec*1e-9,
+                        robot=dict(x=decoded.root_origin[0],y=decoded.root_origin[1],
+                                   vx=decoded.root_world_velocity[0],vy=decoded.root_world_velocity[1]),
+                        role='evaluation_diagnostic_only')))
             self.odom_source = "external_onboard_estimator"
             return payload
         self.last_mujoco_pose = (origin, rotation)

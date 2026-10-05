@@ -26,6 +26,7 @@ CMD_ACCEL_Y="0.16"
 CMD_ACCEL_YAW="0.35"
 RUN_RVIZ="1"
 VALIDATE_RESULT="0"
+EXTRA_MEASURE_ARGS=()
 RESULT_DIR="${REPO_ROOT}/ros2_ws/src/dynamic_obstacle_benchmarks/results/fixed_command"
 
 while [ "$#" -gt 0 ]; do
@@ -50,9 +51,11 @@ while [ "$#" -gt 0 ]; do
     --rviz) RUN_RVIZ="1"; shift ;;
     --no-rviz) RUN_RVIZ="0"; shift ;;
     --validate) VALIDATE_RESULT="1"; shift ;;
+    --mixed-diagnostic) EXTRA_MEASURE_ARGS+=("--mixed-diagnostic"); shift ;;
     --result-dir) RESULT_DIR="$2"; shift 2 ;;
     -h|--help)
       printf 'Usage: %s [--scene FILE] [--policy FILE] [--policy-profile NAME] [--initial-keyframe NAME] [--linear-x MPS] [--linear-y MPS] [--angular-z RADPS] [--duration SEC] [--stop-duration SEC] [--startup-seconds SEC] [--skip-build] [--max-linear-x MPS] [--max-linear-y MPS] [--max-angular-z RADPS] [--cmd-accel-x MPS2] [--cmd-accel-y MPS2] [--cmd-accel-yaw RADPS2] [--no-rviz] [--validate]\n' "$0"
+      printf '  --mixed-diagnostic allows combined commands for diagnostics only; incompatible with --validate.\n'
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
@@ -60,6 +63,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ "${COMMAND_SET}" = "0" ]; then LINEAR_X="0.35"; fi
+if [ "${VALIDATE_RESULT}" = "1" ] && [ "${#EXTRA_MEASURE_ARGS[@]}" -gt 0 ]; then
+  printf 'Mixed-command diagnostics cannot be used as single-axis acceptance trials.\n' >&2
+  exit 2
+fi
 if [[ "${POLICY_PATH}" != /* ]]; then POLICY_PATH="$(realpath -e "${POLICY_PATH}")"; fi
 RESULT_DIR="$(realpath -m "${RESULT_DIR}")"
 
@@ -127,7 +134,7 @@ COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" setsid "${SCRIPT_DIR}/bringup_fu
   policy_action_rate_limit:=0.0 \
   cmd_vel_topic:=/cmd_vel \
   cmd_vel_deadband:=0.03 \
-  allow_reverse_cmd_vel:=false \
+  allow_reverse_cmd_vel:=true \
   max_lin_vel_x:="${MAX_LINEAR_X}" \
   max_lin_vel_y:="${MAX_LINEAR_Y}" \
   max_ang_vel_z:="${MAX_ANGULAR_Z}" \
@@ -173,6 +180,7 @@ docker compose run --rm \
   unitree-g1-sim bash -lc \
   'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; exec python3 /workspace/scripts/measure_g1_fixed_command.py "$@"' \
   bash \
+  "${EXTRA_MEASURE_ARGS[@]}" \
   --linear-x "${LINEAR_X}" \
   --linear-y "${LINEAR_Y}" \
   --angular-z "${ANGULAR_Z}" \

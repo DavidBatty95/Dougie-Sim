@@ -44,6 +44,7 @@ class HumanAwareRunLogger(Node):
         self.create_subscription(Twist, str(self.get_parameter("safe_cmd_topic").value), lambda msg: self._twist_callback("safe_cmd", msg), 10)
         self.create_subscription(Odometry, str(self.get_parameter("odom_topic").value), self._odom_callback, 10)
         self.create_subscription(Odometry, "/evaluation/odom", lambda msg: self._odom_callback(msg, "evaluation_odom"), 10)
+        self.create_subscription(String,"/evaluation/aligned_state",lambda msg:self._string_callback('evaluation_aligned',msg),10)
         self.create_subscription(String, "/onboard/localization_status", lambda msg: self._string_callback("localization_status", msg), 10)
         self.create_subscription(String, "/navigation/replanning_status", lambda msg: self._string_callback("replanning_status", msg), 10)
 

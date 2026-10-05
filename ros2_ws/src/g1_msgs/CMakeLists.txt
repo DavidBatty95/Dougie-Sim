@@ -7,6 +7,7 @@ find_package(builtin_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/GraspObject.srv"
   "action/ApproachObject.action"
   "action/Pick.action"
   "action/Place.action"

@@ -1,7 +1,7 @@
 # Navigation reliability investigation — 24 September 2026
 
-This is a dated development report. Its implementation changes are pending
-publication alongside the corresponding source snapshot. For subsequent transport
+This is a dated development report. The repository includes the subsequent
+implementation and reviewed source patches. For subsequent transport
 results, see [payload training](PAYLOAD_POLICY_TRAINING.md); the transport-gate
 statement at the end records the state on this report's date.
 

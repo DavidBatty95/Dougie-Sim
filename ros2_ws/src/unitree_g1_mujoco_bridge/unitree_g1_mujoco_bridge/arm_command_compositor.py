@@ -333,7 +333,7 @@ try:
     from rclpy.callback_groups import ReentrantCallbackGroup
     from rclpy.node import Node
     from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
-    from std_msgs.msg import Float64MultiArray
+    from std_msgs.msg import Float64MultiArray,Bool
     from std_srvs.srv import SetBool
     from unitree_hg.msg import LowState
 
@@ -386,6 +386,8 @@ try:
                 callback_group=ReentrantCallbackGroup(),
             )
             self.create_timer(1.0 / rate, self._publish)
+            self._authority_pub = self.create_publisher(Bool,'/g1/arm_authority',1)
+            self.create_timer(.05,lambda:self._authority_pub.publish(Bool(data=self.core.authority)))
 
         def _now(self) -> float:
             return self.get_clock().now().nanoseconds * 1.0e-9

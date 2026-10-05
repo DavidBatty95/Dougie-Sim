@@ -6,8 +6,9 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float64MultiArray
-from unitree_hg.msg import HandCmd, LowCmd, LowState
+from std_msgs.msg import Float64MultiArray,Bool
+from unitree_hg.msg import LowCmd, LowState
+from unitree_go.msg import MotorCmds, MotorCmd as BraincoMotorCmd, MotorStates
 
 from .g1_constants import (
     BRAINCO_HAND_JOINTS,
@@ -50,6 +51,7 @@ class G1MujocoBridge(Node):
         self.declare_parameter("body_kp", 60.0)
         self.declare_parameter("body_kd", 2.5)
         self.declare_parameter("arm_kp_override", 0.0)
+        self.declare_parameter('arm_gains_require_authority',False)
         self.declare_parameter("arm_kd_override", 0.0)
         self.declare_parameter("base_height_offset", 0.182)
         self.declare_parameter("use_mjlab_body_gains", True)
@@ -121,9 +123,13 @@ class G1MujocoBridge(Node):
             raise ValueError("arm gain overrides must be finite and non-negative")
         if (arm_kp == 0.0) != (arm_kd == 0.0):
             raise ValueError("arm_kp_override and arm_kd_override must be enabled together")
-        if arm_kp > 0.0:
+        self.nominal_arm_kp = self.body_kp_by_joint[15:].copy()
+        self.nominal_arm_kd = self.body_kd_by_joint[15:].copy()
+        self.arm_override = (arm_kp,arm_kd)
+        if arm_kp > 0.0 and not self.get_parameter('arm_gains_require_authority').value:
             self.body_kp_by_joint[15:] = [arm_kp] * 14
             self.body_kd_by_joint[15:] = [arm_kd] * 14
+        self.create_subscription(Bool,'/g1/arm_authority',self._arm_authority,1)
         if self.lock_waist:
             for index in self.waist_joint_indexes:
                 self.body_kp_by_joint[index] = self.waist_lock_kp
@@ -147,11 +153,14 @@ class G1MujocoBridge(Node):
         self.lowcmd_pub = self.create_publisher(LowCmd, "/lowcmd", LATEST_RELIABLE_QOS)
         self.lowcmd_rt_pub = self.create_publisher(LowCmd, "rt/lowcmd", LATEST_RELIABLE_QOS)
         self.left_hand_pub = self.create_publisher(
-            HandCmd, "/dex3/left/cmd", LATEST_RELIABLE_QOS
+            MotorCmds, "/brainco/left/cmd", LATEST_RELIABLE_QOS
         )
         self.right_hand_pub = self.create_publisher(
-            HandCmd, "/dex3/right/cmd", LATEST_RELIABLE_QOS
+            MotorCmds, "/brainco/right/cmd", LATEST_RELIABLE_QOS
         )
+        for side in ('left','right'):
+            self.create_subscription(MotorStates,f'/brainco/{side}/state',
+                lambda msg,side=side:self._hand_state_callback(msg,side),LATEST_RELIABLE_QOS)
 
         self.create_subscription(
             LowState, "/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
@@ -215,6 +224,13 @@ class G1MujocoBridge(Node):
         self.imu_rpy = imu_rpy
         self.imu_gyro = imu_gyro
         self._update_fallen_state()
+
+    def _arm_authority(self,msg):
+        if not self.get_parameter('arm_gains_require_authority').value:
+            return
+        kp,kd = self.arm_override
+        self.body_kp_by_joint[15:] = [kp]*14 if msg.data and kp > 0 else self.nominal_arm_kp
+        self.body_kd_by_joint[15:] = [kd]*14 if msg.data and kp > 0 else self.nominal_arm_kd
 
     def _publish_joint_states(self) -> None:
         joint_state = JointState()
@@ -404,43 +420,32 @@ class G1MujocoBridge(Node):
         lower = BRAINCO_LEFT_MIN if side == "left" else BRAINCO_RIGHT_MIN
         upper = BRAINCO_LEFT_MAX if side == "left" else BRAINCO_RIGHT_MAX
         targets = _bounded(msg.data, lower, upper)
-        if side == "left":
-            self.left_hand_position = self._brainco_tf_positions(targets, "left")
-        else:
-            self.right_hand_position = self._brainco_tf_positions(targets, "right")
-
-        cmd = HandCmd()
-        cmd.motor_cmd = []
-        for index, target in enumerate(targets):
-            motor = cmd.motor_cmd.add() if hasattr(cmd.motor_cmd, "add") else None
-            if motor is None:
-                from unitree_hg.msg import MotorCmd
-
-                motor = MotorCmd()
-                cmd.motor_cmd.append(motor)
-            motor.mode = (index & 0x0F) | (0x01 << 4)
+        cmd = MotorCmds()
+        for target in targets:
+            motor = BraincoMotorCmd()
             motor.q = target
-            motor.dq = 0.0
-            motor.tau = 0.0
-            motor.kp = self.hand_kp
-            motor.kd = self.hand_kd
+            motor.dq = 1.0  # Manufacturer's recommended normalized speed.
+            cmd.cmds.append(motor)
 
         if side == "left":
             self.left_hand_pub.publish(cmd)
         else:
             self.right_hand_pub.publish(cmd)
 
+    def _hand_state_callback(self,msg,side):
+        if len(msg.states) != 6 or not all(math.isfinite(m.q) and 0. <= m.q <= 1. for m in msg.states):
+            return
+        positions = self._brainco_tf_positions([float(m.q) for m in msg.states],side)
+        if side == 'left':
+            self.left_hand_position = positions
+        else:
+            self.right_hand_position = positions
+
     @staticmethod
     def _brainco_tf_positions(targets: List[float], side: str) -> List[float]:
-        thumb_meta = targets[0]
-        thumb_prox = targets[1]
-        index = targets[3]
-        middle = targets[4]
-        ring = targets[5]
-        pinky = targets[6]
-
-        if side == "right":
-            thumb_meta = -thumb_meta
+        thumb_prox = targets[0] * 1.0472
+        thumb_meta = targets[1] * 1.5184
+        index,middle,ring,pinky = [value * 1.4661 for value in targets[2:]]
 
         return [
             thumb_meta,
@@ -449,16 +454,16 @@ class G1MujocoBridge(Node):
             0.0,
             index,
             1.155 * index,
-            1.0,
+            0.0,
             middle,
             1.155 * middle,
-            1.0,
+            0.0,
             ring,
             1.155 * ring,
-            1.0,
+            0.0,
             pinky,
             1.155 * pinky,
-            1.0,
+            0.0,
         ]
 
 

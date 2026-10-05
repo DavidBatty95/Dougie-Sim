@@ -53,6 +53,7 @@ class Cluster:
     measured_vx: float | None = None
     measured_vy: float | None = None
     partial_observation: bool = False
+    z_max: float | None = None
 
 
 @dataclass
@@ -97,6 +98,7 @@ class Track:
     observation_age: float = 0.0
     ax: float = 0.0
     ay: float = 0.0
+    last_full_stamp: float | None = None
 
 
 @dataclass
@@ -282,6 +284,8 @@ class DynamicObstacleTracker(Node):
         self.declare_parameter("min_person_height", 0.35)
         self.declare_parameter("max_person_height", 2.15)
         self.declare_parameter("min_person_centroid_height", 0.35)
+        self.declare_parameter("min_person_top_height", 0.0)
+        self.declare_parameter("use_torso_centroid", False)
         self.declare_parameter("max_person_centroid_height", 1.65)
         self.declare_parameter("person_fragment_merge_distance", 0.72)
         self.declare_parameter("max_cluster_radius", 1.2)
@@ -292,11 +296,15 @@ class DynamicObstacleTracker(Node):
         self.declare_parameter("max_person_speed", 2.2)
         self.declare_parameter("max_person_acceleration", 2.8)
         self.declare_parameter("tracking_process_noise", 0.35)
+        self.declare_parameter("near_accumulation_radius", 0.0)
+        self.declare_parameter("near_accumulation_time", 0.05)
         self.declare_parameter("measurement_noise_variance", 0.02)
         self.declare_parameter("tracked_body_radius_floor", 0.0)
         self.tracked_body_radius_floor = float(self.get_parameter("tracked_body_radius_floor").value)
         self.declare_parameter("use_track_conditioned_crops", False)
+        self.declare_parameter("partial_observation_timeout", 2.5)
         self.use_track_conditioned_crops = bool(self.get_parameter("use_track_conditioned_crops").value)
+        self.partial_observation_timeout = max(.1,float(self.get_parameter("partial_observation_timeout").value))
         self.declare_parameter("max_confirmed_measurement_jump", 0.85)
         self.declare_parameter("min_track_age", 3)
         self.declare_parameter("min_dynamic_observations", 2)
@@ -421,6 +429,8 @@ class DynamicObstacleTracker(Node):
         self.min_person_height = float(self.get_parameter("min_person_height").value)
         self.max_person_height = float(self.get_parameter("max_person_height").value)
         self.min_person_centroid_height = float(self.get_parameter("min_person_centroid_height").value)
+        self.min_person_top_height = float(self.get_parameter("min_person_top_height").value)
+        self.use_torso_centroid = bool(self.get_parameter("use_torso_centroid").value)
         self.max_person_centroid_height = float(self.get_parameter("max_person_centroid_height").value)
         self.person_fragment_merge_distance = float(self.get_parameter("person_fragment_merge_distance").value)
         self.max_cluster_radius = float(self.get_parameter("max_cluster_radius").value)
@@ -431,6 +441,8 @@ class DynamicObstacleTracker(Node):
         self.max_person_speed = float(self.get_parameter("max_person_speed").value)
         self.max_person_acceleration = float(self.get_parameter("max_person_acceleration").value)
         self.tracking_process_noise = max(.01, float(self.get_parameter("tracking_process_noise").value))
+        self.near_accumulation_radius = max(0., float(self.get_parameter("near_accumulation_radius").value))
+        self.near_accumulation_time = max(0., float(self.get_parameter("near_accumulation_time").value))
         self.measurement_noise_variance = max(.0001, float(self.get_parameter("measurement_noise_variance").value))
         self.max_human_speed = float(self.get_parameter("max_human_speed").value)
         self.max_human_accel = float(self.get_parameter("max_human_accel").value)
@@ -826,8 +838,13 @@ class DynamicObstacleTracker(Node):
             accumulated_count -= len(removed_points)
 
         accumulated_points = []
-        for _, entry_points in self.recent_points:
+        robot_xy = self._lookup_robot_xy(rclpy.time.Time(nanoseconds=max(0,int(stamp*1e9))))
+        for entry_stamp, entry_points in self.recent_points:
             for x, y, z in entry_points:
+                if (self.near_accumulation_radius > 0 and robot_xy is not None and
+                        stamp-entry_stamp > self.near_accumulation_time and
+                        math.hypot(x-robot_xy[0],y-robot_xy[1]) < self.near_accumulation_radius):
+                    continue  # Old near-person returns otherwise add unlabelled motion lag.
                 accumulated_points.append((x, y, z))
         accumulated_points = self._voxel_downsample(accumulated_points)
         if self.enable_point_noise_filter:
@@ -1197,6 +1214,11 @@ class DynamicObstacleTracker(Node):
             "missed_count": track.missed,
             "association_distance": round(track.last_association_distance, 3) if math.isfinite(track.last_association_distance) else None,
             "speed": round(track.speed, 3),
+            "body_radius": round(max(getattr(self, "tracked_body_radius_floor", 0.), track.radius), 3),
+            "width": round(track.width, 3),
+            "height": round(track.height, 3),
+            "last_full_observation_stamp": track.last_full_stamp,
+            "depth": round(track.depth, 3),
             "vx": round(track.vx, 3),
             "vy": round(track.vy, 3),
             "x": round(track.x, 3),
@@ -1217,6 +1239,7 @@ class DynamicObstacleTracker(Node):
             "range": round(cluster.range, 3),
             "points": cluster.count,
             "height": round(cluster.height, 3),
+            "top_height": None if cluster.z_max is None else round(cluster.z_max, 3),
             "z_bins": cluster.vertical_layers,
             "width": round(cluster.width, 3),
             "depth": round(cluster.depth, 3),
@@ -1290,9 +1313,9 @@ class DynamicObstacleTracker(Node):
         p = _motion_covariance(track.kf_p, dt, getattr(self, "tracking_process_noise", .35))
         return x, y, vx, vy, p
 
-    def _kf_update(self, track: Track, measured_x: float, measured_y: float, dt: float) -> None:
+    def _kf_update(self, track: Track, measured_x: float, measured_y: float, dt: float, noise_scale: float = 1.) -> None:
         pred_x, pred_y, pred_vx, pred_vy, p = self._kf_predict(track, dt)
-        variance = getattr(self, "measurement_noise_variance", .02)
+        variance = getattr(self, "measurement_noise_variance", .02) * noise_scale
         measurement_noise = variance * (1. + min(4., .5 * max(0., track.radius / max(.05, track.width+track.depth))))
         s00 = p[0][0] + measurement_noise
         s01 = p[0][1]
@@ -1391,6 +1414,8 @@ class DynamicObstacleTracker(Node):
             max_z = -math.inf
             z_layers = set()
             cells = set()
+            torso_x = torso_y = 0.
+            torso_count = 0
             for point_index in cluster_indexes:
                 px, py, pz = points[point_index]
                 cells.add((math.floor(px / self.cell_size), math.floor(py / self.cell_size)))
@@ -1405,11 +1430,19 @@ class DynamicObstacleTracker(Node):
                 max_y = max(max_y, py)
                 min_z = min(min_z, pz)
                 max_z = max(max_z, pz)
+                if self.use_torso_centroid and .8 <= pz <= 1.5:
+                    torso_x += px
+                    torso_y += py
+                    torso_count += 1
             if count < self.min_cluster_points:
                 continue
             mean_x = sum_x / count
             mean_y = sum_y / count
             mean_z = sum_z / count
+            if torso_count >= 6:
+                # Keep shape gates/radius based on the complete cluster, but
+                # do not let changing foot/head sampling shift the tracked XY.
+                mean_x,mean_y = torso_x/torso_count,torso_y/torso_count
             radius = 0.0
             for point_index in cluster_indexes:
                 px, py, _ = points[point_index]
@@ -1418,7 +1451,7 @@ class DynamicObstacleTracker(Node):
             depth = max_y - min_y
             height = max_z - min_z
             if radius <= self.max_cluster_radius and count >= self._min_cluster_points_for_range(mean_x, mean_y, robot_xy):
-                cluster = Cluster(mean_x, mean_y, mean_z, radius, count, width, depth, height, len(z_layers), cells)
+                cluster = Cluster(mean_x, mean_y, mean_z, radius, count, width, depth, height, len(z_layers), cells, z_max=max_z)
                 self._annotate_cluster_quality(cluster, robot_xy)
                 result.append(cluster)
         return self._merge_person_fragments(result)
@@ -1550,6 +1583,8 @@ class DynamicObstacleTracker(Node):
             height,
             max(first.vertical_layers, second.vertical_layers),
             first.cells | second.cells,
+            z_max=max(first.z_max if first.z_max is not None else first.z+first.height*.5,
+                      second.z_max if second.z_max is not None else second.z+second.height*.5),
         )
 
     def _global_track_assignments(self, clusters: list[Cluster], stamp: float) -> dict[int, int]:
@@ -1570,6 +1605,8 @@ class DynamicObstacleTracker(Node):
         return assignments
 
     def _association_cost(self, cluster: Cluster, track: Track, stamp: float) -> float:
+        if cluster.partial_observation and not self._partial_track_gate(cluster,track,stamp):
+            return math.inf
         if stamp <= track.stamp:
             return math.inf
         dt = max(0.0, stamp - track.stamp)
@@ -1648,7 +1685,9 @@ class DynamicObstacleTracker(Node):
                 denominator = sum((sample[0] - stamp - mean_t) ** 2 for sample in window)
                 track.vx = sum((t - stamp - mean_t) * (x - mean_x) for t, x, _ in window) / denominator
                 track.vy = sum((t - stamp - mean_t) * (y - mean_y) for t, _, y in window) / denominator
-            self._kf_update(track, cluster.x, cluster.y, dt)
+            if track.last_full_stamp is None:
+                track.last_full_stamp = track.stamp
+            self._kf_update(track, cluster.x, cluster.y, dt, noise_scale=4. if cluster.partial_observation else 1.)
             speed = math.hypot(track.vx, track.vy)
             if speed > self.max_person_speed:
                 track.vx *= self.max_person_speed / speed
@@ -1709,7 +1748,7 @@ class DynamicObstacleTracker(Node):
         valid_person_hit = False
         if cluster.partial_observation and track.confirmed:
             valid_person_hit = True
-            track.confidence = max(self.drop_confidence_threshold, track.confidence - 0.01 * dt)
+            track.confidence = max(self.drop_confidence_threshold, track.confidence - 0.10 * dt)
         elif detection_confidence >= self.person_detection_confirm_confidence:
             track.person_observations = min(track.person_observations + 2, 24)
             track.confidence = min(1.0, track.confidence + 0.25 * detection_confidence)
@@ -1725,11 +1764,13 @@ class DynamicObstacleTracker(Node):
         else:
             track.person_observations = max(0, track.person_observations - 1)
             track.confidence = max(0.0, track.confidence - 0.08)
-        if track.speed >= self.min_dynamic_speed:
+        if valid_person_hit and not cluster.partial_observation:
+            track.last_full_stamp = stamp
+        if not cluster.partial_observation and track.speed >= self.min_dynamic_speed:
             track.dynamic_observations = min(track.dynamic_observations + 1, 20)
             track.static_observations = max(0, track.static_observations - 1)
             track.confidence = min(1.0, track.confidence + 0.05)
-        elif track.speed <= self.max_static_speed:
+        elif not cluster.partial_observation and track.speed <= self.max_static_speed:
             track.dynamic_observations = max(0, track.dynamic_observations - 1)
             track.static_observations = min(track.static_observations + 1, 30)
         track.hit_history.append(valid_person_hit)
@@ -1914,6 +1955,9 @@ class DynamicObstacleTracker(Node):
 
     def _person_rejection_reason(self, cluster: Cluster, speed: float, existing_confirmed: bool) -> str:
         extent = max(cluster.width, cluster.depth, cluster.radius * 2.0)
+        top = cluster.z_max if cluster.z_max is not None else cluster.z + cluster.height*.5
+        if not existing_confirmed and top < self.min_person_top_height:
+            return "top_height_gate"
         if cluster.count < self._min_cluster_points_for_range(cluster.x, cluster.y, self._lookup_robot_xy()):
             return "too_few_points"
         if cluster.count > self.max_cluster_points:
@@ -2016,12 +2060,25 @@ class DynamicObstacleTracker(Node):
                 return True
         return False
 
+    def _partial_track_gate(self,cluster,track,stamp):
+        full_stamp = track.stamp if track.last_full_stamp is None else track.last_full_stamp
+        if not track.confirmed or not 0. < stamp-full_stamp <= self.partial_observation_timeout:
+            return False
+        extent = max(cluster.width,cluster.depth)
+        if extent > max(.4,1.6*max(track.width,track.depth)+.1):
+            return False
+        if extent > .6 and extent/max(.02,min(cluster.width,cluster.depth)) > self.max_person_aspect_ratio*1.4:
+            return False
+        if track.height > .1 and cluster.height > max(track.height+.25,1.4*track.height):
+            return False
+        return True
+
     def _partial_confirmed_observation(self, cluster: Cluster, stamp: float) -> bool:
         if not (cluster.count >= 4 and 0.15 <= cluster.height <= self.max_person_height
                 and max(cluster.width, cluster.depth) <= self.max_person_extent * 1.25
                 and cluster.noise_fraction <= self.max_noise_tag_fraction):
             return False
-        return any(track.confirmed and 0.0 < stamp - track.stamp <= self.confirmed_keep_missed_time
+        return any(self._partial_track_gate(cluster,track,stamp) and 0.0 < stamp - track.stamp <= self.confirmed_keep_missed_time
                    and math.isfinite(self._association_cost(cluster, track, stamp))
                    for track in self.tracks.values())
 
@@ -2033,15 +2090,23 @@ class DynamicObstacleTracker(Node):
         Empty/occluded regions supply no evidence and cannot refresh a track.
         """
         crops = []
-        for track in self.tracks.values():
+        claimed = set()
+        occupied_cells = {cell for cluster in clusters for cell in cluster.cells}
+        point_cells = [(math.floor(x/self.cell_size),math.floor(y/self.cell_size)) for x,y,_ in points]
+        ordered = sorted(self.tracks.values(),key=lambda t: (t.last_full_stamp if t.last_full_stamp is not None else t.stamp,t.confidence),reverse=True)
+        for track in ordered:
             dt = stamp - track.stamp
-            if not track.confirmed or not 0 < dt <= .8:
+            full_stamp = track.stamp if track.last_full_stamp is None else track.last_full_stamp
+            if not track.confirmed or not 0 < dt <= .8 or stamp-full_stamp > self.partial_observation_timeout:
                 continue
             if any(math.isfinite(self._association_cost(c, track, stamp)) for c in clusters):
                 continue
             x, y = track.x + track.vx * dt, track.y + track.vy * dt
-            selected = [(px, py, pz) for px, py, pz in points
-                        if (px-x)**2 + (py-y)**2 <= .55**2 and .2 <= pz <= 2.1]
+            radius = min(.55,max(.25,track.radius+.15))
+            indexes = [index for index,(px,py,pz) in enumerate(points)
+                       if index not in claimed and point_cells[index] not in occupied_cells and
+                       (px-x)**2+(py-y)**2 <= radius**2 and .2 <= pz <= 2.1]
+            selected = [points[index] for index in indexes]
             if len(selected) < 6:
                 continue
             xs, ys, zs = zip(*selected)
@@ -2051,9 +2116,10 @@ class DynamicObstacleTracker(Node):
                 max(xs)-min(xs), max(ys)-min(ys), max(zs)-min(zs),
                 len({math.floor(z / self.person_vertical_layer_height) for z in zs}),
                 {(math.floor(px/self.cell_size), math.floor(py/self.cell_size)) for px, py, _ in selected},
-                partial_observation=True)
-            if self._partial_confirmed_observation(cluster, stamp):
+                partial_observation=True, z_max=max(zs))
+            if self._partial_track_gate(cluster,track,stamp) and self._partial_confirmed_observation(cluster, stamp):
                 crops.append(cluster)
+                claimed.update(indexes)
                 self.debug_events.append(self._cluster_debug_event(cluster, "partial", "track_conditioned_crop"))
         return crops
 

@@ -277,9 +277,11 @@ class LaunchDescriptionTests(unittest.TestCase):
             if isinstance(action, Node)
             and action._Node__node_name == "g1_policy_cmd_vel_controller"
         )
+        # Explicit launch limits remain last, above the shared profile file.
+        self.assertIsInstance(policy_node._Node__parameters[-1], dict)
         parameters = {
             "".join(part.text for part in key): value
-            for key, value in policy_node._Node__parameters[0].items()
+            for key, value in policy_node._Node__parameters[-1].items()
         }
 
         self.assertEqual(parameters["action_clip"], 1.0)

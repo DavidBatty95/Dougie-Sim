@@ -46,6 +46,7 @@ class ResultWriter:
             "mode": config.mode,
             "backend": config.backend,
             "onboard_only": config.onboard_only,
+            "synchronized_crowd_start": config.synchronized_crowd_start,
             "visual_session": config.visual_session,
             "session_end_reason": (
                 metrics.invalid_reason or metrics.session_end_reason or ("fallen" if metrics.fallen else

@@ -47,6 +47,16 @@ def test_fixed_command_validator_accepts_safe_measured_response(tmp_path: Path) 
     assert "validation passed" in result.stdout
 
 
+def test_mixed_diagnostic_is_not_single_axis_acceptance(tmp_path):
+    data = valid_result()
+    data['command']['angular_z'] = .2
+    data['metric_role'] = 'mixed_command_diagnostic_only'
+    result = run_validator(tmp_path,data)
+    assert result.returncode == 1
+    assert 'exactly one command component' in result.stdout
+    assert 'not single-axis acceptance' in result.stdout
+
+
 def test_fixed_command_validator_rejects_fall_and_missing_policy_hash(
     tmp_path: Path,
 ) -> None:

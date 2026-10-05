@@ -18,6 +18,17 @@ def voxel_points(points, size=0.12):
     return points[indices]
 
 
+def registration_points(points):
+    """Prefer measured upper structure over moving bodies when observable."""
+    points = np.asarray(points)
+    radius = np.linalg.norm(points[:,:2],axis=1)
+    visible = (radius > 1.) & (radius < 18.)
+    upper = points[visible & (points[:,2] > 2.) & (points[:,2] < 3.2),:2]
+    if len(voxel_points(upper)) >= 60:
+        return upper,'upper_structure'
+    return points[visible & (points[:,2] > .25) & (points[:,2] < 1.8),:2],'full_band'
+
+
 class ScanOdometry:
     """Trimmed scan-to-keyframe ICP with measured IMU heading increments.
 
@@ -43,6 +54,17 @@ class ScanOdometry:
         keys, indices = np.unique(self._keys(cells), return_index=True)
         self.keys, self.reference = keys, points[indices]
         self.reference_xy = self.xy.copy()
+        neighbours = self._keys(cells[indices,None,:]+self.offsets)
+        lookup = np.minimum(np.searchsorted(self.keys,neighbours),len(self.keys)-1)
+        valid = self.keys[lookup] == neighbours
+        count = np.maximum(1,np.sum(valid,axis=1))
+        coordinates = self.reference[lookup]
+        mean = np.sum(coordinates*valid[:,:,None],axis=1)/count[:,None]
+        centred = coordinates-mean[:,None,:]
+        covariance = np.einsum('nki,nkj,nk->nij',centred,centred,valid)/count[:,None,None]
+        eigenvalues,eigenvectors = np.linalg.eigh(covariance)
+        self.normals = eigenvectors[:,:,0]
+        self.normal_valid = (count >= 3) & (eigenvalues[:,1] > 1e-5) & (eigenvalues[:,0] < .1*eigenvalues[:,1])
 
     def update(self, points, heading):
         points = voxel_points(points)
@@ -58,6 +80,7 @@ class ScanOdometry:
             self.quality = {"accepted": True, "inliers": len(points), "rmse": 0.0}
             return True
         estimate = self.xy.copy()
+        method = 'point_to_point'
         for _ in range(8):
             transformed = rotated + estimate
             cells = np.floor(transformed / self.cell_size).astype(np.int64)
@@ -78,12 +101,22 @@ class ScanOdometry:
             good &= best <= max(0.025 ** 2, np.quantile(best[good], 0.75))
             corrections = residual[np.arange(len(points)), nearest][good]
             delta = np.mean(corrections, axis=0)
+            matches = indices[np.arange(len(points)),nearest]
+            plane_mask = good & self.normal_valid[matches]
+            if np.count_nonzero(plane_mask) >= 30:
+                normals = self.normals[matches[plane_mask]]
+                plane_residual = residual[np.arange(len(points)),nearest][plane_mask]
+                hessian = normals.T@normals
+                spectrum = np.linalg.eigvalsh(hessian)
+                if spectrum[0] > .02*spectrum[-1]:
+                    delta = np.linalg.solve(hessian,normals.T@np.sum(normals*plane_residual,axis=1))
+                    method = 'point_to_plane'
             estimate += delta
             if np.linalg.norm(delta) < 0.001:
                 break
         rmse = float(np.sqrt(np.mean(best[good])))
         accepted = rmse < 0.18 and np.linalg.norm(estimate - self.xy) < 0.30
-        self.quality = {"accepted": bool(accepted), "inliers": int(good.sum()), "rmse": rmse}
+        self.quality = {"accepted": bool(accepted), "inliers": int(good.sum()), "rmse": rmse, "method": method}
         if not accepted:
             return False
         self.xy, self.yaw = estimate, yaw

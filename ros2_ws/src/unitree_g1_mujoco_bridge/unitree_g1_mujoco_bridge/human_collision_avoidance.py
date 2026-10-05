@@ -9,7 +9,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import LaserScan, PointCloud2
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 from visualization_msgs.msg import MarkerArray, Marker
 from unitree_social_navigation_msgs.msg import PredictedTrajectories
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -22,7 +22,7 @@ from .bridge_safety import (
     trajectory_static_cost,
 )
 from .pointcloud import iter_xyz
-from .motion_envelope import load_motion_envelope
+from .motion_envelope import load_motion_envelope, advance_planar_pose
 
 
 LATEST_SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -66,6 +66,7 @@ def time_aligned_prediction_risk(
     uncertainty_scale: float,
     minimum_confidence: float,
     robot_trajectory: list[tuple[float, float, float, float]] | None = None,
+    minimum_time: float = 0.0,
 ) -> tuple[float, float, float, float] | None:
     """Return the nearest same-time human conflict as clearance, time, x, y."""
     if message_age < 0.0:
@@ -97,7 +98,7 @@ def time_aligned_prediction_risk(
                 ))
         for offset, x, y, cov_xx, cov_yy, confidence in dense_samples:
             time_from_now = offset - max(0.0, message_age)
-            if time_from_now < 0.0 or time_from_now > horizon or confidence < minimum_confidence:
+            if time_from_now < max(0.,minimum_time) or time_from_now > horizon or confidence < minimum_confidence:
                 continue
             if robot_trajectory:
                 index = min(len(robot_trajectory) - 1, int(time_from_now / max(1e-6, robot_trajectory[-1][3]) * (len(robot_trajectory) - 1)))
@@ -189,6 +190,8 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("prediction_min_confidence", 0.35)
         self.declare_parameter("scan_timeout", 0.6)
         self.declare_parameter("static_escape_clearance", 0.48)
+        self.declare_parameter("predictive_escape_search", False)
+        self.declare_parameter("use_planned_sequence", False)
         self.declare_parameter("odom_timeout", 0.4)
         self.odom_timeout = float(self.get_parameter("odom_timeout").value)
         self.declare_parameter("response_delay", 0.10)
@@ -200,6 +203,7 @@ class HumanCollisionAvoidance(Node):
         self.policy_command = None
         self.policy_command_stamp = None
         self.odom_stamp = None
+        self.odom_pose = None
 
         self.target_frame = str(self.get_parameter("target_frame").value)
         self.robot_frame = str(self.get_parameter("robot_frame").value)
@@ -252,10 +256,20 @@ class HumanCollisionAvoidance(Node):
         self.startup_grace_time = float(self.get_parameter("startup_grace_time").value)
         self.person_cloud_timeout = float(self.get_parameter("person_cloud_timeout").value)
         self.prediction_collision_radius = float(self.get_parameter("prediction_collision_radius").value)
+        self.empty_prediction_collision_radius = self.prediction_collision_radius
+        self.recovery_min_clearance = .80
         self.prediction_uncertainty_scale = float(self.get_parameter("prediction_uncertainty_scale").value)
         self.prediction_min_confidence = float(self.get_parameter("prediction_min_confidence").value)
         self.scan_timeout = float(self.get_parameter("scan_timeout").value)
         self.static_escape_clearance = float(self.get_parameter("static_escape_clearance").value)
+        self.predictive_escape_search = bool(self.get_parameter("predictive_escape_search").value)
+        self.use_planned_sequence = bool(self.get_parameter("use_planned_sequence").value)
+        self.command_sequence = None
+        self.goal_signature = None
+        self.mission_active = False
+        self.mission_state_time = None
+        self.scan_frame = None
+        self.scan_stamp = None
         rate_hz = max(1.0, float(self.get_parameter("rate_hz").value))
         if self.critical_radius > self.danger_radius:
             raise ValueError("critical_radius must be less than or equal to danger_radius")
@@ -345,16 +359,79 @@ class HumanCollisionAvoidance(Node):
             self._scan_callback,
             LATEST_SENSOR_QOS,
         )
+        if self.use_planned_sequence:
+            self.create_subscription(String,'/human_avoidance_command_sequence',self._sequence_callback,1)
+            self.create_subscription(Bool,'/benchmark/goal_active',self._mission_callback,1)
+            self.create_subscription(PoseStamped,'/benchmark/current_goal',self._goal_callback,1)
         self.create_timer(1.0 / rate_hz, self._timer_callback)
+        self.create_subscription(Bool,'/navigation/carrying',self._payload_callback,1)
         self.create_subscription(Odometry, "/odom", self._odom_callback, LATEST_SENSOR_QOS)
         self.create_subscription(TwistStamped, "/g1/policy_cmd_vel", self._policy_command_callback, LATEST_SENSOR_QOS)
         self.get_logger().info(f"Human collision avoidance filter ready: {input_topic} -> {output_topic}")
+
+    def _clear_sequence(self):
+        self.command_sequence = None
+
+    def _payload_callback(self,msg):
+        self.prediction_collision_radius = self.empty_prediction_collision_radius+(.16 if msg.data else 0.)
+        self.recovery_min_clearance = .96 if msg.data else .80
+
+    def _goal_callback(self,msg):
+        self._clear_sequence()
+        self.goal_signature = [msg.header.frame_id,msg.header.stamp.sec,msg.header.stamp.nanosec,
+                               msg.pose.position.x,msg.pose.position.y]
+
+    def _mission_callback(self,msg):
+        self.mission_active = bool(msg.data)
+        self.mission_state_time = self.get_clock().now()
+        if not self.mission_active:
+            self._clear_sequence()
+
+    def _sequence_callback(self,msg):
+        self._clear_sequence()
+        try:
+            sequence = json.loads(msg.data)
+            if (sequence.get('frame') != self.robot_frame or sequence.get('active') is not True or
+                    sequence.get('then') is None):
+                return
+            if any(not isinstance(sequence.get(key),list) or len(sequence[key]) != 3 for key in ('first','then')):
+                return
+            values = [sequence['stamp'],sequence['duration'],*sequence['first'],*sequence['then']]
+            if not all(type(value) in (int,float) and math.isfinite(value) for value in values):
+                return
+            if not 0. <= sequence['duration'] <= 10.:
+                return
+            if sequence['stamp'] > self.get_clock().now().nanoseconds*1e-9:
+                return
+            self.command_sequence = sequence
+        except (ValueError,KeyError,TypeError,AttributeError):
+            return
+
+    def _sequence_parameters(self,command,seconds):
+        sequence = self.command_sequence
+        if not self.use_planned_sequence or sequence is None or not self.mission_active or self.mission_state_time is None:
+            return None
+        if self.goal_signature is None or sequence.get('goal') != self.goal_signature:
+            return None
+        age = seconds-sequence['stamp']
+        mission_age = seconds-self.mission_state_time.nanoseconds*1e-9
+        if not 0. <= age <= min(.25,self.input_timeout) or not 0. <= mission_age <= 1.:
+            return None
+        if any(abs(a-b) > 1e-4 for a,b in zip(command,sequence['first'])):
+            return None
+        return sequence['duration']-age,self.motion_envelope.normalize(sequence['then'])
 
     def _odom_callback(self, msg: Odometry) -> None:
         velocity = (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.angular.z)
         if all(math.isfinite(value) for value in velocity):
             self.measured_velocity = velocity
             self.odom_stamp = _duration_seconds(msg.header.stamp)
+            self.odom_pose = None
+            if msg.header.frame_id == self.target_frame and msg.child_frame_id == self.robot_frame:
+                p, q = msg.pose.pose.position, msg.pose.pose.orientation
+                pose = (p.x, p.y, self._yaw_from_quat(q), self._tilt_from_quat(q))
+                if all(math.isfinite(value) for value in pose):
+                    self.odom_pose = pose
 
     def _policy_command_callback(self, msg: TwistStamped) -> None:
         values = (msg.twist.linear.x, msg.twist.linear.y, msg.twist.angular.z)
@@ -377,6 +454,8 @@ class HumanCollisionAvoidance(Node):
         self.safe_patch_time = self.get_clock().now()
 
     def _scan_callback(self, msg: LaserScan) -> None:
+        self.scan_frame = msg.header.frame_id
+        self.scan_stamp = _duration_seconds(msg.header.stamp)
         fx = 0.0
         fy = 0.0
         considered = 0
@@ -605,6 +684,12 @@ class HumanCollisionAvoidance(Node):
         pose = pose[:3]
         command = self.motion_envelope.normalize((cmd.linear.x, cmd.linear.y, cmd.angular.z))
         seconds = now.nanoseconds * 1e-9
+        duration,next_command = math.inf,None
+        sequence = self._sequence_parameters(command,seconds)
+        if sequence is not None:
+            duration,next_command = sequence
+            if duration <= 0.:
+                command,duration,next_command = next_command,math.inf,None
         if self.prediction_epoch is None or not 0.0 <= seconds - self.prediction_epoch <= self.person_cloud_timeout:
             return Twist(), "stale_predictions_stop"
         if self.odom_stamp is None or not 0.0 <= seconds - self.odom_stamp <= getattr(self, "odom_timeout", 0.4):
@@ -616,19 +701,79 @@ class HumanCollisionAvoidance(Node):
         if self.planner_state == "CLEARANCE_RECOVERY" and self.planner_state_time is not None and (now - self.planner_state_time).nanoseconds * 1e-9 <= self.input_timeout:
             horizon = min(horizon, 1.0)
         filtered = self.policy_command if self.policy_command_stamp is not None and 0.0 <= seconds - self.policy_command_stamp <= 0.4 else None
-        rollout = self.motion_envelope.rollout(pose, command, self.measured_velocity, horizon, 0.1, self.response_delay, filtered_command=filtered)
+        rollout = self.motion_envelope.rollout(pose, command, self.measured_velocity, horizon, 0.1, self.response_delay,
+                                               duration,next_command,filtered)
         risk = time_aligned_prediction_risk(self.latest_predictions, seconds - self.prediction_epoch, pose, command, horizon, 0.1, self.prediction_collision_radius, self.prediction_uncertainty_scale, self.prediction_min_confidence, rollout)
         if risk is not None:
             stop_rollout = self.motion_envelope.rollout(pose, (0.0, 0.0, 0.0), self.measured_velocity, horizon, 0.1, self.response_delay, filtered_command=filtered)
             stop_risk = time_aligned_prediction_risk(self.latest_predictions, seconds - self.prediction_epoch, pose, (0.0, 0.0, 0.0), horizon, 0.1, math.inf, self.prediction_uncertainty_scale, self.prediction_min_confidence, stop_rollout)
-            if risk[0] >= 0.80 and stop_risk is not None and risk[0] > stop_risk[0] + 0.05:
-                return self._twist_from_velocity(command), "clearance_recovery"
+            if risk[0] >= self.recovery_min_clearance and stop_risk is not None:
+                improves = risk[0] > stop_risk[0]+.05
+                if not improves and risk[0] >= stop_risk[0]-.001:
+                    tail = self._tail_clearance(pose,command,rollout,seconds,horizon)
+                    stopped_tail = self._tail_clearance(pose,(0.,0.,0.),stop_rollout,seconds,horizon)
+                    improves = tail is not None and stopped_tail is not None and tail > stopped_tail+.05
+                if improves:
+                    return self._twist_from_velocity(command), "clearance_recovery"
+            if self.predictive_escape_search and stop_risk is not None and stop_risk[0] < self.prediction_collision_radius:
+                escape = self._validated_predictive_escape(pose, seconds, horizon, filtered, stop_risk[0], command)
+                if escape is not None:
+                    return self._twist_from_velocity(escape), "validated_escape"
             clearance, conflict_time, x, y = risk
             self.last_risk_source = "predicted_typed"
             self.last_risk_point = ("predicted_typed", x, y, clearance)
             self.last_avoid_reason = f"predicted_space_time_stop_{conflict_time:.1f}s"
             return Twist(), "temporal_override"
-        return self._twist_from_velocity(command), None
+        return self._twist_from_velocity(command), "planned_sequence" if sequence is not None else None
+
+    def _tail_clearance(self,pose,command,rollout,seconds,horizon):
+        risk = time_aligned_prediction_risk(self.latest_predictions,seconds-self.prediction_epoch,
+            pose,command,horizon,.1,math.inf,self.prediction_uncertainty_scale,
+            self.prediction_min_confidence,rollout,minimum_time=max(0.,horizon-.3))
+        return None if risk is None else risk[0]
+
+    def _validated_predictive_escape(self, pose, seconds, horizon, filtered, stop_clearance, preferred):
+        """Find a checked alternative when stopping also predicts a conflict."""
+        if (self.scan_frame != self.robot_frame or self.scan_stamp is None or
+                not 0. <= seconds-self.scan_stamp <= self.input_timeout):
+            return None
+        c, s = math.cos(pose[2]), math.sin(pose[2])
+        best = None
+        best_rank = None
+        stop_rollout = self.motion_envelope.rollout(pose,(0.,0.,0.),self.measured_velocity,
+            horizon,.1,self.response_delay,filtered_command=filtered)
+        stop_tail = self._tail_clearance(pose,(0.,0.,0.),stop_rollout,seconds,horizon)
+        commands = [preferred] + [(vx,vy,0.)
+                    for vx in (-min(.45, self.motion_envelope.max_x), 0., .5*self.motion_envelope.max_x, self.motion_envelope.max_x)
+                    for vy in (-self.motion_envelope.max_y, 0., self.motion_envelope.max_y)]
+        for proposed in commands:
+            command = self.motion_envelope.normalize(proposed)
+            if not any(command):
+                continue
+            rollout = self.motion_envelope.rollout(pose, command, self.measured_velocity,
+                horizon, .1, self.response_delay, filtered_command=filtered)
+            local = [(c*(x-pose[0])+s*(y-pose[1]), -s*(x-pose[0])+c*(y-pose[1]), yaw-pose[2])
+                     for x,y,yaw,_ in rollout]
+            if trajectory_static_cost(local, self.scan_obstacles, self.static_escape_clearance,
+                                      max(self.static_escape_clearance,self.wall_repulsion_range))[1]:
+                continue
+            risk = time_aligned_prediction_risk(self.latest_predictions, seconds-self.prediction_epoch,
+                pose, command, horizon, .1, math.inf, self.prediction_uncertainty_scale,
+                self.prediction_min_confidence, rollout)
+            if risk is None or risk[0] < self.recovery_min_clearance or risk[0] < stop_clearance-.001:
+                continue
+            tail = self._tail_clearance(pose,command,rollout,seconds,horizon)
+            if risk[0] <= stop_clearance+.05 and (tail is None or stop_tail is None or tail <= stop_tail+.05):
+                continue
+            full = self.motion_envelope.rollout(pose, command, self.measured_velocity,
+                self.trajectory_horizon, .1, self.response_delay, filtered_command=filtered)
+            forecast = time_aligned_prediction_risk(self.latest_predictions, seconds-self.prediction_epoch,
+                pose, command, self.trajectory_horizon, .1, math.inf, self.prediction_uncertainty_scale,
+                self.prediction_min_confidence, full)
+            rank = ((forecast or risk)[0], risk[0], tail if tail is not None else -math.inf)
+            if best_rank is None or rank > best_rank:
+                best, best_rank = command, rank
+        return best
 
     def _typed_safety_fresh(self) -> bool:
         return self.prediction_min_confidence <= 1.0 and self.prediction_epoch is not None and 0.0 <= self.get_clock().now().nanoseconds * 1e-9 - self.prediction_epoch <= self.person_cloud_timeout
@@ -1041,6 +1186,18 @@ class HumanCollisionAvoidance(Node):
             return
         if not self._input_active():
             cmd = Twist()
+            if self._sequence_parameters((0.,0.,0.),now.nanoseconds*1e-9) is not None:
+                cmd, reason = self._validate_final_command(cmd,pose,now)
+                self.pub.publish(cmd)
+                self._publish_debug(reason or 'planned_sequence',self.latest_cmd,cmd,now)
+                return
+            if (self.predictive_escape_search and self.planner_state in ("EMERGENCY_STOP", "CLEARANCE_RECOVERY") and
+                    self.planner_state_time is not None and
+                    0. <= (now-self.planner_state_time).nanoseconds*1e-9 <= self.input_timeout):
+                cmd, reason = self._validate_final_command(cmd, pose, now)
+                self.pub.publish(cmd)
+                self._publish_debug(reason or "inactive_input_hold", self.latest_cmd, cmd, now)
+                return
             self.pub.publish(cmd)
             self._publish_debug("inactive_input_hold", self.latest_cmd, cmd, now)
             return
@@ -1255,6 +1412,11 @@ class HumanCollisionAvoidance(Node):
         return cmd
 
     def _robot_pose(self):
+        stamped_pose = getattr(self, "odom_pose", None)
+        if stamped_pose is not None and self.odom_stamp is not None:
+            age = self.get_clock().now().nanoseconds*1e-9 - self.odom_stamp
+            if 0. <= age <= self.odom_timeout:
+                return (*advance_planar_pose(stamped_pose[:3], self.measured_velocity, age), stamped_pose[3])
         try:
             transform = self.tf_buffer.lookup_transform(self.target_frame, self.robot_frame, rclpy.time.Time())
         except TransformException:

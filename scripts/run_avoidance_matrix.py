@@ -21,12 +21,16 @@ def publish_dataset(path, dataset):
     temporary.replace(path)
 
 
-def command_for(directory, world, seed, people, goals, config, fast_start=True):
+def command_for(directory, world, seed, people, goals, config, fast_start=True, synchronized_start=False):
     command = list(case_catalog(directory, seed, True, fast_start, goals, onboard_people=people)['onboard-waypoints'].command)
     for flag, value in {'--scene': f'scene_29dof_avoidance_{world}.xml',
                         '--environment-name': world, '--config': str(config),
                         '--result-dir': str(directory)}.items():
         command[command.index(flag)+1] = value
+    if synchronized_start:
+        command = ['mujoco_pedestrian_start_gate:=true' if value == 'mujoco_pedestrian_start_gate:=false'
+                   else 'mujoco_pedestrian_start_delay:=0.0' if value == 'mujoco_pedestrian_start_delay:=10.0'
+                   else value for value in command]
     return tuple(command)
 
 
@@ -41,6 +45,7 @@ def main():
     parser.add_argument('--publish', type=Path, default=ROOT / 'docs/results/avoidance_dataset.json')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--fast-start', action='store_true', help='Reuse an existing verification build instead of refreshing it for the first trial')
+    parser.add_argument('--synchronized-start', action='store_true', help='Release the independent crowd on the first accepted navigation goal; require simulator acknowledgement')
     parser.add_argument('--label', default='working-tree', help='Human-readable controller revision label')
     args = parser.parse_args()
     def interrupted_signal(signum, frame):
@@ -64,12 +69,15 @@ def main():
     config = output / 'benchmark.yaml'
     template = ROOT / 'ros2_ws/src/dynamic_obstacle_benchmarks/config/demo_suite_natural_crowd_benchmark.yaml'
     config.write_text(template.read_text().replace('total_timeout_s: 360.0', f'total_timeout_s: {args.trial_seconds}.0'))
+    if args.synchronized_start:
+        config.write_text(config.read_text().replace('synchronized_crowd_start: false', 'synchronized_crowd_start: true'))
     (output / 'person_scenarios.yaml').write_bytes((template.parent / 'person_scenarios.yaml').read_bytes())
     container_config = Path('/workspace') / config.relative_to(ROOT)
     image = subprocess.run(['docker', 'image', 'inspect', '--format', '{{.Id}}',
                             'unitree-g1-ros2-mujoco:humble'], capture_output=True, text=True)
     manifest = dict(schema_version=1, world_version=WORLD_VERSION, created=datetime.now(timezone.utc).isoformat(),
                     controller_label=args.label,
+                    synchronized_start=args.synchronized_start,
                     docker_image_id=image.stdout.strip() if image.returncode == 0 else None,
                     source_files={str(path.relative_to(ROOT)): file_sha256(path) for directory in (
                         ROOT / 'ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge',
@@ -88,7 +96,7 @@ def main():
             directory = output / run_id
             directory.mkdir()
             command = command_for(directory, world, seed, args.people, args.goals, container_config,
-                                  fast_start=args.fast_start or bool(attempts))
+                                  fast_start=args.fast_start or bool(attempts), synchronized_start=args.synchronized_start)
             attempt = dict(id=run_id, world=world, seed=seed, command=list(command),
                            scene_sha256=file_sha256(SCENES / f'scene_29dof_avoidance_{world}.xml'), status='planned')
             attempts.append(attempt)

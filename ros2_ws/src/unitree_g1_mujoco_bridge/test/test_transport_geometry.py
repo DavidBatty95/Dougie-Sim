@@ -1,0 +1,47 @@
+from pathlib import Path
+
+import numpy as np
+
+from unitree_g1_mujoco_bridge.arm_kinematics import ArmKinematics
+from unitree_g1_mujoco_bridge.transport_perception import colour_detections
+
+
+def kinematics():
+    description = Path(__file__).resolve().parents[2] / 'unitree_g1_description/urdf/g1_29dof_mode_15_brainco_hand.urdf'
+    return ArmKinematics(description.read_text())
+
+
+def test_arm_jacobian_matches_finite_difference_on_robot_urdf():
+    kin = kinematics()
+    kin.tool_offset = np.array((.12,.01,0.))
+    joints = dict(zip(kin.names, np.mean(kin.limits, axis=1)))
+    position, _, jacobian, _ = kin.forward(joints)
+    for index, name in enumerate(kin.names):
+        perturbed = dict(joints)
+        perturbed[name] += 1e-6
+        measured = (kin.forward(perturbed)[0] - position) / 1e-6
+        np.testing.assert_allclose(jacobian[:, index], measured, atol=1e-6)
+
+
+def test_ik_recovers_reachable_position_without_exceeding_joint_limits():
+    kin = kinematics()
+    target_state = dict(zip(kin.names, np.mean(kin.limits, axis=1)))
+    target = kin.forward(target_state)[0]
+    start = {name: value + .08 for name, value in target_state.items()}
+    result, error = kin.solve(target, start)
+    assert error < .003
+    for name, (lower, upper) in zip(kin.names, kin.limits):
+        assert lower <= result[name] <= upper
+
+
+def test_rgbd_box_projection_and_below_table_rejection():
+    rgb = np.zeros((100, 100, 3), dtype=np.uint8)
+    rgb[59:70, 45:56, 0] = 220
+    depth = np.ones((100, 100))
+    intrinsics = np.array(((100., 0., 50.), (0., 100., 50.), (0., 0., 1.)))
+    optical = np.array(((0., 0., 1.), (-1., 0., 0.), (0., -1., 0.)))
+    detections = colour_detections(rgb, depth, intrinsics, np.array((0., 0., 1.2)), optical)
+    assert len(detections) == 1
+    assert detections[0]['id'] == 'box_red'
+    np.testing.assert_allclose(detections[0]['position'], (1., 0., 1.055), atol=1e-6)
+    assert not colour_detections(rgb, depth, intrinsics, np.array((0., 0., .6)), optical)

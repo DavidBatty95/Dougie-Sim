@@ -341,8 +341,10 @@ def case_catalog(
         # Isolated yaw trials support a bounded pivot rather than forcing a
         # forward arc that can orbit nearby targets.
         "turning_arc_min_forward_speed:=0.0", "turning_arc_min_yaw_speed:=0.0",
-        "max_ang_vel_z:=0.65", "cmd_accel_yaw:=0.70",
+        "max_ang_vel_z:=0.90", "cmd_accel_yaw:=0.90",
+        "cmd_accel_x:=2.40", "cmd_accel_y:=2.40",
         "mujoco_pedestrian_scenario:=social_natural_plaza", "mujoco_pedestrian_start_delay:=10.0",
+        "mujoco_pedestrian_start_gate:=false",
         "onboard_only:=true", "nav2_dynamic_replanning:=true", "nav2_world_costmap:=false", "nav2_static_scene_map:=false",
         "tracker_use_sensor_input:=true", "tracker_local_tracking_radius:=10.0",
         "livox_scan_points:=2400", "lidar_rate_hz:=15.0",

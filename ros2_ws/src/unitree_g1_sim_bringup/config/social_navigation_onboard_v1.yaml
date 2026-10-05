@@ -14,6 +14,9 @@ dynamic_obstacle_tracker:
     max_cluster_points: 600
     object_max_points: 600
     object_min_height: 0.65
+    # Standing-person births need observed returns above low furniture. Existing
+    # confirmed tracks can continue from partial/occluded body observations.
+    min_person_top_height: 1.35
     require_person_shape_for_object_detection: true
     max_person_speed: 2.0
     max_human_speed: 2.0
@@ -29,6 +32,8 @@ dynamic_obstacle_tracker:
     max_prediction_coast_time: 2.0
     stale_track_timeout: 2.0
     point_accumulation_time: 0.20
+    near_accumulation_radius: 4.0
+    near_accumulation_time: 0.05
     max_visible_confirmed_tracks: 0
     marker_lifetime: 1.2
     marker_display_hold_time: 0.9
@@ -44,6 +49,8 @@ human_aware_motion_planner:
     prefer_forward_travel: true
     path_reference_speed: 0.60
     path_reference_lookahead: 1.5
+    # Short routes should not require a slow stationary policy pivot in crowds.
+    path_reference_holonomic_distance: 3.0
     nav2_path_reference: true
     retain_observed_routes: true
     planning_budget_ms: 45.0
@@ -54,26 +61,67 @@ human_aware_motion_planner:
     max_lateral_near_human: 0.45
     max_forward_near_human: 0.65
     max_reverse_velocity: 0.45
+    max_planar_speed: 0.65
     max_angular_near_human: 0.60
+    max_clockwise_angular_near_human: 0.90
     response_yaw_gain: 0.32
+    response_walking_yaw_gain: 0.55
+    response_lateral_yaw_gain: 0.10
+    response_lateral_gain: 0.80
+    response_forward_gain: 0.96
+    response_negative_lateral_gain: 0.90
+    response_positive_lateral_time_constant: 0.30
+    response_linear_time_constant: 0.40
+    prediction_activation_clearance: 3.20
+    stationary_person_clearance: 2.20
+    stationary_clearance_weight: 20.0
+    # Centroid jitter is not a reliable walking heading. Geometry checks still
+    # include slow and stationary people; only directional social hints are gated.
+    human_intent_min_speed: 0.25
     # Receding-horizon decisions: long constant-velocity forecasts were making
     # every escape infeasible in rooms where actors frequently turn and pause.
     prediction_horizon: 3.0
     simulation_dt: 0.15
+    # Confirmed/retained body geometry is checked through the full forecast.
+    # Larger uncertainty reserves apply to the revalidated near-term window.
     hard_collision_horizon: 3.0
     social_cost_decay: 1.0
     ttc_warning_threshold: 4.5
     comfort_radius: 1.8
-    # Offline observed surface-centroid errors reached ~0.14 m in the pilot.
-    body_prediction_margin: 0.18
+    # Keep full-horizon reduced-clearance recovery available before falling
+    # back to a short escape. Physical body radii are added separately.
+    body_prediction_margin: 0.25
     hard_safety_margin: 0.40
-    w_personal_space: 12.0
-    w_goal: 6.0
+    # Prefer route progress among collision-checked commands. In dense rooms,
+    # summed comfort costs otherwise make prolonged waiting the local optimum.
+    w_personal_space: 6.0
+    w_goal: 12.0
+    goal_urgency_max: 5.0
+    goal_progress_timeout: 6.0
     w_path: 0.5
+    # Slew is already enforced in execution and rollout. Large squared-command
+    # penalties otherwise make remaining stopped cheaper than safe progress.
+    w_smooth: 0.5
+    w_jerk: 0.5
+    w_legibility: 1.0
+
+g1_policy_cmd_vel_controller:
+  ros__parameters:
+    max_planar_speed: 0.65
 
 human_collision_avoidance:
   ros__parameters:
+    predictive_escape_search: true
+    use_planned_sequence: true
+    max_planar_speed: 0.65
     response_yaw_gain: 0.32
+    response_walking_yaw_gain: 0.55
+    response_lateral_yaw_gain: 0.10
+    response_lateral_gain: 0.80
+    response_forward_gain: 0.96
+    response_negative_lateral_gain: 0.90
+    response_positive_lateral_time_constant: 0.30
+    response_linear_time_constant: 0.40
     odom_timeout: 0.6
     target_frame: odom
     use_mujoco_people: false

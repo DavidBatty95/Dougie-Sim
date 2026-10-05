@@ -96,6 +96,8 @@ ManipulationServer::ManipulationServer(const rclcpp::NodeOptions & options)
   right_tip_link_ = declare_parameter<std::string>("right_tip_link", "right_base_link");
   left_object_id_ = declare_parameter<std::string>("left_object_id", "red_cube");
   right_object_id_ = declare_parameter<std::string>("right_object_id", "red_cube");
+  use_object_grasp_service_ = declare_parameter<bool>("use_object_grasp_service", true);
+  object_grasp_client_ = create_client<g1_msgs::srv::GraspObject>("/g1_sim_manipulation_io/grasp_object");
 
   const auto offset = declare_parameter<std::vector<double>>(
     "tip_to_object_offset", {-0.10, 0.0, 0.0});
@@ -327,8 +329,25 @@ bool ManipulationServer::moveToNamed(MoveGroup & group, const std::string & targ
 }
 
 bool ManipulationServer::callGripper(
-  const std::string & side, bool grasp, std::string & reason)
+  const std::string & side, bool grasp, std::string & reason, const std::string & object_id)
 {
+  if (grasp && use_object_grasp_service_) {
+    if (object_id.empty() || !object_grasp_client_->wait_for_service(service_timeout_)) {
+      reason = "object-selectable grasp service unavailable or object identifier empty";
+      return false;
+    }
+    auto request = std::make_shared<g1_msgs::srv::GraspObject::Request>();
+    request->arm = side;
+    request->object_id = object_id;
+    auto future = object_grasp_client_->async_send_request(request);
+    if (future.wait_for(service_timeout_) != std::future_status::ready) {
+      reason = "object-selectable grasp service timed out";
+      return false;
+    }
+    const auto response = future.get();
+    reason = response->message;
+    return response->success;
+  }
   const std::string key = std::string(grasp ? "grasp_" : "release_") + side;
   const auto client = gripper_clients_.at(key);
   if (!client->wait_for_service(service_timeout_)) {
@@ -376,7 +395,7 @@ void ManipulationServer::executePick(const std::shared_ptr<GoalHandle<Pick>> & h
     return;
   }
   const auto & supported_object = arm->is_left ? left_object_id_ : right_object_id_;
-  if (goal->object_id != supported_object) {
+  if (!use_object_grasp_service_ && goal->object_id != supported_object) {
     result->message = arm->side + " gripper is configured for object " + supported_object;
     handle->abort(result);
     return;
@@ -473,7 +492,7 @@ void ManipulationServer::executePick(const std::shared_ptr<GoalHandle<Pick>> & h
   handle->publish_feedback(feedback);
   grasp_attempted = true;
   std::string service_reason;
-  if (!callGripper(arm->side, true, service_reason)) {
+  if (!callGripper(arm->side, true, service_reason, goal->object_id)) {
     finish_bad(feedback->phase, "grasp service failed: " + service_reason, false);
     return;
   }

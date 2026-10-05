@@ -2,7 +2,7 @@ from types import SimpleNamespace as S
 
 from dynamic_obstacle_benchmarks.benchmark_runner import BenchmarkRosNode
 from dynamic_obstacle_benchmarks.observed_space import observed_free
-from dynamic_obstacle_benchmarks.source_contract import NAVIGATION_NODES, audit_onboard_graph
+from dynamic_obstacle_benchmarks.source_contract import NAVIGATION_NODES, REQUIRED_FEEDBACK, audit_onboard_graph
 
 
 class Graph:
@@ -15,7 +15,7 @@ class Graph:
     def get_subscriber_names_and_types_by_node(self, name, namespace):
         if name == "dynamic_obstacle_tracker" and self.forbidden:
             return [(self.forbidden, ["std_msgs/msg/String"])]
-        return [("/onboard/lidar", ["sensor_msgs/msg/PointCloud2"])]
+        return [(topic,[]) for topic in REQUIRED_FEEDBACK.get(name,set())] + [("/onboard/lidar", ["sensor_msgs/msg/PointCloud2"])]
 
     def get_publishers_info_by_topic(self, topic):
         if topic == "/map":
@@ -28,9 +28,28 @@ def test_runtime_boundary_rejects_privileged_tracking_and_localization():
     assert not audit_onboard_graph(graph)
     graph.forbidden = "/mujoco/pedestrians"
     assert any("privileged" in error for error in audit_onboard_graph(graph))
+    graph.forbidden = "/evaluation/aligned_state"
+    assert any("privileged" in error for error in audit_onboard_graph(graph))
     graph.forbidden = None
     graph.odom_owner = "g1_sim_sensors"
     assert any("/odom owners" in error for error in audit_onboard_graph(graph))
+
+
+def test_runtime_boundary_requires_controller_feedback_connections():
+    graph = Graph()
+    original = graph.get_subscriber_names_and_types_by_node
+    graph.get_subscriber_names_and_types_by_node = lambda name,namespace: (
+        [] if name == 'human_collision_avoidance' else original(name,namespace))
+    errors = audit_onboard_graph(graph)
+    assert any('missing required feedback /odom' in error for error in errors)
+    assert any('missing required feedback /g1/policy_cmd_vel' in error for error in errors)
+
+
+def test_runtime_boundary_rejects_simulator_objects_on_perception_topic():
+    graph = Graph()
+    original = graph.get_publishers_info_by_topic
+    graph.get_publishers_info_by_topic = lambda topic: [S(node_name='g1_sim_manipulation_io')] if topic == '/objects' else original(topic)
+    assert any('object truth' in error for error in audit_onboard_graph(graph))
 
 
 def test_goal_people_are_invariant_to_unseen_simulator_people():

@@ -1,6 +1,12 @@
 from types import SimpleNamespace as S
 
-from unitree_g1_mujoco_bridge.observed_route import route_is_free
+from unitree_g1_mujoco_bridge.observed_route import route_is_free, people_clear_corridor
+
+
+def test_shortcuts_preserve_people_detours():
+    assert not people_clear_corridor((0,0), (3,0), [(1.5,0,0,0,.42)], .38)
+    assert not people_clear_corridor((0,0), (3,0), [(1.5,3,0,-1,.42)], .38)
+    assert people_clear_corridor((0,0), (3,0), [(-3,0,-1,0,.42)], .38)
 
 
 def fixture():

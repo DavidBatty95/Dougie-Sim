@@ -48,3 +48,33 @@ python3 scripts/check_dashboard_browser.py
 It verifies dataset selection, filtering, full run details and recorded-trajectory
 replay. Torch-specific training tests use the MJLab environment rather than the
 ROS Python interpreter; disable ROS pytest plugin autoload for that isolated test.
+
+## Publication verification — 5 October 2026
+
+The source publication was checked with the existing Docker environment:
+
+| Check | Result |
+| --- | --- |
+| ROS workspace build, `.verification` overlay | All 15 packages built |
+| MuJoCo build and CTest | Build succeeded; 10/10 tests passed |
+| Bridge tests | 333 passed |
+| Benchmark package tests | 83 passed |
+| Bringup tests | 18 passed |
+| General script tests in ROS environment | 79 passed; 3 payload tests skipped for missing training dependencies |
+| Payload and stability-schedule tests in MJLab | All 7 passed, including the 3 payload tests skipped above |
+| Source patch snapshot and pristine replay | Both simulator and MJLab snapshots reproduced |
+
+Run package test directories in separate pytest invocations: their shared `test`
+package names collide when collected together by ROS launch-testing. Run
+`scripts/test_g1_stability_schedule.py` in MJLab rather than the ROS interpreter.
+For the isolated training tests:
+
+```bash
+docker compose run --rm -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 unitree-g1-sim \
+  /workspace/scripts/run_mjlab.sh --no-sync python -m pytest -q \
+  /workspace/scripts/test_g1_payload_training.py \
+  /workspace/scripts/test_g1_stability_schedule.py
+```
+
+This verifies builds and regression coverage. No new live navigation matrix,
+transport mission or hardware acceptance run was collected for this publication.

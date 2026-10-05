@@ -2,6 +2,7 @@ benchmark:
   name: onboard_natural_crowd_waypoints
   backend: mujoco
   onboard_only: true
+  synchronized_crowd_start: false
   total_timeout_s: 360.0
 environment:
   map_frame: map

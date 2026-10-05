@@ -11,7 +11,7 @@ from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray,Bool
 from unitree_hg.msg import LowState
 
 from .g1_constants import G1_29DOF_JOINTS
@@ -434,6 +434,10 @@ class G1PolicyCmdVelController(Node):
 
         self.declare_parameter("policy_path", "")
         self.declare_parameter("policy_profile", "mjlab")
+        self.declare_parameter("external_arm_observation_mask", False)
+        self.arm_authority = False
+        self.arm_authority_received = -math.inf
+        self.create_subscription(Bool,'/g1/arm_authority',self._arm_authority_callback,1)
         self.declare_parameter("rate_hz", 50.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
         self.declare_parameter("policy_cmd_vel_topic", "/g1/policy_cmd_vel")
@@ -939,9 +943,11 @@ class G1PolicyCmdVelController(Node):
             float(self.get_parameter("cmd_accel_y").value),
             float(self.get_parameter("cmd_accel_yaw").value),
         ]
+        previous = self.filtered_command
         self.filtered_command = filter_command(
             self.filtered_command, target, limits, dt, immediate_stop
         )
+        self.filtered_command = list(envelope.limit_planar(self.filtered_command,previous))
         if bool(self.get_parameter("axis_exclusive_cmd_vel").value):
             if turning:
                 self.filtered_command[0] = 0.0
@@ -1189,6 +1195,10 @@ class G1PolicyCmdVelController(Node):
             throttle_duration_sec=2.0,
         )
 
+    def _arm_authority_callback(self,msg):
+        self.arm_authority = msg.data
+        self.arm_authority_received = time.monotonic()
+
     def _build_observation(
         self, command: Sequence[float], action_dim: int, obs_dim: Optional[int] = None
     ):
@@ -1206,6 +1216,8 @@ class G1PolicyCmdVelController(Node):
                 imu.gyroscope,
                 imu.quaternion,
                 self.last_actions[UNITREE_RL_LAB_G1_ACTION_DIM],
+                external_arms=(self.get_parameter('external_arm_observation_mask').value and
+                               self.arm_authority and time.monotonic()-self.arm_authority_received < .5),
             )
         quat = list(imu.quaternion)
         norm = math.sqrt(sum(q * q for q in quat))

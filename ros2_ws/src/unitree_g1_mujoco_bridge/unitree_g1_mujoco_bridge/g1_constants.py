@@ -31,13 +31,7 @@ G1_29DOF_JOINTS = [
 ]
 
 BRAINCO_HAND_JOINTS = [
-    "thumb_0",
-    "thumb_1",
-    "thumb_2",
-    "index_0",
-    "index_1",
-    "middle_0",
-    "middle_1",
+    "thumb", "thumb_aux", "index", "middle", "ring", "pinky",
 ]
 
 BRAINCO_LEFT_TF_JOINTS = [
@@ -81,10 +75,12 @@ BRAINCO_RIGHT_TF_JOINTS = [
 G1_FLOATING_BASE_JOINT = "floating_base_joint"
 G1_RVIZ_JOINTS = [G1_FLOATING_BASE_JOINT] + G1_29DOF_JOINTS + BRAINCO_LEFT_TF_JOINTS + BRAINCO_RIGHT_TF_JOINTS
 
-BRAINCO_LEFT_MIN = [-1.05, -0.724, 0.0, -1.57, -1.75, -1.57, -1.75]
-BRAINCO_LEFT_MAX = [1.05, 1.05, 1.75, 0.0, 0.0, 0.0, 0.0]
-BRAINCO_RIGHT_MIN = [-1.05, -1.05, -1.75, 0.0, 0.0, 0.0, 0.0]
-BRAINCO_RIGHT_MAX = [1.05, 0.742, 0.0, 1.57, 1.75, 1.57, 1.75]
+# BrainCo Revo2 uses normalized six-channel positions, not Dex3 radians.
+# https://github.com/unitreerobotics/brainco_hand_service
+BRAINCO_LEFT_MIN = [0.0] * 6
+BRAINCO_LEFT_MAX = [1.0] * 6
+BRAINCO_RIGHT_MIN = [0.0] * 6
+BRAINCO_RIGHT_MAX = [1.0] * 6
 
 G1_MJLAB_BODY_KP = [
     40.179,

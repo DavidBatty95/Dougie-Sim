@@ -51,6 +51,12 @@ def main() -> int:
             failures.append(message)
 
     require(data.get("fallen") is False, "robot must not fall")
+    components = [command.get(key,0.) for key in ("linear_x","linear_y","angular_z")]
+    require(all(finite_number(value) for value in components), "command components must be finite")
+    require(sum(finite_number(value) and abs(value)>1e-9 for value in components) == 1,
+            "exactly one command component must be nonzero")
+    require(data.get("metric_role") != "mixed_command_diagnostic_only",
+            "mixed-command diagnostics are not single-axis acceptance trials")
     require(
         finite_number(data.get("max_tilt_rad"))
         and data["max_tilt_rad"] <= args.max_tilt,

@@ -1,8 +1,9 @@
 # Payload-aware locomotion and authentic hand positioning
 
-This report documents a local development snapshot. The matching transport and
-training implementation is pending publication; reproduction commands require
-that source snapshot and the explicitly identified local checkpoint.
+This report documents a dated development snapshot. The repository includes the
+transport and training implementation; reproduction commands also require the
+explicitly identified local checkpoint. Later source changes do not retroactively
+revalidate the recorded experiments.
 
 ## Status
 

@@ -87,6 +87,24 @@ def test_command_formatting_and_validation() -> None:
         format_base_pin_command(1)
 
 
+def test_object_selectable_service_preserves_requested_identity_and_rejects_bad_ids():
+    pytest.importorskip('rclpy')
+    from types import SimpleNamespace
+    from g1_msgs.srv import GraspObject
+    from unitree_g1_mujoco_bridge.sim_manipulation_io import _create_node_class
+    cls, _ = _create_node_class()
+    node = object.__new__(cls)
+    sent = []
+    def command(payload):
+        sent.append(payload)
+        return True, 'grasped box_blue'
+    node._send_command = command
+    result = node._grasp_object(SimpleNamespace(arm='right',object_id='box_blue'),GraspObject.Response())
+    assert result.success and sent == [b'GRASP right box_blue']
+    result = node._grasp_object(SimpleNamespace(arm='right',object_id='bad/id'),GraspObject.Response())
+    assert not result.success and len(sent) == 1
+
+
 @pytest.mark.parametrize(
     ("acknowledgement", "expected"),
     [

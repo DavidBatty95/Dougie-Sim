@@ -313,6 +313,7 @@ class BenchmarkRosNode(Node):
         self.evaluation_pose = None
         self.evaluation_received_s = None
         self.evaluation_velocity = Velocity2D()
+        self.evaluation_velocity_interval = None
         self.evaluation_stamp = None
         self.observed_map = None
         self.observed_people = None
@@ -324,6 +325,8 @@ class BenchmarkRosNode(Node):
         self.latest_people: list[PersonState] = []
         self.latest_people_population: int | None = None
         self.latest_people_stamp = None
+        self.latest_people_acquisition_stamp = None
+        self.latest_people_simulation_time = None
         self.latest_people_received_s: float | None = None
         self.latest_scan_received_s: float | None = None
         self.scan_messages_observed = 0
@@ -353,6 +356,7 @@ class BenchmarkRosNode(Node):
         self.nav_retry_future = None
         self.last_nav_retry_s = -math.inf
         self.mission_active = False
+        self.actors_started = False
         self.mission_state_pub = None
         if self.ros_enabled:
             super().__init__("person_avoidance_benchmark")
@@ -364,6 +368,7 @@ class BenchmarkRosNode(Node):
             self.goal_pub = self.create_publisher(PoseStamped, "/benchmark/current_goal", 10)
             self.mission_state_pub = self.create_publisher(Bool, "/benchmark/goal_active", 1)
             self.create_timer(0.2, self.publish_mission_state)
+            self.create_subscription(Bool, "/simulation/pedestrians_started", self._actors_started_callback, 1)
             self.oracle_marker_pub = self.create_publisher(Marker, "/benchmark/social_demo_oracle", 10)
             self.create_subscription(Odometry, "/odom", self._odom_callback, 10)
             if config.onboard_only:
@@ -392,6 +397,15 @@ class BenchmarkRosNode(Node):
             message.data = self.mission_active
             self.mission_state_pub.publish(message)
 
+    def _actors_started_callback(self, message):
+        self.actors_started = bool(message.data)
+
+    def wait_for_actor_start(self, timeout_s=5.):
+        deadline = time.monotonic()+timeout_s
+        while _ok() and not self.actors_started and time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=.05)
+        return self.actors_started
+
     def _evaluation_callback(self, msg):
         if msg.header.frame_id != "world":
             return
@@ -399,6 +413,7 @@ class BenchmarkRosNode(Node):
         pose = Pose2D(p.x, p.y, math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z)))
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         if self.evaluation_stamp is not None and stamp > self.evaluation_stamp:
+            self.evaluation_velocity_interval = (self.evaluation_stamp,stamp)
             self.evaluation_velocity = velocity_from_pose_delta(self.evaluation_pose, pose, stamp - self.evaluation_stamp) or Velocity2D()
         self.evaluation_pose, self.evaluation_stamp = pose, stamp
         self.evaluation_received_s = time.monotonic()
@@ -585,6 +600,9 @@ class BenchmarkRosNode(Node):
         self.pedestrian_progress.update(float(sim_time), received_s)
         self.pedestrian_frame_error = None
         self.latest_people_stamp = self.get_clock().now()
+        acquisition = data.get('stamp')
+        self.latest_people_acquisition_stamp = float(acquisition) if type(acquisition) in (int,float) and math.isfinite(acquisition) else None
+        self.latest_people_simulation_time = float(sim_time)
         self.latest_people_received_s = received_s
 
     def _raw_cmd_callback(self, msg) -> None:
@@ -1185,7 +1203,7 @@ class BenchmarkRunner:
 
         prepared_next = None
         preparer = None
-        if self.config.visual_session:
+        if self.config.onboard_only and dynamic_random_goals:
             from .next_goal import NextGoalPreparer
             preparer = NextGoalPreparer(node, self.rng)
             node.next_goal_preparer = preparer
@@ -1263,6 +1281,9 @@ class BenchmarkRunner:
                 goal_accepted = node.send_nav_goal(goal)
                 if not goal_accepted:
                     break
+                if self.config.synchronized_crowd_start and not node.wait_for_actor_start():
+                    node.cancel_nav_goal()
+                    return self._finish_invalid(monitor, goals, node.latest_people, "pedestrian_start_not_acknowledged")
                 node.set_scoring_active(True)
                 if node.wait_for_motion_cmd_after(time.monotonic()):
                     motion_started = True
@@ -1392,6 +1413,15 @@ class BenchmarkRunner:
                         "backend": "mujoco",
                         "goal_distance_m": distance_xy(robot_pose, goal.pose),
                         "next_goal_ready": preparer is not None and preparer.ready is not None,
+                        "scoring_sample": dict(
+                            robot_stamp=node.evaluation_stamp,
+                            people_stamp=node.latest_people_acquisition_stamp,
+                            people_sim_time=node.latest_people_simulation_time,
+                            robot_xy=[scoring_pose.x,scoring_pose.y],
+                            robot_velocity=[scoring_velocity.vx,scoring_velocity.vy],
+                            velocity_interval=node.evaluation_velocity_interval,
+                            people=[[p.person_id,p.pose.x,p.pose.y,p.radius_m] for p in people],
+                        ) if self.config.onboard_only else None,
                         "yield_episodes": monitor.metrics.yield_episodes,
                         "resume_episodes": monitor.metrics.resume_episodes,
                         "yield_time_s": monitor.metrics.yield_time_s,
@@ -1404,14 +1434,14 @@ class BenchmarkRunner:
                 )
 
                 if sensed_goal_reached(robot_pose, goal.pose, self.config.goal_tolerance_m,
-                                       node.nav_goal_succeeded(), self.config.visual_session):
+                                       node.nav_goal_succeeded(), self.config.visual_session or self.config.onboard_only):
                     if preparer is not None:
                         prepared_next = preparer.take(goal_index + 1)
                         node.get_logger().info(
                             f"Waypoint reached at {distance_xy(robot_pose, goal.pose):.3f} m; "
                             f"next goal {'prepared' if prepared_next is not None else 'being planned'}")
                     node.set_scoring_active(False, now_wall)
-                    node.cancel_nav_goal(timeout_s=0.0 if self.config.visual_session else 2.0)
+                    node.cancel_nav_goal(timeout_s=0.0 if self.config.onboard_only else 2.0)
                     if prepared_next is not None:
                         node.publish_goal(prepared_next)
                     monitor.complete_goal(goal_metrics, True, None, now_wall - goal_start_time)

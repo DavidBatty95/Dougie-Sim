@@ -1,6 +1,6 @@
 import numpy as np
 
-from unitree_g1_mujoco_bridge.lidar_odometry import ScanOdometry, rotation
+from unitree_g1_mujoco_bridge.lidar_odometry import ScanOdometry, registration_points, rotation
 
 
 def room():
@@ -34,3 +34,31 @@ def test_failed_overlap_cannot_update_pose_or_reference():
     np.testing.assert_array_equal(odom.xy, (0., 0.))
     np.testing.assert_array_equal(odom.reference, previous)
     assert not odom.update(np.empty((0, 2)), 0.)
+
+
+def test_point_to_plane_rejects_tangential_resampling_bias():
+    axis = np.arange(-3.8,3.8,.19)
+    def walls(shift):
+        tangent = axis+shift
+        return np.concatenate((np.column_stack((tangent,np.full_like(tangent,4.))),
+            np.column_stack((tangent,np.full_like(tangent,-4.))),
+            np.column_stack((np.full_like(tangent,4.),tangent)),
+            np.column_stack((np.full_like(tangent,-4.),tangent))))
+    odom = ScanOdometry()
+    assert odom.update(walls(0.),0.)
+    for index in range(1,20):
+        xy = np.array((.02*index,-.01*index))
+        assert odom.update(walls(.07)-xy,0.)
+        assert np.linalg.norm(odom.xy-xy) < .01
+        assert odom.quality['method'] == 'point_to_plane'
+
+
+def test_upper_structure_registration_excludes_low_returns_with_fallback():
+    walls = np.column_stack((room(),np.full(len(room()),2.5)))
+    low = np.column_stack((room()*.5,np.ones(len(room()))))
+    selected,band = registration_points(np.concatenate((walls,low)))
+    assert band == 'upper_structure'
+    np.testing.assert_array_equal(selected,walls[:,:2])
+    selected,band = registration_points(low)
+    assert band == 'full_band'
+    np.testing.assert_array_equal(selected,low[:,:2])

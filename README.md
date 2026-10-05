@@ -186,8 +186,8 @@ world geometry constrains actor motion; it is not supplied as a navigation map.
 ![Command safety schematic](docs/media/command-safety.svg)
 ![Social navigation schematic](docs/media/social-navigation.svg)
 
-The documented investigation configuration uses forward/lateral command limits
-of 0.65/0.45 m/s with 2.40 m/s² software acceleration. These are simulation settings, not validated
+The onboard demo uses forward/lateral command limits of 0.65/0.45 m/s with
+2.40 m/s² software acceleration. These are simulation settings, not validated
 hardware limits. See [architecture](docs/ARCHITECTURE.md) and [source boundaries](docs/ONBOARD_SOCIAL_NAVIGATION.md).
 
 Route following prefers turning toward the route before walking forward. The
@@ -198,10 +198,10 @@ tests; forward/lateral command slew and low-level command validation remain acti
 
 ## Evidence and research
 
-The investigation and payload reports describe local development snapshots.
-This documentation publication includes their recorded evidence; corresponding
-controller and transport implementation changes are still pending publication.
-Commands for those development features require the matching source snapshot.
+The investigation and payload reports describe dated development snapshots.
+The corresponding controller, transport tools and reviewed simulator patches
+are included in the repository. Locally trained checkpoints remain separate
+artifacts; reproduction requires the explicit policy identified in each report.
 
 | Evidence track | Recorded scope | Read more |
 | --- | --- | --- |

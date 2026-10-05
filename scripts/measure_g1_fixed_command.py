@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--linear-x", type=float, default=0.10)
     parser.add_argument("--linear-y", type=float, default=0.0)
     parser.add_argument("--angular-z", type=float, default=0.0)
+    parser.add_argument("--mixed-diagnostic", action="store_true", help="Allow combined commands for diagnostics, not single-axis acceptance")
     parser.add_argument("--duration", type=float, default=20.0)
     parser.add_argument("--settle", type=float, default=3.0)
     parser.add_argument("--stop-duration", type=float, default=2.0)
@@ -81,6 +82,8 @@ class FixedCommandMeasurement(Node):
         self.fallen = False
         self.lowstate_ready = False
         self.last_odom_arrival: float | None = None
+        self.last_odom_source_time: float | None = None
+        self.pose_samples = []
         self.odom_count = 0
         self.last_diagnostics_arrival: float | None = None
         self.phase = "startup"
@@ -119,6 +122,10 @@ class FixedCommandMeasurement(Node):
 
     def _odom_callback(self, msg: Odometry) -> None:
         now = time.monotonic()
+        source_time = float(msg.header.stamp.sec)+1e-9*float(msg.header.stamp.nanosec)
+        if not math.isfinite(source_time) or source_time <= 0. or (self.last_odom_source_time is not None and source_time <= self.last_odom_source_time):
+            return
+        self.last_odom_source_time = source_time
         self.last_odom_arrival = now
         self.odom_count += 1
         x = float(msg.pose.pose.position.x)
@@ -131,12 +138,13 @@ class FixedCommandMeasurement(Node):
             1.0 - 2.0 * (orientation.y**2 + orientation.z**2),
         )
         self.yaw = yaw
-        self._odom_history.append((now, x, y, yaw))
-        while len(self._odom_history) > 2 and now - self._odom_history[1][0] >= 0.10:
+        self.pose_samples.append((source_time,x,y,yaw))
+        self._odom_history.append((source_time, x, y, yaw))
+        while len(self._odom_history) > 2 and source_time - self._odom_history[1][0] >= 0.10:
             self._odom_history.popleft()
         if len(self._odom_history) > 1:
             last_time, last_x, last_y, last_yaw = self._odom_history[0]
-            dt = now - last_time
+            dt = source_time - last_time
             if dt >= 0.05:
                 dx = x - last_x
                 dy = y - last_y
@@ -302,20 +310,36 @@ def validate_args(args: argparse.Namespace) -> None:
     if not all(math.isfinite(value) for value in finite):
         raise ValueError("command values must be finite")
     active = [index for index, value in enumerate(finite) if abs(value) > 1e-9]
-    if len(active) != 1:
+    if not active or (len(active) != 1 and not getattr(args,"mixed_diagnostic",False)):
         raise ValueError("exactly one command component must be nonzero")
     limits = (
         getattr(args, "max_linear_x", None),
         getattr(args, "max_linear_y", None),
         getattr(args, "max_angular_z", None),
     )
-    index = active[0]
-    if limits[index] is not None and abs(finite[index]) > limits[index] + 1e-9:
-        raise ValueError("command exceeds the configured policy limit")
+    for index in active:
+        if limits[index] is not None and abs(finite[index]) > limits[index] + 1e-9:
+            raise ValueError("command exceeds the configured policy limit")
     for name in ("duration", "settle", "stop_duration", "timeout", "odom_timeout", "diagnostics_timeout"):
         value = getattr(args, name)
         if not math.isfinite(value) or value <= 0.0:
             raise ValueError(f"{name} must be positive and finite")
+
+
+def source_interval_metrics(samples,start,end):
+    """Interpolate transition poses; never count delivery lag as stop drift."""
+    def at(stamp):
+        for left,right in zip(samples,samples[1:]):
+            if left[0] <= stamp <= right[0]:
+                fraction = (stamp-left[0])/(right[0]-left[0])
+                yaw_delta = math.atan2(math.sin(right[3]-left[3]),math.cos(right[3]-left[3]))
+                yaw = left[3]+fraction*yaw_delta
+                return (stamp,left[1]+fraction*(right[1]-left[1]),left[2]+fraction*(right[2]-left[2]),math.atan2(math.sin(yaw),math.cos(yaw)))
+        raise RuntimeError('No source-time pose bracket for a command transition')
+    points = [at(start)]+[sample for sample in samples if start < sample[0] < end]+[at(end)]
+    path = sum(math.hypot(b[1]-a[1],b[2]-a[2]) for a,b in zip(points,points[1:]))
+    yaw = sum(math.atan2(math.sin(b[3]-a[3]),math.cos(b[3]-a[3])) for a,b in zip(points,points[1:]))
+    return points[0],points[-1],path,yaw
 
 
 def settling_time(
@@ -397,6 +421,7 @@ def main() -> int:
         command_samples: list[tuple[float, float]] = []
         last_command_odom_count = node.odom_count
         command_started = time.monotonic()
+        command_started_source = node.get_clock().now().nanoseconds*1e-9
         if abs(args.angular_z) > 0.0 and abs(args.linear_x) < 1e-9 and abs(args.linear_y) < 1e-9:
             response_index = 2
             target_response = args.angular_z
@@ -423,9 +448,12 @@ def main() -> int:
             )
             yaw_change += yaw_delta
             previous_yaw = node.yaw
+            source_elapsed = node.last_odom_source_time-command_started_source
+            if source_elapsed < 0.:
+                return
             command_samples.append(
                 (
-                    time.monotonic() - command_started,
+                    source_elapsed,
                     response_sign * node.derived_velocity[response_index],
                 )
             )
@@ -444,6 +472,7 @@ def main() -> int:
         stop_samples: list[tuple[float, float]] = []
         last_stop_odom_count = node.odom_count
         stop_started = time.monotonic()
+        stop_started_source = node.get_clock().now().nanoseconds*1e-9
 
         def sample_stop() -> None:
             nonlocal stop_path_length, stop_previous, last_stop_odom_count
@@ -453,9 +482,12 @@ def main() -> int:
             if node.pose is not None:
                 stop_path_length += math.dist(stop_previous, node.pose)
                 stop_previous = node.pose
+            source_elapsed = node.last_odom_source_time-stop_started_source
+            if source_elapsed < 0.:
+                return
             stop_samples.append(
                 (
-                    time.monotonic() - stop_started,
+                    source_elapsed,
                     abs(response_sign * node.derived_velocity[response_index]),
                 )
             )
@@ -465,6 +497,13 @@ def main() -> int:
             args.odom_timeout, args.diagnostics_timeout, sample_stop,
         )
         stop_end = node.pose or stop_previous
+        source_start,source_stop,path_length,yaw_change = source_interval_metrics(
+            node.pose_samples,command_started_source,stop_started_source)
+        _,source_end,stop_path_length,_ = source_interval_metrics(
+            node.pose_samples,stop_started_source,node.pose_samples[-1][0])
+        start,end,stop_start,stop_end = source_start[1:3],source_stop[1:3],source_stop[1:3],source_end[1:3]
+        start_yaw,end_yaw = source_start[3],source_stop[3]
+        elapsed = stop_started_source-command_started_source
         final_stop_samples = [
             value
             for sample_time, value in stop_samples
@@ -485,7 +524,8 @@ def main() -> int:
         lateral_displacement = -math.sin(start_yaw) * world_dx + math.cos(start_yaw) * world_dy
         result = {
             "schema_version": 1,
-            "metric_role": "online_diagnostic_only",
+            "metric_role": "mixed_command_diagnostic_only" if args.mixed_diagnostic else "online_diagnostic_only",
+            "measurement_time_basis": "unique_odometry_source_stamps_and_interpolated_transitions",
             "trial_id": args.trial_id,
             "provenance": {
                 "policy_path": str(args.policy_path) if args.policy_path else None,

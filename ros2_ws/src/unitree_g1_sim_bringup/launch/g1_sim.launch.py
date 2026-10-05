@@ -226,6 +226,7 @@ def generate_launch_description():
                 "use_mjlab_body_gains": True,
                 "body_gain_profile": policy_profile,
                 "arm_kp_override": bridge_arm_kp_override,
+                'arm_gains_require_authority': LaunchConfiguration('bridge_arm_gains_require_authority'),
                 "arm_kd_override": bridge_arm_kd_override,
                 "lock_waist": lock_waist,
                 "waist_lock_kp": waist_lock_kp,
@@ -261,7 +262,10 @@ def generate_launch_description():
         executable="g1_sim_manipulation_io",
         name="g1_sim_manipulation_io",
         output="screen",
-        parameters=[{"frame_id": sim_manipulation_frame_id}],
+        parameters=[{
+            "frame_id": IfElseSubstitution(LaunchConfiguration("onboard_only"), "world", sim_manipulation_frame_id),
+            "output_topic": IfElseSubstitution(LaunchConfiguration("onboard_only"), "/evaluation/objects", "/objects"),
+        }],
     )
     hold_node = Node(
         condition=IfCondition(run_hold_controller),
@@ -288,9 +292,11 @@ def generate_launch_description():
         additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
         output="screen",
         parameters=[
+            social_navigation_params_file,
             {
                 "policy_path": policy_path,
                 "policy_profile": policy_profile,
+                "external_arm_observation_mask": LaunchConfiguration('external_arm_observation_mask'),
                 "policy_obs_dim": policy_obs_dim,
                 "policy_action_dim": policy_action_dim,
                 "policy_command_height": policy_command_height,
@@ -361,6 +367,11 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("show_mujoco_goal")),
         package="unitree_g1_mujoco_bridge", executable="mujoco_goal_visualizer",
         name="mujoco_goal_visualizer", output="screen",
+    )
+    pedestrian_start_node = Node(
+        condition=IfCondition(LaunchConfiguration("mujoco_pedestrian_start_gate")),
+        package="unitree_g1_mujoco_bridge", executable="pedestrian_start_bridge",
+        name="pedestrian_start_bridge", output="screen",
     )
     sensors_node = Node(
         condition=IfCondition(run_sensors),
@@ -1151,6 +1162,12 @@ def generate_launch_description():
                 default_value="0",
                 description="Expected policy observation dimension. 0 infers from ONNX metadata/shape.",
             ),
+            DeclareLaunchArgument('bridge_arm_gains_require_authority',default_value='false',
+                                  description='Use manipulation arm gains only while compositor owns the arms.'),
+            DeclareLaunchArgument(
+                'external_arm_observation_mask',default_value='false',
+                description='Experimental locomotion-only nominal arm observations while compositor owns arms.',
+            ),
             DeclareLaunchArgument(
                 "policy_action_dim",
                 default_value="0",
@@ -1610,6 +1627,8 @@ def generate_launch_description():
                 default_value="0.0",
                 description="Seconds to hold pedestrians at their initial poses after simulation reset.",
             ),
+            DeclareLaunchArgument("mujoco_pedestrian_start_gate", default_value="false",
+                                  description="Start independent pedestrian scenario time on the first ready benchmark goal."),
             DeclareLaunchArgument(
                 "mujoco_pedestrian_seed",
                 default_value="42",
@@ -1772,6 +1791,7 @@ def generate_launch_description():
                     "UNITREE_MUJOCO_PEDESTRIANS_COUNT": mujoco_pedestrians_count,
                     "UNITREE_MUJOCO_PEDESTRIAN_SCENARIO": mujoco_pedestrian_scenario,
                     "UNITREE_MUJOCO_PEDESTRIAN_START_DELAY": mujoco_pedestrian_start_delay,
+                    "UNITREE_MUJOCO_PEDESTRIAN_START_GATE": LaunchConfiguration("mujoco_pedestrian_start_gate"),
                     "UNITREE_MUJOCO_PEDESTRIAN_SEED": mujoco_pedestrian_seed,
                     "UNITREE_MUJOCO_PEDESTRIAN_SOCKET": "/tmp/unitree_g1_mujoco_pedestrians.sock",
                     "UNITREE_MUJOCO_LIDAR_ENABLE": use_mujoco_raycast_lidar,
@@ -1810,6 +1830,7 @@ def generate_launch_description():
                     onboard_odometry_node,
                     route_monitor_node,
                     goal_visualizer_node,
+                    pedestrian_start_node,
                     livox_to_scan_node,
                     scan_filter_node,
                     slam_node,

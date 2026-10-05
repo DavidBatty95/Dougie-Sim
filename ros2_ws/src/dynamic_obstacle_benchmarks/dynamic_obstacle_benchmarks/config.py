@@ -73,6 +73,7 @@ class BenchmarkConfig:
     scan_source: str = "auto"
     onboard_only: bool = False
     visual_session: bool = False
+    synchronized_crowd_start: bool = False
     dt_s: float = 0.05
     mode_presets: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
 
@@ -96,6 +97,8 @@ class BenchmarkConfig:
         return self.bounds.x_min <= pose.x <= self.bounds.x_max and self.bounds.y_min <= pose.y <= self.bounds.y_max
 
     def validate(self) -> None:
+        if self.synchronized_crowd_start and (self.backend != "mujoco" or not self.onboard_only):
+            raise ValueError("synchronized_crowd_start requires onboard MuJoCo navigation")
         if self.visual_session and (self.backend != "mujoco" or not self.onboard_only):
             raise ValueError("visual_session requires the onboard MuJoCo configuration")
         if self.people_count < 0 or self.goals_count < 1:
@@ -189,6 +192,7 @@ def _apply_mapping(cfg: BenchmarkConfig, data: dict[str, Any]) -> None:
     cfg.use_sim_time = _boolean(benchmark, "use_sim_time", cfg.use_sim_time)
     cfg.onboard_only = _boolean(benchmark, "onboard_only", cfg.onboard_only)
     cfg.visual_session = _boolean(benchmark, "visual_session", cfg.visual_session)
+    cfg.synchronized_crowd_start = _boolean(benchmark, "synchronized_crowd_start", cfg.synchronized_crowd_start)
     cfg.map_frame = environment.get("map_frame", cfg.map_frame)
     cfg.odom_frame = environment.get("odom_frame", cfg.odom_frame)
     cfg.robot_frame = environment.get("robot_frame", cfg.robot_frame)

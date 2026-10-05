@@ -1,8 +1,8 @@
 diff --git a/.gitignore b/.gitignore
-index bc0f8a7552d654e445b34ce468be7340511a6278..898c5ce3d074290bdf722c05730f69eedf75a900 100755
+index bc0f8a7552d654e445b34ce468be7340511a6278..966c170bfa85ee4e0afe929d7ec1f07c39c713b5 100755
 --- a/.gitignore
 +++ b/.gitignore
-@@ -3,4 +3,9 @@
+@@ -3,4 +3,13 @@
  **/__pycache__/
  **/log/
  **/install/
@@ -14,11 +14,15 @@ index bc0f8a7552d654e445b34ce468be7340511a6278..898c5ce3d074290bdf722c05730f69ee
 +unitree_robots/g1/natural_crowd_bodies.xml
 +unitree_robots/g1/scene_29dof_avoidance_*.xml
 +unitree_robots/g1/avoidance_sign_*.png
++unitree_robots/g1/scene_29dof_transport_*.xml
++unitree_robots/g1/transport_sign_*.png
++unitree_robots/g1/transport_pairs_*.json
++unitree_robots/g1/transport_evaluation_layouts.json
 diff --git a/simulate/CMakeLists.txt b/simulate/CMakeLists.txt
-index 899796e4886a4088236d4d5a9eed1c83dcdef269..99e132e348e0da7d13904795eb11d13dc2d6de58 100644
+index 899796e4886a4088236d4d5a9eed1c83dcdef269..f3810238aaa4e6bb7ddff20ccf6030d19dbb3dfb 100644
 --- a/simulate/CMakeLists.txt
 +++ b/simulate/CMakeLists.txt
-@@ -43,11 +43,22 @@ link_libraries(
+@@ -43,11 +43,31 @@ link_libraries(
    fmt
  )
  
@@ -31,6 +35,15 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..99e132e348e0da7d13904795eb11d13d
  add_executable(jstest src/joystick/jstest.cc src/joystick/joystick.cc)
  
  if(BUILD_TESTING)
++  add_executable(transport_worlds_test test/transport_worlds_test.cc)
++  target_compile_definitions(transport_worlds_test PRIVATE G1_ASSET_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../unitree_robots/g1")
++  add_test(NAME transport_worlds_test COMMAND transport_worlds_test)
++  add_executable(raycast_model_test test/raycast_model_test.cc)
++  target_include_directories(raycast_model_test PRIVATE src)
++  add_test(NAME raycast_model_test COMMAND raycast_model_test)
++  add_executable(pedestrian_start_gate_test test/pedestrian_start_gate_test.cc)
++  target_include_directories(pedestrian_start_gate_test PRIVATE src)
++  add_test(NAME pedestrian_start_gate_test COMMAND pedestrian_start_gate_test)
 +  add_executable(natural_pedestrians_test test/natural_pedestrians_test.cc)
 +  target_include_directories(natural_pedestrians_test PRIVATE src)
 +  target_compile_definitions(natural_pedestrians_test PRIVATE
@@ -42,7 +55,7 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..99e132e348e0da7d13904795eb11d13d
    add_executable(bridge_command_safety_test test/bridge_command_safety_test.cc)
    target_include_directories(bridge_command_safety_test PRIVATE src)
    add_test(NAME bridge_command_safety_test COMMAND bridge_command_safety_test)
-@@ -60,6 +71,10 @@ if(BUILD_TESTING)
+@@ -60,6 +80,10 @@ if(BUILD_TESTING)
    target_include_directories(latest_only_worker_test PRIVATE src)
    add_test(NAME latest_only_worker_test COMMAND latest_only_worker_test)
  
@@ -54,20 +67,23 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..99e132e348e0da7d13904795eb11d13d
      test/simulated_manipulation_test.cc
      src/simulated_manipulation.cc)
 diff --git a/simulate/src/main.cc b/simulate/src/main.cc
-index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e56864f5eaae1 100755
+index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39aa223d7b 100755
 --- a/simulate/src/main.cc
 +++ b/simulate/src/main.cc
-@@ -41,6 +41,9 @@
+@@ -41,6 +41,12 @@
  #include "simulate.h"
  #include "array_safety.h"
  #include "mujoco_sensor_worker.h"
 +#include "pedestrian_scenarios.h"
 +#include "pedestrian_path_planner.h"
 +#include "natural_pedestrian_motion.h"
++#include "pedestrian_start_gate.h"
++#include "raycast_model.h"
++#include "brainco_hand.h"
  #include "phase_locked_scheduler.h"
  #include "simulated_manipulation.h"
  #include "unitree_sdk2_bridge.h"
-@@ -125,7 +128,7 @@ namespace
+@@ -125,7 +131,7 @@ namespace
    // control noise variables
    mjtNum *ctrlnoise = nullptr;
  
@@ -76,7 +92,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
    constexpr std::uint32_t kCameraPacketMagic = 0x32434a4d;  // MJC2, little-endian.
    constexpr double kPi = 3.14159265358979323846;
  
-@@ -163,7 +166,12 @@ namespace
+@@ -163,7 +169,12 @@ namespace
      std::int64_t acquisition_time_ns;
      float origin[3];
      float quat[4];
@@ -89,7 +105,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
  
    struct CameraPacketHeader
    {
-@@ -319,6 +327,22 @@ namespace
+@@ -319,6 +330,22 @@ namespace
        header.quat[1] = static_cast<float>(quat[1]);
        header.quat[2] = static_cast<float>(quat[2]);
        header.quat[3] = static_cast<float>(quat[3]);
@@ -112,27 +128,64 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
  
        packet_.resize(sizeof(header) + point_count * sizeof(LidarPoint));
        std::memcpy(packet_.data(), &header, sizeof(header));
-@@ -913,11 +937,6 @@ namespace
-       {
-         Initialize(model);
+@@ -392,7 +419,7 @@ namespace
+       worker_.Reset(model, [this](const mjModel *worker_model, mjData *worker_data,
+                                   std::int64_t acquisition_time_ns, std::uint64_t generation) {
+         Publish(worker_model, worker_data, acquisition_time_ns, generation);
+-      });
++      }, [this](mjModel *copy) {unitree_mujoco::ExcludeRobotFromRays(copy, robot_root_body_id_);});
+     }
+ 
+     void RecordTiming(std::chrono::steady_clock::time_point started)
+@@ -645,7 +672,9 @@ namespace
+         color[3 * index + 0] = rgba ? ToByte(rgba[0] * light) : 18;
+         color[3 * index + 1] = rgba ? ToByte(rgba[1] * light) : 22;
+         color[3 * index + 2] = rgba ? ToByte(rgba[2] * light) : 28;
+-        depth[index] = valid ? static_cast<std::uint16_t>(std::min(65535.0, distance * 1000.0)) : 0;
++        // ROS registered depth is optical-axis Z, not distance along the
++        // normalized ray. Range here stretches off-axis reconstructed points.
++        depth[index] = valid ? unitree_mujoco::OpticalDepthMillimeters(distance, rays_[index][2]) : 0;
        }
+ 
+       if (!worker_.IsCurrent(generation))
+@@ -752,6 +781,8 @@ namespace
+         std::perror("MuJoCo camera socket");
+         return;
+       }
++      const int send_buffer = 4 * 1024 * 1024;
++      setsockopt(socket_fd_, SOL_SOCKET, SO_SNDBUF, &send_buffer, sizeof(send_buffer));
+       std::memset(&socket_addr_, 0, sizeof(socket_addr_));
+       socket_addr_.sun_family = AF_UNIX;
+       std::strncpy(socket_addr_.sun_path, socket_path.c_str(), sizeof(socket_addr_.sun_path) - 1);
+@@ -911,24 +942,33 @@ namespace
+     {
+       if (model != model_)
+       {
+-        Initialize(model);
+-      }
 -      if (!enabled_ || pedestrians_.empty())
 -      {
 -        return;
--      }
++        Initialize(model, data);
+       }
 -
        if (data->time + 1e-9 < last_simulation_time_)
        {
-         Initialize(model);
-@@ -926,9 +945,22 @@ namespace
+-        Initialize(model);
++        Initialize(model, data);
+       }
+-      const double dt = std::max(0.0, data->time - last_simulation_time_);
++      start_gate_.Update(data->time);
++      const double dt = start_gate_.Started() ? std::max(0.0, data->time - last_simulation_time_) : 0.;
        last_simulation_time_ = data->time;
-       animation_time_ = data->time;
- 
+-      animation_time_ = data->time;
++      animation_time_ = start_gate_.Elapsed(data->time);
++
 +      for (const int id : inactive_mocaps_) {data->mocap_pos[3*id+2] = -50.;}
 +      if (!enabled_ || pedestrians_.empty()) {return;}
 +      // All pedestrians react to the same time slice, not already-updated peers.
 +      previous_states_ = states_;
-+
+ 
        for (size_t i = 0; i < pedestrians_.size(); ++i)
        {
 +        const double old_x = states_[i].x, old_y = states_[i].y;
@@ -147,7 +200,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
          AnimatePedestrian(pedestrians_[i], states_[i], data, animation_time_, static_cast<int>(i));
        }
        MaybePublish(data);
-@@ -946,12 +978,14 @@ namespace
+@@ -946,12 +986,14 @@ namespace
        std::vector<int> visual_frames;
        std::vector<std::array<mjtNum, 3>> visual_frame_pos;
        std::vector<int> visual_frame_mesh_ids;
@@ -165,7 +218,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        double target_x = 0.0;
        double target_y = 0.0;
        double speed = 0.7;
-@@ -960,9 +994,13 @@ namespace
+@@ -960,9 +1002,13 @@ namespace
        int waypoint = 0;
        double last_progress_x = 0.0;
        double last_progress_y = 0.0;
@@ -181,7 +234,13 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      };
  
      struct CircleObstacle
-@@ -1035,10 +1073,35 @@ namespace
+@@ -1030,29 +1076,81 @@ namespace
+       return model->body_mocapid[body_id];
+     }
+ 
+-    void Initialize(mjModel *model)
++    void Initialize(mjModel *model, mjData *data)
+     {
        model_ = model;
        pedestrians_.clear();
        states_.clear();
@@ -205,21 +264,39 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
 +            throw std::runtime_error("Avoidance world exceeds pedestrian path-grid bounds");
 +          }
 +          benchmark_world_ = true;
++          mj_kinematics(model, data);
 +          for (int geom = 0; geom < model->ngeom; ++geom) {
-+            if (model->geom_bodyid[geom] == 0 && model->geom_type[geom] == mjGEOM_BOX &&
-+                model->geom_contype[geom] != 0) {
-+              benchmark_boxes_.push_back({model->geom_pos[3*geom], model->geom_pos[3*geom+1],
-+                model->geom_size[3*geom], model->geom_size[3*geom+1]});
-+            }
++            const int body = model->geom_bodyid[geom];
++            if (model->body_weldid[body] != 0 || model->body_mocapid[body] >= 0 || model->geom_contype[geom] == 0) {continue;}
++            const auto *position = data->geom_xpos+3*geom;
++            const auto *rotation = data->geom_xmat+9*geom;
++            const auto *size = model->geom_size+3*geom;
++            double hx=0., hy=0., hz=0.;
++            if (model->geom_type[geom] == mjGEOM_BOX) {
++              hx=std::abs(rotation[0])*size[0]+std::abs(rotation[1])*size[1]+std::abs(rotation[2])*size[2];
++              hy=std::abs(rotation[3])*size[0]+std::abs(rotation[4])*size[1]+std::abs(rotation[5])*size[2];
++              hz=std::abs(rotation[6])*size[0]+std::abs(rotation[7])*size[1]+std::abs(rotation[8])*size[2];
++            } else if (model->geom_type[geom] == mjGEOM_CYLINDER || model->geom_type[geom] == mjGEOM_CAPSULE) {
++              // Conservative projection; exact for the upright posts/tables in these worlds.
++              hx=size[0]+std::abs(rotation[2])*size[1];
++              hy=size[0]+std::abs(rotation[5])*size[1];
++              hz=size[0]+std::abs(rotation[8])*size[1];
++            } else if (model->geom_type[geom] == mjGEOM_SPHERE) {
++              hx=hy=hz=size[0];
++            } else {continue;}
++            if (position[2]-hz > 2.1 || position[2]+hz < .05) {continue;}
++            benchmark_boxes_.push_back({position[0],position[1],hx,hy});
 +          }
 +        }
 +      }
        if (socket_fd_ >= 0)
        {
          close(socket_fd_);
-@@ -1046,13 +1109,22 @@ namespace
+         socket_fd_ = -1;
        }
        enabled_ = ReadEnvBool("UNITREE_MUJOCO_PEDESTRIANS_ENABLE", true);
++      start_gate_.Reset(enabled_ && ReadEnvBool("UNITREE_MUJOCO_PEDESTRIAN_START_GATE", false),
++        ReadEnvString("UNITREE_MUJOCO_PEDESTRIAN_START_SOCKET", "/tmp/unitree_g1_pedestrian_start.sock"));
        pedestrian_scenario_ = ReadEnvString("UNITREE_MUJOCO_PEDESTRIAN_SCENARIO", "waypoints");
 +      pedestrian_seed_ = ReadEnvInt("UNITREE_MUJOCO_PEDESTRIAN_SEED", 42);
        const int configured_count = std::max(0, std::min(8, ReadEnvInt("UNITREE_MUJOCO_PEDESTRIANS_COUNT", 8)));
@@ -242,7 +319,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
  
        for (int i = 1; i <= requested_count; ++i)
        {
-@@ -1077,6 +1149,20 @@ namespace
+@@ -1077,6 +1175,20 @@ namespace
                  model->geom_pos[3 * geom_id + 2],
              });
              ped.visual_frame_mesh_ids.push_back(model->geom_dataid[geom_id]);
@@ -263,7 +340,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
            }
          }
          if (ped.torso >= 0 && ped.head >= 0)
-@@ -1089,12 +1175,64 @@ namespace
+@@ -1089,12 +1201,64 @@ namespace
        {
          PedestrianState state;
          const int index = static_cast<int>(i);
@@ -329,7 +406,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
          state.waypoint = index % PathLength(index);
          PathPoint(index, state.waypoint, state.x, state.y);
          if (!IsSpawnClear(state.x, state.y, states_))
-@@ -1119,7 +1257,8 @@ namespace
+@@ -1119,7 +1283,8 @@ namespace
        if (!pedestrians_.empty())
        {
          OpenSocket(ReadEnvString("UNITREE_MUJOCO_PEDESTRIAN_SOCKET", "/tmp/unitree_g1_mujoco_pedestrians.sock"));
@@ -339,7 +416,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        }
        else
        {
-@@ -1133,9 +1272,14 @@ namespace
+@@ -1133,9 +1298,14 @@ namespace
        return value - std::floor(value);
      }
  
@@ -356,7 +433,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      }
  
      void ConfigureEnduranceState(PedestrianState &state, int index) const
-@@ -1161,6 +1305,21 @@ namespace
+@@ -1161,6 +1331,21 @@ namespace
        state.last_progress_y = state.y;
      }
  
@@ -378,7 +455,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      void UpdateEnduranceState(PedestrianState &state, double animation_time, int index) const
      {
        const double start_y = index % 2 == 0 ? -2.40 : 1.50;
-@@ -1175,6 +1334,41 @@ namespace
+@@ -1175,6 +1360,41 @@ namespace
        state.pause_until = elapsed < duration ? start_time : std::numeric_limits<double>::infinity();
      }
  
@@ -420,7 +497,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      void RandomPoint(int pedestrian_index, int sample_index, double &x, double &y) const
      {
        if (IsLabMode())
-@@ -1196,13 +1390,21 @@ namespace
+@@ -1196,13 +1416,21 @@ namespace
        y = std::sin(angle) * (spawn_clearance_ + 1.2);
      }
  
@@ -444,7 +521,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        for (const BoxObstacle &box : box_obstacles_)
        {
          if (std::abs(x - box.x) <= box.half_x + margin && std::abs(y - box.y) <= box.half_y + margin)
-@@ -1238,7 +1440,16 @@ namespace
+@@ -1238,7 +1466,16 @@ namespace
  
      bool IsLabMode() const
      {
@@ -462,7 +539,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      }
  
      bool IsLabWalkable(double x, double y) const
-@@ -1279,7 +1490,7 @@ namespace
+@@ -1279,7 +1516,7 @@ namespace
      {
        bool pushed = false;
        const double margin = pedestrian_radius_;
@@ -471,7 +548,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        for (const BoxObstacle &box : boxes)
        {
          const double dx = state.x - box.x;
-@@ -1301,7 +1512,7 @@ namespace
+@@ -1301,7 +1538,7 @@ namespace
            pushed = true;
          }
        }
@@ -480,7 +557,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        {
          for (const CircleObstacle &circle : circle_obstacles_)
          {
-@@ -1348,7 +1559,7 @@ namespace
+@@ -1348,7 +1585,7 @@ namespace
  
      int PathLength(int index) const
      {
@@ -489,7 +566,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        {
          return 4;
        }
-@@ -1358,7 +1569,7 @@ namespace
+@@ -1358,7 +1595,7 @@ namespace
  
      void PathPoint(int index, int waypoint, double &x, double &y) const
      {
@@ -498,7 +575,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        {
          static const double lab_paths[2][4][2] = {
              {{-3.7, -2.1}, {-1.0, -2.1}, {2.5, -1.6}, {3.5, 1.2}},
-@@ -1438,13 +1649,215 @@ namespace
+@@ -1438,13 +1675,215 @@ namespace
        state.pause_until = pause_probability < 0.18 ? time + 0.3 + 1.0 * PseudoRandom01(index, state.waypoint, 5) : time;
      }
  
@@ -715,7 +792,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        const double start_x = state.x;
        const double start_y = state.y;
        double dx = state.target_x - state.x;
-@@ -1508,8 +1921,8 @@ namespace
+@@ -1508,8 +1947,8 @@ namespace
          }
        }
  
@@ -726,9 +803,18 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        state.x = std::max(-limit_x, std::min(limit_x, state.x));
        state.y = std::max(-limit_y, std::min(limit_y, state.y));
        state.vx = (state.x - start_x) / std::max(dt, 1e-6);
-@@ -1606,17 +2019,26 @@ namespace
+@@ -1600,23 +2039,33 @@ namespace
+ 
+     void MaybePublish(mjData *data)
+     {
+-      if (socket_fd_ < 0 || pedestrians_.empty() || animation_time_ - last_publish_time_ < 0.05)
++      const double publish_time = data ? data->time : animation_time_;
++      if (socket_fd_ < 0 || pedestrians_.empty() || publish_time - last_publish_time_ < 0.05)
+       {
+         return;
        }
-       last_publish_time_ = animation_time_;
+-      last_publish_time_ = animation_time_;
++      last_publish_time_ = publish_time;
        std::vector<uint8_t> packet;
 -      const uint32_t magic = 0x32444550;
 -      const uint32_t count = static_cast<uint32_t>(states_.size());
@@ -755,7 +841,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
          const int32_t id = static_cast<int32_t>(i + 1);
          const double radius = pedestrian_radius_;
          AppendBytes(packet, id);
-@@ -1638,8 +2060,25 @@ namespace
+@@ -1638,8 +2087,25 @@ namespace
  
      void AnimatePedestrian(const PedestrianBodies &ped, const PedestrianState &state, mjData *data, double animation_time, int index) const
      {
@@ -783,7 +869,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        if (dir_x * dir_x + dir_y * dir_y < 1e-6)
        {
          dir_x = std::cos(2.399963 * (index + 1));
-@@ -1648,11 +2087,11 @@ namespace
+@@ -1648,11 +2114,11 @@ namespace
        Normalize2(dir_x, dir_y);
        const double side_x = -dir_y;
        const double side_y = dir_x;
@@ -799,7 +885,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
        const double arm_stride = -stride;
        mjtNum facing[4];
        // RenderPeople meshes face Blender's -Y axis; rotate that forward axis onto the walking direction.
-@@ -1662,19 +2101,27 @@ namespace
+@@ -1662,19 +2128,27 @@ namespace
        const double head[3] = {root[0], root[1], 1.49 + bob};
        SetBody(data, ped.torso, torso, facing);
        SetBody(data, ped.head, head, facing);
@@ -831,12 +917,13 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
          model_->geom_rgba[4 * visible_geom_id + 3] = 1.0;
          for (size_t i = 0; i < ped.visual_frames.size(); ++i)
          {
-@@ -1717,10 +2164,16 @@ namespace
+@@ -1717,10 +2191,17 @@ namespace
      double last_publish_time_ = -10.0;
      mutable double last_debug_print_time_ = -10.0;
      int socket_fd_ = -1;
 +    int robot_root_body_id_ = -1;
 +    bool plaza_scene_ = false;
++    unitree_mujoco::PedestrianStartGate start_gate_;
 +    bool benchmark_world_ = false;
 +    double world_half_x_ = 8., world_half_y_ = 7.;
 +    std::vector<BoxObstacle> benchmark_boxes_;
@@ -848,7 +935,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
      const double spawn_clearance_ = 3.2;
      const double spawn_separation_ = 1.25;
      const double pedestrian_clearance_ = 0.8;
-@@ -1751,6 +2204,8 @@ namespace
+@@ -1751,18 +2232,24 @@ namespace
      };
      std::vector<PedestrianBodies> pedestrians_;
      std::vector<PedestrianState> states_;
@@ -857,15 +944,23 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
    };
  
    KinematicPedestrians kinematic_pedestrians;
-@@ -1763,6 +2218,7 @@ namespace
+ 
++  unitree_mujoco::BraincoHands brainco_hands;
++
+   bool StepOrHold(mjModel *model, mjData *data, UnitreeSDK2BridgeBase *bridge)
+   {
+     if (bridge)
+     {
+       bridge->ApplyCommand(model, data);
      }
++    brainco_hands.Update(model,data);
      if (startup_hold_gate.ShouldHold(model, data, bridge))
      {
 +      kinematic_pedestrians.MaybeAnimate(model, data);
        mj_forward(model, data);
        if (bridge)
        {
-@@ -2387,7 +2843,12 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
+@@ -2387,7 +2874,12 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
  #endif
  
  // user keyboard callback
@@ -878,7 +973,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
    if (act==GLFW_PRESS)
    {
      if(param::config.enable_elastic_band == 1) {
-@@ -2449,12 +2910,16 @@ int main(int argc, char **argv)
+@@ -2449,12 +2941,16 @@ int main(int argc, char **argv)
    // simulate object encapsulates the UI
    auto sim = std::make_unique<mj::Simulate>(
      std::make_unique<mj::GlfwAdapter>(),
@@ -897,6 +992,121 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..4c46a522f71195100e07144d105e5686
    sim->RenderLoop();
    physicsthreadhandle.join();
  
+diff --git a/simulate/src/mujoco_sensor_worker.h b/simulate/src/mujoco_sensor_worker.h
+index 6e4394c508ba98a5f9d8f65ff8828aac46e1f934..395f3b2484f77d2ffc8838937fbd4bd51f070767 100644
+--- a/simulate/src/mujoco_sensor_worker.h
++++ b/simulate/src/mujoco_sensor_worker.h
+@@ -32,7 +32,8 @@ public:
+ 
+   ~MujocoSensorWorker() { Shutdown(); }
+ 
+-  bool Reset(const mjModel *primary_model, Callback callback)
++  bool Reset(const mjModel *primary_model, Callback callback,
++    std::function<void(mjModel *)> prepare_model = {})
+   {
+     Shutdown();
+     model_ = mj_copyModel(nullptr, primary_model);
+@@ -40,6 +41,7 @@ public:
+     {
+       return false;
+     }
++    if (prepare_model) {prepare_model(model_);}
+     {
+       std::lock_guard<std::mutex> lock(pool_mutex_);
+       for (int index = 0; index < 3; ++index)
+diff --git a/simulate/src/simulated_manipulation.cc b/simulate/src/simulated_manipulation.cc
+index a3a98adf970546110e1ae8fcfaaeb528f47fb840..309c4ba899908a60f73e74188c2d56efaebd8bd0 100644
+--- a/simulate/src/simulated_manipulation.cc
++++ b/simulate/src/simulated_manipulation.cc
+@@ -512,11 +512,30 @@ SimulatedManipulation::CommandResult SimulatedManipulation::ExecuteCommand(
+     {
+       return {false, "nonfinite state"};
+     }
++    mjtNum capture_position[3];
++    mju_copy3(capture_position, palm_position);
++    double radius = capture_radius_;
++    // Transport fixtures calibrate the magnetic point on the visible hand,
++    // rather than treating the wrist joint origin as the palm. The weld still
++    // preserves the actual wrist/object transform; nothing is repositioned.
++    const int calibration = mj_name2id(model, mjOBJ_NUMERIC, "transport_hand_capture");
++    if (calibration >= 0 && model->numeric_size[calibration] == 4)
++    {
++      const mjtNum *values = model->numeric_data + model->numeric_adr[calibration];
++      if (!IsFinite(values, 4) || values[3] <= 0 || values[3] > 0.10)
++      {
++        return {false, "invalid hand capture calibration"};
++      }
++      mjtNum offset[3];
++      mju_rotVecQuat(offset, values, palm_quaternion);
++      mju_addTo3(capture_position, offset);
++      radius = values[3];
++    }
+     const double distance = std::hypot(
+-        std::hypot(object_position[0] - palm_position[0],
+-                   object_position[1] - palm_position[1]),
+-        object_position[2] - palm_position[2]);
+-    if (distance > capture_radius_)
++        std::hypot(object_position[0] - capture_position[0],
++                   object_position[1] - capture_position[1]),
++        object_position[2] - capture_position[2]);
++    if (distance > radius)
+     {
+       return {false, "outside capture radius"};
+     }
+diff --git a/simulate/test/simulated_manipulation_test.cc b/simulate/test/simulated_manipulation_test.cc
+index 1a2a7587d646fc61fe95c53cd0550cc36d750f4d..696c03453d315a6ce4ca28d33daeafb773af07be 100644
+--- a/simulate/test/simulated_manipulation_test.cc
++++ b/simulate/test/simulated_manipulation_test.cc
+@@ -195,6 +195,49 @@ int main()
+     }
+     mj_deleteModel(model);
+   }
++  const std::string magnetic_xml = R"(<mujoco>
++    <custom><numeric name="transport_hand_capture" data=".12 .01 0 .09"/></custom>
++    <worldbody>
++      <body name="right_wrist_yaw_link" pos="0 0 1" quat=".70710678 0 0 .70710678">
++        <geom type="sphere" size=".02" mass=".2"/>
++      </body>
++      <body name="manip_object_box_red" pos="-.01 .20 1"><freejoint/>
++        <geom type="box" size=".055 .055 .055" mass=".15"/>
++      </body>
++    </worldbody>
++    <equality><weld name="grasp_right_box_red" body1="right_wrist_yaw_link"
++      body2="manip_object_box_red" active="false"/></equality>
++  </mujoco>)";
++  mjVFS vfs;
++  mj_defaultVFS(&vfs);
++  mj_addBufferVFS(&vfs, "magnetic.xml", magnetic_xml.data(), magnetic_xml.size());
++  model = mj_loadXML("magnetic.xml", &vfs, error, sizeof(error));
++  mj_deleteVFS(&vfs);
++  Check(model != nullptr, error);
++  if (model) {
++    mjData *data = mj_makeData(model);
++    mj_forward(model, data);
++    unitree_mujoco::SimulatedManipulation manager;
++    manager.Reset(model, data);
++    SendCommand(client_fd, command_path, "GRASP right box_red");
++    manager.Update(model, data);
++    CheckAcknowledgement(client_fd, "OK GRASP right box_red");
++    Check(data->eq_active[0] == 1, "rotated physical hand point enables magnetic attachment");
++    Check(std::abs(data->qpos[0]+.01)<1e-12 && std::abs(data->qpos[1]-.20)<1e-12,
++          "magnetic attachment must not reposition the object");
++    SendCommand(client_fd, command_path, "RELEASE right");
++    manager.Update(model, data);
++    CheckAcknowledgement(client_fd, "OK RELEASE right");
++    data->qpos[1] = .24;
++    mj_forward(model, data);
++    SendCommand(client_fd, command_path, "GRASP right box_red");
++    manager.Update(model, data);
++    CheckAcknowledgement(client_fd, "ERROR outside capture radius");
++    Check(data->eq_active[0] == 0, "distant object cannot attach magnetically");
++    manager.Reset(nullptr, nullptr);
++    mj_deleteData(data);
++    mj_deleteModel(model);
++  }
+   if (client_fd >= 0)
+   {
+     close(client_fd);
 diff --git a/unitree_robots/g1/scene_29dof_extreme_lab.xml b/unitree_robots/g1/scene_29dof_extreme_lab.xml
 index e9f5d71b344ec73060ecd9fc511b9f71690887b8..9a6e5d831ed04ee5f4fb57c39dd130de02c792f1 100644
 --- a/unitree_robots/g1/scene_29dof_extreme_lab.xml
@@ -1715,6 +1925,378 @@ index 0000000..e4394c5
 +    }
 +    CHECK(unitree_mujoco::PlanPedestrianPath({0.0, 0.0}, {1.0, 0.0}, [](double, double) { return false; }).empty());
 +    return 0;
++}
+diff --git a/simulate/src/pedestrian_start_gate.h b/simulate/src/pedestrian_start_gate.h
+new file mode 100644
+index 0000000..e2ae90f
+--- /dev/null
++++ b/simulate/src/pedestrian_start_gate.h
+@@ -0,0 +1,69 @@
++#pragma once
++
++#include <algorithm>
++#include <cstdint>
++#include <cstring>
++#include <stdexcept>
++#include <string>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <unistd.h>
++
++namespace unitree_mujoco {
++// Episode-start barrier only. Once released, robot state/goals cannot pause,
++// reset or otherwise influence pedestrian behavior.
++class PedestrianStartGate {
++public:
++  static constexpr std::uint32_t request_magic = 0x31535047;
++  static constexpr std::uint32_t ack_magic = 0x31415347;
++  PedestrianStartGate() = default;
++  PedestrianStartGate(const PedestrianStartGate &) = delete;
++  PedestrianStartGate &operator=(const PedestrianStartGate &) = delete;
++  ~PedestrianStartGate() {Close();}
++
++  void Reset(bool enabled, const std::string &path) {
++    Close(); enabled_ = enabled; started_ = !enabled; start_time_ = 0.;
++    if (!enabled) {return;}
++    sockaddr_un address{};
++    if (path.size() >= sizeof(address.sun_path)) {throw std::runtime_error("Pedestrian start socket path too long");}
++    path_ = path;
++    fd_ = socket(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0);
++    if (fd_ < 0) {throw std::runtime_error("Cannot create pedestrian start socket");}
++    address.sun_family = AF_UNIX;
++    std::strncpy(address.sun_path, path.c_str(), sizeof(address.sun_path)-1);
++    unlink(path.c_str());
++    if (bind(fd_, reinterpret_cast<sockaddr *>(&address), sizeof(address)) != 0) {
++      Close(); throw std::runtime_error("Cannot bind pedestrian start socket");
++    }
++  }
++
++  void Update(double simulation_time) {
++    if (fd_ < 0) {return;}
++    for (int attempt=0; attempt<16; ++attempt) {
++      std::uint32_t request[3]{};
++      sockaddr_un peer{}; socklen_t length=sizeof(peer);
++      const auto received=recvfrom(fd_, request, sizeof(request), MSG_DONTWAIT,
++        reinterpret_cast<sockaddr *>(&peer), &length);
++      if (received < 0) {break;}
++      if (received != 8 || request[0] != request_magic || request[1] != 1) {continue;}
++      if (!started_) {started_=true; start_time_=simulation_time;}
++      const std::uint32_t reply[2]={ack_magic, 1};
++      sendto(fd_, reply, sizeof(reply), MSG_DONTWAIT, reinterpret_cast<sockaddr *>(&peer), length);
++    }
++  }
++  bool Started() const {return started_;}
++  double Elapsed(double simulation_time) const {
++    return enabled_ ? (started_ ? std::max(0., simulation_time-start_time_) : 0.) : simulation_time;
++  }
++
++private:
++  void Close() {
++    if (fd_ >= 0) {close(fd_); fd_=-1;}
++    if (!path_.empty()) {unlink(path_.c_str()); path_.clear();}
++  }
++  int fd_=-1;
++  bool enabled_=false, started_=true;
++  double start_time_=0.;
++  std::string path_;
++};
++}
+diff --git a/simulate/test/pedestrian_start_gate_test.cc b/simulate/test/pedestrian_start_gate_test.cc
+new file mode 100644
+index 0000000..c0b98d2
+--- /dev/null
++++ b/simulate/test/pedestrian_start_gate_test.cc
+@@ -0,0 +1,40 @@
++#include "pedestrian_start_gate.h"
++#include <cstddef>
++#include <iostream>
++
++void Require(bool condition, const char *message) {
++  if (!condition) {std::cerr << message << std::endl; std::exit(1);}
++}
++
++int main() {
++  using Gate = unitree_mujoco::PedestrianStartGate;
++  Gate gate;
++  const auto path = "/tmp/unitree-pedestrian-gate-test-" + std::to_string(getpid()) + ".sock";
++  gate.Reset(true, path);
++  gate.Update(10.);
++  Require(!gate.Started() && gate.Elapsed(10.) == 0., "Crowd moved before start acknowledgement");
++  const int client = socket(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0);
++  sockaddr_un local{}; local.sun_family=AF_UNIX;
++  const auto name = "unitree-gate-client-" + std::to_string(getpid());
++  std::memcpy(local.sun_path+1, name.data(), name.size());
++  Require(bind(client, reinterpret_cast<sockaddr *>(&local), offsetof(sockaddr_un,sun_path)+1+name.size()) == 0, "Client bind failed");
++  sockaddr_un target{}; target.sun_family=AF_UNIX;
++  std::strncpy(target.sun_path,path.c_str(),sizeof(target.sun_path)-1);
++  auto send = [&](std::uint32_t magic) {
++    const std::uint32_t packet[2]={magic,1};
++    Require(sendto(client,packet,sizeof(packet),0,reinterpret_cast<sockaddr *>(&target),sizeof(target))==8, "Send failed");
++  };
++  send(0); gate.Update(11.);
++  Require(!gate.Started(), "Malformed request started crowd");
++  send(Gate::request_magic); gate.Update(12.);
++  Require(gate.Started() && gate.Elapsed(14.)==2., "Scenario clock did not start at release");
++  std::uint32_t reply[2]{};
++  Require(recv(client,reply,sizeof(reply),0)==8 && reply[0]==Gate::ack_magic, "Missing acknowledgement");
++  send(Gate::request_magic); gate.Update(20.);
++  Require(gate.Elapsed(20.)==8., "Repeated goal reset pedestrian motion");
++  gate.Reset(true,path);
++  Require(!gate.Started() && gate.Elapsed(30.)==0., "New episode retained old start");
++  gate.Reset(false,path);
++  Require(gate.Started() && gate.Elapsed(30.)==30., "Ungated scenarios changed");
++  close(client);
++}
+diff --git a/simulate/src/raycast_model.h b/simulate/src/raycast_model.h
+new file mode 100644
+index 0000000..57bdd04
+--- /dev/null
++++ b/simulate/src/raycast_model.h
+@@ -0,0 +1,28 @@
++#pragma once
++#include <mujoco/mujoco.h>
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++
++namespace unitree_mujoco {
++inline std::uint16_t OpticalDepthMillimeters(double range, double ray_z) {
++  const double z = range * ray_z;
++  if (!std::isfinite(z) || range < 0. || z <= 0.) {return 0;}
++  return static_cast<std::uint16_t>(std::min(65535., z * 1000.));
++}
++// Apply only to a sensor's private model copy. This implements the existing
++// robot-exclusion policy before batched ray traversal, instead of repeatedly
++// intersecting and stepping through robot meshes for each self hit.
++inline void ExcludeRobotFromRays(mjModel *model, int root_body) {
++  if (!model || root_body < 1) {return;}
++  for (int geom=0; geom<model->ngeom; ++geom) {
++    int body=model->geom_bodyid[geom];
++    while (body > 0 && body != root_body) {body=model->body_parentid[body];}
++    if (body == root_body) {
++      // MuJoCo ray visibility uses material alpha when a material is assigned.
++      model->geom_matid[geom]=-1;
++      model->geom_rgba[4*geom+3]=0.;
++    }
++  }
++}
++}
+diff --git a/simulate/test/raycast_model_test.cc b/simulate/test/raycast_model_test.cc
+new file mode 100644
+index 0000000..05efa58
+--- /dev/null
++++ b/simulate/test/raycast_model_test.cc
+@@ -0,0 +1,48 @@
++#include "raycast_model.h"
++#include <cmath>
++#include <cstdlib>
++#include <fstream>
++#include <iostream>
++#include <string>
++#include <unistd.h>
++
++void Require(bool value, const char *message) {
++  if (!value) {std::cerr << message << std::endl; std::exit(1);}
++}
++int main() {
++  // Off-axis points on a fronto-parallel plane must retain optical Z=2 m.
++  for (double x : {-1.5, 0., 1.5}) {
++    const double range = std::hypot(x, 2.);
++    const double depth = .001 * unitree_mujoco::OpticalDepthMillimeters(range, 2./range);
++    Require(std::abs(depth-2.) <= .001, "Camera publishes ray range instead of optical depth");
++    Require(std::abs((x/2.)*depth-x) <= .001, "Registered back-projection stretches lateral position");
++  }
++  Require(unitree_mujoco::OpticalDepthMillimeters(-1., 1.) == 0, "Invalid depth was encoded");
++  const auto path="/tmp/unitree-ray-model-"+std::to_string(getpid())+".xml";
++  {
++    std::ofstream xml(path);
++    xml << R"(<mujoco><asset><material name="shared" rgba="1 1 1 1"/></asset>
++    <worldbody><geom name="obstacle" type="sphere" pos="2 0 1" size=".2" material="shared"/>
++    <body name="pelvis" pos="0 0 1"><freejoint/><geom name="robot" type="sphere" size=".4" material="shared"/>
++    <body pos=".55 0 0"><joint type="hinge"/><geom name="arm" type="sphere" size=".1" material="shared"/></body>
++    </body></worldbody></mujoco>)";
++  }
++  char error[1024]{};
++  auto *primary=mj_loadXML(path.c_str(),nullptr,error,sizeof(error)); unlink(path.c_str());
++  Require(primary != nullptr,error);
++  auto *copy=mj_copyModel(nullptr,primary);
++  auto *data=mj_makeData(primary); mj_forward(primary,data);
++  const int root=mj_name2id(primary,mjOBJ_BODY,"pelvis");
++  const int robot=mj_name2id(primary,mjOBJ_GEOM,"robot");
++  const int arm=mj_name2id(primary,mjOBJ_GEOM,"arm");
++  const int obstacle=mj_name2id(primary,mjOBJ_GEOM,"obstacle");
++  unitree_mujoco::ExcludeRobotFromRays(copy,root);
++  Require(primary->geom_matid[robot]>=0 && primary->geom_rgba[4*robot+3]==1., "Primary model was modified");
++  Require(copy->geom_matid[robot]==-1 && copy->geom_rgba[4*arm+3]==0., "Robot descendants remain in rays");
++  Require(copy->geom_matid[obstacle]==primary->geom_matid[obstacle], "Environment material changed");
++  const mjtNum origin[3]={0,0,1}, direction[3]={1,0,0}; int id=-1;
++  const auto distance=mj_ray(copy,data,origin,direction,nullptr,1,-1,&id);
++  Require(id==obstacle && std::abs(distance-1.8)<1e-8, "Environment intersection changed after self exclusion");
++  Require(mj_ray(primary,data,origin,direction,nullptr,1,-1,&id)<1. && id==robot, "Primary ray visibility changed");
++  mj_deleteData(data); mj_deleteModel(copy); mj_deleteModel(primary);
++}
+diff --git a/simulate/test/transport_worlds_test.cc b/simulate/test/transport_worlds_test.cc
+new file mode 100644
+index 0000000..4c4d285
+--- /dev/null
++++ b/simulate/test/transport_worlds_test.cc
+@@ -0,0 +1,36 @@
++#include <mujoco/mujoco.h>
++#include <cmath>
++#include <cstdlib>
++#include <iostream>
++#include <string>
++
++void Require(bool value, const char *message) {
++  if (!value) {std::cerr << message << std::endl; std::exit(1);}
++}
++int main() {
++  for (const auto *name : {"workshop", "office_delivery", "plaza_delivery"}) {
++    const auto path=std::string(G1_ASSET_DIRECTORY)+"/scene_29dof_transport_"+name+".xml";
++    char error[2048]{};
++    auto *model=mj_loadXML(path.c_str(),nullptr,error,sizeof(error));
++    Require(model != nullptr,error);
++    auto *data=mj_makeData(model);
++    const int key=mj_name2id(model,mjOBJ_KEY,"transport_unitree_rl_lab_stand");
++    Require(key>=0,"Missing transport policy keyframe");
++    Require(mj_name2id(model,mjOBJ_EQUALITY,"manipulation_base_pin")<0,"Transport fixture must not pin the base");
++    mj_resetDataKeyframe(model,data,key); mj_forward(model,data);
++    const int count=std::string(name)=="office_delivery" ? 3 : 2;
++    Require(model->neq==count*2,"Missing per-object grasp constraints");
++    for (int i=0; i<model->neq; ++i) {Require(!data->eq_active[i],"Object starts attached");}
++    for (int step=0; step<200; ++step) {mj_step(model,data);}
++    for (int i=0; i<count; ++i) {
++      const auto color=std::string(i==0?"red":i==1?"blue":"green");
++      const int body=mj_name2id(model,mjOBJ_BODY,("manip_object_box_"+color).c_str());
++      Require(body>=0,"Missing box");
++      Require(std::abs(data->xpos[3*body+2]-1.005)<.015,"Box is not supported by its physical table");
++      const int top=mj_name2id(model,mjOBJ_GEOM,("pickup_"+color+"_top").c_str());
++      Require(top>=0 && model->geom_contype[top] && model->geom_conaffinity[top],"Table is only decorative");
++      Require(mj_name2id(model,mjOBJ_BODY,("manip_surface_target_"+color).c_str())>=0,"Missing matching destination");
++    }
++    mj_deleteData(data); mj_deleteModel(model);
++  }
++}
+diff --git a/simulate/src/brainco_hand.h b/simulate/src/brainco_hand.h
+new file mode 100644
+index 0000000..8a00955
+--- /dev/null
++++ b/simulate/src/brainco_hand.h
+@@ -0,0 +1,115 @@
++#pragma once
++#include <mujoco/mujoco.h>
++#include <unitree/idl/go2/MotorCmds_.hpp>
++#include <unitree/idl/go2/MotorStates_.hpp>
++#include <unitree/robot/channel/channel_publisher.hpp>
++#include <unitree/robot/channel/channel_subscriber.hpp>
++#include <algorithm>
++#include <array>
++#include <cmath>
++#include <limits>
++#include <memory>
++#include <mutex>
++#include <string>
++
++namespace unitree_mujoco {
++// Revo2 hardware-compatible six-channel transport. Finger forces act on their
++// own DOFs; the existing 29 body actuators/sensor ordering remain unchanged.
++class BraincoHands {
++  using Command = unitree_go::msg::dds_::MotorCmds_;
++  using State = unitree_go::msg::dds_::MotorStates_;
++  struct Hand {
++    std::mutex mutex;
++    std::array<int,6> joint{}, qpos{}, dof{};
++    std::array<double,6> target{}, reference{}, speed{1,1,1,1,1,1};
++    bool enabled = false;
++    std::shared_ptr<unitree::robot::ChannelSubscriber<Command>> subscriber;
++    std::shared_ptr<unitree::robot::ChannelPublisher<State>> publisher;
++  };
++  std::array<Hand,2> hands_;
++  const mjModel *model_ = nullptr;
++  double last_time_ = -1., next_state_ = 0.;
++  const std::array<std::string,6> names_ = {"thumb_proximal", "thumb_metacarpal",
++      "index_proximal", "middle_proximal", "ring_proximal", "pinky_proximal"};
++  const std::array<double,6> speeds_ = {2.5303,2.6175,2.2685,2.2685,2.2685,2.2685};
++
++  void Receive(std::size_t side, const void *message) {
++    const auto &command = *static_cast<const Command *>(message);
++    if (command.cmds().size() != 6) {return;}
++    for (const auto &motor : command.cmds()) {
++      if (!std::isfinite(motor.q()) || !std::isfinite(motor.dq())) {return;}
++    }
++    auto &hand = hands_[side];
++    std::lock_guard<std::mutex> lock(hand.mutex);
++    for (std::size_t i=0; i<6; ++i) {
++      hand.target[i] = std::clamp<double>(command.cmds()[i].q(),0.,1.);
++      hand.speed[i] = std::clamp<double>(command.cmds()[i].dq(),0.,1.);
++    }
++  }
++
++  void Bind(const mjModel *model, const mjData *data) {
++    model_ = model;
++    next_state_ = 0.;
++    for (std::size_t side=0; side<2; ++side) {
++      auto &hand = hands_[side];
++      const std::string prefix = side == 0 ? "left" : "right";
++      hand.enabled = true;
++      for (std::size_t i=0; i<6; ++i) {
++        const int joint = mj_name2id(model,mjOBJ_JOINT,(prefix+"_"+names_[i]+"_joint").c_str());
++        if (joint < 0) {hand.enabled = false; break;}
++        hand.joint[i] = joint;
++        hand.qpos[i] = model->jnt_qposadr[joint];
++        hand.dof[i] = model->jnt_dofadr[joint];
++        hand.reference[i] = data->qpos[hand.qpos[i]];
++      }
++      if (!hand.enabled) {continue;}
++      {
++        std::lock_guard<std::mutex> lock(hand.mutex);
++        hand.target.fill(0.);
++        hand.speed.fill(1.);
++      }
++      if (!hand.publisher) {
++        hand.publisher = std::make_shared<unitree::robot::ChannelPublisher<State>>("rt/brainco/"+prefix+"/state");
++        hand.publisher->InitChannel();
++        hand.subscriber = std::make_shared<unitree::robot::ChannelSubscriber<Command>>("rt/brainco/"+prefix+"/cmd");
++        hand.subscriber->InitChannel([this,side](const void *msg){Receive(side,msg);},1);
++      }
++    }
++  }
++
++ public:
++  void Update(const mjModel *model, mjData *data) {
++    if (model != model_ || data->time < last_time_) {Bind(model,data);}
++    last_time_ = data->time;
++    const bool publish = data->time >= next_state_;
++    if (publish) {next_state_ = data->time+.02;}
++    for (auto &hand : hands_) {
++      if (!hand.enabled) {continue;}
++      std::array<double,6> target, speed;
++      {
++        std::lock_guard<std::mutex> lock(hand.mutex);
++        target = hand.target;
++        speed = hand.speed;
++      }
++      State state;
++      state.states().resize(6);
++      for (std::size_t i=0; i<6; ++i) {
++        const int joint = hand.joint[i];
++        const double lo = model->jnt_range[2*joint], hi = model->jnt_range[2*joint+1];
++        const double desired = lo+target[i]*(hi-lo);
++        const double step = speeds_[i]*speed[i]*model->opt.timestep;
++        hand.reference[i] += std::clamp(desired-hand.reference[i],-step,step);
++        const double q = data->qpos[hand.qpos[i]], dq = data->qvel[hand.dof[i]];
++        // Simulation motor model, not a claimed calibration of hardware current.
++        const double limit = i == 1 ? .08 : .18;
++        data->qfrc_applied[hand.dof[i]] = std::clamp(4.*(hand.reference[i]-q)-.04*dq,-limit,limit);
++        state.states()[i].q() = std::clamp((q-lo)/(hi-lo),0.,1.);
++        state.states()[i].dq() = std::clamp(std::abs(dq)/speeds_[i],0.,1.);
++        // The vendor uses tau_est for amperes. No current sensor is simulated.
++        state.states()[i].tau_est() = std::numeric_limits<float>::quiet_NaN();
++      }
++      if (publish) {hand.publisher->Write(state);}
++    }
++  }
++};
 +}
 diff --git a/tools/generate_natural_pedestrians.py b/tools/generate_natural_pedestrians.py
 new file mode 100644

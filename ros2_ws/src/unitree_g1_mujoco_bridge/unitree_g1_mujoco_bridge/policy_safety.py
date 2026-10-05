@@ -95,7 +95,7 @@ def ensure_forward_turning_arc(
 ) -> list[float]:
     values = [float(value) for value in command]
     if len(values) >= 3 and abs(values[2]) >= max(0.0, yaw_threshold):
-        if values[0] < max(0.0, minimum_forward):
+        if minimum_forward > 0.0 and values[0] < minimum_forward:
             values[0] = max(0.0, minimum_forward)
         if abs(values[2]) < max(0.0, minimum_yaw):
             values[2] = math.copysign(max(0.0, minimum_yaw), values[2])

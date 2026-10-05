@@ -72,6 +72,10 @@ def test_axis_isolated_commands_rotate_then_translate():
     assert command == [0.05, 0.0, 0.0]
 
 
+def test_disabled_turning_arc_preserves_reverse_and_turn_requests():
+    assert ensure_forward_turning_arc([-.3,.1,.35],.05,0.,0.) == [-.3,.1,.35]
+
+
 def test_turning_arc_adds_forward_floor_only_while_turning():
     assert ensure_forward_turning_arc([0.0, 0.0, -0.10], 0.05, 0.10) == [
         0.10,

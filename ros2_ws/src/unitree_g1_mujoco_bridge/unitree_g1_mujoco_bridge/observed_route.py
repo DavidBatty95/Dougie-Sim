@@ -4,6 +4,19 @@ import math
 import numpy as np
 
 
+def people_clear_corridor(start, finish, people, robot_radius, margin=.4, horizon=3.):
+    """Conservative admission for a shortcut, not a replacement collision test."""
+    dx, dy = finish[0]-start[0], finish[1]-start[1]
+    norm = max(1e-12, dx*dx+dy*dy)
+    for x, y, vx, vy, radius in people:
+        for time in np.linspace(0., horizon, max(2, math.ceil(horizon/.5)+1)):
+            px, py = x+vx*time, y+vy*time
+            fraction = max(0., min(1., ((px-start[0])*dx+(py-start[1])*dy)/norm))
+            if math.hypot(px-start[0]-fraction*dx, py-start[1]-fraction*dy) < robot_radius+radius+margin:
+                return False
+    return True
+
+
 def route_is_free(grid, path, radius):
     if grid is None or not path.poses or path.header.frame_id != grid.header.frame_id:
         return False

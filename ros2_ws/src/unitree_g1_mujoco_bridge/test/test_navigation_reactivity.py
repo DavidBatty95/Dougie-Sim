@@ -14,10 +14,10 @@ from rclpy.duration import Duration
 from tf2_ros import TransformException
 
 from unitree_g1_mujoco_bridge.dynamic_obstacle_tracker import (
-    DynamicObstacleTracker, PersonDetection, Track, _motion_covariance, predict_track_motion,
+    Cluster, DynamicObstacleTracker, PersonDetection, Track, _motion_covariance, predict_track_motion,
 )
 from unitree_g1_mujoco_bridge.human_aware_motion_planner import (
-    Candidate, HumanAwareMotionPlanner, HumanTrack,
+    Candidate, HumanAwareMotionPlanner, HumanTrack, PredictionSample,
 )
 from unitree_g1_mujoco_bridge.motion_envelope import MotionEnvelope
 from unitree_g1_mujoco_bridge.human_collision_avoidance import HumanCollisionAvoidance
@@ -51,6 +51,101 @@ def observe(node, stamp, x, y=0.0):
     cluster = node._cluster_from_detection(PersonDetection(x, y, 0.8, 0.9, 0.35, stamp))
     assignments = node._global_track_assignments([cluster], stamp)
     return node._match_track(cluster, stamp, set(), assignments.get(0))
+
+
+def test_wall_crops_cannot_refresh_person_tracks(tracker):
+    tracker.tracks[1] = Track(2.,0.,10.,2.,0.,confirmed=True,confidence=1.,height=1.6)
+    wall = [(2.,float(y),z) for y in np.linspace(-.54,.54,19) for z in (.2,.6,1.,1.4,1.8)]
+    assert tracker._track_conditioned_crops(wall,[],10.1) == []
+
+
+def test_partial_crops_do_not_reuse_one_body_for_multiple_identities(tracker):
+    tracker.tracks[1] = Track(2.,0.,10.,2.,0.,confirmed=True,confidence=1.,height=1.6)
+    tracker.tracks[2] = Track(2.01,0.,10.,2.01,0.,confirmed=True,confidence=1.,height=1.6)
+    points = [(2.+x,y,z) for x in (-.1,.1) for y in (-.1,.1) for z in (.5,.7,.9)]
+    assert len(tracker._track_conditioned_crops(points,[],10.1)) == 1
+
+
+def test_partial_updates_cannot_extend_full_observation_age_indefinitely(tracker):
+    from dataclasses import replace
+    for index in range(20):
+        track_id,track = observe(tracker,10.+index*.1,2.)
+    assert track.confirmed
+    full_stamp = track.last_full_stamp
+    cluster = replace(tracker._cluster_from_detection(PersonDetection(2.,0.,.8,.9,.35,12.)),
+                      partial_observation=True)
+    for elapsed in (.2,.4,.6,.8):
+        stamp = full_stamp+elapsed
+        assert tracker._partial_confirmed_observation(cluster,stamp)
+        _,track = tracker._match_track(cluster,stamp,set(),track_id)
+        assert track.last_full_stamp == full_stamp
+    assert not tracker._partial_confirmed_observation(cluster,full_stamp+tracker.partial_observation_timeout+.1)
+    assert track.confidence < 1.
+
+
+def test_low_furniture_cannot_birth_a_person_but_partial_known_people_remain(tracker):
+    from dataclasses import replace
+    tracker.min_person_top_height = 1.
+    tracker.require_person_shape_for_object_detection = True
+    table = Cluster(2.,0.,.6,.35,40,.6,.5,.8,4,{(2,0),(2,1),(3,0),(3,1)},z_max=.9)
+    assert not tracker._is_object_candidate_cluster(table,(0.,0.))
+    assert table.rejection_reason == 'top_height_gate'
+    person = replace(table,z=1.,height=1.6,z_max=1.8)
+    assert tracker._is_object_candidate_cluster(person,(0.,0.))
+    tracker.tracks[1] = Track(2.,0.,10.,2.,0.,confirmed=True,confidence=1.,person_score=1.)
+    points = [(2.+.03*i,.02*(i%2),.3+.05*i) for i in range(8)]
+    crops = tracker._track_conditioned_crops(points,[],10.1)
+    assert len(crops) == 1 and crops[0].partial_observation
+    assert crops[0].z_max < tracker.min_person_top_height
+
+
+def test_torso_centroid_is_stable_when_lower_body_sampling_changes(tracker):
+    tracker.use_torso_centroid = True
+    torso = [(2.+x,y,z) for x in (-.05,.05) for y in (-.05,.05) for z in (.9,1.1,1.3)]
+    lower = [(2.2,0.,z) for z in (.3,.5,.7)]
+    sparse = tracker._clusters(torso+lower,robot_xy=(0.,0.))
+    dense = tracker._clusters(torso+lower*8,robot_xy=(0.,0.))
+    assert len(sparse) == len(dense) == 1
+    assert sparse[0].x == pytest.approx(2.)
+    assert dense[0].x == pytest.approx(sparse[0].x)
+    assert dense[0].count > sparse[0].count
+    assert dense[0].height == pytest.approx(sparse[0].height)
+
+
+def test_static_grid_ambiguity_does_not_trap_a_clear_robot_beside_a_wall():
+    field = StaticDistanceField([(0.,.58)],(0.,0.),3.2,1.25)
+    assert field.query([(0.,0.)])[0] < .48
+    assert not field.trajectory_is_blocked([(0.,0.),(0.,-.3)],.48)
+    assert field.trajectory_is_blocked([(0.,0.),(0.,.2)],.48)
+
+
+def test_static_margin_recovery_only_moves_clear_of_existing_reserve_overlap():
+    field = StaticDistanceField([(0.,.43)],(0.,0.),3.2,1.25)
+    assert field.trajectory_is_blocked([(0.,0.),(0.,-.3)],.48)
+    assert not field.trajectory_is_blocked([(0.,0.),(0.,-.3)],.48,recovery_radius=.38)
+    assert field.trajectory_is_blocked([(0.,0.),(0.,.02),(0.,-.3)],.48,recovery_radius=.38)
+    physical_overlap = StaticDistanceField([(0.,.3)],(0.,0.),3.2,1.25)
+    assert physical_overlap.trajectory_is_blocked([(0.,0.),(0.,-.3)],.48,recovery_radius=.38)
+
+
+def test_exact_static_refinement_checks_segments_and_keeps_unknown_window_blocked():
+    field = StaticDistanceField([(0.,.4)],(0.,0.),3.2,1.25)
+    assert field.trajectory_is_blocked([(-1.,0.),(1.,0.)],.48)
+    assert field.trajectory_is_blocked([(0.,0.),(4.,0.)],.48)
+
+
+def test_nearby_motion_uses_fresh_points_while_sparse_far_returns_accumulate(tracker):
+    tracker.near_accumulation_radius = 4.
+    tracker.near_accumulation_time = .05
+    tracker.point_accumulation_time = .2
+    tracker.enable_point_noise_filter = False
+    tracker._voxel_downsample = lambda points: points
+    captured = []
+    tracker._publish_clusters = lambda points, stamp, frame: captured.append(points)
+    tracker._publish_points([(1.,0.,1.),(6.,0.,1.)],100.,'world')
+    tracker._publish_points([(1.1,0.,1.),(6.1,0.,1.)],100.1,'world')
+    assert (1.,0.,1.) not in captured[-1]
+    assert set(captured[-1]) == {(1.1,0.,1.),(6.,0.,1.),(6.1,0.,1.)}
 
 
 @pytest.mark.parametrize("rate", [5, 10, 20, 30])
@@ -159,6 +254,72 @@ def test_track_crop_requires_returns_and_cannot_refresh_unseen_people(tracker):
     assert tracker._track_conditioned_crops(points, [], 15.0) == []
 
 
+@pytest.mark.parametrize('vx,vy', [(.65,.45), (-.45,.45), (.65,-.45)])
+def test_combined_translation_limit_preserves_heading_and_rollout_bound(vx, vy):
+    envelope = MotionEnvelope(max_x=.65, max_y=.45, accel_x=1.2, accel_y=1.2,
+                              max_planar_speed=.65)
+    x, y, _ = envelope.normalize((vx, vy, 0.))
+    assert math.hypot(x, y) <= .65 + 1e-9
+    assert x*vy == pytest.approx(y*vx)
+    trajectory = envelope.rollout((0.,0.,0.), (vx,vy,0.), (0.,0.,0.), 3., .1,
+                                  filtered_command=(0.,0.,0.))
+    for first, second in zip(trajectory, trajectory[1:]):
+        assert math.hypot(second[0]-first[0], second[1]-first[1]) / (second[3]-first[3]) <= .65+1e-9
+
+
+@pytest.mark.parametrize('filtered', [None, (0.,0.,0.)])
+def test_lateral_response_includes_measured_signed_heading_drift(filtered):
+    envelope = MotionEnvelope(max_y=.45, accel_y=1.2, lateral_gain=.8, lateral_yaw_gain=.1)
+    left = envelope.rollout((0.,0.,0.),(0.,.45,0.),(0.,0.,0.),6.,.05,.3,filtered_command=filtered)
+    right = envelope.rollout((0.,0.,0.),(0.,-.45,0.),(0.,0.,0.),6.,.05,.3,filtered_command=filtered)
+    assert .20 < left[-1][2] < .28
+    assert right[-1][2] == pytest.approx(-left[-1][2])
+    assert right[-1][1] == pytest.approx(-left[-1][1])
+
+
+def test_signed_lateral_response_matches_distinct_stop_distances():
+    envelope = MotionEnvelope(max_y=.45,accel_y=2.4,lateral_gain=.8,negative_lateral_gain=.9,
+                              linear_time_constant=.4,positive_lateral_time_constant=.3)
+    left = envelope.rollout((0.,0.,0.),(0.,0.,0.),(0.,.36,0.),3.,.15,.1,filtered_command=(0.,.45,0.))
+    right = envelope.rollout((0.,0.,0.),(0.,0.,0.),(0.,-.405,0.),3.,.15,.1,filtered_command=(0.,-.45,0.))
+    assert .10 < left[-1][1] < .13
+    assert .14 < -right[-1][1] < .18
+
+
+def test_turn_response_distinguishes_walking_from_a_stationary_pivot():
+    envelope = MotionEnvelope(max_x=.65,max_yaw=.6,accel_x=2.4,accel_yaw=.9,
+                              yaw_gain=.32,walking_yaw_gain=.55)
+    walking = envelope.rollout((0.,0.,0.),(.3,0.,.35),(0.,0.,0.),6.,.05,
+                                filtered_command=(0.,0.,0.))
+    pivot = envelope.rollout((0.,0.,0.),(0.,0.,.35),(0.,0.,0.),6.,.05,
+                              filtered_command=(0.,0.,0.))
+    assert .9 < walking[-1][2] < 1.15
+    assert walking[-1][2] > 1.5*pivot[-1][2]
+
+
+def test_policy_slew_respects_combined_speed_without_exceeding_axis_slew():
+    from unitree_g1_mujoco_bridge.g1_policy_cmd_vel_controller import G1PolicyCmdVelController
+    params = dict(max_lin_vel_x=.65,max_lin_vel_y=.45,max_planar_speed=.65,
+                  cmd_accel_x=2.4,cmd_accel_y=2.4,axis_exclusive_cmd_vel=False)
+    node = SimpleNamespace(command_stopped=False,filtered_command=[.6,.2,0.],
+        has_parameter=lambda key: key in params,
+        declare_parameter=lambda key,value: params.setdefault(key,value),
+        get_parameter=lambda key: SimpleNamespace(value=params[key]))
+    command = G1PolicyCmdVelController._filtered_active_command(node,(.64,0.,0.),1/60)
+    assert math.hypot(*command[:2]) <= .65+1e-9
+    assert abs(command[0]-.6) <= .04+1e-9
+    assert abs(command[1]-.2) <= .04+1e-9
+
+
+def test_profile_command_cap_is_shared_with_policy_execution():
+    from pathlib import Path as FilePath
+    import yaml
+    profile = yaml.safe_load((FilePath(__file__).parents[2]/'unitree_g1_sim_bringup/config/social_navigation_onboard_v1.yaml').read_text())
+    limits = [profile[name]['ros__parameters']['max_planar_speed'] for name in
+              ('human_aware_motion_planner','human_collision_avoidance','g1_policy_cmd_vel_controller')]
+    assert limits == [.65,.65,.65]
+
+
 def test_budget_rechecks_stop_and_previous_and_does_not_starve_directions(planner, monkeypatch):
     import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
     clock = [0.0]
@@ -184,6 +345,76 @@ def test_budget_rechecks_stop_and_previous_and_does_not_starve_directions(planne
         assert names == checked[-5:]
         covered.update(names)
     assert covered == {candidate.name for candidate in candidates}
+
+
+@pytest.mark.parametrize("budget_ms", [1., 28.])
+def test_budget_covers_every_direction_even_with_one_optional_slot(planner, monkeypatch, budget_ms):
+    import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
+    clock = [0.]
+    monkeypatch.setattr(module.time, "perf_counter", lambda: clock[0])
+    planner.planning_budget_ms = budget_ms
+
+    def score(candidate, *args):
+        clock[0] += .007
+        return SimpleNamespace(candidate=candidate)
+
+    planner._score_candidate = score
+    priority = ("yield_stop", "previous_command", "raw_reference")
+    directions = tuple(f"direction_{i}" for i in range(12))
+    candidates = [Candidate(name, 0., 0., 0.) for name in priority + directions]
+    covered = set()
+    for _ in directions:
+        planner.planning_started = clock[0]
+        results = planner._evaluate_candidates(candidates, None, [], [], [], {}, 0.)
+        names = [result.candidate.name for result in results]
+        assert names[:3] == list(priority)
+        covered.update(names[3:])
+    assert covered == set(directions)
+
+
+def test_budget_checks_coarse_escape_directions_before_refinements(planner, monkeypatch):
+    import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
+    monkeypatch.setattr(module.time, 'perf_counter', lambda: 1.)
+    planner.planning_started = 0.
+    planner.planning_budget_ms = 1.
+    planner._score_candidate = lambda candidate, *args: SimpleNamespace(candidate=candidate)
+    coarse = [Candidate('escape_translation', vx, vy, 0.)
+              for vx in (-.45, 0., .65) for vy in (-.45, 0., .45) if vx or vy]
+    candidates = [Candidate('yield_stop', 0., 0., 0.),
+                  Candidate('fine_translation', .1, .1, 0.), *coarse]
+    results = planner._evaluate_candidates(candidates, None, [], [], [], {}, 0.)
+    checked = [result.candidate for result in results]
+    assert all(candidate in checked for candidate in coarse)
+    assert checked.index(coarse[-1]) < checked.index(candidates[1])
+
+
+def test_search_refines_a_narrow_safe_velocity_band_before_stopping(planner, monkeypatch):
+    import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
+    clock = [0.]
+    planner.translation_refinement_enabled = True
+    monkeypatch.setattr(module.time,'perf_counter',lambda: clock[0])
+    planner.motion_envelope = MotionEnvelope(max_x=.65,max_y=.45)
+    planner.max_forward_near_human = .65
+    planner.max_reverse_velocity = planner.max_lateral_near_human = .45
+    planner.planning_budget_ms = 20.
+    planner.planning_started = 0.
+    def score(candidate,*args):
+        clock[0] += .001
+        error = abs(candidate.vx-.53)
+        return SimpleNamespace(candidate=candidate,rejected=error>.01,min_human_distance=1.1-error,score=error)
+    planner._score_candidate = score
+    candidates = [Candidate('yield_stop',0.,0.,0.),Candidate('raw_reference',.325,0.,0.),
+                  Candidate('escape_translation',.65,0.,0.),Candidate('fine_translation',.2,0.,0.)]
+    results = planner._evaluate_candidates(candidates,None,[object()],[],[],{},0.)
+    assert any(not result.rejected and result.candidate.name == 'escape_refinement' for result in results)
+    assert any(result.candidate.name == 'fine_translation' for result in results)
+
+
+def test_equivalent_velocity_projections_do_not_consume_duplicate_rollouts(planner):
+    planner.motion_envelope = MotionEnvelope(max_x=.65,max_y=.45)
+    candidates = [Candidate('first',.3,.2,0.),Candidate('roundoff',.3+1e-12,.2,0.)]
+    executable = planner._executable_candidates(candidates)
+    assert len(executable) == 1 and executable[0].name == 'first'
 
 
 def test_coasting_uncertainty_is_elapsed_time_consistent():
@@ -459,6 +690,577 @@ def test_forward_preference_turns_for_travel_but_finishes_nearby_goals(planner):
         else:
             assert reference.linear.y < -.25
             assert reference.angular.z == 0.
+
+
+@pytest.mark.parametrize("heading", [math.pi/2, math.pi])
+def test_short_route_can_progress_without_stationary_alignment(planner, heading):
+    planner.prefer_forward_travel = True
+    planner.path_reference_holonomic_distance = 3.
+    goal = PoseStamped()
+    goal.header.frame_id = "world"
+    goal.pose.position.x = 2.
+    path = Path()
+    path.header.frame_id = "world"
+    path.poses = [goal]
+    planner._goal_callback(goal)
+    planner._path_callback(path)
+    reference = planner._path_reference((0., 0., heading))
+    world_x = math.cos(heading)*reference.linear.x - math.sin(heading)*reference.linear.y
+    assert world_x > .3
+    assert reference.angular.z == 0.
+
+
+def test_avoidance_detour_does_not_turn_a_short_goal_into_a_stationary_pivot(planner):
+    planner.prefer_forward_travel = True
+    planner.path_reference_holonomic_distance = 3.
+    goal = PoseStamped()
+    goal.header.frame_id = 'world'
+    goal.pose.position.x = 2.
+    path = Path()
+    path.header.frame_id = 'world'
+    path.poses = [goal]
+    planner._goal_callback(goal)
+    planner._path_callback(path)
+    planner._path_reference((0.,0.,math.pi/2))
+    detour = planner._path_reference((-2.,0.,math.pi/2))
+    assert detour.linear.y < 0. and detour.angular.z == 0.
+    replacement = PoseStamped()
+    replacement.header.frame_id = 'world'
+    replacement.pose.position.x = 7.
+    planner._goal_callback(replacement)
+    path.poses = [replacement]
+    planner._path_callback(path)
+    distant = planner._path_reference((0.,0.,math.pi/2))
+    assert distant.linear.y == 0. and distant.angular.z < 0.
+
+
+def test_heading_alignment_keeps_translating_and_stops_turning_near_people(planner):
+    planner.prefer_forward_travel = True
+    planner.holonomic_heading_alignment = True
+    planner.path_reference_holonomic_distance = 3.
+    goal = PoseStamped()
+    goal.header.frame_id = 'world'
+    goal.pose.position.x = 2.
+    path = Path()
+    path.header.frame_id = 'world'
+    path.poses = [goal]
+    planner._goal_callback(goal)
+    planner._path_callback(path)
+    planner._fresh_tracks = lambda now: []
+    command = planner._path_reference((0.,0.,math.pi/2))
+    assert command.linear.y < 0. and command.angular.z < 0.
+    planner._fresh_tracks = lambda now: [HumanTrack(1,'CONFIRMED',0.,2.,0.,0.,1.,1.,0,.002,.002,0.,.42)]
+    command = planner._path_reference((0.,0.,math.pi/2))
+    assert command.linear.y < 0. and command.angular.z == 0.
+
+
+def test_path_endpoint_tolerance_does_not_become_goal_arrival_tolerance(planner):
+    planner.prefer_forward_travel = True
+    goal = PoseStamped()
+    goal.header.frame_id = "world"
+    goal.pose.position.x = 2.
+    endpoint = PoseStamped()
+    endpoint.pose.position.x = 1.75
+    path = Path()
+    path.header.frame_id = "world"
+    path.poses = [endpoint]
+    planner._goal_callback(goal)
+    planner._path_callback(path)
+    command = planner._path_reference((1.35, 0., 0.))
+    assert command.linear.x >= .29
+    assert planner.reference_goal_world == (2., 0.)
+
+
+def test_onboard_objective_prefers_safe_progress_over_remaining_stopped(planner):
+    from pathlib import Path as FilePath
+    import yaml
+    profile = yaml.safe_load((FilePath(__file__).parents[2] / 'unitree_g1_sim_bringup/config/social_navigation_onboard_v1.yaml').read_text())['human_aware_motion_planner']['ros__parameters']
+    for name in planner.weights:
+        if name in profile:
+            planner.weights[name] = profile[name]
+    planner.motion_envelope = MotionEnvelope(max_x=.65, max_y=.45, accel_x=1.2,
+                                             accel_y=1.2, linear_time_constant=.4)
+    planner.measured_velocity = (0.,0.,0.)
+    planner.policy_command = (0.,0.,0.)
+    planner.policy_command_stamp = planner.get_clock().now().nanoseconds*1e-9
+    planner.last_cmd = Twist()
+    planner.nav2_path_reference = True
+    planner.prefer_forward_travel = True
+    planner.state = 'YIELD_TO_HUMAN'
+    planner.reference_goal_world = (3.,0.)
+    planner.reference_progress_target = (1.5,0.)
+    planner.horizon = 3.
+    person = HumanTrack(1,'CONFIRMED',0.,2.,0.,0.,1.,1.,0,.002,.002,planner.policy_command_stamp,.42)
+    stop = planner._score_candidate(Candidate('yield_stop',0.,0.,0.), (0.,0.,0.), [person], [], [], {}, 0.)
+    forward = planner._score_candidate(Candidate('forward',.65,0.,0.), (0.,0.,0.), [person], [], [], {}, 0.)
+    assert not forward.rejected
+    assert forward.score < stop.score
+
+
+def test_braked_step_does_not_pay_for_collision_beyond_its_stopping_point(planner):
+    planner.horizon = 3.
+    planner.hard_collision_horizon = 3.
+    planner.motion_envelope = MotionEnvelope(max_x=.65, accel_x=1.2)
+    planner.measured_velocity = (0., 0., 0.)
+    planner.dcpa_comfort_threshold = 1.2
+    planner.ttc_warning_threshold = 4.5
+    person = HumanTrack(1, 'CONFIRMED', 2., 0., 0., 0., 1., 1., 0, .002, .002, 0., .42)
+    candidate = Candidate('short_step', .65, 0., 0., '', 0., .6)
+    # An unbraked instantaneous command would hit this person; the actual
+    # command stops more than the comfort distance away over the full horizon.
+    assert planner._relative_metrics_for_candidate((0.,0.,0.), candidate, person)['tcpa'] < planner.ttc_warning_threshold
+    result = planner._score_candidate(candidate, (0.,0.,0.), [person], [], [], {}, 0.)
+    assert not result.rejected
+    assert result.min_human_distance > planner.dcpa_comfort_threshold
+    assert result.score_terms['ttc'] == 0.
+
+
+@pytest.mark.parametrize('distance,margin', [(2.5,.25), (3.5,.75)])
+def test_short_escape_does_not_choose_a_retreat_that_a_faster_person_catches(planner, distance, margin):
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.body_prediction_margin = margin
+    planner._simulate = lambda pose, c: [(c.vx*t, c.vy*t, 0., t) for t in np.linspace(0.,3.,31)]
+    person = HumanTrack(1,'CONFIRMED',distance,0.,-1.,0.,1.,1.,0,.002,.002,0.,.42)
+    candidates = [Candidate('yield_stop',0.,0.,0.), Candidate('retreat',-.45,0.,0.),
+                  Candidate('sidestep',0.,.45,0.)]
+    results = [planner._score_candidate(c,(0.,0.,0.),[person],[],[],{},0.) for c in candidates]
+    assert all(result.rejected for result in results)
+    # Retreat has the largest clearance gain at one second, but the person
+    # catches it. Sidestepping preserves more clearance over the full forecast.
+    if distance < 3.:
+        assert results[2].min_human_distance > results[1].min_human_distance
+    selected = planner._short_horizon_escape(results, [person])
+    assert selected is not None
+    assert selected.candidate.name == 'sidestep'
+
+
+def test_physical_body_collision_is_rejected_beyond_the_uncertainty_window(planner):
+    planner.horizon = 3.
+    planner.hard_collision_horizon = 1.
+    person = HumanTrack(1,'CONFIRMED',0.,-3.,0.,1.,1.,1.,0,.002,.002,0.,.42)
+    planner.measured_velocity = (0.,0.,0.)
+    result = planner._score_candidate(Candidate('hold',0.,0.,0.),(0.,0.,0.),[person],[],[],{},0.)
+    assert result.reason == 'hard_human_collision'
+    assert result.min_tcpa > planner.hard_collision_horizon
+
+
+def test_near_term_prediction_uncertainty_is_checked_as_clearance(planner):
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.body_prediction_margin = .4
+    planner.hard_safety_margin = .4
+    person = HumanTrack(1,'CONFIRMED',1.,1.3,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    predictions = {1:[PredictionSample(t,1.,1.3,0.,0.,cov,cov,1.)
+                      for t,cov in ((0.,.002),(1.,.16),(3.,1.))]}
+    candidate = Candidate('passing',.35,0.,0.)
+    nominal = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],predictions,0.)
+    assert not nominal.rejected
+    planner.body_uncertainty_scale = .5
+    robust = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],predictions,0.)
+    assert robust.reason == 'hard_human_collision'
+    sigma = next(iter(planner.prediction_cache.values()))[0][:,5]
+    assert max(sigma) == pytest.approx(.4)
+
+
+def test_social_cost_prefers_leaving_a_two_person_squeeze(planner):
+    planner.weights['w_enclosure'] = 12.
+    planner.motion_envelope = MotionEnvelope(max_y=.45,accel_y=2.4)
+    planner.measured_velocity = (0.,0.,0.)
+    people = [HumanTrack(i,'CONFIRMED',x,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+              for i,x in enumerate((-2.,2.))]
+    stop = planner._score_candidate(Candidate('stop',0.,0.,0.),(0.,0.,0.),people,[],[],{},0.)
+    leave = planner._score_candidate(Candidate('leave',0.,.45,0.),(0.,0.,0.),people,[],[],{},0.)
+    assert not stop.rejected and not leave.rejected
+    assert leave.score_terms['enclosure'] < stop.score_terms['enclosure']
+    single = planner._score_candidate(Candidate('stop',0.,0.,0.),(0.,0.,0.),people[:1],[],[],{},0.)
+    assert single.score_terms['enclosure'] == 0.
+
+
+def test_centroid_noise_does_not_create_walking_intent_but_geometry_still_applies(planner):
+    from dataclasses import replace
+    planner.human_intent_min_speed = .25
+    person = HumanTrack(1,'CONFIRMED',1.,-1.,0.,.2,1.,1.,0,.002,.002,0.,.42)
+    command = Candidate('crossing',.65,0.,0.)
+    assert not planner._relative_metrics_for_candidate((0.,0.,0.),command,person)['front_cut']
+    assert planner._relative_metrics_for_candidate((0.,0.,0.),command,replace(person,vy=.6))['front_cut']
+    stationary = replace(person, x=.5, y=0., vy=0.)
+    assert planner._score_candidate(command,(0.,0.,0.),[stationary],[],[],{},0.).reason == 'hard_human_collision'
+
+
+def test_standing_people_keep_onset_room_without_blocking_separating_motion(planner):
+    from dataclasses import replace
+    planner.stationary_person_clearance = 2.2
+    planner.horizon = planner.hard_collision_horizon = 3.
+    person = HumanTrack(1,'CONFIRMED',2.6,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    approach = planner._score_candidate(Candidate('approach',.35,0.,0.),(0.,0.,0.),[person],[],[],{},0.)
+    assert not approach.rejected
+    assert approach.score_terms['onset'] > 0.
+    planner.prediction_cache = {}
+    departing = replace(person, vx=.7)
+    follow = planner._score_candidate(Candidate('follow',.35,0.,0.),(0.,0.,0.),[departing],[],[],{},0.)
+    assert not follow.rejected
+    assert follow.score_terms['onset'] == 0.
+
+
+def test_goal_capture_can_reach_goal_region_while_preserving_standing_person_space(planner):
+    planner.stationary_person_clearance = 2.2
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.path_reference_speed = .6
+    planner.max_forward_near_human = .65
+    planner.max_reverse_velocity = planner.max_lateral_near_human = .45
+    planner.motion_envelope = MotionEnvelope(max_x=.65,max_y=.45,accel_x=2.4,accel_y=2.4,
+                                             linear_time_constant=.4)
+    planner.measured_velocity = (0.,0.,0.)
+    planner.reference_goal_world = (0.,0.)
+    person = HumanTrack(1,'CONFIRMED',1.8,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    pose = (-.9,0.,0.)
+    results = [planner._score_candidate(candidate,pose,[person],[],[],{},0.)
+               for candidate in planner._goal_capture_candidates(pose,[person])]
+    assert any(not result.rejected and result.min_human_distance >= 2.2 and
+               min(math.hypot(x,y) for x,y,_,_ in result.trajectory) < .5 for result in results)
+
+
+def test_escape_prefers_later_wall_over_earlier_person_contact(planner):
+    planner.horizon = planner.hard_collision_horizon = 4.5
+    planner.body_prediction_margin = .4
+    planner._simulate = lambda pose,c: [(c.vx*t,c.vy*t,0.,t) for t in np.linspace(0.,4.5,46)]
+    field = StaticDistanceField([(0.,2.)],(0.,0.),4.,1.25)
+    planner.static_field_cache = field
+    planner._static_obstacle_cost = lambda path: (0.,field.trajectory_is_blocked(np.array(path)[:,:2],.48))
+    person = HumanTrack(1,'CONFIRMED',2.5,0.,-1.,0.,1.,1.,0,.002,.002,0.,.42)
+    results = [planner._score_candidate(c,(0.,0.,0.),[person],[],[],{},0.) for c in
+               (Candidate('yield_stop',0.,0.,0.),Candidate('retreat',-.45,0.,0.),Candidate('sidestep',0.,.45,0.))]
+    selected = planner._short_horizon_escape(results,[person])
+    assert selected is not None and selected.candidate.name == 'sidestep'
+    assert selected.score_terms['violation_time'] > 3.
+
+
+def test_short_recovery_does_not_claim_motion_from_an_unexecuted_future_phase(planner):
+    planner.body_prediction_margin = .4
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.measured_velocity = (0.,0.,0.)
+    person = HumanTrack(1,'CONFIRMED',1.1,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    results = [planner._score_candidate(c,(0.,0.,0.),[person],[],[],{},0.) for c in
+               (Candidate('yield_stop',0.,0.,0.),Candidate('wait_then_route',0.,0.,0.,'',-.35,.3))]
+    assert planner._short_horizon_escape(results,[person]) is None
+
+
+def test_short_escape_can_leave_a_stationary_person_margin_overlap(planner):
+    planner.body_prediction_margin = .4
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.measured_velocity = (0.,0.,0.)
+    person = HumanTrack(1,'CONFIRMED',1.1,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    results = [planner._score_candidate(c,(0.,0.,0.),[person],[],[],{},0.)
+               for c in (Candidate('yield_stop',0.,0.,0.),Candidate('away',-.35,0.,0.))]
+    assert all(r.reason == 'hard_human_collision' for r in results)
+    selected = planner._short_horizon_escape(results,[person])
+    assert selected is not None and selected.candidate.name == 'away'
+
+
+def test_full_horizon_clearance_recovery_still_rejects_body_contact(planner):
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.body_prediction_margin = .25
+    planner.hard_safety_margin = .40
+    candidate = Candidate('passing', .35, 0., 0.)
+    near = HumanTrack(1,'CONFIRMED',.5,1.08,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    result = planner._score_candidate(candidate,(0.,0.,0.),[near],[],[],{},0.)
+    assert result.reason == 'human_margin'
+    contact = HumanTrack(2,'CONFIRMED',.5,.7,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    result = planner._score_candidate(candidate,(0.,0.,0.),[contact],[],[],{},0.)
+    assert result.reason == 'hard_human_collision'
+
+
+def test_safe_goal_crossing_is_credited_even_if_rollout_continues_past_goal(planner):
+    planner.nav2_path_reference = True
+    planner.reference_goal_world = (.55, 0.)
+    planner.reference_progress_target = (.55, 0.)
+    planner.motion_envelope = MotionEnvelope(max_x=.65, accel_x=1.2)
+    planner.measured_velocity = (.65,0.,0.)
+    planner.command_duration = 1.7
+    result = planner._score_candidate(Candidate('cross_goal',.65,0.,0.), (0.,0.,0.), [], [], [], {}, 0.)
+    assert not result.rejected
+    # Endpoint distance would show almost no progress despite passing directly
+    # through the requested goal before the end of the command interval.
+    assert result.score_terms['goal'] / planner.weights['w_goal'] < -.08
+
+
+def test_entering_goal_region_earns_same_progress_as_crossing_its_centre(planner):
+    planner.goal_cost_radius = .4
+    planner.nav2_path_reference = True
+    planner.reference_goal_world = planner.reference_progress_target = (0.,0.)
+    planner._simulate = lambda pose,c: [(-1.,0.,0.,0.),(c.vx,0.,0.,1.7)]
+    edge = planner._score_candidate(Candidate('edge',-.35,0.,0.),(-1.,0.,0.),[],[],[],{},0.)
+    centre = planner._score_candidate(Candidate('centre',0.,0.,0.),(-1.,0.,0.),[],[],[],{},0.)
+    assert edge.score_terms['goal'] == pytest.approx(centre.score_terms['goal'])
+
+
+def test_checked_continuation_tolerates_small_reserve_changes_but_not_body_conflicts(planner):
+    from dataclasses import replace
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.body_prediction_margin = .4
+    planner.continuation_prediction_margin = .3
+    planner.hard_safety_margin = .55
+    person = HumanTrack(1,'CONFIRMED',.5,1.15,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    candidate = Candidate('escape_pending',.35,0.,0.)
+    normal = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],{},0.)
+    assert normal.reason == 'hard_human_collision'
+    continued = planner._checked_continuation(candidate,(0.,0.,0.),[person],[],[],{},0.)
+    assert continued.reason == 'human_margin'
+    assert continued.score_terms['continuation_margin'] == .3
+    planner.prediction_cache = {}
+    conflict = planner._checked_continuation(candidate,(0.,0.,0.),[replace(person,y=.7)],[],[],{},0.)
+    assert conflict.reason == 'hard_human_collision'
+
+
+def test_goal_urgency_requires_stagnation_and_never_bypasses_collision_checks(planner):
+    planner.goal_urgency_max = 5.
+    planner.goal_progress_timeout = 6.
+    planner.mission_active = True
+    planner.reference_goal_world = (3.,0.)
+    planner._update_goal_urgency((0.,0.,0.),10.)
+    assert planner.goal_urgency == 1.
+    planner._update_goal_urgency((0.,0.,0.),22.)
+    assert planner.goal_urgency == 5.
+    person = HumanTrack(1,'CONFIRMED',.5,0.,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    assert planner._score_candidate(Candidate('forward',.35,0.,0.),(0.,0.,0.),[person],[],[],{},0.).rejected
+    planner._update_goal_urgency((.3,0.,0.),23.)
+    assert planner.goal_urgency == 1.
+    planner._goal_callback(PoseStamped())
+    assert planner.goal_progress_stamp is None
+
+
+def test_selection_hysteresis_retains_safe_motion_but_not_stops_or_risky_commands(planner):
+    planner.selection_hysteresis = .75
+    previous = SimpleNamespace(candidate=Candidate('previous_command',.4,0.,0.),score=1.4,
+                               min_human_distance=1.6,rejected=False)
+    stop = SimpleNamespace(candidate=Candidate('yield_stop',0.,0.,0.),score=1.,
+                           min_human_distance=1.65,rejected=False)
+    assert planner._stable_selection([stop,previous]) is previous
+    previous.rejected = True
+    assert planner._stable_selection([stop,previous]) is stop
+    previous.rejected = False
+    previous.min_human_distance = 1.1
+    assert planner._stable_selection([stop,previous]) is stop
+    previous.min_human_distance = 1.6
+    previous.candidate.vx = 0.
+    assert planner._stable_selection([stop,previous]) is stop
+
+
+def test_wait_then_go_can_clear_a_crossing_that_immediate_motion_hits(planner):
+    planner.horizon = planner.hard_collision_horizon = 3.
+    planner.body_prediction_margin = .4
+    planner.hard_safety_margin = .55
+    planner.motion_envelope = MotionEnvelope(max_x=.55,accel_x=2.4,linear_time_constant=.4)
+    planner.measured_velocity = (0.,0.,0.)
+    planner.policy_command = (0.,0.,0.)
+    planner.policy_command_stamp = planner.get_clock().now().nanoseconds*1e-9
+    person = HumanTrack(1,'CONFIRMED',1.5,-1.4,0.,1.,1.,1.,0,.002,.002,0.,.42)
+    immediate = planner._score_candidate(Candidate('go',.55,0.,0.),(0.,0.,0.),[person],[],[],{},0.)
+    delayed = planner._score_candidate(Candidate('wait_then_route',0.,0.,0.,'',.55,1.2),(0.,0.,0.),[person],[],[],{},0.)
+    assert immediate.reason == 'hard_human_collision'
+    assert not delayed.rejected
+    assert delayed.trajectory[-1][0] > .5
+
+
+def test_escape_continuation_clock_advances_and_new_goals_cancel_it(planner):
+    from copy import deepcopy
+    planner.mission_active = True
+    goal = PoseStamped()
+    goal.header.frame_id = 'map'
+    goal.pose.position.x,goal.pose.position.y = 2.,1.
+    planner._goal_callback(goal)
+    planner.reference_goal_world = (2.,1.)
+    candidate = Candidate('escape_then_route', -.45, .45, 0., '', .5, .6, .1)
+    planner.escape_plan = (candidate,10.,planner._goal_key(planner.reference_goal))
+    assert planner._pending_escape(10.2).switch_time == pytest.approx(.4)
+    # SLAM correction changes map->odom coordinates, not the requested goal.
+    planner.reference_goal_world = (2.01,1.01)
+    refreshed = deepcopy(goal)
+    refreshed.header.stamp.sec = 11
+    planner._goal_callback(refreshed)
+    assert planner._pending_escape(10.4).switch_time == pytest.approx(.2)
+    following = planner._pending_escape(10.61)
+    assert (following.vx,following.vy,following.wz) == (.5,.1,0.)
+    assert planner.escape_plan is None
+    planner.escape_plan = (candidate,10.,planner._goal_key(planner.reference_goal))
+    goal.pose.position.x = -2.
+    planner._goal_callback(goal)
+    assert planner._pending_escape(10.2) is None
+    planner.escape_plan = (candidate,10.,planner._goal_key(planner.reference_goal))
+    planner._mission_callback(Bool(data=False))
+    assert planner.escape_plan is None
+
+
+def test_two_phase_escape_preserves_and_checks_route_resumption(planner):
+    planner.horizon = 3.
+    planner.hard_collision_horizon = 3.
+    planner.motion_envelope = MotionEnvelope(max_x=.65, max_y=.45, accel_x=1.2, accel_y=1.2)
+    planner.measured_velocity = (0.,0.,0.)
+    left = Candidate('escape_then_route', .45, 0., 0., '', 0., .6, .45)
+    right = Candidate('escape_then_route', .45, 0., 0., '', 0., .6, -.45)
+    assert len(planner._executable_candidates([left, right])) == 2
+    trajectory = planner._simulate((0.,0.,0.), left)
+    assert trajectory[-1][0] < .5
+    assert trajectory[-1][1] > .8
+    person = HumanTrack(1,'CONFIRMED',.25,1.5,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    result = planner._score_candidate(left,(0.,0.,0.),[person],[],[],{},0.)
+    assert result.reason == 'hard_human_collision'
+    assert result.min_tcpa > left.switch_time
+
+
+def test_short_route_command_still_checks_people_during_its_braking_tail(planner):
+    planner.prefer_forward_travel = True
+    planner.nav2_path_reference = True
+    planner.horizon = 3.
+    planner.measured_velocity = (0.,0.,0.)
+    planner.latest_cmd.linear.x = .35
+    candidate = planner._candidate_commands(planner.latest_cmd, 'NORMAL_NAVIGATION', (0.,0.,0.), [])[0]
+    assert candidate.follow_vx == 0. and candidate.switch_time == .8
+    stamp = planner.get_clock().now().nanoseconds*1e-9
+    person = HumanTrack(1,'CONFIRMED',.15,-2.,0.,1.,1.,1.,0,.002,.002,stamp,.42)
+    result = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],{},0.)
+    assert result.rejected and result.reason == 'hard_human_collision'
+    assert result.min_tcpa > candidate.switch_time
+
+
+def test_passing_side_commitment_does_not_forbid_alignment_turns(planner):
+    planner.side_commitment = -1.
+    assert planner._side_switch_cost(Candidate('turn',0.,0.,.6)) == 0.
+    assert planner._side_switch_cost(Candidate('opposite_side',0.,.45,0.)) > 0.
+
+
+def test_passing_side_follows_an_admitted_route_detour(planner):
+    planner.prefer_forward_travel = True
+    planner.reference_progress_target = (1.,1.)
+    person = HumanTrack(1,'CONFIRMED',1.,.1,0.,0.,1.,1.,0,.002,.002,0.,.42)
+    assert planner._preferred_side((0.,0.,0.),[person]) == 1.
+
+
+def test_supervisor_searches_checked_escape_when_stopping_is_unsafe():
+    from unitree_g1_mujoco_bridge.human_collision_avoidance import time_aligned_prediction_risk
+    node = HumanCollisionAvoidance()
+    try:
+        node.predictive_escape_search = True
+        node.motion_envelope = MotionEnvelope(max_x=.65, max_y=.45, accel_x=1.2, accel_y=1.2)
+        now = node.get_clock().now()
+        seconds = now.nanoseconds*1e-9
+        node.prediction_epoch = node.odom_stamp = node.scan_stamp = seconds
+        node.scan_frame = node.robot_frame
+        node.measured_velocity = (0.,0.,0.)
+        node.latest_predictions = [[(float(t),1.8-t,0.,0.,0.,1.) for t in np.linspace(0.,3.,31)]]
+        cmd, reason = node._validate_final_command(Twist(),(0.,0.,0.),now)
+        assert reason == 'validated_escape'
+        assert math.hypot(cmd.linear.x,cmd.linear.y) > 0.
+        velocity = (cmd.linear.x,cmd.linear.y,cmd.angular.z)
+        rollout = node.motion_envelope.rollout((0.,0.,0.),velocity,(0.,0.,0.),1.,.1,node.response_delay)
+        risk = time_aligned_prediction_risk(node.latest_predictions,0.,(0.,0.,0.),velocity,1.,.1,
+                                           math.inf,node.prediction_uncertainty_scale,node.prediction_min_confidence,rollout)
+        assert risk[0] >= .8
+        node.scan_obstacles = [(0.2,0.)]
+        blocked, reason = node._validate_final_command(Twist(),(0.,0.,0.),now)
+        assert reason == 'temporal_override'
+        assert blocked.linear.x == blocked.linear.y == 0.
+        node.scan_obstacles = []
+        node.scan_stamp = seconds-2.
+        stale, reason = node._validate_final_command(Twist(),(0.,0.,0.),now)
+        assert reason == 'temporal_override'
+        assert stale.linear.x == stale.linear.y == 0.
+    finally:
+        node.destroy_node()
+
+
+def test_supervisor_constructs_critical_feedback_subscriptions():
+    node = HumanCollisionAvoidance()
+    try:
+        topics = {subscription.topic_name for subscription in node.subscriptions}
+        assert {'/odom','/g1/policy_cmd_vel'} <= topics
+    finally:
+        node.destroy_node()
+
+
+def test_supervisor_rechecks_and_executes_fresh_matching_timed_stop():
+    import json
+    from std_msgs.msg import String
+    node = HumanCollisionAvoidance()
+    try:
+        node.use_planned_sequence = True
+        node.motion_envelope = MotionEnvelope(max_x=.55,accel_x=2.4,linear_time_constant=.4)
+        now = node.get_clock().now()
+        seconds = now.nanoseconds*1e-9
+        node.prediction_epoch = node.odom_stamp = seconds
+        node.measured_velocity = (0.,0.,0.)
+        node.latest_predictions = [[(float(t),1.2,0.,0.,0.,1.) for t in np.linspace(0.,3.,31)]]
+        goal = PoseStamped()
+        goal.header.frame_id = 'world'
+        goal.pose.position.x = 2.
+        node._goal_callback(goal)
+        node._mission_callback(Bool(data=True))
+        node.mission_state_time = now
+        payload = dict(stamp=seconds,frame=node.robot_frame,active=True,first=[.5,0.,0.],
+                       then=[0.,0.,0.],duration=.2,goal=node.goal_signature)
+        node._sequence_callback(String(data=json.dumps(payload)))
+        request = Twist()
+        request.linear.x = .5
+        safe, reason = node._validate_final_command(request,(0.,0.,0.),now)
+        assert reason == 'planned_sequence' and safe.linear.x == .5
+        stopped, reason = node._validate_final_command(request,(0.,0.,0.),now+Duration(seconds=.21))
+        assert reason == 'planned_sequence' and stopped.linear.x == 0.
+        assert node._sequence_parameters((.5,0.,0.),seconds+.3) is None
+        assert node._sequence_parameters((.4,0.,0.),seconds+.1) is None
+        node._mission_callback(Bool(data=False))
+        assert node.command_sequence is None
+        node._mission_callback(Bool(data=True))
+        payload['frame'] = 'wrong_frame'
+        node._sequence_callback(String(data=json.dumps(payload)))
+        assert node.command_sequence is None
+    finally:
+        node.destroy_node()
+
+
+def test_supervisor_allows_nonworsening_escape_from_existing_person_margin():
+    node = HumanCollisionAvoidance()
+    try:
+        node.motion_envelope = MotionEnvelope(max_x=.65,accel_x=2.4)
+        node.predictive_escape_search = True
+        alternatives = []
+        node._validated_predictive_escape = lambda *args: alternatives.append(args)
+        now = node.get_clock().now()
+        seconds = now.nanoseconds*1e-9
+        node.prediction_epoch = node.odom_stamp = seconds
+        node.measured_velocity = (0.,0.,0.)
+        node.latest_predictions = [[(float(t),.95,0.,0.,0.,1.) for t in np.linspace(0.,3.,31)]]
+        command = Twist()
+        command.linear.x = -.3
+        safe, reason = node._validate_final_command(command,(0.,0.,0.),now)
+        assert reason == 'clearance_recovery'
+        assert safe.linear.x < 0.
+        assert alternatives == []
+        command.linear.x = .3
+        unsafe, reason = node._validate_final_command(command,(0.,0.,0.),now)
+        assert reason == 'temporal_override' and unsafe.linear.x == 0.
+        assert len(alternatives) == 1
+    finally:
+        node.destroy_node()
+
+
+def test_supervisor_aligns_robot_and_people_to_the_same_current_epoch():
+    node = HumanCollisionAvoidance()
+    try:
+        node.get_clock = lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=10_000_000_000))
+        message = Odometry()
+        message.header.frame_id = node.target_frame
+        message.child_frame_id = node.robot_frame
+        message.header.stamp.sec = 9
+        message.header.stamp.nanosec = 800_000_000
+        message.pose.pose.orientation.z = math.sin(math.pi/4)
+        message.pose.pose.orientation.w = math.cos(math.pi/4)
+        message.twist.twist.linear.x = .5
+        node._odom_callback(message)
+        node.tf_buffer.lookup_transform = lambda *args: (_ for _ in ()).throw(TransformException('no TF'))
+        assert node._robot_pose()[:3] == pytest.approx((0., .1, math.pi/2))
+        node.get_clock = lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=11_000_000_000))
+        assert node._robot_pose() is None
+    finally:
+        node.destroy_node()
 
 
 def test_dynamic_path_handoff_rejects_late_results_to_the_same_goal(planner):

@@ -2,9 +2,9 @@ import json
 import math
 import time
 import numpy as np
-from .observed_route import route_is_free
+from .observed_route import route_is_free, people_clear_corridor
 from .forward_reference import forward_reference
-from .avoidance_candidates import crossing_escape_directions
+from .avoidance_candidates import crossing_escape_directions, velocity_obstacle_command
 from dataclasses import dataclass
 
 import rclpy
@@ -29,8 +29,9 @@ from .bridge_safety import (
     ttc_is_relevant,
 )
 from .pointcloud import iter_xyz
-from .motion_envelope import load_motion_envelope
+from .motion_envelope import load_motion_envelope, advance_planar_pose
 from .static_distance_field import StaticDistanceField, observed_free_mask
+from .kinodynamic_search import remaining_schedule, rollout_schedule, search_sequence
 
 
 LATEST_SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -204,6 +205,9 @@ class Candidate:
     preferred_state: str = ""
     follow_vx: float | None = None
     switch_time: float = 1.2
+    follow_vy: float = 0.0
+    follow_wz: float = 0.0
+    schedule: tuple | None = None
 
 
 @dataclass
@@ -245,6 +249,7 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("robot_radius", 0.38)
         self.declare_parameter("human_body_radius", 0.35)
         self.declare_parameter("body_prediction_margin", 0.05)
+        self.declare_parameter("prediction_activation_clearance", 0.0)
         self.declare_parameter("hard_safety_margin", 0.40)
         self.declare_parameter("comfort_radius", 1.40)
         self.declare_parameter("front_comfort_scale", 1.7)
@@ -282,6 +287,7 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("w_jerk", 3.0)
         self.declare_parameter("w_legibility", 6.0)
         self.declare_parameter("w_deadlock", 4.0)
+        self.declare_parameter("w_enclosure", 0.0)
         self.declare_parameter("publish_risk_grid", True)
         self.declare_parameter("risk_grid_size", 8.0)
         self.declare_parameter("risk_grid_resolution", 0.20)
@@ -295,6 +301,7 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("visualization_rate_hz", 2.0)
         self.declare_parameter("holonomic_avoidance", False)
         self.declare_parameter("prefer_forward_travel", False)
+        self.declare_parameter("max_clockwise_angular_near_human", 0.0)
         self.declare_parameter("static_memory_seconds", 10.0)
         self.declare_parameter("use_low_obstacle_cloud", False)
         self.declare_parameter("use_static_scene_map", False)
@@ -303,6 +310,8 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("planning_budget_ms", 0.0)
         self.planning_budget_ms = float(self.get_parameter("planning_budget_ms").value)
         self.search_phase = 0
+        self.escape_plan = None
+        self.warm_start_plan = None
         self.search_budget_exhausted = False
         self.observed_map = None
         self.observed_map_time = None
@@ -310,6 +319,23 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("local_escape_enabled", False)
         self.declare_parameter("path_reference_speed", 0.35)
         self.declare_parameter("path_reference_lookahead", 0.8)
+        self.declare_parameter("path_reference_holonomic_distance", 1.0)
+        self.declare_parameter("stationary_person_clearance", 0.0)
+        self.declare_parameter("stationary_clearance_weight", 20.0)
+        self.declare_parameter("human_intent_min_speed", 0.08)
+        self.declare_parameter("selection_hysteresis", 0.0)
+        self.declare_parameter("holonomic_heading_alignment", False)
+        self.declare_parameter("goal_urgency_max", 1.0)
+        self.declare_parameter("goal_progress_timeout", 6.0)
+        self.declare_parameter("body_uncertainty_scale", 0.0)
+        self.declare_parameter("body_uncertainty_horizon", 1.0)
+        self.declare_parameter("kinodynamic_search_enabled", False)
+        self.declare_parameter("kinodynamic_budget_ms", 30.0)
+        self.declare_parameter("continuation_prediction_margin", 0.30)
+        self.declare_parameter("translation_refinement_enabled", False)
+        self.declare_parameter("goal_capture_enabled", False)
+        self.declare_parameter("wait_candidates_enabled", False)
+        self.declare_parameter("goal_cost_radius", 0.0)
         self.declare_parameter("local_safe_radius", 1.35)
         self.declare_parameter("local_danger_radius", 4.0)
         self.declare_parameter("predicted_danger_radius", 1.25)
@@ -334,6 +360,7 @@ class HumanAwareMotionPlanner(Node):
         self.robot_radius = float(self.get_parameter("robot_radius").value)
         self.human_body_radius = float(self.get_parameter("human_body_radius").value)
         self.body_prediction_margin = float(self.get_parameter("body_prediction_margin").value)
+        self.prediction_activation_clearance = float(self.get_parameter("prediction_activation_clearance").value)
         self.hard_safety_margin = float(self.get_parameter("hard_safety_margin").value)
         self.comfort_radius = float(self.get_parameter("comfort_radius").value)
         self.front_comfort_scale = float(self.get_parameter("front_comfort_scale").value)
@@ -359,6 +386,9 @@ class HumanAwareMotionPlanner(Node):
         self.max_reverse_velocity = float(self.get_parameter("max_reverse_velocity").value)
         self.max_angular_near_human = float(self.get_parameter("max_angular_near_human").value)
         self.static_clearance = float(self.get_parameter("static_clearance").value)
+        self.navigation_static_clearance = self.static_clearance
+        self.navigation_mode = 'navigate'
+        self.payload_active = False
         self.static_influence_range = float(self.get_parameter("static_influence_range").value)
         self.weights = {
             name: float(self.get_parameter(name).value)
@@ -374,6 +404,7 @@ class HumanAwareMotionPlanner(Node):
                 "w_jerk",
                 "w_legibility",
                 "w_deadlock",
+                "w_enclosure",
             )
         }
         self.publish_risk_grid = bool(self.get_parameter("publish_risk_grid").value)
@@ -406,6 +437,7 @@ class HumanAwareMotionPlanner(Node):
         self.visualization_period = 1.0 / max(0.1, float(self.get_parameter("visualization_rate_hz").value))
         self.holonomic_avoidance = bool(self.get_parameter("holonomic_avoidance").value)
         self.prefer_forward_travel = bool(self.get_parameter("prefer_forward_travel").value)
+        self.max_clockwise_angular_near_human = float(self.get_parameter("max_clockwise_angular_near_human").value)
         self.static_memory_seconds = float(self.get_parameter("static_memory_seconds").value)
         self.static_memory = {}
         self.low_obstacle_memory = {}
@@ -417,9 +449,32 @@ class HumanAwareMotionPlanner(Node):
         self.local_escape_enabled = bool(self.get_parameter("local_escape_enabled").value)
         self.path_reference_speed = float(self.get_parameter("path_reference_speed").value)
         self.path_reference_lookahead = float(self.get_parameter("path_reference_lookahead").value)
+        self.path_reference_holonomic_distance = max(0., float(self.get_parameter("path_reference_holonomic_distance").value))
+        self.stationary_person_clearance = max(0., float(self.get_parameter("stationary_person_clearance").value))
+        self.stationary_clearance_weight = max(0., float(self.get_parameter("stationary_clearance_weight").value))
+        self.human_intent_min_speed = max(0., float(self.get_parameter("human_intent_min_speed").value))
+        self.selection_hysteresis = max(0., float(self.get_parameter("selection_hysteresis").value))
+        self.holonomic_heading_alignment = bool(self.get_parameter("holonomic_heading_alignment").value)
+        self.goal_urgency_max = max(1.,float(self.get_parameter("goal_urgency_max").value))
+        self.goal_progress_timeout = max(.5,float(self.get_parameter("goal_progress_timeout").value))
+        self.body_uncertainty_scale = max(0.,float(self.get_parameter("body_uncertainty_scale").value))
+        self.body_uncertainty_horizon = max(0.,float(self.get_parameter("body_uncertainty_horizon").value))
+        self.kinodynamic_search_enabled = bool(self.get_parameter("kinodynamic_search_enabled").value)
+        self.kinodynamic_budget_ms = max(1.,float(self.get_parameter("kinodynamic_budget_ms").value))
+        self.continuation_prediction_margin = max(.1,float(self.get_parameter("continuation_prediction_margin").value))
+        self.translation_refinement_enabled = bool(self.get_parameter("translation_refinement_enabled").value)
+        self.goal_capture_enabled = bool(self.get_parameter("goal_capture_enabled").value)
+        self.wait_candidates_enabled = bool(self.get_parameter("wait_candidates_enabled").value)
+        self.goal_cost_radius = max(0.,min(.4,float(self.get_parameter("goal_cost_radius").value)))
+        self.kinodynamic_status = 'not_requested'
+        self.goal_urgency = 1.
+        self.goal_best_distance = math.inf
+        self.goal_progress_stamp = None
+        self.goal_holonomic = False
         self.reference_path = None
         self.reference_goal = None
         self.reference_goal_world = None
+        self.reference_progress_target = None
         self.reference_path_time = None
         self.path_reference_status = "not_requested"
         self.mission_active = False
@@ -470,6 +525,7 @@ class HumanAwareMotionPlanner(Node):
         self.cmd_pub = self.create_publisher(Twist, str(self.get_parameter("output_cmd_vel_topic").value), 1)
         self.state_pub = self.create_publisher(String, "/human_avoidance_state", 1)
         self.debug_pub = self.create_publisher(String, "/human_avoidance_debug", 10)
+        self.sequence_pub = self.create_publisher(String, "/human_avoidance_command_sequence", 1)
         self.grid_pub = self.create_publisher(OccupancyGrid, "/human_social_risk_grid", 10)
         self.marker_pub = self.create_publisher(MarkerArray, "/human_avoidance_markers", 10)
         self.safe_patch_pub = self.create_publisher(PoseStamped, "/human_avoidance_safe_patch", 10)
@@ -496,6 +552,8 @@ class HumanAwareMotionPlanner(Node):
             qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
             self.create_subscription(OccupancyGrid, "/simulation/static_map", self._scene_map_callback, qos)
         self.create_subscription(TwistStamped, "/g1/policy_cmd_vel", self._policy_command_callback, LATEST_SENSOR_QOS)
+        self.create_subscription(String,'/navigation/goal_mode',self._mode_callback,1)
+        self.create_subscription(Bool,'/navigation/carrying',self._payload_callback,1)
         if self.nav2_path_reference:
             if bool(self.get_parameter("retain_observed_routes").value):
                 qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
@@ -542,9 +600,63 @@ class HumanAwareMotionPlanner(Node):
 
     def _mission_callback(self, msg: Bool) -> None:
         self.mission_active = bool(msg.data)
+        if not self.mission_active:
+            self.escape_plan = None
+            self.warm_start_plan = None
+            self.goal_progress_stamp = None
+            self.goal_best_distance = math.inf
+            self.goal_urgency = 1.
+            self.goal_holonomic = False
         self.mission_state_time = self.get_clock().now()
 
+    def _mode_callback(self,msg):
+        self.navigation_mode = msg.data if msg.data in ('navigate','dock','scan') else 'navigate'
+        self.static_clearance = .26 if self.navigation_mode in ('dock','scan') else self.navigation_static_clearance+(.16 if self.payload_active else 0.)
+
+    def _payload_callback(self,msg):
+        if bool(msg.data) != self.payload_active:
+            self.robot_radius += .16 if msg.data else -.16
+            self.payload_active = bool(msg.data)
+        self.static_clearance = .26 if self.navigation_mode in ('dock','scan') else self.navigation_static_clearance+(.16 if self.payload_active else 0.)
+
+    def _dock_reference(self,pose):
+        goal = self.reference_goal
+        if goal is None or goal.header.frame_id != self.target_frame:
+            return None
+        self.reference_goal_world = (goal.pose.position.x,goal.pose.position.y)
+        self.reference_progress_target = self.reference_goal_world
+        q = goal.pose.orientation
+        yaw = math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))
+        error = self._wrap_pi(yaw-pose[2])
+        cmd = Twist()
+        if abs(error) > .12:
+            cmd.angular.z = min(.6,max(.55,1.5*abs(error))) if error > 0. else -min(.9,max(.65,1.5*abs(error)))
+        elif self.navigation_mode != 'scan':
+            dx,dy = goal.pose.position.x-pose[0],goal.pose.position.y-pose[1]
+            distance = math.hypot(dx,dy)
+            if distance > .055:
+                # Live docking traces show stalls at 0.12 and 0.20 m/s.
+                # Retain a walking command until the positional stop threshold;
+                # the normal swept-clearance and slew checks still apply.
+                forward = math.cos(pose[2])*dx+math.sin(pose[2])*dy
+                lateral = -math.sin(pose[2])*dx+math.cos(pose[2])*dy
+                # Correct one axis at a time so diagonal components do not
+                # both fall back into the policy's low-command stand region.
+                if abs(forward) >= abs(lateral):
+                    cmd.linear.x = math.copysign(.30,forward)
+                else:
+                    cmd.linear.y = math.copysign(.30,lateral)
+        self.path_reference_status = 'precision_docking'
+        return cmd
+
     def _goal_callback(self, msg: PoseStamped) -> None:
+        if self._goal_key(msg) != self._goal_key(self.reference_goal):
+            self.escape_plan = None
+            self.warm_start_plan = None
+            self.goal_urgency = 1.
+            self.goal_best_distance = math.inf
+            self.goal_progress_stamp = None
+            self.goal_holonomic = False
         self.reference_goal = msg
         self.reference_goal_world = None
         if self.reference_path is not None:
@@ -554,6 +666,7 @@ class HumanAwareMotionPlanner(Node):
                 self.reference_path_time = None
 
     def _path_reference(self, pose) -> Twist | None:
+        self.reference_progress_target = None
         path, goal = self.reference_path, self.reference_goal
         self.path_reference_status = "missing_path_or_goal"
         if path is None or goal is None or not path.poses or path.header.frame_id != goal.header.frame_id:
@@ -566,6 +679,7 @@ class HumanAwareMotionPlanner(Node):
             self.path_reference_status = "path_goal_mismatch"
             return None  # ComputePathToPose also publishes paths for rejected samples.
         points = np.asarray([(p.pose.position.x, p.pose.position.y) for p in path.poses])
+        goal_point = np.asarray((goal.pose.position.x, goal.pose.position.y), dtype=float)
         robot_in_path_frame = pose[:2]
         if path.header.frame_id != self.target_frame:
             try:
@@ -580,8 +694,17 @@ class HumanAwareMotionPlanner(Node):
             robot_in_path_frame = (c*rx+s*ry, -s*rx+c*ry)
             points = points @ np.asarray(((c, s), (-s, c)))
             points += (tf.transform.translation.x, tf.transform.translation.y)
-        goal_distance = float(np.linalg.norm(points[-1] - pose[:2]))
-        self.reference_goal_world = tuple(points[-1])
+            goal_point = goal_point @ np.asarray(((c, s), (-s, c)))
+            goal_point += (tf.transform.translation.x, tf.transform.translation.y)
+        # Smac may end a valid path within its endpoint tolerance. That endpoint
+        # is not the requested goal: stopping 0.4 m from an endpoint displaced
+        # by 0.25 m could leave the robot permanently outside the 0.5 m goal.
+        if np.linalg.norm(points[-1]-goal_point) > 1e-6:
+            points = np.vstack((points, goal_point))
+        goal_distance = float(np.linalg.norm(goal_point - pose[:2]))
+        if goal_distance <= self.path_reference_holonomic_distance:
+            self.goal_holonomic = True
+        self.reference_goal_world = tuple(goal_point)
         command = Twist()
         self.path_reference_status = "active"
         if goal_distance <= 0.4:
@@ -600,11 +723,14 @@ class HumanAwareMotionPlanner(Node):
             current = PoseStamped()
             current.pose.position.x, current.pose.position.y = robot_in_path_frame
             shortcut.poses = [current, goal]
-            if route_is_free(self.observed_map, shortcut, self.robot_radius+.10):
+            people = [(t.x,t.y,t.vx,t.vy,t.body_radius) for t in self._fresh_tracks(self.get_clock().now())]
+            if (people_clear_corridor(pose, goal_point, people, self.robot_radius) and
+                    route_is_free(self.observed_map, shortcut, self.robot_radius+.10)):
                 # Smooth a short route only through known-free footprint cells.
                 # Dynamic people are still checked by every candidate rollout.
                 index = len(points)-1
                 self.path_reference_status = "observed_goal_shortcut"
+        self.reference_progress_target = tuple(points[index])
         dx, dy = points[index] - pose[:2]
         norm = max(1e-6, math.hypot(dx, dy))
         # The official policy stalls at tiny requested forward speeds. Keep a
@@ -614,18 +740,23 @@ class HumanAwareMotionPlanner(Node):
         speed = min(self.path_reference_speed, max(minimum_speed, 0.6 * (goal_distance - 0.35)))
         command.linear.x = speed * (math.cos(pose[2]) * dx + math.sin(pose[2]) * dy) / norm
         command.linear.y = speed * (-math.sin(pose[2]) * dx + math.cos(pose[2]) * dy) / norm
-        if getattr(self, "prefer_forward_travel", False) and goal_distance > 1.0:
+        if getattr(self, "prefer_forward_travel", False) and not self.goal_holonomic:
             command.linear.x, command.linear.y, command.angular.z = forward_reference(
                 math.cos(pose[2])*dx + math.sin(pose[2])*dy,
                 -math.sin(pose[2])*dx + math.cos(pose[2])*dy,
-                speed, self.max_angular_near_human)
-        elif getattr(self, "prefer_forward_travel", False):
-            # Finish the final short adjustment holonomically. An executable
-            # forward-turn arc has a finite radius and otherwise circles a
-            # nearby goal instead of entering the 0.5 m arrival region.
+                speed, self.max_angular_near_human,
+                getattr(self, "max_clockwise_angular_near_human", 0.) or None)
+        elif getattr(self, "prefer_forward_travel", False) and goal_distance <= 1.0:
+            # Finish short adjustments holonomically without circling the goal.
             scale = min(1., .30 / max(1e-6, math.hypot(command.linear.x, command.linear.y)))
             command.linear.x *= scale
             command.linear.y *= scale
+        elif self.holonomic_heading_alignment and goal_distance > 1.0:
+            nearby = self._fresh_tracks(self.get_clock().now())
+            if all(math.hypot(t.x-pose[0],t.y-pose[1]) >= 2.5 for t in nearby):
+                heading = math.atan2(command.linear.y,command.linear.x)
+                limit = .35 if command.linear.x < 0. else .6
+                command.angular.z = 0. if abs(heading) < .15 else self._clamp(.8*heading,-limit,limit)
         return command
 
     def _scan_callback(self, msg: LaserScan) -> None:
@@ -794,6 +925,7 @@ class HumanAwareMotionPlanner(Node):
         self.planning_started = time.perf_counter()
         self.planning_cpu_started = time.thread_time()
         self.planning_phases = {}
+        self.kinodynamic_status = 'not_requested'
         self.prediction_cache = {}
         self.static_cache = {}
         self.static_points_cache = None
@@ -833,9 +965,20 @@ class HumanAwareMotionPlanner(Node):
             self._publish(Twist(), "ODOMETRY_STALE_STOP", [], None)
             return
         if self.nav2_path_reference and self.mission_active:
-            reference = self._path_reference(pose)
+            reference = self._dock_reference(pose) if self.navigation_mode in ('dock','scan') else self._path_reference(pose)
             if reference is not None:
                 self.latest_cmd = reference
+        self._update_goal_urgency(pose,now_seconds)
+        pending = self._pending_escape(now_seconds)
+        if pending is not None:
+            result = self._checked_continuation(pending, pose, tracks, tentative_points,
+                                               predicted_points, predictions, prediction_age)
+            if not result.rejected or result.reason == 'human_margin':
+                cmd = self._twist_from_candidate(pending)
+                self.last_cmd = cmd
+                self._publish(cmd, "CLEARANCE_RECOVERY" if result.rejected else "HUMAN_CAUTION", [result], result)
+                return
+            self.escape_plan = None
         if self.local_safe_space_enabled and self.last_tilt <= self.safe_space_max_tilt:
             safe_selected, safe_results = self._select_local_safe_space_command(
                 pose, tracks, tentative_points, predicted_points, predictions, prediction_age
@@ -852,6 +995,7 @@ class HumanAwareMotionPlanner(Node):
             raw = self._candidate_commands(self.latest_cmd, state, pose, tracks)[0]
             raw_result = self._score_candidate(raw, pose, tracks, tentative_points, predicted_points, predictions, prediction_age)
             warning_distance = max(self.robot_radius + track.body_radius + self.hard_safety_margin for track in tracks)
+            warning_distance = max(warning_distance, getattr(self, "prediction_activation_clearance", 0.))
             holding_risk = (getattr(self, "prefer_forward_travel", False) and
                 incoming_collision_imminent(pose, tracks, 3., warning_distance+.2, .12))
             if holding_risk or raw_result.rejected or raw_result.min_human_distance < warning_distance or raw_result.score_terms.get("terminal_conflict", 0.0) > 0.0:
@@ -862,12 +1006,31 @@ class HumanAwareMotionPlanner(Node):
                     self.side_commitment = self._preferred_side(pose, tracks)
                     self.side_commitment_until = now + Duration(seconds=self.side_commitment_timeout)
         candidates = self._candidate_commands(self.latest_cmd, state, pose, tracks)
+        if self.warm_start_plan is not None:
+            schedule,goal_key = self.warm_start_plan
+            self.warm_start_plan = None
+            if goal_key == self._goal_key(self.reference_goal):
+                candidates.insert(0,self._schedule_candidate('beam_warm_start',schedule))
+        if self.kinodynamic_search_enabled and self.mission_active and state != 'NORMAL_NAVIGATION' and tracks:
+            proposed = self._kinodynamic_candidate(pose,tracks,tentative_points,predicted_points,predictions,prediction_age)
+            if proposed is not None:
+                proposed = self._executable_candidates([proposed])[0]
+                checked = self._score_candidate(proposed,pose,tracks,tentative_points,predicted_points,predictions,prediction_age)
+                if not checked.rejected or checked.reason == 'human_margin':
+                    cmd = self._twist_from_candidate(proposed)
+                    self.last_cmd = cmd
+                    self.escape_plan = (proposed,self.get_clock().now().nanoseconds*1e-9,self._goal_key(self.reference_goal))
+                    self._publish(cmd,'CLEARANCE_RECOVERY' if checked.rejected else 'HUMAN_CAUTION',[checked],checked)
+                    return
+                candidates.insert(0,proposed)
         candidates = self._executable_candidates(candidates)
         scoring_started = time.perf_counter()
         self.planning_phases["prepare_ms"] = (scoring_started - self.planning_started) * 1000.0
         results = self._evaluate_candidates(candidates, pose, tracks, tentative_points,
                                             predicted_points, predictions, prediction_age)
-        feasible = [result for result in results if not result.rejected]
+        feasible = [result for result in results if not result.rejected or
+                    (result.candidate.name == 'beam_warm_start' and result.reason == 'human_margin' and
+                     'continuation_margin' in result.score_terms)]
         self.planning_phases["scoring_ms"] = (time.perf_counter() - scoring_started) * 1000.0
         if not feasible:
             # A comfort-margin breach is preferable to a predicted body
@@ -882,7 +1045,7 @@ class HumanAwareMotionPlanner(Node):
                     feasible = [escape]
         if not feasible:
             feasible = [result for result in results if result.reason == "terminal_conflict"]
-        selected = min(feasible, key=lambda result: result.score) if feasible else None
+        selected = self._stable_selection(feasible)
         if selected is None:
             cmd = Twist()
             state = "EMERGENCY_STOP"
@@ -895,7 +1058,132 @@ class HumanAwareMotionPlanner(Node):
             elif selected.candidate.preferred_state:
                 state = selected.candidate.preferred_state
         self.last_cmd = cmd
+        if (selected is not None and (not selected.rejected or selected.reason == 'human_margin') and
+                (selected.candidate.schedule is not None or selected.candidate.name in
+                 ("crossing_then_route", "escape_then_route", "wait_then_route", "wait_then_escape"))):
+            self.escape_plan = (selected.candidate, self.get_clock().now().nanoseconds*1e-9,
+                                self._goal_key(self.reference_goal))
         self._publish(cmd, state, results, selected)
+
+    def _update_goal_urgency(self,pose,seconds):
+        if not self.mission_active or self.reference_goal_world is None:
+            self.goal_urgency = 1.
+            return
+        distance = math.hypot(pose[0]-self.reference_goal_world[0],pose[1]-self.reference_goal_world[1])
+        if (self.goal_progress_stamp is None or seconds < self.goal_progress_stamp or
+                distance < self.goal_best_distance-.1):
+            self.goal_best_distance = distance
+            self.goal_progress_stamp = seconds
+        fraction = self._clamp((seconds-self.goal_progress_stamp-self.goal_progress_timeout)/self.goal_progress_timeout,0.,1.)
+        self.goal_urgency = 1.+(self.goal_urgency_max-1.)*fraction
+
+    def _stable_selection(self, feasible):
+        if not feasible:
+            return None
+        selected = min(feasible, key=lambda result: result.score)
+        previous = next((result for result in feasible if result.candidate.name == 'previous_command'), None)
+        if (self.selection_hysteresis > 0. and previous is not None and not previous.rejected and
+                not selected.rejected and math.hypot(previous.candidate.vx, previous.candidate.vy) > .1 and
+                previous.score <= selected.score+self.selection_hysteresis and
+                previous.min_human_distance >= selected.min_human_distance-.1):
+            return previous
+        return selected
+
+    @staticmethod
+    def _goal_key(goal):
+        if goal is None:
+            return None
+        p,q = goal.pose.position,goal.pose.orientation
+        return (goal.header.frame_id,p.x,p.y,p.z,q.x,q.y,q.z,q.w)
+
+    @staticmethod
+    def _schedule_candidate(name,schedule):
+        first = schedule[0]
+        following = schedule[1][1:] if len(schedule)>1 else (0.,0.,0.)
+        return Candidate(name,*first[1:],'',following[0],first[0],following[1],following[2],schedule)
+
+    def _checked_continuation(self,candidate,pose,tracks,tentative,predicted,predictions,age):
+        result = self._score_candidate(candidate,pose,tracks,tentative,predicted,predictions,age)
+        margin = min(self.body_prediction_margin,self.continuation_prediction_margin)
+        if result.reason == 'hard_human_collision' and margin < self.body_prediction_margin:
+            recovery = self._score_candidate(candidate,pose,tracks,tentative,predicted,predictions,age,
+                                             prediction_margin=margin)
+            if not recovery.rejected or recovery.reason == 'human_margin':
+                recovery.score_terms['continuation_margin'] = margin
+                return recovery
+        return result
+
+    def _kinodynamic_candidate(self,pose,tracks,tentative,predicted,predictions,prediction_age):
+        started = time.perf_counter()
+        seconds = self.get_clock().now().nanoseconds*1e-9
+        goal = self.reference_progress_target or self.reference_goal_world
+        if (goal is None or self.policy_command is None or self.policy_command_stamp is None or
+                not 0. <= seconds-self.policy_command_stamp <= .4):
+            self.kinodynamic_status = 'missing_goal_or_feedback'
+            return None
+        anchor = self._score_candidate(Candidate('beam_anchor',0.,0.,0.),pose,tracks,tentative,predicted,predictions,prediction_age)
+        self._static_obstacle_cost(anchor.trajectory)
+        if self.static_frame_valid is False:
+            self.kinodynamic_status = 'static_frame_unavailable'
+            return None
+        key = tuple(p[3] for p in anchor.trajectory)
+        people,radii = [],[]
+        for track in tracks:
+            human = self.prediction_cache[(track.track_id,key)][0]
+            people.append(human[:,:2])
+            inflated = self.robot_radius+track.body_radius+self.body_prediction_margin+self.body_uncertainty_scale*human[:,5]
+            radii.append(np.where(np.asarray(key) <= self.hard_collision_horizon,inflated,
+                                  self.robot_radius+track.body_radius+.05))
+        controls = [(vx,vy,0.) for vx in (-self.max_reverse_velocity,0.,.5*self.max_forward_near_human,self.max_forward_near_human)
+                    for vy in (-self.max_lateral_near_human,0.,self.max_lateral_near_human)]
+        controls.append((self._clamp(self.latest_cmd.linear.x,-self.max_reverse_velocity,self.max_forward_near_human),
+                         self._clamp(self.latest_cmd.linear.y,-self.max_lateral_near_human,self.max_lateral_near_human),0.))
+        unique = {}
+        for command in controls:
+            command = self.motion_envelope.normalize(command)
+            unique[tuple(round(v,4) for v in command)] = command
+        radius = .4 if self.reference_goal_world is not None and math.hypot(goal[0]-self.reference_goal_world[0],goal[1]-self.reference_goal_world[1]) < .01 else 0.
+        schedule = search_sequence(self.motion_envelope,pose,self.measured_velocity,self.policy_command,
+            list(unique.values()),np.stack(people,axis=1),np.stack(radii,axis=1),goal,
+            self.horizon,self.dt,self.response_delay,
+            static_query=None if self.static_field_cache is None else self.static_field_cache.query,
+            static_clearance=self.static_clearance,goal_radius=radius,
+            goal_weight=self.weights['w_goal']*self.goal_urgency,budget_ms=self.kinodynamic_budget_ms,
+            stationary=[math.hypot(t.vx,t.vy)<.5 for t in tracks],
+            onset_radius=self.stationary_person_clearance,onset_weight=self.stationary_clearance_weight,
+            enclosure_weight=self.weights['w_enclosure'])
+        self.planning_phases['kinodynamic_ms'] = (time.perf_counter()-started)*1000.
+        self.kinodynamic_status = 'proposed' if schedule is not None else 'no_complete_plan'
+        return None if schedule is None else self._schedule_candidate('kinodynamic',schedule)
+
+    def _pending_escape(self, seconds):
+        """Advance a selected two-phase escape instead of restarting its clock.
+
+        The caller must revalidate this continuation against fresh observations
+        on every tick, and discard it if it is no longer feasible.
+        """
+        if self.escape_plan is None:
+            return None
+        candidate, started, goal = self.escape_plan
+        if not self.mission_active or goal != self._goal_key(self.reference_goal) or seconds < started:
+            self.escape_plan = None
+            return None
+        if candidate.schedule is not None:
+            schedule = remaining_schedule(candidate.schedule,seconds-started)
+            if not schedule or self.policy_command_stamp is None or not 0. <= seconds-self.policy_command_stamp <= .4:
+                self.escape_plan = None
+                return None
+            if seconds-started >= candidate.schedule[0][0]:
+                self.warm_start_plan = (schedule,goal)
+                self.escape_plan = None
+                return None
+            return self._schedule_candidate('beam_pending',schedule)
+        remaining = candidate.switch_time-(seconds-started)
+        if remaining <= 0.:
+            self.escape_plan = None
+            return Candidate('escape_route_phase', candidate.follow_vx, candidate.follow_vy, candidate.follow_wz)
+        return Candidate('escape_pending', candidate.vx, candidate.vy, candidate.wz, '',
+                         candidate.follow_vx, remaining, candidate.follow_vy, candidate.follow_wz)
 
     def _evaluate_candidates(self, candidates, pose, tracks, tentative_points, predicted_points, predictions, prediction_age):
         """Bound search latency; every selectable command is still fully checked.
@@ -907,26 +1195,64 @@ class HumanAwareMotionPlanner(Node):
         budget = self.planning_budget_ms
         ordered = candidates
         mandatory = 3
+        priority_count = 0
+        remaining = []
         if budget > 0 and len(candidates) > 3:
-            names = ("yield_stop", "early_crossing_escape", "previous_command", "raw_reference")
+            names = ("yield_stop", "beam_warm_start", "kinodynamic", "velocity_obstacle", "early_crossing_escape", "previous_command", "raw_reference", "goal_capture", "wait_then_route",
+                     "escape_translation", "social_translation", "crossing_then_route")
             priority = set(names)
             first = [c for name in names for c in candidates if c.name == name]
-            mandatory = max(3, len(first))
+            priority_count = len(first)
             remaining = [c for c in candidates if c.name not in priority]
+            # The budget is a soft deadline: reserve one rotating proposal even
+            # when mandatory checks consume it, otherwise search can freeze.
+            mandatory = max(3, priority_count + bool(remaining))
             if remaining:
-                offset = (self.search_phase * 6) % len(remaining)
+                offset = self.search_phase % len(remaining)
                 remaining = remaining[offset:] + remaining[:offset]
             ordered = first + remaining
-            self.search_phase += 1
         results = []
+        checked_original = 0
         self.search_budget_exhausted = False
         for candidate in ordered:
-            if budget > 0 and len(results) >= mandatory and (time.perf_counter() - self.planning_started) * 1000 >= budget:
+            if budget > 0 and checked_original >= mandatory and (time.perf_counter() - self.planning_started) * 1000 >= budget:
                 self.search_budget_exhausted = True
                 break
-            results.append(self._score_candidate(candidate, pose, tracks, tentative_points,
-                                                  predicted_points, predictions, prediction_age))
+            scorer = self._checked_continuation if candidate.name == 'beam_warm_start' else self._score_candidate
+            results.append(scorer(candidate, pose, tracks, tentative_points,
+                                  predicted_points, predictions, prediction_age))
+            checked_original += 1
+            if (self.translation_refinement_enabled and tracks and priority_count and checked_original == priority_count and
+                    not any(not result.rejected for result in results)):
+                for refined in self._escape_refinements(results):
+                    if budget > 0 and (time.perf_counter()-self.planning_started)*1000 >= budget:
+                        break
+                    results.append(self._score_candidate(refined, pose, tracks, tentative_points,
+                                                        predicted_points, predictions, prediction_age))
+        if remaining:
+            # Advance by work actually checked. A fixed stride can share a
+            # divisor with the candidate count and permanently skip directions.
+            self.search_phase += max(1, checked_original - priority_count)
         return results
+
+    def _escape_refinements(self, results):
+        """Refine near-feasible translations instead of jumping straight to stop."""
+        seeds = sorted((r for r in results if r.candidate.follow_vx is None and
+                        abs(r.candidate.wz) < .01 and math.hypot(r.candidate.vx,r.candidate.vy) > .1),
+                       key=lambda r: r.min_human_distance, reverse=True)[:3]
+        seen = {tuple(round(v,4) for v in (r.candidate.vx,r.candidate.vy,r.candidate.wz)) for r in results
+                if r.candidate.follow_vx is None}
+        for step in (.12,.06):
+            for result in seeds:
+                for dx,dy in ((-step,0.),(step,0.),(0.,-step),(0.,step)):
+                    c = result.candidate
+                    command = self.motion_envelope.normalize((
+                        self._clamp(c.vx+dx,-self.max_reverse_velocity,self.max_forward_near_human),
+                        self._clamp(c.vy+dy,-self.max_lateral_near_human,self.max_lateral_near_human),0.))
+                    key = tuple(round(v,4) for v in command)
+                    if key not in seen:
+                        seen.add(key)
+                        yield Candidate('escape_refinement',*command)
 
     def _short_horizon_escape(self, results, tracks):
         """Time-checked one-second escape when holding predicts body contact.
@@ -938,10 +1264,13 @@ class HumanAwareMotionPlanner(Node):
         if stop is None or stop.reason != "hard_human_collision" or not tracks:
             return None
         best = None
-        best_gain = 0.05
+        best_rank = None
         stop_points = np.asarray(stop.trajectory)
         for result in results:
-            if result is stop:
+            if (result is stop or result.reason == 'stale_policy_feedback' or
+                    result.candidate.follow_vx is not None or result.candidate.schedule is not None):
+                # Short recovery publishes one command, not an unverified
+                # future phase. Timed plans require full-horizon admission.
                 continue
             robot = np.asarray(result.trajectory)
             mask = robot[:, 3] <= 1.0 + 1e-6
@@ -951,22 +1280,65 @@ class HumanAwareMotionPlanner(Node):
             minimum = math.inf
             final_clearance = math.inf
             stop_clearance = math.inf
+            forecast_clearance = math.inf
+            stop_forecast_clearance = math.inf
+            violation_time = math.inf
             safe = True
             for track in tracks:
                 human, _, _ = self.prediction_cache[(track.track_id, tuple(robot[:, 3]))]
                 h = human[mask, :2]
                 radius = self.robot_radius + track.body_radius
                 separation = np.linalg.norm(short[:, :2] - h, axis=1)
-                if np.min(separation) < radius + 0.10:
+                relative = robot[:, :2] - human[:, :2]
+                delta = np.diff(relative, axis=0)
+                fraction = np.clip(-np.sum(relative[:-1]*delta, axis=1) /
+                                   np.maximum(1e-12, np.sum(delta*delta, axis=1)), 0., 1.)
+                swept = np.linalg.norm(relative[:-1] + fraction[:, None]*delta, axis=1)
+                swept_times = robot[:-1, 3] + fraction*np.diff(robot[:, 3])
+                short_minimum = float(np.min(separation))
+                short_swept = swept[swept_times <= short[-1, 3]]
+                if len(short_swept):
+                    short_minimum = min(short_minimum, float(np.min(short_swept)))
+                if short_minimum < radius + 0.10:
                     safe = False
                     break
-                minimum = min(minimum, float(np.min(separation)))
+                minimum = min(minimum, short_minimum)
+                forecast_minimum = min(short_minimum, float(np.min(swept))) if len(swept) else short_minimum
+                unsafe = swept < radius+.10
+                if np.any(unsafe):
+                    violation_time = min(violation_time,float(np.min(robot[:-1,3][unsafe])))
+                if len(robot) > 1:
+                    interval = max(1e-6, robot[-1, 3]-robot[-2, 3])
+                    terminal = relative_motion_metrics(
+                        robot[-1, 0], robot[-1, 1],
+                        (robot[-1, 0]-robot[-2, 0])/interval, (robot[-1, 1]-robot[-2, 1])/interval,
+                        human[-1, 0], human[-1, 1], human[-1, 2], human[-1, 3])
+                    if terminal['closing'] and terminal['tcpa'] <= 2.*self.horizon:
+                        forecast_minimum = min(forecast_minimum, terminal['dcpa'])
+                        if terminal['dcpa'] < radius+.10:
+                            violation_time = min(violation_time,float(robot[-1,3])+terminal['tcpa'])
+                forecast_clearance = min(forecast_clearance, forecast_minimum-radius)
+                stop_forecast_clearance = min(stop_forecast_clearance,
+                    float(np.min(np.linalg.norm(stop_points[:, :2]-human[:, :2], axis=1)))-radius)
                 final_clearance = min(final_clearance, float(separation[-1]) - radius)
                 stop_clearance = min(stop_clearance, float(np.linalg.norm(stop_points[mask][-1, :2] - h[-1])) - radius)
             gain = final_clearance - stop_clearance
-            if safe and gain > best_gain:
-                best_gain = gain
-                best = CandidateResult(result.candidate, -gain, True, "local_escape", [tuple(p) for p in short], minimum, 1.0, 0.0, {"clearance_gain": gain})
+            if safe and (gain > .05 or forecast_clearance > stop_forecast_clearance + .05):
+                # A faster person can catch a retreat that looks best at one
+                # second. Prefer sustained separation across the full forecast
+                # among short-safe recoveries, rather than short-term gain alone.
+                full_static_clear = not self._static_obstacle_cost(result.trajectory)[1]
+                if not full_static_clear and self.static_field_cache is not None:
+                    violation_time = min(violation_time,self.static_field_cache.first_violation_time(
+                        robot[:,:2],robot[:,3],self.static_clearance,recovery_radius=self.robot_radius))
+                # Do not prefer an imminent person collision merely because an
+                # alternative needs another turn before a much later wall.
+                rank = (violation_time, forecast_clearance, gain)
+                if best_rank is None or rank > best_rank:
+                    best_rank = rank
+                    best = CandidateResult(result.candidate, -forecast_clearance, True, "local_escape", [tuple(p) for p in short], minimum, 1.0, 0.0,
+                                           {"clearance_gain": gain, "forecast_clearance": forecast_clearance,
+                                            "violation_time": violation_time if math.isfinite(violation_time) else self.horizon*3.})
         return best
 
     def _fresh_tracks(self, now) -> list[HumanTrack]:
@@ -1060,9 +1432,12 @@ class HumanAwareMotionPlanner(Node):
     ) -> list[Candidate]:
         raw_x = self._clamp(float(raw.linear.x), -self.max_reverse_velocity, self.max_forward_near_human)
         raw_y = self._clamp(float(raw.linear.y), -self.max_lateral_near_human, self.max_lateral_near_human)
-        raw_w = self._clamp(float(raw.angular.z), -self.max_angular_near_human, self.max_angular_near_human)
+        clockwise = getattr(self, "max_clockwise_angular_near_human", 0.) or self.max_angular_near_human
+        raw_w = self._clamp(float(raw.angular.z), -clockwise, self.max_angular_near_human)
+        bounded_route = getattr(self, "prefer_forward_travel", False) and self.nav2_path_reference
+        route_follow = 0.0 if bounded_route else None
         if state == "NORMAL_NAVIGATION":
-            return [Candidate("raw_limited", raw_x, raw_y, raw_w)]
+            return [Candidate("raw_limited", raw_x, raw_y, raw_w, "", route_follow, .8)]
         if self.holonomic_avoidance and self.max_lateral_near_human > 0.0:
             # Keep the torso heading stable during close encounters. Translating
             # out of a crossing corridor is more predictable than a slow G1 yaw
@@ -1070,15 +1445,31 @@ class HumanAwareMotionPlanner(Node):
             incoming = incoming_collision_imminent(pose, tracks, self.horizon, self.robot_radius + self.human_body_radius + 0.5, 0.12)
             early = []
             if getattr(self, "prefer_forward_travel", False):
+                people = [(t.x,t.y,t.vx,t.vy,self.robot_radius+t.body_radius+self.body_prediction_margin) for t in tracks]
+                for bias in (0., -.25, .25):
+                    command = velocity_obstacle_command(pose,self.measured_velocity,(raw_x,raw_y+bias),people,
+                        (self.max_forward_near_human,self.max_reverse_velocity,self.max_lateral_near_human),
+                        (self.motion_envelope.forward_gain,self.motion_envelope.lateral_gain,
+                         self.motion_envelope.lateral_response_gain(-1.)),
+                        horizon=self.horizon, side_hint=self.side_commitment)
+                    if command is not None:
+                        early.append(Candidate("velocity_obstacle",command[0],command[1],0.,"HUMAN_CAUTION"))
                 for x, y in crossing_escape_directions(pose, [(t.x,t.y,t.vx,t.vy) for t in tracks],
                                                        clearance=self.robot_radius+self.human_body_radius+.6):
+                    # Saturate along the perpendicular ray. Scaling each axis
+                    # independently both slows diagonal escape and rotates it
+                    # away from perpendicular when forward/lateral bounds differ.
+                    x_limit = self.max_forward_near_human if x >= 0 else self.max_reverse_velocity
+                    x /= max(.1,self.motion_envelope.forward_gain)
+                    y /= max(.1,self.motion_envelope.lateral_response_gain(y))
+                    scale = min(x_limit / max(abs(x), 1e-9),
+                                self.max_lateral_near_human / max(abs(y), 1e-9))
                     early.append(Candidate("early_crossing_escape",
-                        x*(self.max_forward_near_human if x >= 0 else self.max_reverse_velocity),
-                        y*self.max_lateral_near_human, 0.0))
+                        x*scale, y*scale, 0.0))
             active_request = max(abs(raw_x), abs(raw_y), abs(raw_w)) > 0.03
             forward = self.max_forward_near_human if incoming or active_request else 0.0
             route_yaw = raw_w if getattr(self, "prefer_forward_travel", False) else 0.0
-            translations = [Candidate("raw_reference", raw_x, raw_y, route_yaw),
+            translations = [Candidate("raw_reference", raw_x, raw_y, route_yaw, "", route_follow, .8),
                             Candidate("previous_command", self.last_cmd.linear.x, self.last_cmd.linear.y,
                                       self.last_cmd.angular.z if getattr(self, "prefer_forward_travel", False) else 0.0)] + [
                 Candidate("escape_translation" if incoming else "social_translation", vx, vy, 0.0)
@@ -1086,12 +1477,34 @@ class HumanAwareMotionPlanner(Node):
                 for vy in (-self.max_lateral_near_human, 0.0, self.max_lateral_near_human)
                 if abs(vx) + abs(vy) > 1e-6
             ]
+            if bounded_route:
+                translations.append(Candidate("route_continuation", raw_x, raw_y, route_yaw))
             # Search how long to translate, not just the direction. A six-second
             # constant retreat can hit someone that a short step-and-hold avoids.
             refinements = [Candidate("fine_translation", vx, vy, 0.0)
                            for vx in (-0.5 * self.max_reverse_velocity, 0.5 * forward, forward)
-                           for vy in (-0.5 * self.max_lateral_near_human, 0.5 * self.max_lateral_near_human)]
-            return [Candidate("yield_stop", 0.0, 0.0, 0.0, "YIELD_TO_HUMAN")] + early + translations + refinements + [
+                            for vy in (-0.5 * self.max_lateral_near_human, 0.5 * self.max_lateral_near_human)]
+            # A constant retreat or a step followed by stopping cannot represent
+            # walking around a crossing person and then resuming the route.
+            # Both phases are response-aware and checked over the full horizon.
+            sequences = []
+            if bounded_route and active_request:
+                sequences = [Candidate("crossing_then_route", c.vx, c.vy, 0., "",
+                                       raw_x, duration, raw_y, route_yaw)
+                             for c in early if c.name == "early_crossing_escape"
+                             for duration in (.6, 1.2)]
+                sequences += [Candidate("escape_then_route", c.vx, c.vy, 0., "",
+                                        raw_x, duration, raw_y, route_yaw)
+                              for c in translations if c.name in ("escape_translation", "social_translation")
+                              for duration in (.6, 1.2)]
+                if self.wait_candidates_enabled:
+                    sequences += [Candidate('wait_then_route',0.,0.,0.,'',raw_x,duration,raw_y,route_yaw)
+                                  for duration in (.3,.6,1.2)]
+                    sequences += [Candidate('wait_then_escape',0.,0.,0.,'',c.vx,duration,c.vy,0.)
+                                  for c in translations if c.name in ('escape_translation','social_translation')
+                                  for duration in (.6,1.2)]
+            capture = self._goal_capture_candidates(pose, tracks) if bounded_route and self.goal_capture_enabled else []
+            return [Candidate("yield_stop", 0.0, 0.0, 0.0, "YIELD_TO_HUMAN")] + early + translations + capture + sequences + refinements + [
                 Candidate("step_and_hold", c.vx, c.vy, 0.0, "", 0.0, duration)
                 for c in translations for duration in (.6, 1.2, 2.0)
             ]
@@ -1151,19 +1564,72 @@ class HumanAwareMotionPlanner(Node):
                     candidates.append(Candidate("escape_turn_then_walk", 0.0, 0.0, yaw, "CLEARANCE_RECOVERY", self.max_forward_near_human, duration))
         return candidates
 
+    def _goal_capture_candidates(self, pose, tracks):
+        """Stop inside the goal region on its clear side, not necessarily its centre.
+
+        Goal identity and acceptance are unchanged. The full simulated approach
+        and stopping tail are scored normally against people and static geometry.
+        """
+        goal = self.reference_goal_world
+        if goal is None or not .4 < math.hypot(goal[0]-pose[0],goal[1]-pose[1]) <= 1.5:
+            return []
+        standing = [t for t in tracks if math.hypot(t.vx,t.vy) < .5 and
+                    math.hypot(t.x-goal[0],t.y-goal[1]) < self.stationary_person_clearance+.5]
+        if not standing:
+            return []
+        targets = [(goal[0]+.42*math.cos(angle),goal[1]+.42*math.sin(angle))
+                   for angle in np.linspace(0.,2.*math.pi,16,endpoint=False)]
+        targets.sort(key=lambda p: (min(math.hypot(p[0]-t.x,p[1]-t.y) for t in standing),
+                                    -math.hypot(p[0]-pose[0],p[1]-pose[1])), reverse=True)
+        c,s = math.cos(pose[2]),math.sin(pose[2])
+        candidates = []
+        for x,y in targets[:3]:
+            dx,dy = x-pose[0],y-pose[1]
+            distance = math.hypot(dx,dy)
+            if distance < .05:
+                continue
+            vx = self.path_reference_speed*(c*dx+s*dy)/distance/max(.1,self.motion_envelope.forward_gain)
+            local_y = -s*dx+c*dy
+            vy = self.path_reference_speed*local_y/distance/max(.1,self.motion_envelope.lateral_response_gain(local_y))
+            scale = min(1., (self.max_forward_near_human if vx >= 0. else self.max_reverse_velocity)/max(1e-9,abs(vx)),
+                        self.max_lateral_near_human/max(1e-9,abs(vy)))
+            vx,vy,_ = self.motion_envelope.normalize((vx*scale,vy*scale,0.))
+            duration = min(max(.1,self.horizon-.5), math.ceil(
+                (distance/max(.1,self.path_reference_speed)+self.response_delay+.25)/self.dt)*self.dt)
+            low,high = 0.,1.
+            for _ in range(8):
+                scale = (low+high)*.5
+                candidate = Candidate('goal_capture',vx*scale,vy*scale,0.,'',0.,duration)
+                end = self._simulate(pose,candidate)[-1]
+                progress = ((end[0]-pose[0])*dx+(end[1]-pose[1])*dy)/distance
+                if progress < distance:
+                    low = scale
+                else:
+                    high = scale
+            candidates.append(Candidate('goal_capture',vx*low,vy*low,0.,'',0.,duration))
+        return candidates
+
     def _executable_candidates(self, candidates: list[Candidate]) -> list[Candidate]:
         result = []
         seen = set()
         for candidate in candidates:
             command = self.motion_envelope.normalize((candidate.vx, candidate.vy, candidate.wz), stopped=max(abs(self.last_cmd.linear.x), abs(self.last_cmd.linear.y), abs(self.last_cmd.angular.z)) <= 1e-6)
+            schedule = candidate.schedule
+            if schedule is not None:
+                schedule = ((schedule[0][0],*command),*schedule[1:])
             # A requested turn may require the configured forward arc floor.
             # Score that executable arc rather than discarding Nav2's turn.
             # An all-zero stop remains zero in MotionEnvelope.normalize().
-            key = (command, candidate.follow_vx, candidate.switch_time)
+            # Numerically identical projections can differ by roundoff. Avoid
+            # spending separate rollout budgets on indistinguishable commands.
+            key = (tuple(None if value is None else round(value,4) for value in
+                         (*command,candidate.follow_vx,candidate.follow_vy,candidate.follow_wz,candidate.switch_time)),
+                   None if schedule is None else tuple(tuple(round(v,4) for v in step) for step in schedule))
             if key in seen:
                 continue
             seen.add(key)
-            result.append(Candidate(candidate.name, *command, candidate.preferred_state, candidate.follow_vx, candidate.switch_time))
+            result.append(Candidate(candidate.name, *command, candidate.preferred_state, candidate.follow_vx,
+                                    candidate.switch_time, candidate.follow_vy, candidate.follow_wz,schedule))
         return result
 
     def _move_away_candidate(self, pose: tuple[float, float, float], tracks: list[HumanTrack]) -> Candidate | None:
@@ -1405,11 +1871,17 @@ class HumanAwareMotionPlanner(Node):
         predicted_points: list[tuple[float, float, float]],
         predictions: dict[int, list[PredictionSample]],
         prediction_age: float,
+        prediction_margin: float | None = None,
     ) -> CandidateResult:
         trajectory = self._simulate(pose, candidate)
+        if candidate.schedule is not None and (self.policy_command_stamp is None or
+                not 0. <= self.get_clock().now().nanoseconds*1e-9-self.policy_command_stamp <= .4):
+            return CandidateResult(candidate,math.inf,True,'stale_policy_feedback',trajectory,math.inf,math.inf,0.,{})
         min_human_distance = math.inf
         min_tcpa = math.inf
         personal_space_cost = 0.0
+        onset_cost = 0.0
+        enclosure_people = []
         ttc_cost = 0.0
         front_cut_cost = 0.0
         yield_cost = 0.0
@@ -1421,7 +1893,8 @@ class HumanAwareMotionPlanner(Node):
         time_key = tuple(times)
         for track in tracks:
             track_hard_radius = self.robot_radius + track.body_radius + self.hard_safety_margin
-            body_distance = self.robot_radius + track.body_radius + getattr(self, "body_prediction_margin", .05)
+            margin = getattr(self,"body_prediction_margin",.05) if prediction_margin is None else max(.1,prediction_margin)
+            body_distance = self.robot_radius + track.body_radius + margin
             initial_distance = math.hypot(pose[0] - track.x, pose[1] - track.y)
             samples = predictions.get(track.track_id)
             cache_key = (track.track_id, time_key)
@@ -1429,49 +1902,69 @@ class HumanAwareMotionPlanner(Node):
                 values = []
                 for t in times:
                     sample = interpolate_prediction(samples, prediction_age + t) if samples else None
-                    values.append((track.x + track.vx * t, track.y + track.vy * t, track.vx, track.vy, self._comfort_radius(track, t)) if sample is None else
-                                  (sample.x, sample.y, sample.vx, sample.vy, self._prediction_comfort_radius(track, sample)))
+                    uncertainty_time = min(t,self.body_uncertainty_horizon)
+                    uncertainty_sample = interpolate_prediction(samples,prediction_age+uncertainty_time) if samples else None
+                    sigma = (math.sqrt(max(0.,uncertainty_sample.cov_xx,uncertainty_sample.cov_yy)) if uncertainty_sample else
+                             math.sqrt(max(0.,track.cov_xx,track.cov_yy))+.25*uncertainty_time)
+                    values.append((track.x + track.vx * t, track.y + track.vy * t, track.vx, track.vy, self._comfort_radius(track, t),sigma) if sample is None else
+                                  (sample.x, sample.y, sample.vx, sample.vy, self._prediction_comfort_radius(track, sample),sigma))
                 human = np.asarray(values)
                 angles = np.arctan2(human[:, 3], human[:, 2])[:, None] + np.asarray((-1.0, -0.5, 0.0, 0.5, 1.0)) * self.front_arc_angle
                 arc_x = human[:, 0, None] + max(0.4, self.front_arc_distance) * np.cos(angles)
                 arc_y = human[:, 1, None] + max(0.4, self.front_arc_distance) * np.sin(angles)
                 self.prediction_cache[cache_key] = human, arc_x, arc_y
             human, arc_x, arc_y = self.prediction_cache[cache_key]
+            body_distances = body_distance+self.body_uncertainty_scale*human[:,5]
             distances = np.hypot(robot_points[:, 0] - human[:, 0], robot_points[:, 1] - human[:, 1])
             relevant = times <= 1.5 if track.state == "TENTATIVE" else np.ones(len(times), dtype=bool)
-            min_human_distance = min(min_human_distance, float(np.min(distances[relevant])))
-            required_distance = max(body_distance, min(track_hard_radius, initial_distance - 0.02))
+            track_min_distance = float(np.min(distances[relevant]))
+            min_human_distance = min(min_human_distance, track_min_distance)
+            required_distance = np.maximum(body_distances, min(track_hard_radius, initial_distance - 0.02))
             hard_window = relevant & (times <= self.hard_collision_horizon)
-            hits = hard_window & (distances < body_distance)
+            physical_distance = self.robot_radius+track.body_radius+.05
+            hits = (hard_window & (distances < body_distances)) | (relevant & (distances < physical_distance))
             if np.any(hits):
                 body_collision_time = min(body_collision_time, float(times[np.flatnonzero(hits)[0]]))
             margin_violation = margin_violation or bool(np.any(hard_window & (distances < required_distance)))
             # Swept relative segments avoid missing a crossing between samples.
             relative = robot_points[:, :2] - human[:, :2]
+            if self.weights['w_enclosure'] > 0.:
+                influence = np.clip((3.-distances)/max(.1,3.-body_distance),0.,1.) * relevant * track.confidence
+                enclosure_people.append((relative/np.maximum(1e-6,distances)[:,None],influence))
             delta = np.diff(relative, axis=0)
             fraction = np.clip(-np.sum(relative[:-1] * delta, axis=1) / np.maximum(1e-12, np.sum(delta * delta, axis=1)), 0.0, 1.0)
             swept = np.linalg.norm(relative[:-1] + fraction[:, None] * delta, axis=1)
             swept_times = times[:-1] + fraction * np.diff(times)
             swept_relevant = swept_times <= (1.5 if track.state == "TENTATIVE" else self.horizon)
             if np.any(swept_relevant):
-                min_human_distance = min(min_human_distance, float(np.min(swept[swept_relevant])))
+                track_min_distance = min(track_min_distance, float(np.min(swept[swept_relevant])))
+                min_human_distance = min(min_human_distance, track_min_distance)
             swept_window = swept_relevant & (swept_times <= self.hard_collision_horizon)
-            swept_hits = swept_window & (swept < body_distance)
+            # Use the larger endpoint reserve on each swept segment, so growth
+            # of the uncertainty envelope cannot hide a between-sample conflict.
+            swept_body_distances = np.maximum(body_distances[:-1],body_distances[1:])
+            swept_hits = (swept_window & (swept < swept_body_distances)) | (swept_relevant & (swept < physical_distance))
             if np.any(swept_hits):
                 body_collision_time = min(body_collision_time, float(np.min(swept_times[swept_hits])))
-            margin_violation = margin_violation or bool(np.any(swept_window & (swept < required_distance)))
+            swept_required = np.maximum(required_distance[:-1],required_distance[1:])
+            margin_violation = margin_violation or bool(np.any(swept_window & (swept < swept_required)))
             weights = self.dt * np.exp(-self.social_cost_decay * times) * relevant
             if track.state == "TENTATIVE":
                 weights *= track.confidence
+            if math.hypot(track.vx, track.vy) < .5 and self.stationary_person_clearance > body_distance:
+                # Unknown walking intent warrants extra room, but this preference
+                # must not make an otherwise safe goal region unreachable.
+                onset_cost += float(np.sum(weights * (np.maximum(0., self.stationary_person_clearance-distances) /
+                                     (self.stationary_person_clearance-body_distance)) ** 2))
             personal_space_cost += float(np.sum(weights * np.maximum(0.0, np.exp(-0.5 * (distances / np.maximum(0.1, human[:, 4])) ** 2) - math.exp(-0.5))))
             if self.front_arc_risk_enabled:
                 arc_distances = np.hypot(robot_points[:, 0, None] - arc_x, robot_points[:, 1, None] - arc_y)
                 arc_cost = self.front_arc_weight * np.sum(np.exp(-0.5 * (arc_distances / np.maximum(0.1, human[:, 4, None] * 0.55)) ** 2), axis=1)
-                personal_space_cost += float(np.sum(weights * arc_cost * (np.hypot(human[:, 2], human[:, 3]) >= 0.08)))
+                personal_space_cost += float(np.sum(weights * arc_cost * (np.hypot(human[:, 2], human[:, 3]) >= self.human_intent_min_speed)))
             future = relevant & (times > self.hard_collision_horizon)
             personal_space_cost += float(np.sum(weights[future] * 2.0 * np.maximum(0.0, track_hard_radius - distances[future]) ** 2))
             metrics = self._relative_metrics_for_candidate(pose, candidate, track)
-            if math.hypot(track.vx, track.vy) > 0.12 and len(trajectory) > 1:
+            if math.hypot(track.vx, track.vy) > max(.12, self.human_intent_min_speed) and len(trajectory) > 1:
                 end, before = trajectory[-1], trajectory[-2]
                 interval = max(1e-6, end[3] - before[3])
                 terminal = relative_motion_metrics(end[0], end[1], (end[0] - before[0]) / interval, (end[1] - before[1]) / interval,
@@ -1480,11 +1973,18 @@ class HumanAwareMotionPlanner(Node):
                 if terminal["closing"] and terminal["dcpa"] < self.robot_radius + track.body_radius + 0.05 and terminal["tcpa"] < terminal_horizon:
                     terminal_conflict += 50.0
             min_tcpa = min(min_tcpa, metrics["tcpa"])
+            # Instantaneous-command CPA is only a directional hint: it assumes
+            # immediate acceleration and never brakes. Weight its soft penalties
+            # by the clearance of the executable, swept rollout so safe short
+            # steps do not lose to indefinite waiting on a phantom collision.
+            proximity = max(0., min(1., (self.dcpa_comfort_threshold - track_min_distance) /
+                                   max(.1, self.dcpa_comfort_threshold - body_distance))) ** 2
             if metrics["dcpa"] < self.dcpa_comfort_threshold and metrics["tcpa"] < self.ttc_warning_threshold:
-                ttc_cost += ((self.ttc_warning_threshold - metrics["tcpa"]) / self.ttc_warning_threshold) ** 2
-            if metrics["front_cut"]:
-                front_cut_cost += math.exp(-metrics["dcpa"] / max(0.1, self.dcpa_comfort_threshold))
-            if self.state == "YIELD_TO_HUMAN" and candidate.vx > 0.03:
+                ttc_cost += proximity * ((self.ttc_warning_threshold - metrics["tcpa"]) / self.ttc_warning_threshold) ** 2
+            if metrics["front_cut"] and metrics["tcpa"] <= self.horizon:
+                front_cut_cost += proximity * math.exp(-metrics["dcpa"] / max(0.1, self.dcpa_comfort_threshold))
+            if (self.state == "YIELD_TO_HUMAN" and candidate.vx > 0.03 and
+                    not (self.nav2_path_reference and getattr(self, "prefer_forward_travel", False))):
                 yield_cost += 1.0
         for tx, ty, _ in tentative_points:
             for x, y, _, _ in trajectory[:4]:
@@ -1503,21 +2003,44 @@ class HumanAwareMotionPlanner(Node):
         static_cost, static_reject = self._static_obstacle_cost(trajectory)
         if static_reject:
             return CandidateResult(candidate, math.inf, True, "static_obstacle", trajectory, min_human_distance, min_tcpa, front_cut_cost, {})
+        # Preserve room to escape: individually clear trajectories can still
+        # enter a squeeze between people approaching from opposite sides.
+        enclosure = np.zeros(len(times))
+        for index,(direction,influence) in enumerate(enclosure_people):
+            for other,other_influence in enclosure_people[index+1:]:
+                enclosure += influence*other_influence*np.maximum(0.,-np.sum(direction*other,axis=1))
+        enclosure_cost = float(np.sum(enclosure*self.dt*np.exp(-.25*times)))
         progress = self._goal_progress_cost(candidate)
         if self.nav2_path_reference and self.reference_goal_world is not None:
             endpoint = min(trajectory, key=lambda point: abs(point[3] - self.command_duration))
-            gx, gy = self.reference_goal_world
-            progress = (math.hypot(endpoint[0] - gx, endpoint[1] - gy) - math.hypot(pose[0] - gx, pose[1] - gy)) / max(0.1, endpoint[3])
+            # Progress must follow the admitted route around people. Measuring
+            # only straight-line distance to the final goal penalized necessary
+            # sidesteps and made a stopped command a persistent local minimum.
+            gx, gy = getattr(self, "reference_progress_target", None) or self.reference_goal_world
+            target_distance = math.hypot(endpoint[0] - gx, endpoint[1] - gy)
+            starting_distance = math.hypot(pose[0]-gx,pose[1]-gy)
+            if math.hypot(gx-self.reference_goal_world[0], gy-self.reference_goal_world[1]) < .01:
+                # Arrival is an event, not an obligation to remain at the goal
+                # for the rest of a rollout. Credit a safe trajectory that
+                # reaches it and keeps moving clear of an approaching person.
+                target_distance = min(math.hypot(x-gx, y-gy) for x,y,_,t in trajectory if t <= endpoint[3])
+                # Reaching the internal arrival region earns full progress;
+                # penetrating farther toward its centre earns no extra reward.
+                target_distance = max(0.,target_distance-self.goal_cost_radius)
+                starting_distance = max(0.,starting_distance-self.goal_cost_radius)
+            progress = (target_distance - starting_distance) / max(0.1, endpoint[3])
         path = self._path_alignment_cost(candidate)
         smooth = (candidate.vx - float(self.last_cmd.linear.x)) ** 2 + (candidate.vy - float(self.last_cmd.linear.y)) ** 2
         jerk = smooth + 0.25 * (candidate.wz - float(self.last_cmd.angular.z)) ** 2
         legibility = self._side_switch_cost(candidate)
         deadlock = 1.0 if self.state == "DEADLOCK_RECOVERY" and candidate.name == "yield_stop" else 0.0
         score_terms = {
-            "goal": self.weights["w_goal"] * progress,
+            "goal": self.weights["w_goal"] * self.goal_urgency * progress,
             "path": self.weights["w_path"] * path,
             "static": self.weights["w_static"] * static_cost,
             "personal_space": self.weights["w_personal_space"] * personal_space_cost,
+            "onset": self.stationary_clearance_weight * onset_cost,
+            "enclosure": self.weights['w_enclosure'] * enclosure_cost,
             "ttc": self.weights["w_ttc"] * ttc_cost,
             "pass_front": self.weights["w_pass_front"] * front_cut_cost,
             "yield": self.weights["w_yield"] * yield_cost,
@@ -1532,6 +2055,8 @@ class HumanAwareMotionPlanner(Node):
             + score_terms["path"]
             + score_terms["static"]
             + score_terms["personal_space"]
+            + score_terms["onset"]
+            + score_terms["enclosure"]
             + score_terms["ttc"]
             + score_terms["pass_front"]
             + score_terms["yield"]
@@ -1545,9 +2070,13 @@ class HumanAwareMotionPlanner(Node):
         return CandidateResult(candidate, score, bool(reason), reason, trajectory, min_human_distance, min_tcpa, front_cut_cost, score_terms)
 
     def _simulate(self, pose: tuple[float, float, float], candidate: Candidate) -> list[tuple[float, float, float, float]]:
-        next_command = None if candidate.follow_vx is None else (candidate.follow_vx, 0.0, 0.0)
+        next_command = None if candidate.follow_vx is None else (candidate.follow_vx, candidate.follow_vy, candidate.follow_wz)
         duration = math.inf if next_command is None else candidate.switch_time
         filtered = self.policy_command if self.policy_command_stamp is not None and 0.0 <= self.get_clock().now().nanoseconds * 1e-9 - self.policy_command_stamp <= 0.4 else None
+        if candidate.schedule is not None:
+            initial = filtered if filtered is not None else self.motion_envelope.normalize(self.measured_velocity)
+            return rollout_schedule(self.motion_envelope,pose,self.measured_velocity,initial,
+                                    candidate.schedule,self.horizon,self.dt,self.response_delay)
         return self.motion_envelope.rollout(pose, (candidate.vx, candidate.vy, candidate.wz), self.measured_velocity, self.horizon, self.dt, self.response_delay, duration, next_command, filtered)
 
     def _static_obstacle_cost(self, trajectory: list[tuple[float, float, float, float]]) -> tuple[float, bool]:
@@ -1557,7 +2086,8 @@ class HumanAwareMotionPlanner(Node):
         # interval plus braking, rather than an unchanged five-second arc that
         # Nav2 never requested. Human occupancy remains checked over the horizon.
         braking = max(abs(self.measured_velocity[0]) / max(0.01, self.motion_envelope.accel_x), abs(self.measured_velocity[1]) / max(0.01, self.motion_envelope.accel_y))
-        static_horizon = max(self.command_duration, self.response_delay + braking + 0.3)
+        static_horizon = (self.horizon if getattr(self, "prefer_forward_travel", False) else
+                          max(self.command_duration, self.response_delay + braking + 0.3))
         trajectory = [point for point in trajectory if point[3] <= static_horizon]
         now = self.get_clock().now()
         scan_time = None if self.latest_scan_time is None else self.latest_scan_time.nanoseconds * 1e-9
@@ -1638,7 +2168,8 @@ class HumanAwareMotionPlanner(Node):
             if self.static_field_cache is None:
                 self.static_field_cache = StaticDistanceField(obstacles, trajectory[0][:2], self.static_influence_range + self.horizon * self.motion_envelope.max_x, self.static_influence_range)
             nearest = self.static_field_cache.query(positions)
-            rejected = bool(np.any(nearest < self.static_clearance))
+            rejected = self.static_field_cache.trajectory_is_blocked(positions, self.static_clearance, nearest,
+                                                                    recovery_radius=self.robot_radius)
             cost = float(np.sum(np.maximum(0.0, (self.static_influence_range - nearest) / self.static_influence_range) ** 2)) * self.dt
             result = (math.inf, True) if rejected else (cost, False)
         self.static_cache[key] = result
@@ -1662,7 +2193,7 @@ class HumanAwareMotionPlanner(Node):
         robot_speed = math.hypot(rvx, rvy)
         crossing = False
         front_cut = False
-        if bool(metrics["closing"]) and human_speed > 0.08 and robot_speed > 0.03:
+        if bool(metrics["closing"]) and human_speed > self.human_intent_min_speed and robot_speed > 0.03:
             dot = (track.vx * rvx + track.vy * rvy) / max(1e-6, human_speed * robot_speed)
             angle = abs(math.acos(max(-1.0, min(1.0, dot))))
             crossing = self.crossing_angle_min < angle < math.pi - self.crossing_angle_min
@@ -1743,7 +2274,10 @@ class HumanAwareMotionPlanner(Node):
         return abs(self._wrap_pi(cand_angle - raw_angle)) + abs(candidate.wz - float(self.latest_cmd.angular.z))
 
     def _side_switch_cost(self, candidate: Candidate) -> float:
-        side = candidate.vy if abs(candidate.vy) > 1e-3 else candidate.wz
+        # Turning in place does not change which side of a person we pass.
+        # Penalizing yaw sign could make an essential alignment turn costlier
+        # than remaining stopped indefinitely behind an obstacle.
+        side = candidate.vy
         if self.side_commitment == 0.0 or abs(side) < 1e-3:
             return 0.0
         return 1.0 if side * self.side_commitment < 0.0 else 0.0
@@ -1763,6 +2297,11 @@ class HumanAwareMotionPlanner(Node):
         if not tracks:
             return 0.0
         robot_x, robot_y, yaw = pose
+        target = getattr(self, "reference_progress_target", None)
+        if getattr(self, "prefer_forward_travel", False) and target is not None:
+            lateral = -math.sin(yaw)*(target[0]-robot_x)+math.cos(yaw)*(target[1]-robot_y)
+            if abs(lateral) > .2:
+                return math.copysign(1., lateral)
         nearest = min(tracks, key=lambda track: math.hypot(track.x - robot_x, track.y - robot_y))
         dx = nearest.x - robot_x
         dy = nearest.y - robot_y
@@ -1777,6 +2316,23 @@ class HumanAwareMotionPlanner(Node):
         state_msg = String()
         state_msg.data = state
         self.state_pub.publish(state_msg)
+        sequence = {'stamp': now.nanoseconds*1e-9, 'frame': self.robot_frame,
+                    'active': self.mission_active, 'first': [cmd.linear.x,cmd.linear.y,cmd.angular.z],
+                    'duration': 0., 'then': None, 'goal': None}
+        if self.reference_goal is not None:
+            goal = self.reference_goal
+            sequence['goal'] = [goal.header.frame_id,goal.header.stamp.sec,goal.header.stamp.nanosec,
+                                goal.pose.position.x,goal.pose.position.y]
+        if selected is not None and (not selected.rejected or selected.reason == 'human_margin') and selected.candidate.follow_vx is not None:
+            candidate = selected.candidate
+            remaining = candidate.switch_time
+            if candidate.name in ('escape_pending','beam_pending') and self.escape_plan is not None:
+                original,started,_ = self.escape_plan
+                remaining = max(0.,started+original.switch_time-now.nanoseconds*1e-9)
+            sequence.update(duration=remaining, then=[candidate.follow_vx,candidate.follow_vy,candidate.follow_wz])
+        sequence_msg = String()
+        sequence_msg.data = json.dumps(sequence,separators=(',',':'))
+        self.sequence_pub.publish(sequence_msg)
         if self.selected_safe_patch is not None:
             patch_msg = PoseStamped()
             patch_msg.header.frame_id = self.target_frame
@@ -1795,6 +2351,7 @@ class HumanAwareMotionPlanner(Node):
             "nearest_static": sorted(self.static_memory.values(), key=lambda p: math.hypot(p[0] - debug_pose[0], p[1] - debug_pose[1]))[:3] if self.static_memory and debug_pose is not None else [],
             "planning_ms": round((time.perf_counter() - self.planning_started) * 1000.0, 3),
             "search_budget_exhausted": self.search_budget_exhausted,
+            "kinodynamic_status": self.kinodynamic_status,
             "evaluated_candidates": len(results),
             "planning_thread_ms": round((time.thread_time() - self.planning_cpu_started) * 1000.0, 3),
             "planning_phases_ms": {key: round(value, 3) for key, value in self.planning_phases.items()},
@@ -1810,7 +2367,12 @@ class HumanAwareMotionPlanner(Node):
             "reference_cmd": self._twist_dict(self.latest_cmd),
             "path_reference_status": self.path_reference_status,
             "mission_active": self.mission_active,
+            "navigation_mode": self.navigation_mode,
+            "payload_active": self.payload_active,
+            "goal_urgency": self.goal_urgency,
+            "goal_holonomic": self.goal_holonomic,
             "selected_cmd": self._twist_dict(cmd),
+            "command_sequence": sequence,
             "score": round(selected.score, 3) if selected and math.isfinite(selected.score) else None,
             "rejected": sum(1 for result in results if result.rejected),
             "min_human_distance": round(selected.min_human_distance, 3) if selected and math.isfinite(selected.min_human_distance) else None,
@@ -1879,6 +2441,11 @@ class HumanAwareMotionPlanner(Node):
             "min_human_distance": round(result.min_human_distance, 3) if math.isfinite(result.min_human_distance) else None,
             "min_tcpa": round(result.min_tcpa, 3) if math.isfinite(result.min_tcpa) else None,
             "front_cut_cost": round(result.front_cut_cost, 3),
+            "command_duration_s": result.candidate.switch_time if result.candidate.follow_vx is not None else None,
+            "schedule": result.candidate.schedule,
+            "following_cmd": None if result.candidate.follow_vx is None else {
+                "x": result.candidate.follow_vx, "y": result.candidate.follow_vy,
+                "z": result.candidate.follow_wz},
         }
         if result.score_terms:
             data["score_terms"] = {key: round(value, 3) for key, value in result.score_terms.items()}
@@ -2021,10 +2588,7 @@ class HumanAwareMotionPlanner(Node):
         if self.odom_pose is not None and self.odom_stamp is not None:
             age = self.get_clock().now().nanoseconds * 1e-9 - self.odom_stamp
             if 0.0 <= age <= self.odom_timeout:
-                x, y, yaw = self.odom_pose
-                vx, vy, wz = self.measured_velocity
-                return (x + (math.cos(yaw) * vx - math.sin(yaw) * vy) * age,
-                        y + (math.sin(yaw) * vx + math.cos(yaw) * vy) * age, yaw + wz * age)
+                return advance_planar_pose(self.odom_pose, self.measured_velocity, age)
         try:
             transform = self.tf_buffer.lookup_transform(self.target_frame, self.robot_frame, rclpy.time.Time())
         except TransformException as exc:

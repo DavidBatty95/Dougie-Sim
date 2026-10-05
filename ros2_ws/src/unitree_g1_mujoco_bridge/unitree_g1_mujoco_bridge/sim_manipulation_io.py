@@ -217,6 +217,7 @@ def _create_node_class():
     from rclpy.node import Node
     from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
     from std_srvs.srv import Trigger
+    from g1_msgs.srv import GraspObject
     from vision_msgs.msg import Detection3D, Detection3DArray, ObjectHypothesisWithPose
 
     class SimManipulationIO(Node):
@@ -229,6 +230,7 @@ def _create_node_class():
             )
             self.declare_parameter("command_ack_timeout", 0.5)
             self.declare_parameter("frame_id", "odom")
+            self.declare_parameter("output_topic", "/objects")
             self.declare_parameter("publish_rate_hz", 20.0)
             self.declare_parameter("stale_timeout", 0.5)
             self.declare_parameter("left_object_id", "red_cube")
@@ -286,7 +288,8 @@ def _create_node_class():
                 depth=1,
                 reliability=QoSReliabilityPolicy.RELIABLE,
             )
-            self._publisher = self.create_publisher(Detection3DArray, "/objects", qos)
+            self._publisher = self.create_publisher(Detection3DArray, str(self.get_parameter("output_topic").value), qos)
+            self.create_service(GraspObject, "~/grasp_object", self._grasp_object)
             self.create_service(Trigger, "~/grasp_left", self._grasp_left)
             self.create_service(Trigger, "~/grasp_right", self._grasp_right)
             self.create_service(Trigger, "~/release_left", self._release_left)
@@ -372,6 +375,9 @@ def _create_node_class():
 
         def _grasp_left(self, _request, response):
             return self._set_response(response, self._send_grasp("left", self.left_object_id))
+
+        def _grasp_object(self, request, response):
+            return self._set_response(response, self._send_grasp(request.arm, request.object_id))
 
         def _grasp_right(self, _request, response):
             return self._set_response(response, self._send_grasp("right", self.right_object_id))

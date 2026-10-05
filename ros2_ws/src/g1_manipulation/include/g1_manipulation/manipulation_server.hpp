@@ -4,6 +4,7 @@
 #include <g1_msgs/action/pick.hpp>
 #include <g1_msgs/action/place.hpp>
 #include <g1_msgs/action/set_arm_posture.hpp>
+#include <g1_msgs/srv/grasp_object.hpp>
 #include <geometry_msgs/msg/pose.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -66,7 +67,8 @@ private:
     MoveGroup & group, const geometry_msgs::msg::Pose & pose, const std::string & tip,
     const std::string & phase);
   bool moveToNamed(MoveGroup & group, const std::string & target);
-  bool callGripper(const std::string & side, bool grasp, std::string & reason);
+  bool callGripper(const std::string & side, bool grasp, std::string & reason,
+    const std::string & object_id = "");
   bool attachObject(
     const ArmContext & arm, const moveit_msgs::msg::CollisionObject & object);
   bool detachObject(const std::string & object_id);
@@ -103,6 +105,8 @@ private:
   rclcpp_action::Server<Place>::SharedPtr place_server_;
   rclcpp_action::Server<SetArmPosture>::SharedPtr posture_server_;
   std::map<std::string, rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr> gripper_clients_;
+  rclcpp::Client<g1_msgs::srv::GraspObject>::SharedPtr object_grasp_client_;
+  bool use_object_grasp_service_{true};
 
   std::string planning_frame_;
   std::string left_tip_link_;
