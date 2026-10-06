@@ -107,12 +107,18 @@ def test_authority_service_does_not_change_attachment_state():
 ])
 def test_placement_requires_fresh_post_acknowledgement_geometry(stamp,position,expected):
     mission = MissionHarness()
-    mission.observations['box_red'] = dict(observed_stamp=stamp,position=position)
+    mission.observations['box_red'] = dict(observed_stamp=stamp,position=position,confirmed=True)
     assert mission.placement_observed('box_red',np.array((2.,0.,.954)),10.) is expected
 
 
 def test_missing_box_cannot_verify_placement():
     assert not MissionHarness().placement_observed('box_red',np.array((2.,0.,.954)),10.)
+
+
+def test_unconfirmed_image_candidate_is_not_a_manipulation_target():
+    mission = MissionHarness()
+    mission.observations['box_red'] = dict(observed_stamp=11.,position=(2.,0.,1.009),confirmed=False)
+    assert mission.observe('box_red') is None
 
 
 def test_uncertain_attachment_publishes_conservative_carrying_and_payload():

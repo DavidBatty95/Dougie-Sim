@@ -26,8 +26,15 @@ The default runtime is a simulation-first, closed-loop ROS 2 locomotion and soci
 
 - **ROS 2:** navigation, perception, policy inference, safety, visualization, and diagnostics.
 - **Unitree DDS:** `rt/lowcmd`, `rt/lowstate`, and `rt/sportmodestate` cross the low-level robot boundary on domain 42 by default.
-- **Unix datagrams:** MuJoCo raycast LiDAR, camera, and pedestrian packets reach `g1_sim_sensors` through `/tmp` sockets.
+- **Unix datagrams:** MuJoCo raycast LiDAR, camera, native sensor-site IMU and pedestrian packets reach `g1_sim_sensors` through `/tmp` sockets.
 - **MuJoCo:** owns physics, actuator PD, simulated sensors, and animated actors.
+
+ROS `/lowcmd` and `/lowstate` map to the corresponding DDS `rt/` names; the
+extra ROS `/rt/*` aliases are opt-in. Commands include the vendor-layout CRC and
+observed machine mode. Sensor IMUs carry measured simulated specific force and
+angular velocity, while raw sensor TF comes from IMU/encoders. See
+[hardware fidelity](HARDWARE_FIDELITY.md) for exact message types, the optional
+BrainCo Stark adapter and the limits of sensor/model equivalence.
 - **External packages:** Nav2, SLAM Toolbox, RViz, robot state publisher, ONNX Runtime or PyTorch, and the locomotion policy artifact.
 
 ## Architecture Evaluation

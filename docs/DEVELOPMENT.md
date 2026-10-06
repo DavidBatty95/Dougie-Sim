@@ -67,6 +67,12 @@ ROS Python interpreter; disable ROS pytest plugin autoload for that isolated tes
 
 ## Publication verification — 5 October 2026
 
+For the newer 6 October verification, see [hardware fidelity](HARDWARE_FIDELITY.md):
+full CI passed (15 packages, 624 ROS test results, 99 script tests, 11 simulator
+CTests and the strict mock gate); 13 isolated MJLab tests also passed. Two new
+native dual-delivery trials and an articulated-hand interface audit passed.
+The table below remains the earlier publication snapshot.
+
 The source publication was checked with the existing Docker environment:
 
 | Check | Result |

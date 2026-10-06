@@ -57,6 +57,13 @@ simulator and intended command source should own the runtime at once.
 
 ## Modes and boundaries
 
+The native build also generates `scene_29dof_brainco_hardware.xml` for articulated
+hand/interface inspection. Use `scripts/run_hardware_parity_probe.py` to launch
+that profile with a passive topic/CRC/sensor/TF audit. The
+[fidelity guide](../../../docs/HARDWARE_FIDELITY.md) records supported fields and
+nominal versus measured rates. `camera_mount_pitch_deg` must match the selected
+model; the dual-transport launcher sets its explicit 25° mounting assumption.
+
 - Onboard cases enable sensor-derived localization, online mapping and observed
   person tracking; they do not receive a static scene map or truth localization.
 - Historical oracle cases intentionally use different sources and must stay

@@ -22,8 +22,9 @@ from std_msgs.msg import Float32, Header, String
 from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
 from unitree_go.msg import SportModeState
 
-from .sensor_packets import decode_camera_packet, decode_lidar_packet, decode_pedestrian_packet
+from .sensor_packets import decode_camera_packet, decode_lidar_packet, decode_pedestrian_packet,decode_imu_packet
 from .evaluation_alignment import EvaluationAlignment
+from .sensor_geometry import matrix_to_quat_xyzw
 
 
 def world_to_body_velocity(rotation: tuple, velocity: tuple) -> tuple[float, float, float]:
@@ -59,6 +60,7 @@ class G1SimSensors(Node):
         self.declare_parameter("pointcloud_rate_hz", 0.2)
         self.declare_parameter("publish_depth_pointcloud", False)
         self.declare_parameter("imu_rate_hz", 100.0)
+        self.declare_parameter('mujoco_imu_socket','/tmp/unitree_g1_mujoco_imu.sock')
         self.declare_parameter("lidar_rate_hz", 10.0)
         self.declare_parameter("livox_point_rate", 200000)
         self.declare_parameter("livox_scan_points", 2400)
@@ -85,7 +87,7 @@ class G1SimSensors(Node):
         self.declare_parameter("upright_tilt_threshold", 0.45)
         self.declare_parameter("lidar_resume_delay", 2.0)
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
-        self.declare_parameter("mujoco_state_topic", "rt/sportmodestate")
+        self.declare_parameter("mujoco_state_topic", "/sportmodestate")
         self.declare_parameter("livox_base_offset_x", 0.10)
         self.declare_parameter("livox_base_offset_y", 0.0)
         self.declare_parameter("livox_base_offset_z", 0.46)
@@ -180,6 +182,11 @@ class G1SimSensors(Node):
         self.latest_mujoco_camera_sim_time = None
         self.latest_mujoco_camera_acquisition_stamp = None
         self.camera_data_stamp = None
+        self.last_camera_published_stamp = None
+        self.last_imu_published_ns = 0
+        self.native_imu_count = 0
+        self.mujoco_imu_socket = str(self.get_parameter('mujoco_imu_socket').value)
+        self.mujoco_imu_socket_rx = None
         self.lidar_dead_reckon_x = 0.0
         self.lidar_dead_reckon_y = 0.0
         self.lidar_dead_reckon_yaw = 0.0
@@ -203,7 +210,7 @@ class G1SimSensors(Node):
             data = self._latest_mujoco_camera_images()
             if data is not None:
                 self.color_data, self.depth_data, self.camera_data_stamp = data
-            elif self.onboard_only:
+            elif self.onboard_only or self.use_mujoco_raycast_camera:
                 self.color_data, self.depth_data = b"", b""
                 self.camera_data_stamp = None
             else:
@@ -264,6 +271,7 @@ class G1SimSensors(Node):
         self.base_height_pub = self.create_publisher(Float32, "/g1/base_height", 10)
         self.mujoco_pedestrians_pub = self.create_publisher(String, "/mujoco/pedestrians", 10)
         self.sensor_status_pub = self.create_publisher(String, "/g1/sim_sensor_status", 10)
+        self._open_mujoco_imu_socket()
         self.create_subscription(JointState, "/joint_states", self._joint_state_callback, sensor_qos)
         if self.use_mujoco_lidar_pose and not self.onboard_only:
             self.create_subscription(
@@ -281,11 +289,11 @@ class G1SimSensors(Node):
             )
 
         if self.publish_camera:
-            self.create_timer(1.0 / float(self.get_parameter("camera_rate_hz").value), self._publish_camera)
+            camera_period = 1.0 / float(self.get_parameter("camera_rate_hz").value)
+            self.create_timer(min(.01,camera_period) if self.use_mujoco_raycast_camera else camera_period,self._publish_camera)
         if self.publish_depth_pointcloud and self.pointcloud_rate_hz > 0.0:
             self.create_timer(1.0 / self.pointcloud_rate_hz, self._publish_depth_pointcloud)
-        if not self.onboard_only:
-            self.create_timer(1.0 / float(self.get_parameter("imu_rate_hz").value), self._publish_imu)
+        self.create_timer(1.0 / float(self.get_parameter("imu_rate_hz").value), self._publish_imu)
         self.create_timer(1.0 / self.lidar_rate_hz, self._publish_lidar)
         self.create_timer(1.0 / 20.0, self._publish_mujoco_pedestrians)
         if not self.onboard_only:
@@ -294,6 +302,13 @@ class G1SimSensors(Node):
         self.get_logger().info(
             f"Publishing low-latency Livox with {self.livox_points_per_packet} rays/scan; camera={self.publish_camera}"
         )
+
+    def _open_mujoco_imu_socket(self):
+        if os.path.exists(self.mujoco_imu_socket):
+            os.unlink(self.mujoco_imu_socket)
+        self.mujoco_imu_socket_rx = socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM)
+        self.mujoco_imu_socket_rx.bind(self.mujoco_imu_socket)
+        self.mujoco_imu_socket_rx.setblocking(False)
 
     def _open_mujoco_lidar_socket(self) -> None:
         try:
@@ -335,6 +350,11 @@ class G1SimSensors(Node):
             self.get_logger().warning(f"Could not open MuJoCo pedestrian socket: {exc}")
 
     def destroy_node(self) -> bool:
+        if self.mujoco_imu_socket_rx is not None:
+            self.mujoco_imu_socket_rx.close()
+            self.mujoco_imu_socket_rx = None
+            if os.path.exists(self.mujoco_imu_socket):
+                os.unlink(self.mujoco_imu_socket)
         if self.mujoco_lidar_socket_rx is not None:
             self.mujoco_lidar_socket_rx.close()
             self.mujoco_lidar_socket_rx = None
@@ -662,6 +682,7 @@ class G1SimSensors(Node):
         info.k = [fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0]
         info.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         info.d = [0.0, 0.0, 0.0, 0.0, 0.0]
+        info.r = [1.,0.,0.,0.,1.,0.,0.,0.,1.]
         info.distortion_model = "plumb_bob"
         return info
 
@@ -669,11 +690,15 @@ class G1SimSensors(Node):
         data = self._latest_mujoco_camera_images()
         if data is not None:
             self.color_data, self.depth_data, stamp = data
-        elif self.onboard_only:
+        elif self.onboard_only or self.use_mujoco_raycast_camera:
             return
         else:
             self.color_data, self.depth_data = self._render_camera(self.camera_frame)
             stamp = self.get_clock().now().to_msg()
+        key = (stamp.sec,stamp.nanosec)
+        if self.last_camera_published_stamp is not None and key<=self.last_camera_published_stamp:
+            return
+        self.last_camera_published_stamp = key
         self.camera_data_stamp = stamp
         color_header = Header()
         color_header.stamp = stamp
@@ -809,52 +834,42 @@ class G1SimSensors(Node):
         self.depth_points_pub.publish(cloud)
 
     def _publish_imu(self) -> None:
-        imu = Imu()
-        imu.header = self._header(self.imu_frame)
-        imu.orientation.w = 1.0
-        imu.orientation_covariance[0] = 0.01
-        imu.orientation_covariance[4] = 0.01
-        imu.orientation_covariance[8] = 0.01
-        imu.angular_velocity_covariance[0] = 0.01
-        imu.angular_velocity_covariance[4] = 0.01
-        imu.angular_velocity_covariance[8] = 0.01
-        imu.linear_acceleration.z = 9.80665
-        imu.linear_acceleration_covariance[0] = 0.05
-        imu.linear_acceleration_covariance[4] = 0.05
-        imu.linear_acceleration_covariance[8] = 0.05
-        self.imu_pub.publish(imu)
-
-        accel = Imu()
-        accel.header = imu.header
-        accel.orientation_covariance[0] = -1.0
-        accel.linear_acceleration.z = 9.80665
-        accel.linear_acceleration_covariance[0] = 0.05
-        accel.linear_acceleration_covariance[4] = 0.05
-        accel.linear_acceleration_covariance[8] = 0.05
-        self.accel_pub.publish(accel)
-
-        gyro = Imu()
-        gyro.header = imu.header
-        gyro.orientation_covariance[0] = -1.0
-        gyro.angular_velocity_covariance[0] = 0.01
-        gyro.angular_velocity_covariance[4] = 0.01
-        gyro.angular_velocity_covariance[8] = 0.01
-        self.gyro_pub.publish(gyro)
-
-        livox_imu = Imu()
-        livox_imu.header = self._header(self.lidar_frame)
-        livox_imu.orientation.w = 1.0
-        livox_imu.orientation_covariance[0] = 0.01
-        livox_imu.orientation_covariance[4] = 0.01
-        livox_imu.orientation_covariance[8] = 0.01
-        livox_imu.angular_velocity_covariance[0] = 0.01
-        livox_imu.angular_velocity_covariance[4] = 0.01
-        livox_imu.angular_velocity_covariance[8] = 0.01
-        livox_imu.linear_acceleration.z = 9.80665
-        livox_imu.linear_acceleration_covariance[0] = 0.05
-        livox_imu.linear_acceleration_covariance[4] = 0.05
-        livox_imu.linear_acceleration_covariance[8] = 0.05
-        self.livox_imu_pub.publish(livox_imu)
+        latest = None
+        while self.mujoco_imu_socket_rx is not None:
+            try:
+                packet = self.mujoco_imu_socket_rx.recv(4096)
+            except BlockingIOError:
+                break
+            decoded = decode_imu_packet(packet)
+            if decoded is not None:
+                latest = decoded
+        if latest is None or latest.acquisition_time_ns<=self.last_imu_published_ns:
+            return
+        age = self.get_clock().now().nanoseconds-latest.acquisition_time_ns
+        if not 0<=age<=500_000_000:
+            return
+        self.last_imu_published_ns = latest.acquisition_time_ns
+        self.native_imu_count += 1
+        stamp = Time(nanoseconds=latest.acquisition_time_ns).to_msg()
+        def message(frame,values,gyro=True,accel=True):
+            result = Imu()
+            result.header = self._header(frame,stamp)
+            result.orientation_covariance[0] = -1.  # Raw IMU has no attitude solution.
+            if gyro:
+                result.angular_velocity.x,result.angular_velocity.y,result.angular_velocity.z = values[:3]
+            else:
+                result.angular_velocity_covariance[0] = -1.
+            if accel:
+                result.linear_acceleration.x,result.linear_acceleration.y,result.linear_acceleration.z = values[3:]
+            else:
+                result.linear_acceleration_covariance[0] = -1.
+            return result
+        if latest.camera is not None:
+            self.imu_pub.publish(message(self.imu_frame,latest.camera))
+            self.accel_pub.publish(message(self.imu_frame,latest.camera,gyro=False))
+            self.gyro_pub.publish(message(self.imu_frame,latest.camera,accel=False))
+        if latest.lidar is not None:
+            self.livox_imu_pub.publish(message(self.lidar_frame,latest.lidar))
 
     def _publish_lidar(self) -> None:
         started = self.get_clock().now()
@@ -1514,35 +1529,7 @@ class G1SimSensors(Node):
 
     @staticmethod
     def _matrix_to_quat_xyzw(rotation: tuple) -> tuple:
-        m00, m01, m02 = rotation[0]
-        m10, m11, m12 = rotation[1]
-        m20, m21, m22 = rotation[2]
-        trace = m00 + m11 + m22
-        if trace > 0.0:
-            s = math.sqrt(trace + 1.0) * 2.0
-            qw = 0.25 * s
-            qx = (m21 - m12) / s
-            qy = (m02 - m20) / s
-            qz = (m10 - m01) / s
-        elif m00 > m11 and m00 > m22:
-            s = math.sqrt(1.0 + m00 - m11 - m22) * 2.0
-            qw = (m21 - m12) / s
-            qx = 0.25 * s
-            qy = (m01 + m10) / s
-            qz = (m02 + m20) / s
-        elif m11 > m22:
-            s = math.sqrt(1.0 + m11 - m00 - m22) * 2.0
-            qw = (m02 - m20) / s
-            qx = (m01 + m10) / s
-            qy = 0.25 * s
-            qz = (m12 + m21) / s
-        else:
-            s = math.sqrt(1.0 + m22 - m00 - m11) * 2.0
-            qw = (m10 - m01) / s
-            qx = (m02 + m20) / s
-            qy = (m12 + m21) / s
-            qz = 0.25 * s
-        return qx, qy, qz, qw
+        return matrix_to_quat_xyzw(rotation)
 
     @staticmethod
     def _matmul(a: tuple, b: tuple) -> tuple:

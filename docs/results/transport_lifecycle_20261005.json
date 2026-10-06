@@ -1,0 +1,912 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-05T11:14:34.603469+00:00",
+  "role": "development_attempt_ledger_not_frozen_reliability_cohort",
+  "source": "ros2_ws/src/dynamic_obstacle_benchmarks/results/transport_demo",
+  "runs": [
+    {
+      "run_id": "20261005T104025Z",
+      "manifest_sha256": "8bcb0672b0cd6b4b2458c2ec355ce68041aaa2b9522e75cd5f70c30dade77f71",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 42,
+        "duration_s": 180.0,
+        "build_reused": false,
+        "carry_posture": null
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "994c43fcc456cce513fe4d222a7c04401f13e26505ee0de48050ba11547c889d",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "e29adca2b44968046bb43a9fa721a573c8573a4dd4a606e3880ba85d5e7e2369",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "0079f66fc4ad112062d5d9ddb939f542736763766503b39b61b8d26cc56e455f",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "arm trajectory interrupted; authority retained",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.0,
+            "travel_m": 3.512421360119037e-12
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.055170256000110385,
+            "robot": 0.06992317100002765,
+            "target_red": 0.05511006200003976
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.08711560299980192,
+            "target_red": 0.08758328200019605,
+            "robot": 0.25055218199986484
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "reach",
+      "elapsed_to_last_event_s": 13.354420029000266,
+      "recovery_events": [],
+      "runtime_provenance_sha256": "be93982d7335d018d6fd7e67952d92241e17c77cc0d29a3480c5b7ece5bbce99",
+      "python_source_alignment": null,
+      "source_provenance_sha256": "6b5ef8a686f9784967de5d9b09e740ef284cfbb553106a1fa5e624870140be61",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T104230Z",
+      "manifest_sha256": "02eb54b7772f9b23afcfa127c48c789fbf2b5af7407f1f052b003458468ec5d9",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 42,
+        "duration_s": 180.0,
+        "build_reused": false,
+        "carry_posture": null
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "994c43fcc456cce513fe4d222a7c04401f13e26505ee0de48050ba11547c889d",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "5f49f552ab9ae0b75d5764b6ac109e04099eddd5e0488ed66dfe4b47df3a6c7e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "13caad863fdbcc4367b6d0b5e27538232b279e240cb3574ff184593b58f76c97",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "measured odometry stale during motion",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.2179673964836084,
+            "travel_m": 2.5436545310355343
+          }
+        ],
+        "fallen": true,
+        "dropped_objects": [
+          "box_red"
+        ],
+        "contact_samples": 0,
+        "attachment_state": "held",
+        "object_may_be_held": true,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.08488324700010708,
+            "robot": 0.12571501599995827,
+            "target_red": 0.08476869200012516
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.09033473199997388,
+            "target_red": 0.09033700200006933,
+            "robot": 0.24176291699996
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "discover",
+      "elapsed_to_last_event_s": 46.111205051999605,
+      "recovery_events": [
+        {
+          "phase": "wait_for_clearance",
+          "elapsed_s": 26.014811053999892,
+          "resume_phase": "lift",
+          "recovery": 1
+        },
+        {
+          "phase": "wait_for_clearance",
+          "elapsed_s": 27.531557569999677,
+          "resume_phase": "lift",
+          "recovery": 2
+        }
+      ],
+      "runtime_provenance_sha256": "c0a25fe3e66924153ae0c7bae057b1a2b8da497a0e917c7af2f8c1bce4b4d333",
+      "python_source_alignment": null,
+      "source_provenance_sha256": "f0418c007191a694e73fbfc43197cbb6c71e90d2f957ab293845b2c518116afe",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T104615Z",
+      "manifest_sha256": "cef5affda808c08972a24bcd62de2cbdde4c1f6fffe758899b53057948080a38",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 42,
+        "duration_s": 180.0,
+        "build_reused": false,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "64b66004a143c88f8dcfcb09f1e7ffd21d9e8c48c50e029a5df8bea8b00cf9c4",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "f1ca259436a75a020b89113c9014f2e5378df2eaf69bd3a2cd4beacaee0e1fb7",
+      "outcome": {
+        "success": true,
+        "mission_complete": true,
+        "error": null,
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": true,
+            "lift_m": 0.19144483267296608,
+            "travel_m": 3.519115737732944
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.09663091499987786,
+            "robot": 0.04683574299997417,
+            "target_red": 0.09656866299974354
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.08855007800002568,
+            "target_red": 0.08840967800006183,
+            "robot": 0.2403300159999162
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "complete",
+      "elapsed_to_last_event_s": 92.051271929,
+      "recovery_events": [],
+      "runtime_provenance_sha256": "3aa62fdd1c5f96057f3f4aa0ea8f6ffab16523b770a7aaed924982503f014535",
+      "python_source_alignment": null,
+      "source_provenance_sha256": "edd6a2c62891a4856b7c21856c4d5f269ac8b04ffad024db23462314d23806eb",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T104904Z",
+      "manifest_sha256": "389056a03ba4e602597e7602eb14f82c409674a5d5783097cd5830a36af9864d",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 43,
+        "duration_s": 180.0,
+        "build_reused": true,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "64b66004a143c88f8dcfcb09f1e7ffd21d9e8c48c50e029a5df8bea8b00cf9c4",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "8629c782dcb08332390d856ee883ae16ce1fb371fa7d4c4b620cdd69607f6b57",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "camera did not verify post-release placement",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": true,
+            "lift_m": 0.19177445984513009,
+            "travel_m": 3.580386233617795
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.06761228200002734,
+            "robot": 0.12961294399974577,
+            "target_red": 0.06756801099982113
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.07341292199998861,
+            "target_red": 0.07340920400019968,
+            "robot": 0.2368547219998618
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "verify_place",
+      "elapsed_to_last_event_s": 66.44218671399994,
+      "recovery_events": [],
+      "runtime_provenance_sha256": "58e0b753c079fb806ac559ae2aa49e7a7a55b158f7cc83f0a8018faec5e39c0b",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "cfdcf53bf564314b2c4c1abb560ff99fe0215d20e58798b32ffb42b1ced064d9",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T105156Z",
+      "manifest_sha256": "8b8ad6870df17efadd96ccfe080f424fb6d947a87c179be296fc855e941a1663",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 43,
+        "duration_s": 180.0,
+        "build_reused": false,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "fbf21be31d5f627a56c13c7b8c07edb782f1fb6b02a9c9fbf1de18c1f578f8de",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "99c39dde72fb489dcf18eb86275f0eb8c9c9347a77b00c6448ea30144d64b634",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "hand target unreachable (0.174 m)",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.0,
+            "travel_m": 3.5123993249888277e-12
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.036889341000005516,
+            "robot": 0.06724962299995241,
+            "target_red": 0.036798338999687985
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.12439516499989622,
+            "target_red": 0.12437881000005291,
+            "robot": 0.22644333800008098
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "reach",
+      "elapsed_to_last_event_s": 19.261830149999696,
+      "recovery_events": [],
+      "runtime_provenance_sha256": "b3e0ed861f39b4071e3c7c13de020fa213bfc5998475a581595fdbe647e321b2",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "88e7ba823d905aeeda72854239da6f65269b9c19231b4936155bcad74a1e9506",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T105443Z",
+      "manifest_sha256": "20074216ea5ea28d56e307feab115bfbf23efc93c9550bed3075e25727a8da73",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 44,
+        "duration_s": 180.0,
+        "build_reused": true,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "e4258e90a0d0260b19d65f39eeeb4406260081fe809375ef7fdcacd2b9824d0c",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "b33da1ca1caa5fa286424420cd1410ccd4a4d8f00632db6f1f49d5fab353bb45",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "body tilt exceeded manipulation limit",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.0,
+            "travel_m": 3.5123682187727243e-12
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.0731743460000871,
+            "robot": 0.07190405900018959,
+            "target_red": 0.07309477499984496
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.0708370819997981,
+            "target_red": 0.07089932799999588,
+            "robot": 0.252244077999876
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "reach",
+      "elapsed_to_last_event_s": 21.812888292000025,
+      "recovery_events": [],
+      "runtime_provenance_sha256": "a419faf57d35dbc88ec6eb21e6017893f8990a0653f2ee1b1d2f32b85ed6bfa1",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "70e9ef31a68be929dc6964138bf491067e0875f1bd207810860b02ffbe172787",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T110001Z",
+      "manifest_sha256": "07a38b655cf15e842f9f2cd97af3d4c8aca2ef1b4ff087984390381cafc52513",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 43,
+        "duration_s": 180.0,
+        "build_reused": true,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "5a9f8eb591ea931997e8a519c4c3b37e4d12461c8eaf3c2ea6ec4574026537a7",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "afc795a25ba580f8df3b56e491f377bcd4f07efa788b8f9457201a07faf7166b",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "cc979e5091bcab62dc7f28f9f81a23fb53100ab1c478d66dccbcc37cfab568a1",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "measured odometry stale during motion",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.2038771801957424,
+            "travel_m": 3.472007040178322
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "held",
+        "object_may_be_held": true,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.08422885599975416,
+            "robot": 0.11242367299973921,
+            "target_red": 0.08410275200003525
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.08961031500030003,
+            "target_red": 0.08962037699984648,
+            "robot": 0.27291354299995874
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "navigate_delivery",
+      "elapsed_to_last_event_s": 56.80558816099983,
+      "recovery_events": [
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 13.035494715999903,
+          "dock_settled": true,
+          "corrections": 0,
+          "settled_pose": [
+            1.042470019806708,
+            0.16713962829398774,
+            0.11601786315441129
+          ]
+        },
+        {
+          "phase": "retreat_pickup",
+          "elapsed_s": 35.51499518999981,
+          "dock_settled": true,
+          "corrections": 0,
+          "settled_pose": [
+            -0.05235698812190779,
+            0.14503334894757053,
+            0.14760561287403107
+          ]
+        }
+      ],
+      "runtime_provenance_sha256": "9d68510039a17ced4020a0f9fb280804a0305411665059d5a5a2ce28bc1d11c5",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "37bec9d7a5940716f2a544754ffd93b8fad92868cd63c94d208cccf8b751bf4e",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T110801Z",
+      "manifest_sha256": "886302ed1a6b9b3ca64d6601a8d4f33bf90c89f0a6690958f92849e1b7f5c49d",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 42,
+        "duration_s": 180.0,
+        "build_reused": true,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "5a9f8eb591ea931997e8a519c4c3b37e4d12461c8eaf3c2ea6ec4574026537a7",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "3225cae612ecb88d3701a698a8d45b35d63d542a85f6cefddb20bcd22fbc4372",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "8450517f06342c3da05392047227c58149515f361197caeef00662897117885d",
+      "outcome": {
+        "success": true,
+        "mission_complete": true,
+        "error": null,
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": true,
+            "lift_m": 0.21000722803970628,
+            "travel_m": 3.4964006046097627
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "empty",
+        "object_may_be_held": false,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.12698603700027888,
+            "robot": 0.2135398370000985,
+            "target_red": 0.1268716120002864
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.10274473599974954,
+            "target_red": 0.10279123200007234,
+            "robot": 0.3029535099999521
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "complete",
+      "elapsed_to_last_event_s": 130.52146958499998,
+      "recovery_events": [
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 12.160886994000066,
+          "dock_settled": true,
+          "corrections": 0,
+          "settled_pose": [
+            1.0295530900143182,
+            0.20788978600247618,
+            0.09329540282487872
+          ]
+        },
+        {
+          "phase": "retreat_pickup",
+          "elapsed_s": 35.16207017399984,
+          "dock_settled": false,
+          "corrections": 1,
+          "settled_pose": [
+            0.21566284686158618,
+            0.1774487757898231,
+            0.16057375073432922
+          ]
+        },
+        {
+          "phase": "retreat_pickup",
+          "elapsed_s": 38.641908546000195,
+          "dock_settled": true,
+          "corrections": 1,
+          "settled_pose": [
+            -0.07476501900125251,
+            0.21723877653226562,
+            0.05276479572057724
+          ]
+        },
+        {
+          "phase": "dock_delivery",
+          "elapsed_s": 71.25977056800002,
+          "dock_settled": false,
+          "corrections": 1,
+          "settled_pose": [
+            -1.2467153992895719,
+            1.2086526181337864,
+            -2.9697933197021484
+          ]
+        },
+        {
+          "phase": "dock_delivery",
+          "elapsed_s": 73.40590916600013,
+          "dock_settled": true,
+          "corrections": 1,
+          "settled_pose": [
+            -1.245189876846963,
+            1.2052880246169693,
+            -3.024024248123169
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 84.26262331999988,
+          "dock_settled": false,
+          "corrections": 1,
+          "settled_pose": [
+            -0.553040399112015,
+            1.250295867215097,
+            -3.0407583713531494
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 87.8165895090001,
+          "dock_settled": false,
+          "corrections": 2,
+          "settled_pose": [
+            -0.8845273358178208,
+            1.2304566114284354,
+            -2.992563009262085
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 90.80972919099986,
+          "dock_settled": false,
+          "corrections": 3,
+          "settled_pose": [
+            -0.4354037050772896,
+            1.162541431105559,
+            -3.08974289894104
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 95.64615762099993,
+          "dock_settled": false,
+          "corrections": 4,
+          "settled_pose": [
+            -0.6293369422075888,
+            1.206013497334683,
+            -3.0915019512176514
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 97.60075188700011,
+          "dock_settled": false,
+          "corrections": 5,
+          "settled_pose": [
+            -0.8064146719644181,
+            1.2006773752869644,
+            -3.0684733390808105
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 99.79349672299986,
+          "dock_settled": false,
+          "corrections": 6,
+          "settled_pose": [
+            -0.684993667512477,
+            1.1519291017291131,
+            -2.937835454940796
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 106.58443799499992,
+          "dock_settled": false,
+          "corrections": 7,
+          "settled_pose": [
+            -0.9690739562190905,
+            1.171160232923183,
+            -3.042894124984741
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 109.94243590499991,
+          "dock_settled": false,
+          "corrections": 8,
+          "settled_pose": [
+            -0.5323602593435763,
+            1.2609029296650773,
+            -3.0118114948272705
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 116.44888310499982,
+          "dock_settled": false,
+          "corrections": 9,
+          "settled_pose": [
+            -0.7041115317353777,
+            1.1450489553177343,
+            3.1330225467681885
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 118.14025002500011,
+          "dock_settled": false,
+          "corrections": 10,
+          "settled_pose": [
+            -0.7467516252707164,
+            1.1402112973643521,
+            -3.1412858963012695
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 120.19150132499999,
+          "dock_settled": false,
+          "corrections": 11,
+          "settled_pose": [
+            -0.6688138866349062,
+            1.3979691218830068,
+            3.0482029914855957
+          ]
+        },
+        {
+          "phase": "retract",
+          "elapsed_s": 122.73352758500005,
+          "dock_settled": true,
+          "corrections": 11,
+          "settled_pose": [
+            -0.7706917502178305,
+            1.1716868462386998,
+            3.090257167816162
+          ]
+        }
+      ],
+      "runtime_provenance_sha256": "b1e157cee50f693d3ba3d753230a4699ca6cfb0ef598bbd6c7b064f4305daf04",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "bc902cb39bf70ba4f6f91125d2c8d0c4f056aedfe307dafceb23348a7145ba35",
+      "incomplete_artifacts": false
+    },
+    {
+      "run_id": "20261005T111141Z",
+      "manifest_sha256": "e91b97becaaaa02d2968cd397fd253b96c1d37492bfecd611ac13ebe04306c93",
+      "configuration": {
+        "world": "transport_lab",
+        "people": 0,
+        "seed": 42,
+        "duration_s": 180.0,
+        "build_reused": true,
+        "carry_posture": "payload_v1"
+      },
+      "source_sha256": {
+        "scripts/run_transport_demo.py": "c24e5b783012e068149958ff440de03b369b6c5214f29b6196a4d1422a2b7537",
+        "scripts/transport_worlds.py": "d77eba4f7dbd599469904c8f636a1a0e1da1799030d921dabf8a57f3a9518154",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_demo.py": "9b38bccc9e1b84c5b5874065cddf3e49355dd0a251f0020837378cb26965b351",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/transport_perception.py": "01b371305084686407abb311250dc8d4dee39f53620c890339a3a330a2fa3bdd",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/arm_kinematics.py": "65dd9a5370cc4a10a4059764bb58f69ac7d5c2c19704f9b367c752a25a08f91e",
+        "ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/human_aware_motion_planner.py": "3225cae612ecb88d3701a698a8d45b35d63d542a85f6cefddb20bcd22fbc4372",
+        "vendor/mjlab/logs/payload_training/cycle_01/policy.onnx": "46d85bc33f080cf98b646445bb05b83882791cb4a70e8f9a489264f50d5ca91d"
+      },
+      "result_sha256": "80d4ea0104ffe818f05c873cd962879027968321b72e415ab64b6b09bd935331",
+      "outcome": {
+        "success": false,
+        "mission_complete": false,
+        "error": "precision docking failed",
+        "data_valid": true,
+        "deliveries": [
+          {
+            "object_id": "box_red",
+            "destination_id": "target_red",
+            "color": "red",
+            "verified": false,
+            "lift_m": 0.24897807471396183,
+            "travel_m": 3.4750251045389335
+          }
+        ],
+        "fallen": false,
+        "dropped_objects": [],
+        "contact_samples": 0,
+        "attachment_state": "held",
+        "object_may_be_held": true,
+        "evaluation_health": {
+          "valid": true,
+          "started": true,
+          "failures": [],
+          "max_gap_s": 1.0,
+          "receipt_age_s": {
+            "box_red": 0.08264859500013699,
+            "robot": 0.15895458700015297,
+            "target_red": 0.08258613399993919
+          },
+          "max_receipt_gap_s": {
+            "box_red": 0.09713031399996908,
+            "target_red": 0.09714064099989628,
+            "robot": 0.2965045649998501
+          },
+          "object_timestamp_scope": "ROS IO receipt; native object packets lack acquisition stamps"
+        }
+      },
+      "last_phase": "dock_delivery",
+      "elapsed_to_last_event_s": 66.03367776000005,
+      "recovery_events": [
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 12.570338509000067,
+          "dock_settled": false,
+          "corrections": 1,
+          "settled_pose": [
+            1.182174582857541,
+            0.1423882125042686,
+            0.00626456970348954
+          ]
+        },
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 15.008581718000187,
+          "dock_settled": false,
+          "corrections": 2,
+          "settled_pose": [
+            0.7799034817276502,
+            0.16179900846702727,
+            0.01994473859667778
+          ]
+        },
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 19.95212336600025,
+          "dock_settled": false,
+          "corrections": 3,
+          "settled_pose": [
+            1.0934314520605886,
+            0.19287342642733862,
+            0.16917672753334045
+          ]
+        },
+        {
+          "phase": "dock_pickup",
+          "elapsed_s": 22.054245022000032,
+          "dock_settled": true,
+          "corrections": 3,
+          "settled_pose": [
+            1.1103781795159016,
+            0.18471152332990873,
+            0.1445978283882141
+          ]
+        }
+      ],
+      "runtime_provenance_sha256": "103e18fe1c19306eca23bbc38f17b86f542a423542b66a9f62455efec957b6ad",
+      "python_source_alignment": {
+        "matched": true,
+        "checked_files": 63,
+        "mismatches": [],
+        "scope": "Python autonomy packages only; native binary identity recorded separately"
+      },
+      "source_provenance_sha256": "d136a6a697037f34fdd8a92fcf50b3846888c1bf2cb0c78681bbd54e17cc9b30",
+      "incomplete_artifacts": false
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 """Generate physical multi-table transport fixtures; layouts are evaluator data."""
 import argparse
 import json
+import math
 import xml.etree.ElementTree as ET
 
 from avoidance_worlds import ROOT, SCENES, generate as generate_navigation_worlds, scene
@@ -9,6 +10,8 @@ from world_appearance import sign_png
 
 COLORS = {'red': '0.85 0.08 0.06 1', 'blue': '0.05 0.20 0.85 1', 'green': '0.06 0.65 0.18 1'}
 TRANSPORT_WORLDS = {
+    'transport_dual': {'base':'medium_open','size':[12,10],'label':'TWO CUBE DELIVERY','camera_pitch_deg':25.,
+                       'stations': [((2.,0.),(-2.,0.)), ((2.,2.2),(-2.,2.2))]},
     'transport_aisle': {'base':'medium_open','size':[12,10],'label':'CARRY LAB',
                         'stations': [((2.,0.),(4.,1.4))]},
     'transport_lab': {'base':'medium_open','size':[12,10],'label':'TRANSPORT LAB',
@@ -25,6 +28,17 @@ TABLE_HALF_SIZE = (.55,.50,.04)
 BOX_HALF_SIZE = .055
 PAD_HALF_SIZE = .18
 INITIAL_KEYFRAME = 'transport_unitree_rl_lab_stand'
+
+
+def camera_robot_xml(pitch_deg):
+    """Declared simulation camera mounting, separate from object/table layout."""
+    robot = ET.parse(SCENES/'g1_29dof.xml').getroot()
+    site = robot.find(".//site[@name='d435i_color_site']")
+    w,x,y,z = map(float,site.get('quat').split())
+    c,s = math.cos(math.radians(pitch_deg)/2),math.sin(math.radians(pitch_deg)/2)
+    site.set('quat',' '.join(map(str,(c*w-s*y,c*x+s*z,c*y+s*w,c*z-s*x))))
+    ET.indent(robot)
+    return ET.tostring(robot,encoding='unicode')+'\n'
 
 
 def add_station(root, color, location, pickup):
@@ -83,6 +97,8 @@ def build_world(name):
         root=ET.fromstring(scene(definition['base']))
         root.find("asset/texture[@name='world_sign']").set('file',f'transport_sign_{name}.png')
     root.set('model','G1 transport '+name)
+    if definition.get('camera_pitch_deg',0.):
+        root.find("include[@file='g1_29dof.xml']").set('file',f'g1_29dof_{name}_camera.xml')
     custom = root.find('custom')
     if custom is None:
         custom = ET.SubElement(root,'custom')
@@ -112,6 +128,8 @@ def generate():
     generate_navigation_worlds()
     manifests={}
     for name,definition in TRANSPORT_WORLDS.items():
+        if definition.get('camera_pitch_deg',0.):
+            (SCENES/f'g1_29dof_{name}_camera.xml').write_text(camera_robot_xml(definition['camera_pitch_deg']))
         xml,pairs,layout=build_world(name)
         (SCENES/f'scene_29dof_transport_{name}.xml').write_text(xml)
         if definition['base']!='plaza':
@@ -119,6 +137,7 @@ def generate():
         # Pair files contain no locations; layout files are simulator/scorer-only.
         (SCENES/f'transport_pairs_{name}.json').write_text(json.dumps({'pairs':pairs},indent=2)+'\n')
         manifests[name]={'initial_keyframe':INITIAL_KEYFRAME,'size_m':definition['size'],
+                          'camera_pitch_deg':definition.get('camera_pitch_deg',0.),
                          'evaluation_layout':layout,'grasp_model':'capture_radius_weld', 'base_pin_available':False}
     (SCENES/'transport_evaluation_layouts.json').write_text(json.dumps(manifests,indent=2)+'\n')
     print(f'Generated {len(manifests)} physical transport fixtures')

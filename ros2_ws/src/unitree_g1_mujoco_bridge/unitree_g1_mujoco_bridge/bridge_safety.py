@@ -1,6 +1,8 @@
 import math
 from typing import Iterable, Sequence
 
+import numpy as np
+
 
 def relative_motion_metrics(
     robot_x: float,
@@ -61,6 +63,27 @@ def trajectory_static_cost(
     if not obstacle_list or not points:
         return 0.0, False
     origin_x, origin_y, origin_yaw = points[0][:3]
+    if len(points)*len(obstacle_list) >= 128:
+        # Same vertex-distance predicate as below, batched in bounded point
+        # blocks. Duplicated scan returns must not multiply the cost or change
+        # rejection; only the nearest return matters at each trajectory point.
+        obstacles_array = np.asarray(obstacle_list,dtype=float)
+        c,s = math.cos(origin_yaw),math.sin(origin_yaw)
+        cost = 0.
+        for start in range(0,len(points),32):
+            positions = np.asarray(points[start:start+32],dtype=float)[:,:2]-(origin_x,origin_y)
+            local_x = c*positions[:,0]+s*positions[:,1]
+            local_y = -s*positions[:,0]+c*positions[:,1]
+            nearest = np.full(len(positions),math.inf)
+            for offset in range(0,len(obstacles_array),1024):
+                block = obstacles_array[offset:offset+1024]
+                nearest = np.minimum(nearest,np.min(np.hypot(local_x[:,None]-block[:,0],
+                                                             local_y[:,None]-block[:,1]),axis=1))
+            if np.any(nearest<clearance):
+                return math.inf,True
+            within = nearest<influence_range
+            cost += float(np.sum(((influence_range-nearest[within])/influence_range)**2))
+        return cost,False
     cost = 0.0
     for point in points:
         x, y = point[:2]

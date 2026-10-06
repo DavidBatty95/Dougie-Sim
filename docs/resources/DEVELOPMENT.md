@@ -58,6 +58,7 @@ checks and passing a native navigation trial are different evidence tiers.
 | --- | --- | --- |
 | [Contributing](../../CONTRIBUTING.md) | Guide | Focused changes, evidence, source boundaries and documentation expectations |
 | [Project plan](../PROJECT_PLAN.md) | Plan | Choose an S0–S7 or R1–R6 work package and its completion evidence |
+| [Research programme](../RESEARCH_PROGRAMME.md) | Research plan | Choose a P0–P7 scientific phase, define the hypothesis and preserve claim-to-artifact traceability |
 | [Team handoff](../HANDOFF.md) | Guide | First-session workflow, priorities and ownership context |
 | [Issue tracker](https://github.com/DavidBatty95/Geoff-Sim/issues) | Live project page | Report reproducible problems and coordinate work |
 | [Pull requests](https://github.com/DavidBatty95/Geoff-Sim/pulls) | Live project page | Review proposed publications and changes |

@@ -42,6 +42,7 @@ for the underlying tool options.
 | Existing-result inspection | `./geoff results` | [Results review](../docs/RESULTS_REVIEW.md) |
 | Experimental pickup/carry | `./geoff transport --help` | [Payload policy and fixture](../docs/PAYLOAD_POLICY_TRAINING.md) |
 | Training/calibration | Explicit checkpoint and measurement tools | [Training guide](../docs/TRAINING_AND_CALIBRATION.md) |
+| Hardware-facing interfaces | `python3 scripts/run_hardware_parity_probe.py --output vendor/mjlab/logs/probe/interfaces.json` | [Fidelity and performance](../docs/HARDWARE_FIDELITY.md) |
 
 Run host commands from the repository root. The launchers arrange the supported
 container environment; individual ROS modules require its sourced workspace.
@@ -55,11 +56,13 @@ Use the exact policy and configuration recorded by the relevant experiment.
 | Demo orchestration | `onboard_visual_session.py`, `demo_suite.py` |
 | Worlds and experiments | `avoidance_worlds.py`, `world_appearance.py`, `run_avoidance_matrix.py` |
 | Results | `avoidance_results_gui.py`, `analyze_avoidance_dataset.py`, `collect_demo_results.py` |
-| Diagnostics | `summarize_social_run.py`, `inspect_social_trace.py`, `evaluate_onboard_perception.py` |
+| Diagnostics | `summarize_social_run.py`, `inspect_social_trace.py`, `evaluate_onboard_perception.py`, `analyze_response_trace.py` |
 | General research batches | `benchmark_batch.py`, `aggregate_benchmark_batch.py` |
 | Response calibration | `measure_g1_fixed_command.py`, `process_g1_response_trial.py`, `assemble_g1_response_dataset.py` |
-| Transport | `run_transport_demo.py`, `transport_worlds.py`, `transport_evidence.py`, `summarize_payload_results.py` |
+| Transport | `run_transport_demo.py`, `transport_worlds.py`, `transport_evidence.py`, `summarize_payload_results.py`, `summarize_transport_progress.py` |
 | Payload/hand research | `g1_payload_training.py`, `brainco_hand_model.py`, `measure_brainco_contact_grasp.py` |
+| Hardware fidelity | `audit_robot_model.py`, `audit_sim_interfaces.py`, `run_hardware_parity_probe.py`, `summarize_hardware_audit.py` |
+| Payload dynamics/perception diagnostics | `probe_native_policy.py`, `audit_payload_dynamics.py`, `profile_transport_perception.py`, `analyze_transport_perception.py` |
 | Evaluation alignment | `audit_evaluation_alignment.py`, `test_evaluation_audit.py` |
 | Source/docs maintenance | `source_patches.py`, `check_docs.py`, `generate_readme_graphics.py` |
 | Resource library | `resource_library.py`: topic-card artwork and the complete bibliography index |
@@ -68,6 +71,12 @@ Use the exact policy and configuration recorded by the relevant experiment.
 The low-level shell wrappers remain because the supported orchestration uses
 them. MJLab training/play/evaluation helpers are optional development tools, not
 the demo interface; see [training](../docs/TRAINING_AND_CALIBRATION.md).
+
+Transport and avoidance matrices save `response_diagnostics.json` with timing
+tails and explicit unmeasured boundaries. Matrices also request the native
+wrapper's `--capture-parameters` option, which retains resolved ROS values and
+checks motion-setting consistency before goals. See the
+[phase report](../docs/PHASE_PROGRESS_20261005.md) for reproduction and results.
 
 ## Outputs and maintenance
 

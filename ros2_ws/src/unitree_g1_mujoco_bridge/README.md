@@ -37,9 +37,19 @@ All module names below are inside `unitree_g1_mujoco_bridge/`.
 | Locomotion | `g1_policy_cmd_vel_controller.py`, `unitree_rl_lab_policy.py` | ONNX policy input/output and joint targets |
 | Manipulation | `arm_command_compositor.py`, `sim_manipulation_io.py`, `arm_kinematics.py` | Arm authority, simulated grasp I/O and measured kinematics |
 | Transport | `transport_demo.py`, `transport_perception.py`, `transport_actions.py`, `transport_health.py` | RGB-D mission, action lifecycle and evaluation coverage |
-| Diagnostics | `human_aware_run_logger.py`, `evaluation_alignment.py` | Decision traces and scoring alignment |
+| Diagnostics | `human_aware_run_logger.py`, `evaluation_alignment.py`, `policy_timing.py`, `runtime_parameters.py` | Decision/timing traces, scoring alignment and resolved runtime configuration |
 
 ## Runtime contract
+
+The [hardware fidelity guide](../../../docs/HARDWARE_FIDELITY.md) defines the
+current contract. `/lowcmd` now uses the observed machine mode and Unitree HG CRC;
+ROS `rt/` aliases are opt-in. Native camera/Livox IMUs are acquisition-stamped
+measurements with unavailable orientation marked explicitly. Raw sensor TF uses
+measured IMU/encoders, and odometry supports padded/organized hardware point clouds.
+`brainco_stark_adapter` optionally maps the normalized six-channel application
+topics to the vendor Stark driver; it requires the vendor message package and
+normalized SDK units. Neither interface tests nor simulation grasp welds qualify
+physical deployment.
 
 The onboard path uses measured LiDAR, IMU and encoders for navigation. Simulator
 truth is reserved for evaluation and explicitly selected oracle cases. The
@@ -66,6 +76,28 @@ with an explicit trained policy. Tests are in [`test/`](test/); the
 [development guide](../../../docs/DEVELOPMENT.md) records the source-test and
 build environment. Changes to planners should be checked with regression tests
 and scored trials; visual success alone does not establish acceptance.
+
+Transport and onboard matrix runs now capture resolved parameter values and check
+shared motion settings. `/g1/policy_timing` identifies inference results reaching
+the joint-target publisher; it is not a motor acknowledgement. `/g1/policy_diagnostics`
+reports worker, stop-invalidation and late-result counters. The logger retains
+both these topics and filtered `/g1/policy_cmd_vel`, with their distinct semantics.
+See [S0/R1–R3 evidence](../../../docs/PHASE_PROGRESS_20261005.md) for commands,
+measurements and the remaining native gates.
+
+The onboard profile requires an atomic planner command envelope. Goal changes
+(including heading-only updates), cancellation and publisher restarts cannot
+refresh an old request. Supervisor diagnostics expose the accepted epoch/sequence
+for offline lineage checks. Prepared predictions and batched static queries
+reduce repeated work without claiming complete collision-free behavior. See the
+[handoff/supervisor report](../../../docs/COMMAND_HANDOFF_AND_SUPERVISOR.md).
+
+`escape_search.py` now performs alternative search on immutable snapshots in a
+single-flight worker; `prediction_risk.py` contains the ROS-independent risk
+queries. The control callback revalidates every proposal against current inputs
+and rejects expired or superseded epochs. The experimental onboard configuration
+uses 50 Hz checks, with measured scheduling tails still above 20 ms. See the
+[async checkpoint](../../../docs/ASYNC_ESCAPE_SUPERVISOR.md) for tests and native outcomes.
 
 ## Current direction
 

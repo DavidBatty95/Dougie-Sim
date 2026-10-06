@@ -1,8 +1,9 @@
 import json
+import time
 from pathlib import Path
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist,TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -47,6 +48,11 @@ class HumanAwareRunLogger(Node):
         self.create_subscription(String,"/evaluation/aligned_state",lambda msg:self._string_callback('evaluation_aligned',msg),10)
         self.create_subscription(String, "/onboard/localization_status", lambda msg: self._string_callback("localization_status", msg), 10)
         self.create_subscription(String, "/navigation/replanning_status", lambda msg: self._string_callback("replanning_status", msg), 10)
+        self.create_subscription(String,'/g1/policy_timing',lambda msg:self._string_callback('policy_timing',msg),100)
+        self.create_subscription(String,'/g1/policy_diagnostics',lambda msg:self._string_callback('policy_diagnostics',msg),10)
+        self.create_subscription(String,'/g1/locomotion_diagnostics',lambda msg:self._string_callback('locomotion_diagnostics',msg),10)
+        self.create_subscription(String,'/transport/mission_state',lambda msg:self._string_callback('transport_state',msg),10)
+        self.create_subscription(TwistStamped,'/g1/policy_cmd_vel',self._policy_command_callback,10)
 
         self.get_logger().info(f"Human-aware run logger writing {self.output_path}")
 
@@ -60,6 +66,11 @@ class HumanAwareRunLogger(Node):
 
     def _twist_callback(self, topic: str, msg: Twist) -> None:
         self._write(topic, self._twist_dict(msg))
+
+    def _policy_command_callback(self,msg):
+        self._write('policy_cmd',dict(self._twist_dict(msg.twist),
+            source_stamp=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9,
+            role='filtered_command_not_inference_ack'))
 
     def _odom_callback(self, msg: Odometry, topic: str = "odom") -> None:
         pose = msg.pose.pose
@@ -84,7 +95,8 @@ class HumanAwareRunLogger(Node):
 
     def _write(self, topic: str, payload: object) -> None:
         stamp = self.get_clock().now().nanoseconds * 1e-9
-        self.log_file.write(json.dumps({"stamp": round(stamp, 6), "topic": topic, "data": payload}, separators=(",", ":")) + "\n")
+        self.log_file.write(json.dumps({"stamp": round(stamp, 6), "receipt_monotonic_s":time.monotonic(),
+                                       "topic": topic, "data": payload}, separators=(",", ":")) + "\n")
         self.write_count += 1
         if self.write_count % self.flush_every == 0:
             self.log_file.flush()

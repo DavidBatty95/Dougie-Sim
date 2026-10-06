@@ -388,6 +388,48 @@ def test_budget_checks_coarse_escape_directions_before_refinements(planner, monk
     assert checked.index(coarse[-1]) < checked.index(candidates[1])
 
 
+def test_bounded_priority_checks_core_and_fairly_covers_escape_families(planner,monkeypatch):
+    import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
+    clock = [0.]
+    monkeypatch.setattr(module.time,'perf_counter',lambda:clock[0])
+    planner.priority_candidate_limit = 4
+    planner.planning_budget_ms = 1.
+    core = [Candidate(name,0.,0.,0.) for name in ('yield_stop','previous_command','raw_reference')]
+    escapes = [Candidate('escape_translation',index*.01,.1,0.) for index in range(20)]
+    optional = [Candidate('fine_translation',index*.01,-.1,0.) for index in range(7)]
+    def score(candidate,*args):
+        clock[0] += .007
+        return SimpleNamespace(candidate=candidate)
+    planner._score_candidate = score
+    seen_escape,seen_optional = set(),set()
+    for _ in range(7):
+        planner.planning_started = clock[0]
+        results = planner._evaluate_candidates(core+escapes+optional,None,[],[],[],{},0.)
+        commands = [result.candidate for result in results]
+        assert commands[:3] == core
+        assert len(commands) == 8  # Three core, four escapes, one rotating refinement.
+        assert planner.search_budget_exhausted
+        seen_escape.update(c.vx for c in commands if c.name=='escape_translation')
+        seen_optional.update(c.vx for c in commands if c.name=='fine_translation')
+    assert seen_escape == {c.vx for c in escapes}
+    assert seen_optional == {c.vx for c in optional}
+
+
+def test_bounded_priority_does_not_discard_candidates_when_budget_is_available(planner,monkeypatch):
+    import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
+    monkeypatch.setattr(module.time,'perf_counter',lambda:0.)
+    planner.planning_started = 0.
+    planner.planning_budget_ms = 45.
+    planner.priority_candidate_limit = 2
+    candidates = [Candidate('yield_stop',0.,0.,0.),
+                  *[Candidate('escape_translation',index*.01,.1,0.) for index in range(12)],
+                  Candidate('fine_translation',.1,-.1,0.)]
+    planner._score_candidate = lambda candidate,*args:SimpleNamespace(candidate=candidate)
+    results = planner._evaluate_candidates(candidates,None,[],[],[],{},0.)
+    assert {id(result.candidate) for result in results} == {id(candidate) for candidate in candidates}
+    assert len(results) == len(candidates)
+
+
 def test_search_refines_a_narrow_safe_velocity_band_before_stopping(planner, monkeypatch):
     import unitree_g1_mujoco_bridge.human_aware_motion_planner as module
     clock = [0.]
@@ -710,7 +752,7 @@ def test_short_route_can_progress_without_stationary_alignment(planner, heading)
     assert reference.angular.z == 0.
 
 
-def test_avoidance_detour_does_not_turn_a_short_goal_into_a_stationary_pivot(planner):
+def test_avoidance_detour_restores_forward_travel_outside_finishing_region(planner):
     planner.prefer_forward_travel = True
     planner.path_reference_holonomic_distance = 3.
     goal = PoseStamped()
@@ -723,7 +765,7 @@ def test_avoidance_detour_does_not_turn_a_short_goal_into_a_stationary_pivot(pla
     planner._path_callback(path)
     planner._path_reference((0.,0.,math.pi/2))
     detour = planner._path_reference((-2.,0.,math.pi/2))
-    assert detour.linear.y < 0. and detour.angular.z == 0.
+    assert detour.linear.y == 0. and detour.angular.z < 0.
     replacement = PoseStamped()
     replacement.header.frame_id = 'world'
     replacement.pose.position.x = 7.
@@ -732,6 +774,76 @@ def test_avoidance_detour_does_not_turn_a_short_goal_into_a_stationary_pivot(pla
     planner._path_callback(path)
     distant = planner._path_reference((0.,0.,math.pi/2))
     assert distant.linear.y == 0. and distant.angular.z < 0.
+
+
+def test_onboard_profile_faces_short_goals_but_keeps_near_goal_hysteresis(planner):
+    from pathlib import Path as FilePath
+    import yaml
+    profile = yaml.safe_load((FilePath(__file__).parents[2] / 'unitree_g1_sim_bringup/config/social_navigation_onboard_v1.yaml').read_text())['human_aware_motion_planner']['ros__parameters']
+    planner.prefer_forward_travel = profile['prefer_forward_travel']
+    planner.path_reference_holonomic_distance = profile['path_reference_holonomic_distance']
+    assert profile['holonomic_avoidance']  # Close-person evasions remain available.
+    goal = PoseStamped()
+    goal.header.frame_id = 'world'
+    goal.pose.position.x = 2.
+    path = Path()
+    path.header.frame_id = 'world'
+    path.poses = [goal]
+    planner._goal_callback(goal)
+    planner._path_callback(path)
+    for remaining,finish in ((2.,False),(.7,True),(.85,True),(1.1,False)):
+        command = planner._path_reference((2.-remaining,0.,math.pi/2))
+        assert planner.goal_holonomic is finish
+        if finish:
+            assert command.linear.y < 0. and command.angular.z == 0.
+        else:
+            assert command.linear.x == command.linear.y == 0.
+            assert command.angular.z < 0.
+
+
+def test_safe_alignment_is_not_replaced_by_sideways_goal_progress(planner):
+    planner.prefer_safe_route_alignment = planner.prefer_forward_travel = planner.nav2_path_reference = True
+    planner.mission_active = True
+    planner.mission_state_time = planner.get_clock().now()
+    planner.tracks_epoch = planner.mission_state_time.nanoseconds*1e-9
+    planner.reference_goal = PoseStamped()
+    planner.reference_goal_world = planner.reference_progress_target = (0.,2.)
+    planner.reference_path = Path()
+    planner.prediction_activation_clearance = 3.2
+    planner.local_safe_space_enabled = False
+    planner.holonomic_avoidance = True
+    planner.motion_envelope = MotionEnvelope(max_x=.65,max_y=.45,max_yaw=.6)
+    planner.max_lateral_near_human = .45
+    planner.measured_velocity = (0.,0.,0.)
+    turn = Twist()
+    turn.angular.z = .6
+    planner._path_reference = lambda pose:turn
+    person = HumanTrack(1,'CONFIRMED',2.8,0.,0.,0.,1.,1.,0,.002,.002,planner.tracks_epoch,.42)
+    planner._fresh_tracks = lambda now:[person]
+    planner._timer_callback()
+    command,_,_,selected = planner.published[-1]
+    assert command.linear.x == command.linear.y == 0.
+    assert command.angular.z > 0. and not selected.rejected
+    assert planner.path_reference_status == 'safe_route_alignment'
+
+
+def test_alignment_priority_never_bypasses_forecast_or_static_collision(planner):
+    planner.prefer_safe_route_alignment = planner.prefer_forward_travel = planner.nav2_path_reference = True
+    planner.mission_active = True
+    planner.measured_velocity = (0.,0.,0.)
+    planner.horizon = planner.hard_collision_horizon = 3.
+    candidate = Candidate('raw_limited',0.,0.,.5,'',0.,.8)
+    person = HumanTrack(1,'CONFIRMED',2.,0.,-1.,0.,1.,1.,0,.002,.002,0.,.42)
+    result = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],{},0.)
+    assert result.reason == 'hard_human_collision'
+    assert not planner._can_prioritize_alignment(result,[person])
+    planner.prediction_cache = {}
+    person.vx = 0.
+    person.x = 3.
+    planner._static_obstacle_cost = lambda trajectory:(math.inf,True)
+    result = planner._score_candidate(candidate,(0.,0.,0.),[person],[],[],{},0.)
+    assert result.reason == 'static_obstacle'
+    assert not planner._can_prioritize_alignment(result,[person])
 
 
 def test_heading_alignment_keeps_translating_and_stops_turning_near_people(planner):

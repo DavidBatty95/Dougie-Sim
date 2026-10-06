@@ -82,7 +82,28 @@ def capture_runtime(root,output):
     result = dict(schema_version=1,python=sys.version,platform=platform.platform(),packages=packages,
         artifacts_sha256=artifacts,dependencies={dist.metadata['Name']:dist.version
             for dist in importlib.metadata.distributions() if dist.metadata['Name']})
+    source = json.loads((output.parent/'source_provenance.json').read_text())
+    result['python_source_alignment'] = compare_python_sources(source['source_sha256'],packages)
     output.write_text(json.dumps(result,indent=2)+'\n')
+    if not result['python_source_alignment']['matched']:
+        raise RuntimeError('installed Python differs from captured source; rebuild before transport')
+
+
+def compare_python_sources(source,packages):
+    mismatches = []
+    checked = 0
+    # Generated ROS message modules do not have one-to-one source .py files.
+    for package in ('unitree_g1_mujoco_bridge','dynamic_obstacle_benchmarks'):
+        prefix = f'ros2_ws/src/{package}/{package}/'
+        expected = {key[len(prefix):]:value for key,value in source.items()
+                    if key.startswith(prefix) and key.endswith('.py')}
+        actual = packages[package]['files']
+        for name in sorted(expected.keys() | actual.keys()):
+            checked += 1
+            if expected.get(name) != actual.get(name):
+                mismatches.append(f'{package}/{name}')
+    return dict(matched=not mismatches and checked>0,checked_files=checked,mismatches=mismatches,
+                scope='Python autonomy packages only; native binary identity recorded separately')
 
 
 if __name__ == '__main__':

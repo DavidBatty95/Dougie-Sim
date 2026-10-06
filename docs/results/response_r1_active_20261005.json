@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "role": "response_observability_diagnostic_not_acceptance",
+  "topics": {
+    "locomotion_diagnostics": 74,
+    "planner_state": 520,
+    "planner_cmd": 520,
+    "planner_debug": 520,
+    "safe_cmd": 714,
+    "safety_debug": 714,
+    "policy_diagnostics": 18,
+    "policy_cmd": 1610,
+    "policy_timing": 1583,
+    "mujoco_people": 535,
+    "evaluation_odom": 400,
+    "localization_status": 400,
+    "evaluation_aligned": 400,
+    "odom": 400,
+    "tracker_debug": 367,
+    "raw_cmd": 213,
+    "benchmark_metrics": 571,
+    "replanning_status": 75
+  },
+  "metrics": {
+    "command_receipt_age_at_target_publish_s": {
+      "count": 1583,
+      "min": 0.015313148498535156,
+      "median": 0.045189619064331055,
+      "p95": 0.07302865982055665,
+      "p99": 0.0892101097106934,
+      "max": 0.13064026832580566
+    },
+    "lowstate_receipt_age_at_target_publish_s": {
+      "count": 1583,
+      "min": 0.013104010999995808,
+      "median": 0.021974927000883326,
+      "p95": 0.02750692850004269,
+      "p99": 0.04177473689962428,
+      "max": 0.057064921999881335
+    },
+    "odom_source_age_at_logger_receipt_s": {
+      "count": 400,
+      "min": 0.037837982177734375,
+      "median": 0.11389636993408203,
+      "p95": 0.14388686418533325,
+      "p99": 0.166406078338623,
+      "max": 0.17827534675598145
+    },
+    "planner_thread_ms": {
+      "count": 520,
+      "min": 0.574,
+      "median": 1.222,
+      "p95": 124.24689999999998,
+      "p99": 145.24136,
+      "max": 163.684
+    },
+    "planner_wall_active_ms": {
+      "count": 127,
+      "min": 18.32,
+      "median": 110.453,
+      "p95": 145.6591,
+      "p99": 153.78663999999995,
+      "max": 163.917
+    },
+    "planner_wall_ms": {
+      "count": 520,
+      "min": 0.573,
+      "median": 1.3904999999999998,
+      "p95": 124.25284999999997,
+      "p99": 146.28712,
+      "max": 163.917
+    },
+    "policy_cmd_source_age_at_logger_receipt_s": {
+      "count": 1610,
+      "min": 0.0006256103515625,
+      "median": 0.002489328384399414,
+      "p95": 0.008125782012939453,
+      "p99": 0.01418290138244633,
+      "max": 0.029569149017333984
+    },
+    "policy_complete_to_publish_ms": {
+      "count": 1583,
+      "min": 0.8685000002515153,
+      "median": 12.761005000356818,
+      "p95": 18.049419500312066,
+      "p99": 20.96715170000607,
+      "max": 32.094209999741
+    },
+    "policy_submit_to_complete_ms": {
+      "count": 1583,
+      "min": 0.8789899993644212,
+      "median": 6.025165000210109,
+      "p95": 14.151100900471645,
+      "p99": 20.723649540541388,
+      "max": 34.01570200003334
+    },
+    "policy_submit_to_publish_ms": {
+      "count": 1583,
+      "min": 8.162432000062836,
+      "median": 18.97399100016628,
+      "p95": 22.87087529957716,
+      "p99": 35.46663745988555,
+      "max": 53.53681599990523
+    },
+    "prediction_age_at_command_publish_s": {
+      "count": 425,
+      "min": 0.12580609321594238,
+      "median": 0.2806861400604248,
+      "p95": 0.49871435165405276,
+      "p99": 0.5644838523864746,
+      "max": 0.5992686748504639
+    },
+    "prediction_age_at_planning_snapshot_s": {
+      "count": 425,
+      "min": 0.1251,
+      "median": 0.2799,
+      "p95": 0.49749999999999994,
+      "p99": 0.5632919999999999,
+      "max": 0.5984
+    },
+    "rtf_monotonic_receipt_windows": {
+      "count": 30,
+      "min": 0.9536954971892165,
+      "median": 0.9955910687914473,
+      "p95": 1.0502676136978657,
+      "p99": 1.0542510289731684,
+      "max": 1.0546764828173512
+    },
+    "rtf_ros_legacy_receipt_windows": {
+      "count": 0,
+      "min": null,
+      "median": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    },
+    "scan_age_at_command_publish_s": {
+      "count": 425,
+      "min": 0.066,
+      "median": 0.194,
+      "p95": 0.43159999999999993,
+      "p99": 0.48804,
+      "max": 0.518
+    },
+    "scan_age_at_planning_snapshot_s": {
+      "count": 425,
+      "min": 0.066,
+      "median": 0.194,
+      "p95": 0.4305999999999999,
+      "p99": 0.48704,
+      "max": 0.518
+    },
+    "supervisor_input_age_s": {
+      "count": 713,
+      "min": 0.001,
+      "median": 0.033,
+      "p95": 0.122,
+      "p99": 0.15103999999999995,
+      "max": 0.21
+    },
+    "tracks_age_at_command_publish_s": {
+      "count": 425,
+      "min": 0.10937690734863281,
+      "median": 0.2737281322479248,
+      "p95": 0.5014083862304688,
+      "p99": 0.5519971466064452,
+      "max": 0.586876630783081
+    },
+    "tracks_age_at_planning_snapshot_s": {
+      "count": 425,
+      "min": 0.1084,
+      "median": 0.2729,
+      "p95": 0.50054,
+      "p99": 0.5509799999999999,
+      "max": 0.586
+    }
+  },
+  "invalid_samples": {},
+  "ros_receipt_clock_regressions": 0,
+  "duplicate_policy_events": 0,
+  "planner_budget": {
+    "samples": 520,
+    "overruns": 125,
+    "fraction": 0.2403846153846154
+  },
+  "planner_period": {
+    "samples": 520,
+    "overruns": 125,
+    "fraction": 0.2403846153846154
+  },
+  "planner_active_period": {
+    "samples": 127,
+    "overruns": 119,
+    "fraction": 0.937007874015748
+  },
+  "active_plans": 127,
+  "no_feasible_plans": 8,
+  "planner_states": {
+    "MISSION_STALE_STOP": 384,
+    "NORMAL_NAVIGATION": 10,
+    "HUMAN_CAUTION": 73,
+    "PASS_BEHIND": 11,
+    "YIELD_TO_HUMAN": 20,
+    "CLEARANCE_RECOVERY": 8,
+    "EMERGENCY_STOP": 14
+  },
+  "supervisor_modes": {
+    "missing_tf_stop": 88,
+    "inactive_input_hold": 298,
+    "pass_through": 236,
+    "planned_sequence": 18,
+    "clearance_recovery": 12,
+    "temporal_override": 54,
+    "validated_escape": 8
+  },
+  "policy_counters_latest": {
+    "submitted": 1547,
+    "started": 1546,
+    "completed": 1546,
+    "succeeded": 1546,
+    "failed": 0,
+    "expired": 0,
+    "superseded": 0,
+    "invalidated": 0,
+    "discarded": 0
+  },
+  "policy_counter_resets": 0,
+  "policy_counters_last_ros_s": 1791200951.4132812,
+  "policy_interruption_counters_latest": {},
+  "limitations": [
+    "Input ages are not causal end-to-end sensor-to-actuator latency.",
+    "Policy publication is upstream of arm composition and bridge/DDS; motor application is unmeasured.",
+    "LowState age is receipt-based; source acquisition time is unavailable.",
+    "Command-to-motion onset and stopping require the separate fixed-command measurement protocol.",
+    "RTF windows use logger receipt timing and include delivery jitter.",
+    "Periodic cumulative counters can precede the final inference event; their timestamp is retained.",
+    "Missing metrics remain null; legacy traces do not gain new measurements retroactively."
+  ],
+  "trace_name": "person_avoidance_small_open_smoke_seed_42_20261005T114823Z_human_aware.jsonl",
+  "trace_sha256": "8f6189693c93f81e329328652cfc0a17530fb2ca5ae3fbbc7d51b446afad852b",
+  "malformed_lines": 0,
+  "analyzer_sha256": "c1afaf22a29815a6e3165601b1e32dc36b0794e689b83c015844e773ea3547cc"
+}

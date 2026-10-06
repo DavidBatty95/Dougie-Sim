@@ -110,6 +110,8 @@ if [ "${MODE}" != "fast" ]; then
     "${REPO_ROOT}/scripts/test_demo_suite.py" \
     "${REPO_ROOT}/scripts/test_readme_navigation.py" \
     "${REPO_ROOT}/scripts/test_transport_evidence.py" \
+    "${REPO_ROOT}/scripts/test_transport_progress.py" \
+    "${REPO_ROOT}/scripts/test_response_trace.py" \
     "${REPO_ROOT}/scripts/test_transport_worlds.py" \
     "${REPO_ROOT}/scripts/test_evaluation_audit.py" \
     "${REPO_ROOT}/scripts/test_mjlab_training_manifest.py"

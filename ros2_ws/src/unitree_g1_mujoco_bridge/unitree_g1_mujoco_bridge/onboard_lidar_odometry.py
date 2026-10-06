@@ -11,12 +11,14 @@ from geometry_msgs.msg import TransformStamped,Vector3Stamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
-from sensor_msgs.msg import JointState, PointCloud2
+from sensor_msgs.msg import JointState, PointCloud2,PointField
 from std_msgs.msg import String
 from tf2_ros import TransformBroadcaster
 from unitree_hg.msg import LowState
 
 from .lidar_odometry import ScanOdometry, registration_points, rotation
+from .pointcloud_layout import xyz_intensity
+from .sensor_geometry import matrix_to_quat_xyzw
 
 
 def axis_rotation(axis, angle):
@@ -57,6 +59,8 @@ class OnboardLidarOdometry(Node):
         self.level_pub = self.create_publisher(PointCloud2, "/onboard/lidar_level", qos)
         self.status_pub = self.create_publisher(String, "/onboard/localization_status", 1)
         self.tf = TransformBroadcaster(self)
+        self.camera_frame = self.declare_parameter('camera_frame','mujoco_d435i_color_optical_frame').value
+        self.camera_pitch = math.radians(float(self.declare_parameter('camera_mount_pitch_deg',0.).value))
         self.create_subscription(LowState, "/lowstate", self._imu, qos)
         self.create_subscription(JointState, "/joint_states", self._joints, qos)
         self.create_subscription(PointCloud2, "/livox/lidar", self._cloud, qos)
@@ -85,11 +89,30 @@ class OnboardLidarOdometry(Node):
         self.attitude_pub.publish(attitude_msg)
         if max(abs(imu[1][0]), abs(imu[1][1])) > 0.65:
             return
-        # The transport contract is packed local xyz/intensity float32.
-        if msg.point_step != 16 or msg.is_bigendian:
+        try:
+            data = xyz_intensity(msg)
+        except ValueError as exc:
+            self.get_logger().warning(str(exc),throttle_duration_sec=2.)
             return
-        data = np.frombuffer(msg.data, dtype="<f4").reshape(-1, 4).copy()
         origin, attitude = lidar_extrinsics(imu[1], joints[1])
+        # Raw sensor frames are derived from measured IMU/encoders. They are
+        # available to normal ROS consumers without simulator root-pose TF.
+        torso = attitude@np.diag((1.,-1.,-1.))
+        optical = np.array(((0.,0.,1.),(-1.,0.,0.),(0.,-1.,0.)))
+        for frame,position,rotation_matrix in (
+                (msg.header.frame_id,origin,attitude),
+                (self.camera_frame,origin+torso@np.array((0.,.035,0.)),torso@axis_rotation(1,self.camera_pitch)@optical)):
+            if frame in ('odom','base_footprint'):
+                continue
+            sensor_tf = TransformStamped()
+            sensor_tf.header.stamp = msg.header.stamp
+            sensor_tf.header.frame_id = 'base_footprint'
+            sensor_tf.child_frame_id = frame
+            sensor_tf.transform.translation.x,sensor_tf.transform.translation.y,sensor_tf.transform.translation.z = map(float,position)
+            qx,qy,qz,qw = matrix_to_quat_xyzw(rotation_matrix)
+            sensor_tf.transform.rotation.x,sensor_tf.transform.rotation.y = float(qx),float(qy)
+            sensor_tf.transform.rotation.z,sensor_tf.transform.rotation.w = float(qz),float(qw)
+            self.tf.sendTransform(sensor_tf)
         data[:, :3] = data[:, :3] @ attitude.T + origin
         radius = np.linalg.norm(data[:, :2], axis=1)
         floor_candidates = data[(radius > 1.0) & (radius < 8.0) & (data[:, 2] < 0.35) & (data[:, 2] > -0.35), 2]
@@ -133,6 +156,11 @@ class OnboardLidarOdometry(Node):
         tf.transform.translation.x, tf.transform.translation.y = map(float, xy)
         tf.transform.rotation = odom.pose.pose.orientation
         self.tf.sendTransform(tf)
+        msg.height,msg.width = 1,len(data)
+        msg.point_step,msg.row_step = 16,16*len(data)
+        msg.is_bigendian,msg.is_dense = False,True
+        msg.fields = [PointField(name=name,offset=4*index,datatype=PointField.FLOAT32,count=1)
+                      for index,name in enumerate(('x','y','z','intensity'))]
         msg.header.frame_id = "base_footprint"
         msg.data = array("B", data.astype("<f4").tobytes())
         self.level_pub.publish(msg)

@@ -47,6 +47,24 @@ validation requirements. The [PDF roadmap](literature_review.pdf#page=30) gives
 the concrete N1–N3 goals and extension targets; the
 [engineering project plan](../PROJECT_PLAN.md) tracks the implementation work.
 
+**Turn these gaps into experiments:** the new
+[P0–P7 research and publication programme](../RESEARCH_PROGRAMME.md) specifies
+dependencies, method work, baselines, falsification criteria and candidate-paper
+boundaries for every gap.
+
+| Intended gap | Delivery phases | Candidate result |
+| --- | --- | --- |
+| G1 — Calibrated avoidance under stale observations | [P1 identification](../RESEARCH_PROGRAMME.md#p1--response-and-uncertainty-identification) → [P3 planning](../RESEARCH_PROGRAMME.md#p3--age-aware-response-calibrated-planning) | Paper A, supported by G2 diagnosis |
+| G2 — Explain the oracle-to-onboard gap | [P2 causal analysis](../RESEARCH_PROGRAMME.md#p2--causal-oracle-to-onboard-analysis) | Controlled attribution; standalone empirical contribution only if distinct |
+| G3 — Coordinate safety and liveness | [P4 coordination](../RESEARCH_PROGRAMME.md#p4--safety-liveness-coordination) | Paper B if a new rule has independent value |
+| G4 — Body, arms and payload | [P5 articulated risk](../RESEARCH_PROGRAMME.md#p5--articulated-and-payload-aware-risk) | Paper C: abstraction validity and decision value |
+| G5 — Contextual humanoid comfort | [P6 human evaluation](../RESEARCH_PROGRAMME.md#p6--contextual-human-evaluation) | Paper D: controlled human-centered findings |
+
+Every candidate starts with [P0's novelty/protocol audit](../RESEARCH_PROGRAMME.md#p0--protocol-and-novelty-audit)
+and uses [P7's replication and paper-release gate](../RESEARCH_PROGRAMME.md#p7--replication-and-paper-release).
+These phases extend the review's N1–N3/E0–E6 roadmap into an actionable living
+plan. They are proposed work, not a promise of publication or a record of completed studies.
+
 ### What prior work already establishes
 
 The novelty claim must begin where the closest prior work ends:

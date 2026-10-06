@@ -34,6 +34,7 @@ collections. Start there for topic-based exploration, or use the catalogue below
 | [Repository and folder guide](REPOSITORY_GUIDE.md) | Visual map, annotated tree, package ownership and where to make a change |
 | [Project status and progression](PROJECT_STATUS.md) | Dated published baseline, milestone timeline, latest evidence and blockers |
 | [Detailed project plan](PROJECT_PLAN.md) | Work packages, dependencies, exit criteria and update process |
+| [Gap-aligned research programme](RESEARCH_PROGRAMME.md) | P0–P7 phases, G1–G5 traceability, experiment design, novelty gates and candidate papers |
 | [ROS workspace map](../ros2_ws/src/README.md) | Every local package and the two manipulation integration paths |
 | [Published dataset catalogue](results/README.md) | Entry points into the portable experiment records |
 
@@ -59,6 +60,9 @@ collections. Start there for topic-based exploration, or use the catalogue below
 | [Demo suite reference](DEMO_SUITE.md) | Presets, individual cases, prerequisites, validators and policy selection |
 | [Avoidance experiments](AVOIDANCE_EXPERIMENTS.md) | Six worlds, dataset collection, browser inspection and methodology |
 | [General benchmark batches](BENCHMARK_EXPERIMENTS.md) | Broader research batch execution and aggregation |
+| [Dual-cube perception diagnostics](DUAL_TRANSPORT_PERCEPTION.md) | Camera timing fix, retained native outcomes and remaining stability blockers |
+| [Native payload contract](NATIVE_PAYLOAD_CONTRACT.md) | Delay/inertial correction, cycle-03 training, two consecutive dual-delivery passes and open phase gates |
+| [Hardware fidelity and performance](HARDWARE_FIDELITY.md) | G1/BrainCo interfaces, sensor semantics, model audit, live rates and publication validation |
 | [Media catalogue](MEDIA.md) | All README GIFs, recording provenance and diagram descriptions |
 | [Script entry points](../scripts/README.md) | Daily CLI and lower-level maintenance tools |
 
@@ -75,6 +79,10 @@ collections. Start there for topic-based exploration, or use the catalogue below
 | [Payload-aware training](PAYLOAD_POLICY_TRAINING.md) | Training cycle, native transport results and explicit checkpoint reproduction |
 | [Transport implementation plan](TRANSPORT_DEMO_PLAN.md) | Mission design, integration requirements and acceptance goals |
 | [Social locomanipulation roadmap](SOCIAL_LOCOMANIPULATION_ROADMAP.md) | Active staged plan for BrainCo-equipped indoor delivery, implementation ledger and promotion gates |
+| [Goal-facing navigation](GOAL_FACING_NAVIGATION.md) | Forward-travel preference, lateral exceptions, native turn measurements and remaining calibration gates |
+| [S0/R1–R3 phase progress](PHASE_PROGRESS_20261005.md) | Runtime capture, timing, bounded scheduling and interruption implementation with native outcomes |
+| [Command handoff and supervisor](COMMAND_HANDOFF_AND_SUPERVISOR.md) | Atomic command epochs, writer checks, lineage and collision-query performance evidence |
+| [Asynchronous escape supervisor](ASYNC_ESCAPE_SUPERVISOR.md) | Worker/control separation, fresh-result revalidation, 50 Hz candidate and retained native failures |
 
 ## Architecture and maintenance
 

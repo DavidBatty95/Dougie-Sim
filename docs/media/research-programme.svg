@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 956" role="img" aria-labelledby="title desc">
+  <title id="title">From research gaps to evidence and papers</title>
+  <desc id="desc">P0-P7 research delivery | Complements the S0-S7 engineering roadmap. P7 applies to each candidate paper. These are planned studies, not completed findings. See docs/RESEARCH_PROGRAMME.md.</desc>
+  <style>
+    text {font-family:Arial,Helvetica,sans-serif}
+    .marker {animation:glow 3s ease-in-out infinite}
+    @keyframes glow {0%,100% {opacity:.6} 50% {opacity:1}}
+    @media (prefers-reduced-motion:reduce) {.marker {animation:none}}
+  </style>
+  <rect width="1200" height="956" rx="20" fill="#0b1727"/>
+  <rect x="34" y="32" width="5" height="56" rx="2" fill="#43d2ec"/>
+  <text x="54" y="56" fill="#edf6ff" font-size="29" font-weight="bold">From research gaps to evidence and papers</text>
+  <text x="54" y="87" fill="#a8c1d6" font-size="16">P0-P7 research delivery | Complements the S0-S7 engineering roadmap</text>
+  <rect x="34" y="120" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="137" width="4" height="40" rx="2" fill="#43d2ec"/>
+  <text x="54" y="152" fill="#43d2ec" font-size="21" font-weight="bold">P0 / Protocol and novelty</text>
+  <text x="54" y="178" fill="#edf6ff" font-size="17">All gaps | Define the intended difference</text>
+  <text x="54" y="206" fill="#b5c9dc" font-size="15">Audit nearest prior work; freeze study conditions, comparators</text>
+  <text x="54" y="226" fill="#b5c9dc" font-size="15">and the analysis plan.</text>
+  <circle class="marker" cx="58" cy="271" r="4" fill="#43d2ec"/>
+  <text x="70" y="275" fill="#43d2ec" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="614" y="120" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="137" width="4" height="40" rx="2" fill="#43d2ec"/>
+  <text x="634" y="152" fill="#43d2ec" font-size="21" font-weight="bold">P1 / Measured response</text>
+  <text x="634" y="178" fill="#edf6ff" font-size="17">G1 | Identification and uncertainty</text>
+  <text x="634" y="206" fill="#b5c9dc" font-size="15">Test policy response and occupancy coverage on held-out</text>
+  <text x="634" y="226" fill="#b5c9dc" font-size="15">motions and operating conditions.</text>
+  <circle class="marker" cx="638" cy="271" r="4" fill="#43d2ec"/>
+  <text x="650" y="275" fill="#43d2ec" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="34" y="314" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="331" width="4" height="40" rx="2" fill="#7de39a"/>
+  <text x="54" y="346" fill="#7de39a" font-size="21" font-weight="bold">P2 / Causal diagnosis</text>
+  <text x="54" y="372" fill="#edf6ff" font-size="17">G2 | Oracle-to-onboard interventions</text>
+  <text x="54" y="400" fill="#b5c9dc" font-size="15">Separate sensing, age and execution effects with matched</text>
+  <text x="54" y="420" fill="#b5c9dc" font-size="15">encounters and failure traces.</text>
+  <circle class="marker" cx="58" cy="465" r="4" fill="#7de39a"/>
+  <text x="70" y="469" fill="#7de39a" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="614" y="314" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="331" width="4" height="40" rx="2" fill="#7de39a"/>
+  <text x="634" y="346" fill="#7de39a" font-size="21" font-weight="bold">P3 / Calibrated planning</text>
+  <text x="634" y="372" fill="#edf6ff" font-size="17">G1 + G2 | First-paper priority</text>
+  <text x="634" y="400" fill="#b5c9dc" font-size="15">Specify the method; compare collision-completion tradeoffs</text>
+  <text x="634" y="420" fill="#b5c9dc" font-size="15">with strong matched baselines.</text>
+  <circle class="marker" cx="638" cy="465" r="4" fill="#7de39a"/>
+  <text x="650" y="469" fill="#7de39a" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="34" y="508" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="525" width="4" height="40" rx="2" fill="#d3a5ff"/>
+  <text x="54" y="540" fill="#d3a5ff" font-size="21" font-weight="bold">P4 / Safety and liveness</text>
+  <text x="54" y="566" fill="#edf6ff" font-size="17">G3 | Distinct coordination mechanism</text>
+  <text x="54" y="594" fill="#b5c9dc" font-size="15">Test veto, yield and resume decisions without shifting risk</text>
+  <text x="54" y="614" fill="#b5c9dc" font-size="15">into contacts or falls.</text>
+  <circle class="marker" cx="58" cy="659" r="4" fill="#d3a5ff"/>
+  <text x="70" y="663" fill="#d3a5ff" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="614" y="508" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="525" width="4" height="40" rx="2" fill="#d3a5ff"/>
+  <text x="634" y="540" fill="#d3a5ff" font-size="21" font-weight="bold">P5 / Articulated risk</text>
+  <text x="634" y="566" fill="#edf6ff" font-size="17">G4 | Body, arm and payload effects</text>
+  <text x="634" y="594" fill="#b5c9dc" font-size="15">Establish when base-only models fail and whether added</text>
+  <text x="634" y="614" fill="#b5c9dc" font-size="15">fidelity improves decisions.</text>
+  <circle class="marker" cx="638" cy="659" r="4" fill="#d3a5ff"/>
+  <text x="650" y="663" fill="#d3a5ff" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="34" y="702" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="34" y="719" width="4" height="40" rx="2" fill="#f4c978"/>
+  <text x="54" y="734" fill="#f4c978" font-size="21" font-weight="bold">P6 / Human evaluation</text>
+  <text x="54" y="760" fill="#edf6ff" font-size="17">G5 | Context and perceived behavior</text>
+  <text x="54" y="788" fill="#b5c9dc" font-size="15">Control speed, clearance and order; measure participant</text>
+  <text x="54" y="808" fill="#b5c9dc" font-size="15">judgments and task outcomes.</text>
+  <circle class="marker" cx="58" cy="853" r="4" fill="#f4c978"/>
+  <text x="70" y="857" fill="#f4c978" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <rect x="614" y="702" width="552" height="174" rx="12" fill="#14273b" stroke="#29425b"/>
+  <rect x="614" y="719" width="4" height="40" rx="2" fill="#f4c978"/>
+  <text x="634" y="734" fill="#f4c978" font-size="21" font-weight="bold">P7 / Replication and release</text>
+  <text x="634" y="760" fill="#edf6ff" font-size="17">Every paper | Claims linked to artifacts</text>
+  <text x="634" y="788" fill="#b5c9dc" font-size="15">Repeat the evidence, audit analysis and publish methods,</text>
+  <text x="634" y="808" fill="#b5c9dc" font-size="15">failures and limitations together.</text>
+  <circle class="marker" cx="638" cy="853" r="4" fill="#f4c978"/>
+  <text x="650" y="857" fill="#f4c978" font-size="11" font-weight="bold" letter-spacing="1">PLANNED</text>
+  <text x="34" y="930" fill="#a8c1d6" font-size="13">P7 applies to each candidate paper. These are planned studies, not completed findings. See docs/RESEARCH_PROGRAMME.md.</text>
+</svg>

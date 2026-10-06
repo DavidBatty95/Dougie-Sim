@@ -1,6 +1,7 @@
 import threading
 import time
 from dataclasses import FrozenInstanceError
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from unitree_g1_mujoco_bridge.g1_policy_cmd_vel_controller import (
     PolicyInferenceCandidate,
     PolicyInferenceWorker,
+    G1PolicyCmdVelController,
 )
 
 
@@ -57,6 +59,64 @@ def test_worker_is_daemon_and_requests_results_are_immutable():
             result.actions = (1.0,)
     finally:
         assert worker.shutdown(1.0)
+
+
+def test_ready_poll_consumes_without_resubmitting_and_invalidation_clears_readiness():
+    worker = PolicyInferenceWorker(lambda obs: obs)
+    consumed = []
+    def control_tick(*,consume_only):
+        assert consume_only
+        consumed.append(worker.take_result())
+    controller = SimpleNamespace(policy_worker=worker,_control_tick=control_tick)
+    try:
+        worker.submit([_candidate(.6)],time.monotonic()+1.)
+        _wait_until(worker.has_result)
+        G1PolicyCmdVelController._result_tick(controller)
+        assert consumed[0].actions == pytest.approx((.6,.6))
+        assert worker.diagnostics().submitted == 1
+        assert not worker.has_result()
+        worker.submit([_candidate(.4)],time.monotonic()+1.)
+        _wait_until(worker.has_result)
+        worker.invalidate()
+        G1PolicyCmdVelController._result_tick(controller)
+        assert len(consumed) == 1
+    finally:
+        worker.shutdown(1.)
+
+
+def test_stop_transition_invalidates_a_running_movement_inference():
+    entered,release = threading.Event(),threading.Event()
+    def policy(observation):
+        entered.set()
+        assert release.wait(1.)
+        return observation
+    worker = PolicyInferenceWorker(policy)
+    controller = SimpleNamespace(policy_worker=worker,inference_context={'old':True},stop_request_invalidations=0)
+    try:
+        first = worker.submit([_candidate(.6)],time.monotonic()+1.)
+        assert entered.wait(1.)
+        G1PolicyCmdVelController._invalidate_stopped_inference(controller,[.6,0.,0.],[0.,0.,0.],True)
+        release.set()
+        _wait_until(lambda:worker.diagnostics().discarded == 1)
+        assert worker.take_result() is None
+        assert controller.inference_context is None
+        assert controller.stop_request_invalidations == 1
+        next_request = worker.submit([_candidate(0.)],time.monotonic()+1.)
+        assert next_request.generation > first.generation
+        assert _wait_for_result(worker).actions == (0.,0.)
+    finally:
+        release.set()
+        worker.shutdown(1.)
+
+
+def test_repeated_stop_and_normal_slew_do_not_starve_balance_inference():
+    calls = []
+    controller = SimpleNamespace(policy_worker=SimpleNamespace(invalidate=lambda:calls.append(1)),
+                                 inference_context={'current':True},stop_request_invalidations=0)
+    for previous,command,stop in (([0.,0.,0.],[0.,0.,0.],True),([.6,0.,0.],[.3,0.,0.],False)):
+        G1PolicyCmdVelController._invalidate_stopped_inference(controller,previous,command,stop)
+    assert not calls
+    assert controller.inference_context == {'current':True}
 
 
 def test_candidate_fallback_and_output_normalization_run_in_worker():

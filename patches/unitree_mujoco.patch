@@ -19,10 +19,10 @@ index bc0f8a7552d654e445b34ce468be7340511a6278..966c170bfa85ee4e0afe929d7ec1f07c
 +unitree_robots/g1/transport_pairs_*.json
 +unitree_robots/g1/transport_evaluation_layouts.json
 diff --git a/simulate/CMakeLists.txt b/simulate/CMakeLists.txt
-index 899796e4886a4088236d4d5a9eed1c83dcdef269..f3810238aaa4e6bb7ddff20ccf6030d19dbb3dfb 100644
+index 899796e4886a4088236d4d5a9eed1c83dcdef269..a976cfb227da9eff26382f8c7ecf734b27603ed4 100644
 --- a/simulate/CMakeLists.txt
 +++ b/simulate/CMakeLists.txt
-@@ -43,11 +43,31 @@ link_libraries(
+@@ -43,11 +43,34 @@ link_libraries(
    fmt
  )
  
@@ -35,6 +35,9 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..f3810238aaa4e6bb7ddff20ccf6030d1
  add_executable(jstest src/joystick/jstest.cc src/joystick/joystick.cc)
  
  if(BUILD_TESTING)
++  add_executable(native_imu_test test/native_imu_test.cc)
++  target_include_directories(native_imu_test PRIVATE src)
++  add_test(NAME native_imu_test COMMAND native_imu_test)
 +  add_executable(transport_worlds_test test/transport_worlds_test.cc)
 +  target_compile_definitions(transport_worlds_test PRIVATE G1_ASSET_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../unitree_robots/g1")
 +  add_test(NAME transport_worlds_test COMMAND transport_worlds_test)
@@ -55,7 +58,7 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..f3810238aaa4e6bb7ddff20ccf6030d1
    add_executable(bridge_command_safety_test test/bridge_command_safety_test.cc)
    target_include_directories(bridge_command_safety_test PRIVATE src)
    add_test(NAME bridge_command_safety_test COMMAND bridge_command_safety_test)
-@@ -60,6 +80,10 @@ if(BUILD_TESTING)
+@@ -60,6 +83,10 @@ if(BUILD_TESTING)
    target_include_directories(latest_only_worker_test PRIVATE src)
    add_test(NAME latest_only_worker_test COMMAND latest_only_worker_test)
  
@@ -67,10 +70,10 @@ index 899796e4886a4088236d4d5a9eed1c83dcdef269..f3810238aaa4e6bb7ddff20ccf6030d1
      test/simulated_manipulation_test.cc
      src/simulated_manipulation.cc)
 diff --git a/simulate/src/main.cc b/simulate/src/main.cc
-index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39aa223d7b 100755
+index d54090ea4453330f0d89c303886eb6b98778fcc1..96f24bb3c0008e953fd0d1be42dfc6128f067e35 100755
 --- a/simulate/src/main.cc
 +++ b/simulate/src/main.cc
-@@ -41,6 +41,12 @@
+@@ -41,6 +41,13 @@
  #include "simulate.h"
  #include "array_safety.h"
  #include "mujoco_sensor_worker.h"
@@ -80,10 +83,11 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
 +#include "pedestrian_start_gate.h"
 +#include "raycast_model.h"
 +#include "brainco_hand.h"
++#include "native_imu.h"
  #include "phase_locked_scheduler.h"
  #include "simulated_manipulation.h"
  #include "unitree_sdk2_bridge.h"
-@@ -125,7 +131,7 @@ namespace
+@@ -125,7 +132,7 @@ namespace
    // control noise variables
    mjtNum *ctrlnoise = nullptr;
  
@@ -92,7 +96,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
    constexpr std::uint32_t kCameraPacketMagic = 0x32434a4d;  // MJC2, little-endian.
    constexpr double kPi = 3.14159265358979323846;
  
-@@ -163,7 +169,12 @@ namespace
+@@ -163,7 +170,12 @@ namespace
      std::int64_t acquisition_time_ns;
      float origin[3];
      float quat[4];
@@ -105,7 +109,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
  
    struct CameraPacketHeader
    {
-@@ -319,6 +330,22 @@ namespace
+@@ -319,6 +331,22 @@ namespace
        header.quat[1] = static_cast<float>(quat[1]);
        header.quat[2] = static_cast<float>(quat[2]);
        header.quat[3] = static_cast<float>(quat[3]);
@@ -128,7 +132,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
  
        packet_.resize(sizeof(header) + point_count * sizeof(LidarPoint));
        std::memcpy(packet_.data(), &header, sizeof(header));
-@@ -392,7 +419,7 @@ namespace
+@@ -392,7 +420,7 @@ namespace
        worker_.Reset(model, [this](const mjModel *worker_model, mjData *worker_data,
                                    std::int64_t acquisition_time_ns, std::uint64_t generation) {
          Publish(worker_model, worker_data, acquisition_time_ns, generation);
@@ -137,7 +141,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      }
  
      void RecordTiming(std::chrono::steady_clock::time_point started)
-@@ -645,7 +672,9 @@ namespace
+@@ -645,7 +673,9 @@ namespace
          color[3 * index + 0] = rgba ? ToByte(rgba[0] * light) : 18;
          color[3 * index + 1] = rgba ? ToByte(rgba[1] * light) : 22;
          color[3 * index + 2] = rgba ? ToByte(rgba[2] * light) : 28;
@@ -148,7 +152,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        }
  
        if (!worker_.IsCurrent(generation))
-@@ -752,6 +781,8 @@ namespace
+@@ -752,6 +782,8 @@ namespace
          std::perror("MuJoCo camera socket");
          return;
        }
@@ -157,7 +161,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        std::memset(&socket_addr_, 0, sizeof(socket_addr_));
        socket_addr_.sun_family = AF_UNIX;
        std::strncpy(socket_addr_.sun_path, socket_path.c_str(), sizeof(socket_addr_.sun_path) - 1);
-@@ -911,24 +942,33 @@ namespace
+@@ -911,24 +943,33 @@ namespace
      {
        if (model != model_)
        {
@@ -200,7 +204,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
          AnimatePedestrian(pedestrians_[i], states_[i], data, animation_time_, static_cast<int>(i));
        }
        MaybePublish(data);
-@@ -946,12 +986,14 @@ namespace
+@@ -946,12 +987,14 @@ namespace
        std::vector<int> visual_frames;
        std::vector<std::array<mjtNum, 3>> visual_frame_pos;
        std::vector<int> visual_frame_mesh_ids;
@@ -218,7 +222,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        double target_x = 0.0;
        double target_y = 0.0;
        double speed = 0.7;
-@@ -960,9 +1002,13 @@ namespace
+@@ -960,9 +1003,13 @@ namespace
        int waypoint = 0;
        double last_progress_x = 0.0;
        double last_progress_y = 0.0;
@@ -234,7 +238,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      };
  
      struct CircleObstacle
-@@ -1030,29 +1076,81 @@ namespace
+@@ -1030,29 +1077,81 @@ namespace
        return model->body_mocapid[body_id];
      }
  
@@ -319,7 +323,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
  
        for (int i = 1; i <= requested_count; ++i)
        {
-@@ -1077,6 +1175,20 @@ namespace
+@@ -1077,6 +1176,20 @@ namespace
                  model->geom_pos[3 * geom_id + 2],
              });
              ped.visual_frame_mesh_ids.push_back(model->geom_dataid[geom_id]);
@@ -340,7 +344,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
            }
          }
          if (ped.torso >= 0 && ped.head >= 0)
-@@ -1089,12 +1201,64 @@ namespace
+@@ -1089,12 +1202,64 @@ namespace
        {
          PedestrianState state;
          const int index = static_cast<int>(i);
@@ -406,7 +410,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
          state.waypoint = index % PathLength(index);
          PathPoint(index, state.waypoint, state.x, state.y);
          if (!IsSpawnClear(state.x, state.y, states_))
-@@ -1119,7 +1283,8 @@ namespace
+@@ -1119,7 +1284,8 @@ namespace
        if (!pedestrians_.empty())
        {
          OpenSocket(ReadEnvString("UNITREE_MUJOCO_PEDESTRIAN_SOCKET", "/tmp/unitree_g1_mujoco_pedestrians.sock"));
@@ -416,7 +420,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        }
        else
        {
-@@ -1133,9 +1298,14 @@ namespace
+@@ -1133,9 +1299,14 @@ namespace
        return value - std::floor(value);
      }
  
@@ -433,7 +437,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      }
  
      void ConfigureEnduranceState(PedestrianState &state, int index) const
-@@ -1161,6 +1331,21 @@ namespace
+@@ -1161,6 +1332,21 @@ namespace
        state.last_progress_y = state.y;
      }
  
@@ -455,7 +459,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      void UpdateEnduranceState(PedestrianState &state, double animation_time, int index) const
      {
        const double start_y = index % 2 == 0 ? -2.40 : 1.50;
-@@ -1175,6 +1360,41 @@ namespace
+@@ -1175,6 +1361,41 @@ namespace
        state.pause_until = elapsed < duration ? start_time : std::numeric_limits<double>::infinity();
      }
  
@@ -497,7 +501,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      void RandomPoint(int pedestrian_index, int sample_index, double &x, double &y) const
      {
        if (IsLabMode())
-@@ -1196,13 +1416,21 @@ namespace
+@@ -1196,13 +1417,21 @@ namespace
        y = std::sin(angle) * (spawn_clearance_ + 1.2);
      }
  
@@ -521,7 +525,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        for (const BoxObstacle &box : box_obstacles_)
        {
          if (std::abs(x - box.x) <= box.half_x + margin && std::abs(y - box.y) <= box.half_y + margin)
-@@ -1238,7 +1466,16 @@ namespace
+@@ -1238,7 +1467,16 @@ namespace
  
      bool IsLabMode() const
      {
@@ -539,7 +543,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      }
  
      bool IsLabWalkable(double x, double y) const
-@@ -1279,7 +1516,7 @@ namespace
+@@ -1279,7 +1517,7 @@ namespace
      {
        bool pushed = false;
        const double margin = pedestrian_radius_;
@@ -548,7 +552,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        for (const BoxObstacle &box : boxes)
        {
          const double dx = state.x - box.x;
-@@ -1301,7 +1538,7 @@ namespace
+@@ -1301,7 +1539,7 @@ namespace
            pushed = true;
          }
        }
@@ -557,7 +561,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        {
          for (const CircleObstacle &circle : circle_obstacles_)
          {
-@@ -1348,7 +1585,7 @@ namespace
+@@ -1348,7 +1586,7 @@ namespace
  
      int PathLength(int index) const
      {
@@ -566,7 +570,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        {
          return 4;
        }
-@@ -1358,7 +1595,7 @@ namespace
+@@ -1358,7 +1596,7 @@ namespace
  
      void PathPoint(int index, int waypoint, double &x, double &y) const
      {
@@ -575,7 +579,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        {
          static const double lab_paths[2][4][2] = {
              {{-3.7, -2.1}, {-1.0, -2.1}, {2.5, -1.6}, {3.5, 1.2}},
-@@ -1438,13 +1675,215 @@ namespace
+@@ -1438,13 +1676,215 @@ namespace
        state.pause_until = pause_probability < 0.18 ? time + 0.3 + 1.0 * PseudoRandom01(index, state.waypoint, 5) : time;
      }
  
@@ -792,7 +796,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        const double start_x = state.x;
        const double start_y = state.y;
        double dx = state.target_x - state.x;
-@@ -1508,8 +1947,8 @@ namespace
+@@ -1508,8 +1948,8 @@ namespace
          }
        }
  
@@ -803,7 +807,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        state.x = std::max(-limit_x, std::min(limit_x, state.x));
        state.y = std::max(-limit_y, std::min(limit_y, state.y));
        state.vx = (state.x - start_x) / std::max(dt, 1e-6);
-@@ -1600,23 +2039,33 @@ namespace
+@@ -1600,23 +2040,33 @@ namespace
  
      void MaybePublish(mjData *data)
      {
@@ -841,7 +845,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
          const int32_t id = static_cast<int32_t>(i + 1);
          const double radius = pedestrian_radius_;
          AppendBytes(packet, id);
-@@ -1638,8 +2087,25 @@ namespace
+@@ -1638,8 +2088,25 @@ namespace
  
      void AnimatePedestrian(const PedestrianBodies &ped, const PedestrianState &state, mjData *data, double animation_time, int index) const
      {
@@ -869,7 +873,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        if (dir_x * dir_x + dir_y * dir_y < 1e-6)
        {
          dir_x = std::cos(2.399963 * (index + 1));
-@@ -1648,11 +2114,11 @@ namespace
+@@ -1648,11 +2115,11 @@ namespace
        Normalize2(dir_x, dir_y);
        const double side_x = -dir_y;
        const double side_y = dir_x;
@@ -885,7 +889,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        const double arm_stride = -stride;
        mjtNum facing[4];
        // RenderPeople meshes face Blender's -Y axis; rotate that forward axis onto the walking direction.
-@@ -1662,19 +2128,27 @@ namespace
+@@ -1662,19 +2129,27 @@ namespace
        const double head[3] = {root[0], root[1], 1.49 + bob};
        SetBody(data, ped.torso, torso, facing);
        SetBody(data, ped.head, head, facing);
@@ -917,7 +921,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
          model_->geom_rgba[4 * visible_geom_id + 3] = 1.0;
          for (size_t i = 0; i < ped.visual_frames.size(); ++i)
          {
-@@ -1717,10 +2191,17 @@ namespace
+@@ -1717,10 +2192,17 @@ namespace
      double last_publish_time_ = -10.0;
      mutable double last_debug_print_time_ = -10.0;
      int socket_fd_ = -1;
@@ -935,7 +939,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
      const double spawn_clearance_ = 3.2;
      const double spawn_separation_ = 1.25;
      const double pedestrian_clearance_ = 0.8;
-@@ -1751,18 +2232,24 @@ namespace
+@@ -1751,18 +2233,25 @@ namespace
      };
      std::vector<PedestrianBodies> pedestrians_;
      std::vector<PedestrianState> states_;
@@ -946,6 +950,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
    KinematicPedestrians kinematic_pedestrians;
  
 +  unitree_mujoco::BraincoHands brainco_hands;
++  unitree_mujoco::NativeImuPublisher native_imu;
 +
    bool StepOrHold(mjModel *model, mjData *data, UnitreeSDK2BridgeBase *bridge)
    {
@@ -960,7 +965,15 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
        mj_forward(model, data);
        if (bridge)
        {
-@@ -2387,7 +2874,12 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
+@@ -1778,6 +2267,7 @@ namespace
+       bridge->CaptureState(model, data);
+     }
+     lidar_raycaster.MaybePublish(model, data);
++    native_imu.MaybePublish(model, data);
+     camera_raycaster.MaybePublish(model, data);
+     simulated_manipulation.Update(model, data);
+     return true;
+@@ -2387,7 +2877,12 @@ __attribute__((used, visibility("default"))) extern "C" void _mj_rosettaError(co
  #endif
  
  // user keyboard callback
@@ -973,7 +986,7 @@ index d54090ea4453330f0d89c303886eb6b98778fcc1..2fe0b9663e696aef19adf89e9f5b1e39
    if (act==GLFW_PRESS)
    {
      if(param::config.enable_elastic_band == 1) {
-@@ -2449,12 +2941,16 @@ int main(int argc, char **argv)
+@@ -2449,12 +2944,16 @@ int main(int argc, char **argv)
    // simulate object encapsulates the UI
    auto sim = std::make_unique<mj::Simulate>(
      std::make_unique<mj::GlfwAdapter>(),
@@ -1015,10 +1028,18 @@ index 6e4394c508ba98a5f9d8f65ff8828aac46e1f934..395f3b2484f77d2ffc8838937fbd4bd5
        std::lock_guard<std::mutex> lock(pool_mutex_);
        for (int index = 0; index < 3; ++index)
 diff --git a/simulate/src/simulated_manipulation.cc b/simulate/src/simulated_manipulation.cc
-index a3a98adf970546110e1ae8fcfaaeb528f47fb840..309c4ba899908a60f73e74188c2d56efaebd8bd0 100644
+index a3a98adf970546110e1ae8fcfaaeb528f47fb840..14c51511f7ee71cd101c26a852d87ba062a63875 100644
 --- a/simulate/src/simulated_manipulation.cc
 +++ b/simulate/src/simulated_manipulation.cc
-@@ -512,11 +512,30 @@ SimulatedManipulation::CommandResult SimulatedManipulation::ExecuteCommand(
+@@ -9,6 +9,7 @@
+ 
+ #include <algorithm>
+ #include <cerrno>
++#include <chrono>
+ #include <cmath>
+ #include <cstdio>
+ #include <cstdlib>
+@@ -512,11 +513,30 @@ SimulatedManipulation::CommandResult SimulatedManipulation::ExecuteCommand(
      {
        return {false, "nonfinite state"};
      }
@@ -1053,11 +1074,98 @@ index a3a98adf970546110e1ae8fcfaaeb528f47fb840..309c4ba899908a60f73e74188c2d56ef
      {
        return {false, "outside capture radius"};
      }
+@@ -562,6 +582,8 @@ void SimulatedManipulation::PublishObjects(const mjModel *model, const mjData *d
+   sockaddr_un address{};
+   address.sun_family = AF_UNIX;
+   std::strncpy(address.sun_path, state_socket_path_.c_str(), sizeof(address.sun_path) - 1);
++  const auto acquisition_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::system_clock::now().time_since_epoch()).count();
+   for (const TrackedBody &body : tracked_bodies_)
+   {
+     const mjtNum *position = data->xpos + 3 * body.body_id;
+@@ -572,11 +594,11 @@ void SimulatedManipulation::PublishObjects(const mjModel *model, const mjData *d
+       continue;
+     }
+     std::ostringstream message;
+-    message << std::setprecision(17) << (body.surface ? "SURFACE " : "OBJECT ")
++    message << std::setprecision(17) << (body.surface ? "SURFACE_V2 " : "OBJECT_V2 ")
+             << body.object_id << ' ' << position[0] << ' ' << position[1] << ' '
+             << position[2] << ' ' << quaternion[1] << ' ' << quaternion[2] << ' '
+             << quaternion[3] << ' ' << quaternion[0] << ' ' << 2.0 * half_size[0] << ' '
+-            << 2.0 * half_size[1] << ' ' << 2.0 * half_size[2];
++            << 2.0 * half_size[1] << ' ' << 2.0 * half_size[2] << ' ' << acquisition_time_ns;
+     const std::string packet = message.str();
+     if (sendto(state_fd_, packet.data(), packet.size(), MSG_DONTWAIT,
+                reinterpret_cast<sockaddr *>(&address), sizeof(address)) < 0 &&
+diff --git a/simulate/src/unitree_sdk2_bridge.h b/simulate/src/unitree_sdk2_bridge.h
+index b3a16b7bd5b70f2b605a6e8efe40051f90a18b0a..99192434c901df126ed00d2538ece67e2d39cab1 100644
+--- a/simulate/src/unitree_sdk2_bridge.h
++++ b/simulate/src/unitree_sdk2_bridge.h
+@@ -303,7 +303,7 @@ public:
+             return;
+         }
+         thread_ = std::make_shared<unitree::common::RecurrentThread>(
+-            "unitree_bridge", UT_CPU_ID_NONE, 1000, [this]() { RunSDK(); });
++            "unitree_bridge", UT_CPU_ID_NONE, 2000, [this]() { RunSDK(); });
+     }
+ 
+     void Stop() override
 diff --git a/simulate/test/simulated_manipulation_test.cc b/simulate/test/simulated_manipulation_test.cc
-index 1a2a7587d646fc61fe95c53cd0550cc36d750f4d..696c03453d315a6ce4ca28d33daeafb773af07be 100644
+index 1a2a7587d646fc61fe95c53cd0550cc36d750f4d..395789db1d8ef648c57f7a8e3e9e2c189e026c4a 100644
 --- a/simulate/test/simulated_manipulation_test.cc
 +++ b/simulate/test/simulated_manipulation_test.cc
-@@ -195,6 +195,49 @@ int main()
+@@ -6,10 +6,12 @@
+ #include <sys/un.h>
+ 
+ #include <cmath>
++#include <chrono>
+ #include <cstdlib>
+ #include <cstring>
+ #include <iostream>
+ #include <string>
++#include <sstream>
+ 
+ #include <unistd.h>
+ 
+@@ -100,6 +102,7 @@ int main()
+   setenv("UNITREE_MUJOCO_MANIPULATION_CAPTURE_RADIUS", "0.001", 1);
+ 
+   const int client_fd = OpenClient(client_path);
++  const int state_fd = OpenClient(state_path);
+   const int stale_server_fd = OpenClient(command_path);
+   if (stale_server_fd >= 0)
+   {
+@@ -129,6 +132,29 @@ int main()
+       manager.Reset(model, data);
+       Check(manager.managed_weld_count() == 2, "discovers both hand welds");
+       Check(manager.tracked_body_count() == 2, "discovers object and surface");
++      const auto before = std::chrono::duration_cast<std::chrono::nanoseconds>(
++          std::chrono::system_clock::now().time_since_epoch()).count();
++      manager.Update(model, data);
++      long long first_stamp = 0;
++      for (int index = 0; index < 2; ++index)
++      {
++        char packet[4096];
++        const ssize_t size = recv(state_fd, packet, sizeof(packet), 0);
++        Check(size > 0, "receives native object evaluation packet");
++        if (size <= 0) {continue;}
++        std::istringstream input(std::string(packet, static_cast<std::size_t>(size)));
++        std::string type, identifier, extra;
++        input >> type >> identifier;
++        double value = 0.;
++        for (int field = 0; field < 10; ++field) {input >> value;}
++        long long stamp = 0;
++        input >> stamp;
++        Check(!input.fail() && !(input >> extra), "V2 packet has ten geometry values and one integer timestamp");
++        Check(type == "OBJECT_V2" || type == "SURFACE_V2", "evaluation packet is explicitly versioned");
++        Check(stamp >= before, "acquisition timestamp is native wall time");
++        if (index == 0) {first_stamp = stamp;}
++        else {Check(stamp == first_stamp, "objects from one snapshot share acquisition time");}
++      }
+       Check(left >= 0 && data->eq_active[left] == 0, "active weld forced inactive");
+       Check(right >= 0 && data->eq_active[right] == 0, "right weld reset inactive");
+       if (base_pin >= 0)
+@@ -195,10 +221,58 @@ int main()
      }
      mj_deleteModel(model);
    }
@@ -1107,6 +1215,30 @@ index 1a2a7587d646fc61fe95c53cd0550cc36d750f4d..696c03453d315a6ce4ca28d33daeafb7
    if (client_fd >= 0)
    {
      close(client_fd);
+     unlink(client_path.c_str());
+   }
++  if (state_fd >= 0)
++  {
++    close(state_fd);
++    unlink(state_path.c_str());
++  }
+   return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+ }
+diff --git a/unitree_robots/g1/g1_29dof.xml b/unitree_robots/g1/g1_29dof.xml
+index ae6e849d115b5ce91e56a09a6ced247e67657220..b139125e5c1c54b4979f486385351023a1b9497e 100644
+--- a/unitree_robots/g1/g1_29dof.xml
++++ b/unitree_robots/g1/g1_29dof.xml
+@@ -525,6 +525,10 @@
+     <framequat name="secondary_imu_quat" objtype="site" objname="secondary_imu" />
+     <gyro name="secondary_imu_gyro" site="secondary_imu" noise="5e-4" cutoff="34.9"/>
+     <accelerometer name="secondary_imu_acc" site="secondary_imu" noise="1e-2" cutoff="157"/>
++    <gyro name="camera_gyro" site="d435i_color_site"/>
++    <accelerometer name="camera_accel" site="d435i_color_site"/>
++    <gyro name="livox_gyro" site="livox_site"/>
++    <accelerometer name="livox_accel" site="livox_site"/>
+   </sensor>
+ 
+   <keyframe>
 diff --git a/unitree_robots/g1/scene_29dof_extreme_lab.xml b/unitree_robots/g1/scene_29dof_extreme_lab.xml
 index e9f5d71b344ec73060ecd9fc511b9f71690887b8..9a6e5d831ed04ee5f4fb57c39dd130de02c792f1 100644
 --- a/unitree_robots/g1/scene_29dof_extreme_lab.xml
@@ -2179,7 +2311,7 @@ index 0000000..4c4d285
 +}
 diff --git a/simulate/src/brainco_hand.h b/simulate/src/brainco_hand.h
 new file mode 100644
-index 0000000..8a00955
+index 0000000..caf2b3c
 --- /dev/null
 +++ b/simulate/src/brainco_hand.h
 @@ -0,0 +1,115 @@
@@ -2266,8 +2398,8 @@ index 0000000..8a00955
 +  void Update(const mjModel *model, mjData *data) {
 +    if (model != model_ || data->time < last_time_) {Bind(model,data);}
 +    last_time_ = data->time;
-+    const bool publish = data->time >= next_state_;
-+    if (publish) {next_state_ = data->time+.02;}
++    const bool publish = data->time+1e-9 >= next_state_;
++    if (publish) {next_state_ += .02;}
 +    for (auto &hand : hands_) {
 +      if (!hand.enabled) {continue;}
 +      std::array<double,6> target, speed;
@@ -2297,6 +2429,117 @@ index 0000000..8a00955
 +    }
 +  }
 +};
++}
+diff --git a/simulate/src/native_imu.h b/simulate/src/native_imu.h
+new file mode 100644
+index 0000000..8e33d91
+--- /dev/null
++++ b/simulate/src/native_imu.h
+@@ -0,0 +1,66 @@
++#pragma once
++
++#include <mujoco/mujoco.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <unistd.h>
++#include <chrono>
++#include <cstdint>
++#include <cstring>
++#include <cstdlib>
++
++namespace unitree_mujoco {
++#pragma pack(push, 1)
++struct NativeImuPacket {
++  std::uint32_t magic = 0x31494a4d;
++  std::uint32_t valid = 0;  // camera=1, Livox=2
++  double simulation_time = 0.;
++  std::int64_t acquisition_time_ns = 0;
++  float camera_gyro[3]{}, camera_accel[3]{}, lidar_gyro[3]{}, lidar_accel[3]{};
++};
++#pragma pack(pop)
++static_assert(sizeof(NativeImuPacket) == 72, "IMU wire layout");
++
++inline bool CopyImuVector(const mjModel *model, const mjData *data, const char *name, float *out) {
++  const int id = mj_name2id(model, mjOBJ_SENSOR, name);
++  if (id < 0 || model->sensor_dim[id] != 3) {return false;}
++  for (int i=0; i<3; ++i) {out[i] = static_cast<float>(data->sensordata[model->sensor_adr[id]+i]);}
++  return true;
++}
++
++inline NativeImuPacket ReadNativeImu(const mjModel *model, const mjData *data) {
++  NativeImuPacket packet;
++  packet.simulation_time = data->time;
++  packet.acquisition_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::system_clock::now().time_since_epoch()).count();
++  if (CopyImuVector(model,data,"camera_gyro",packet.camera_gyro) &&
++      CopyImuVector(model,data,"camera_accel",packet.camera_accel)) {packet.valid |= 1;}
++  if (CopyImuVector(model,data,"livox_gyro",packet.lidar_gyro) &&
++      CopyImuVector(model,data,"livox_accel",packet.lidar_accel)) {packet.valid |= 2;}
++  return packet;
++}
++
++class NativeImuPublisher {
++  int socket_ = -1;
++  sockaddr_un address_{};
++  double last_time_ = -1., next_time_ = 0.;
++ public:
++  NativeImuPublisher() {
++    socket_ = socket(AF_UNIX,SOCK_DGRAM | SOCK_CLOEXEC,0);
++    address_.sun_family = AF_UNIX;
++    const char *path = std::getenv("UNITREE_MUJOCO_IMU_SOCKET");
++    std::strncpy(address_.sun_path,path ? path : "/tmp/unitree_g1_mujoco_imu.sock",sizeof(address_.sun_path)-1);
++  }
++  ~NativeImuPublisher() {if (socket_>=0) {close(socket_);}}
++  void MaybePublish(const mjModel *model, const mjData *data) {
++    if (data->time < last_time_) {next_time_ = 0.;}
++    last_time_ = data->time;
++    if (socket_<0 || data->time+1e-9<next_time_) {return;}
++    next_time_ += .01;
++    const auto packet = ReadNativeImu(model,data);
++    if (packet.valid) {
++      sendto(socket_,&packet,sizeof(packet),MSG_DONTWAIT,reinterpret_cast<sockaddr *>(&address_),sizeof(address_));
++    }
++  }
++};
++}  // namespace unitree_mujoco
+diff --git a/simulate/test/native_imu_test.cc b/simulate/test/native_imu_test.cc
+new file mode 100644
+index 0000000..a403363
+--- /dev/null
++++ b/simulate/test/native_imu_test.cc
+@@ -0,0 +1,33 @@
++#include "native_imu.h"
++#include <cmath>
++#include <iostream>
++#include <string>
++
++int main() {
++  const std::string xml = R"(<mujoco><worldbody><body pos="0 0 1">
++    <joint type="hinge" axis="0 0 1"/><geom type="sphere" size=".1" mass="1"/>
++    <site name="camera" quat=".70710678 .70710678 0 0"/>
++    <site name="lidar" quat="0 1 0 0"/>
++    </body></worldbody><sensor>
++    <gyro name="camera_gyro" site="camera"/><accelerometer name="camera_accel" site="camera"/>
++    <gyro name="livox_gyro" site="lidar"/><accelerometer name="livox_accel" site="lidar"/>
++    </sensor></mujoco>)";
++  mjVFS vfs;
++  mj_defaultVFS(&vfs);
++  mj_addBufferVFS(&vfs,"imu.xml",xml.data(),xml.size());
++  char error[1024]{};
++  mjModel *model = mj_loadXML("imu.xml",&vfs,error,sizeof(error));
++  mj_deleteVFS(&vfs);
++  if (!model) {std::cerr << error; return 1;}
++  mjData *data = mj_makeData(model);
++  data->qvel[0] = 2.;
++  mj_forward(model,data);
++  const auto packet = unitree_mujoco::ReadNativeImu(model,data);
++  const bool ok = packet.valid==3 && packet.acquisition_time_ns>0 &&
++    std::abs(packet.camera_gyro[1]-2.)<1e-5 && std::abs(packet.lidar_gyro[2]+2.)<1e-5 &&
++    std::abs(packet.camera_accel[1]-9.81)<1e-4 && std::abs(packet.lidar_accel[2]+9.81)<1e-4;
++  mj_deleteData(data);
++  mj_deleteModel(model);
++  if (!ok) {std::cerr << "Site-frame gyro / specific-force mismatch\n";}
++  return ok ? 0 : 1;
 +}
 diff --git a/tools/generate_natural_pedestrians.py b/tools/generate_natural_pedestrians.py
 new file mode 100644

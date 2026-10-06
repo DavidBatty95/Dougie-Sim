@@ -1,7 +1,8 @@
+import json
 import math
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import asdict,dataclass
 from pathlib import Path
 from typing import List, Optional, Sequence
 
@@ -11,11 +12,12 @@ from geometry_msgs.msg import Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
-from std_msgs.msg import Float64MultiArray,Bool
+from std_msgs.msg import Float64MultiArray,Bool,String
 from unitree_hg.msg import LowState
 
 from .g1_constants import G1_29DOF_JOINTS
 from .motion_envelope import load_motion_envelope
+from .policy_timing import inference_timing,result_is_stale
 from .policy_safety import (
     advance_gait_phase,
     apply_command_deadband,
@@ -252,6 +254,10 @@ class PolicyInferenceWorker:
             result = self._result
             self._result = None
             return result
+
+    def has_result(self) -> bool:
+        with self._condition:
+            return self._result is not None
 
     def deadline_missed(self, now: Optional[float] = None) -> bool:
         current = time.monotonic() if now is None else now
@@ -573,12 +579,17 @@ class G1PolicyCmdVelController(Node):
             str(self.get_parameter("policy_cmd_vel_topic").value),
             LATEST_RELIABLE_QOS,
         )
+        self.policy_timing_pub = self.create_publisher(String,'/g1/policy_timing',10)
+        self.policy_diagnostics_pub = self.create_publisher(String,'/g1/policy_diagnostics',10)
+        self.inference_context = None
+        self.stop_request_invalidations = 0
+        self.stale_result_rejections = 0
         self.create_subscription(
             LowState, "/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
         )
-        self.create_subscription(
-            LowState, "rt/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
-        )
+        self.declare_parameter('legacy_rt_aliases',False)
+        if self.get_parameter('legacy_rt_aliases').value:
+            self.create_subscription(LowState,"rt/lowstate",self._lowstate_callback,LATEST_RELIABLE_QOS)
         self.create_subscription(
             Twist,
             str(self.get_parameter("cmd_vel_topic").value),
@@ -595,6 +606,9 @@ class G1PolicyCmdVelController(Node):
         period = 1.0 / float(self.get_parameter("rate_hz").value)
         self.control_period = period
         self.create_timer(period, self._control_tick)
+        # Inference cadence stays at the policy rate; collect finished work
+        # promptly instead of inserting a whole extra policy-period delay.
+        self.create_timer(min(.002,period), self._result_tick)
         self.create_timer(2.0, self._diagnostics)
         self.get_logger().info("G1 policy /cmd_vel controller ready")
 
@@ -964,7 +978,11 @@ class G1PolicyCmdVelController(Node):
         message.twist.angular.z = float(command[2])
         self.policy_cmd_pub.publish(message)
 
-    def _control_tick(self) -> None:
+    def _result_tick(self) -> None:
+        if self.policy_worker.has_result():
+            self._control_tick(consume_only=True)
+
+    def _control_tick(self, consume_only: bool = False) -> None:
         if self.last_lowstate is None:
             if bool(self.get_parameter("pre_lowstate_stand_enable").value):
                 self._publish_targets(self.default_positions)
@@ -991,9 +1009,18 @@ class G1PolicyCmdVelController(Node):
         if odom_age > float(self.get_parameter("odom_timeout").value):
             self.base_lin_vel = [0.0, 0.0, 0.0]
         dt = max(1e-3, min(0.1, (now - self.last_control_time).nanoseconds * 1e-9))
-        self.last_control_time = now
+        if consume_only:
+            dt = self.control_period
+        if not consume_only:
+            self.last_control_time = now
         active_command, immediate_stop = self._active_command()
-        command = self._filtered_active_command(active_command, dt, immediate_stop)
+        if consume_only:
+            # Do not advance filters/history or submit a new observation on a
+            # result wakeup. A newly received stop must still revoke old work.
+            command = [0.,0.,0.] if immediate_stop else list(self.last_active_command)
+        else:
+            command = self._filtered_active_command(active_command, dt, immediate_stop)
+        self._invalidate_stopped_inference(self.last_active_command,command,immediate_stop)
         self.last_active_command = command
         if self._startup_active():
             self._publish_policy_command((0.0, 0.0, 0.0))
@@ -1009,6 +1036,13 @@ class G1PolicyCmdVelController(Node):
             return
 
         result = self.policy_worker.take_result()
+        if result is not None and result_is_stale(result,time.monotonic(),self.policy_inference_deadline):
+            self.policy_worker.invalidate()
+            self.inference_context = None
+            self.stale_result_rejections += 1
+            self._publish_policy_command((0.0,0.0,0.0))
+            self._policy_safe_hold('policy_result_stale_hold')
+            return
         if result is not None and (result.error is not None or result.deadline_missed):
             self.get_logger().error(
                 result.error or "Policy inference deadline missed",
@@ -1059,6 +1093,13 @@ class G1PolicyCmdVelController(Node):
                 self._publish_policy_command((0.0, 0.0, 0.0))
                 self._policy_safe_hold("policy_error_hold")
                 return
+            if self.policy_timing_pub.get_subscription_count():
+                timing = inference_timing(result,self.inference_context,time.monotonic(),
+                                          self.get_clock().now().nanoseconds*1e-9)
+                self.policy_timing_pub.publish(String(data=json.dumps(timing,separators=(',',':'))))
+
+        if consume_only:
+            return
 
         self.gait_phase = advance_gait_phase(
             self.gait_phase,
@@ -1068,14 +1109,27 @@ class G1PolicyCmdVelController(Node):
         )
         self._publish_policy_command(command)
         candidates = self._build_inference_candidates(command)
-        self.policy_worker.submit(
+        request = self.policy_worker.submit(
             candidates, deadline=time.monotonic() + self.policy_inference_deadline
         )
+        if request is not None:
+            self.inference_context = dict(key=(request.generation,request.sequence),command=list(command),
+                command_received_ros_s=self.last_cmd_time.nanoseconds*1e-9,
+                lowstate_receipt_age_at_submit_s=sample_age(request.submitted_at,self.last_lowstate_arrival))
         if result is None:
             self.control_state = "policy_wait"
             self._publish_targets(
                 pending_target(self.last_safe_targets, self._safe_hold_positions())
             )
+
+    def _invalidate_stopped_inference(self,previous,command,immediate_stop):
+        if immediate_stop and any(previous) and not any(command):
+            # Both completed-but-unconsumed and running pre-stop work belong to
+            # the old generation. Keep the last validated targets while a fresh
+            # zero-command inference is prepared; never drop motor gains here.
+            self.policy_worker.invalidate()
+            self.inference_context = None
+            self.stop_request_invalidations += 1
 
     def _policy_safe_hold(self, state: str) -> None:
         self.control_state = state
@@ -1178,6 +1232,14 @@ class G1PolicyCmdVelController(Node):
         lowstate_age = sample_age(now, self.last_lowstate_arrival)
         odom_age = sample_age(now, self.last_odom_arrival)
         inference = self.policy_worker.diagnostics()
+        if self.policy_diagnostics_pub.get_subscription_count():
+            self.policy_diagnostics_pub.publish(String(data=json.dumps(dict(
+                stamp=self.get_clock().now().nanoseconds*1e-9,state=self.control_state,
+                counters=asdict(inference),body_command_count=self.body_command_count,
+                stop_request_invalidations=self.stop_request_invalidations,
+                stale_result_rejections=self.stale_result_rejections,
+                inference_deadline_s=self.policy_inference_deadline,
+                control_period_s=self.control_period),separators=(',',':'))))
         self.get_logger().info(
             "policy status: "
             f"state={self.control_state} lowstate={self.lowstate_count} cmd_vel={self.cmd_vel_count} "

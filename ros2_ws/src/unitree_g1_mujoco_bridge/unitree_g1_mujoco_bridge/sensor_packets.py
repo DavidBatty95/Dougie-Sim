@@ -12,6 +12,27 @@ CAMERA_MAGIC_V2 = 0x32434A4D
 PEDESTRIAN_MAGIC_V1 = 0x31444550
 PEDESTRIAN_MAGIC_V2 = 0x32444550
 PEDESTRIAN_MAGIC_V3 = 0x33444550
+IMU_MAGIC_V1 = 0x31494A4D
+
+
+@dataclasses.dataclass(frozen=True)
+class ImuPacket:
+    simulation_time: float
+    acquisition_time_ns: int
+    camera: Optional[tuple]
+    lidar: Optional[tuple]
+
+
+def decode_imu_packet(packet: bytes) -> Optional[ImuPacket]:
+    if len(packet)!=struct.calcsize('<IIdq12f'):
+        return None
+    magic,valid,simulation_time,stamp,*vectors = struct.unpack('<IIdq12f',packet)
+    if magic!=IMU_MAGIC_V1 or valid not in (1,2,3) or stamp<=0:
+        return None
+    if not math.isfinite(simulation_time) or simulation_time<0. or not all(map(math.isfinite,vectors)):
+        return None
+    return ImuPacket(simulation_time,stamp,tuple(vectors[:6]) if valid&1 else None,
+                     tuple(vectors[6:]) if valid&2 else None)
 
 
 @dataclasses.dataclass(frozen=True)

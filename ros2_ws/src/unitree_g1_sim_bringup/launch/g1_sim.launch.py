@@ -354,6 +354,8 @@ def generate_launch_description():
         package="unitree_g1_mujoco_bridge",
         executable="onboard_lidar_odometry",
         name="onboard_lidar_odometry",
+        parameters=[{'camera_frame':camera_frame,
+                     'camera_mount_pitch_deg':ParameterValue(LaunchConfiguration('camera_mount_pitch_deg'),value_type=float)}],
         additional_env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
         output="screen",
     )
@@ -395,6 +397,7 @@ def generate_launch_description():
                 "publish_lidar_tf": publish_lidar_tf,
                 "publish_camera": publish_camera,
                 "camera_frame": camera_frame,
+                "imu_frame": camera_frame,
                 "depth_frame": depth_frame,
                 "camera_width": camera_width,
                 "camera_height": camera_height,
@@ -1064,6 +1067,8 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("onboard_only", default_value="false"),
+            DeclareLaunchArgument('camera_mount_pitch_deg',default_value='0.0',
+                                  description='Measured camera mounting pitch used by onboard sensor TF; match the selected model.'),
             DeclareLaunchArgument("show_mujoco_goal", default_value=LaunchConfiguration("onboard_only")),
             DeclareLaunchArgument("nav2_dynamic_replanning", default_value=LaunchConfiguration("onboard_only")),
             DeclareLaunchArgument(

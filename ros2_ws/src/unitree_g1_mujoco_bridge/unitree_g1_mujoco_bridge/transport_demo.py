@@ -4,6 +4,7 @@ The grasp actuator is the documented capture-radius weld. No base pin, object
 pose setter, simulator layout or evaluation subscription is used by the mission.
 """
 import argparse
+import hashlib
 import json
 import math
 import time
@@ -34,6 +35,9 @@ from .arm_kinematics import ArmKinematics,rpy_matrix
 from .transport_perception import TransportPerception
 from .transport_actions import ManagedAction
 from .transport_health import EvaluationHealth
+from .payload_postures import PAYLOAD_V1_POSTURES
+from .runtime_parameters import capture_parameters
+from .localization_recovery import LocalizationInterrupted,recover_localization
 
 
 def angle(value):
@@ -42,6 +46,10 @@ def angle(value):
 
 class WorkspaceInterrupted(RuntimeError):
     """A terminated arm action may be retried after measured workspace recovery."""
+
+
+class ReachUnreachable(RuntimeError):
+    """No trajectory was dispatched because sensed geometry is out of reach."""
 
 
 class TransportMission(Node):
@@ -54,6 +62,7 @@ class TransportMission(Node):
         self.joints = {}
         self.rpy = (0.,0.,0.)
         self.observations = {}
+        self.search_hints = {}
         self.people = None
         self.kin = None
         self.active = False
@@ -109,6 +118,9 @@ class TransportMission(Node):
         data = json.loads(msg.data)
         if data.get('frame') == 'odom':
             self.observations = {item['id']:item for item in data['objects']}
+            for identifier,item in self.observations.items():
+                if item.get('confirmed',False):
+                    self.search_hints[identifier] = dict(item)
 
     def _odom(self,msg):
         p,q = msg.pose.pose.position,msg.pose.pose.orientation
@@ -151,7 +163,23 @@ class TransportMission(Node):
         if time.monotonic()-self.started > self.args.duration:
             raise RuntimeError('mission deadline exceeded')
         if self.active and self.pose is not None and self.seconds()-self.pose_stamp > 2.:
-            raise RuntimeError('measured odometry stale during motion')
+            self.event(self.phase,localization_interruption=True,pose_age_s=self.seconds()-self.pose_stamp)
+            raise LocalizationInterrupted('measured odometry stale during motion')
+
+    def wait_localization(self,deadline,recovery):
+        phase = self.phase
+        self.event('wait_localization',resume_phase=phase,recovery=recovery)
+        stamps = []
+        def fresh():
+            if self.pose is None or not 0.<=self.seconds()-self.pose_stamp<=.5:
+                stamps.clear()
+                return False
+            if not stamps or self.pose_stamp>stamps[-1]:
+                stamps.append(self.pose_stamp)
+            return len(stamps)>=3
+        self.wait(fresh,min(5.,max(0.,deadline-time.monotonic())),
+                  'localization did not recover before deadline')
+        self.event(phase,localization_recovered=True,recovery=recovery)
 
     def wait(self,predicate,timeout,message):
         end = time.monotonic()+timeout
@@ -215,8 +243,10 @@ class TransportMission(Node):
         self._heartbeat()
         self.event(self.phase,goal_odom=list(pose),start_pose=self.pose,mode=mode)
 
+    @recover_localization
     def navigate(self,pose,timeout=90.):
-        self.wait(self.nav.server_is_ready,30.,'Nav2 unavailable')
+        deadline = time.monotonic()+timeout
+        self.wait(self.nav.server_is_ready,min(30.,timeout),'Nav2 unavailable')
         self.set_goal(pose,'navigate')
         request = NavigateToPose.Goal()
         request.pose = self.goal
@@ -231,25 +261,62 @@ class TransportMission(Node):
                         if not close:
                             raise RuntimeError('navigation succeeded outside sensed staging tolerance')
                     return close
-                self.wait(arrived,timeout,'navigation did not reach sensed staging pose')
+                self.wait(arrived,max(0.,deadline-time.monotonic()),'navigation did not reach sensed staging pose')
         finally:
             self.active = False
             self._heartbeat()
         self.spin(1.)
 
+    @recover_localization
     def dock(self,pose,timeout=75.):
-        self.set_goal(pose,'dock')
+        deadline = time.monotonic()+timeout
+        corrections = 0
+        def arrived():
+            return (self.pose is not None and 0. <= self.seconds()-self.pose_stamp <= .5 and
+                    math.hypot(self.pose[0]-pose[0],self.pose[1]-pose[1]) < .07 and
+                    abs(angle(self.pose[2]-pose[2])) < .15)
         try:
-            self.wait(lambda: self.pose is not None and math.hypot(self.pose[0]-pose[0],self.pose[1]-pose[1]) < .07 and
-                      abs(angle(self.pose[2]-pose[2])) < .15,timeout,'precision docking failed')
+            while time.monotonic() < deadline:
+                self.set_goal(pose,'dock')
+                self.wait(arrived,max(0.,deadline-time.monotonic()),'precision docking failed')
+                self.stop_intent()
+                self.spin(min(1.5,max(0.,deadline-time.monotonic())))
+                if time.monotonic() < deadline and arrived():
+                    self.event(self.phase,dock_settled=True,corrections=corrections,settled_pose=self.pose)
+                    return
+                corrections += 1
+                self.event(self.phase,dock_settled=False,corrections=corrections,settled_pose=self.pose)
+            raise RuntimeError('precision docking did not settle before deadline')
         finally:
-            self.active = False
-            self._heartbeat()
-        self.spin(1.5)
+            self.stop_intent()
 
     def observe(self,identifier,max_age=5.):
         item = self.observations.get(identifier)
-        return item if item is not None and 0. <= self.seconds()-item['observed_stamp'] <= max_age else None
+        return item if item is not None and item.get('confirmed',False) and 0. <= self.seconds()-item['observed_stamp'] <= max_age else None
+
+    def retreat(self,distance,yaw,timeout=45.):
+        """Clear a work surface without chasing an unnecessarily exact endpoint."""
+        start = np.array(self.pose[:2])
+        forward = np.array((math.cos(yaw),math.sin(yaw)))
+        target = start-distance*forward
+        deadline = time.monotonic()+timeout
+        def clear():
+            return (0. <= self.seconds()-self.pose_stamp <= .5 and
+                    float((start-np.array(self.pose[:2]))@forward) >= distance-.07)
+        try:
+            while time.monotonic()<deadline:
+                if not clear():
+                    self.set_goal((*target,yaw),'dock')
+                    self.wait(clear,max(0.,deadline-time.monotonic()),'retreat clearance not reached')
+                self.stop_intent()
+                self.spin(min(1.5,max(0.,deadline-time.monotonic())))
+                if time.monotonic()<deadline and clear():
+                    self.event(self.phase,retreat_settled=True,
+                               distance_m=float((start-np.array(self.pose[:2]))@forward))
+                    return
+            raise RuntimeError('retreat did not settle before deadline')
+        finally:
+            self.stop_intent()
 
     def placement_observed(self,identifier,pad,release_stamp):
         item = self.observe(identifier)
@@ -257,6 +324,22 @@ class TransportMission(Node):
             np.linalg.norm(np.array(item['position'])[:2]-pad[:2]) < .13 and
             abs(item['position'][2]-pad[2]-.055) < .06)
 
+    def release_and_verify(self,identifier,destination,pad,forward,yaw):
+        self.event('release')
+        self.service(self.release,Trigger.Request(),attachment_after='empty')
+        release_stamp = self.seconds()
+        # A torso-mounted camera cannot see the tabletop directly below it.
+        # Clear the hand and retreat to an observation viewpoint before asking
+        # for fresh evidence. Never substitute the pre-release observation.
+        self.event('retract',release_ack_stamp=release_stamp)
+        self.move_to_carry(self.grasp_R)
+        self.retreat(.5,yaw)
+        self.event('verify_place',object_id=identifier,destination_id=destination,release_ack_stamp=release_stamp)
+        self.spin(2.)
+        self.wait(lambda: self.placement_observed(identifier,pad,release_stamp),
+                  8.,'camera did not verify post-release placement from retreat viewpoint')
+
+    @recover_localization
     def rotate(self,yaw,timeout=45.):
         # Search requires a view direction, not centimetre-level base-position
         # recovery after every step of a loaded turn.
@@ -270,6 +353,28 @@ class TransportMission(Node):
 
     def discover(self,identifier):
         self.event('discover',object_id=identifier)
+        hint = self.search_hints.get(identifier)
+        if self.observe(identifier,20.) is None and hint is not None:
+            # Historical sensor geometry is only a viewing-direction cue. It
+            # cannot satisfy discovery, docking, grasp or placement freshness.
+            point = hint['position']
+            self.event('discover',search_hint=identifier,hint_age_s=self.seconds()-hint['observed_stamp'])
+            self.rotate(math.atan2(point[1]-self.pose[1],point[0]-self.pose[0]))
+            self.spin(1.5)
+            if self.observe(identifier,20.) is None:
+                delta = np.array(point[:2])-np.array(self.pose[:2])
+                distance = float(np.linalg.norm(delta))
+                if distance>1.6:
+                    # A distant outline may be below useful RGB-D resolution.
+                    # Request a Nav2-checked observation viewpoint, stopping
+                    # short of the remembered position; reacquisition remains
+                    # mandatory before any tabletop approach or manipulation.
+                    view = np.array(point[:2])-1.4*delta/distance
+                    yaw = math.atan2(delta[1],delta[0])
+                    self.event('discover',search_viewpoint=identifier,viewpoint_odom=view.tolist())
+                    self.navigate((*view,yaw),timeout=30.)
+                    self.rotate(math.atan2(point[1]-self.pose[1],point[0]-self.pose[0]))
+                    self.spin(1.5)
         for _ in range(9):
             if self.observe(identifier,20.) is not None:
                 return self.observe(identifier,20.)
@@ -294,27 +399,27 @@ class TransportMission(Node):
         relative = np.asarray(position)-np.array((self.pose[0],self.pose[1],self.joints.get('floating_base_joint',.793)))
         return rpy_matrix((self.rpy[0],self.rpy[1],self.pose[2])).T@relative
 
+    def arm_with_recovery(self,target,orientation=None,joint_solution=None):
+        for recovery in range(3):
+            anchor = self.pose
+            try:
+                return self._move_arm(target,orientation,joint_solution=joint_solution)
+            except WorkspaceInterrupted:
+                if recovery == 2:
+                    raise RuntimeError('arm workspace recovery limit exceeded; authority retained')
+                phase = self.phase
+                self.event('wait_for_clearance',resume_phase=phase,recovery=recovery+1)
+                self.wait_workspace()
+                if (math.hypot(self.pose[0]-anchor[0],self.pose[1]-anchor[1]) > .04 or
+                        abs(angle(self.pose[2]-anchor[2])) > .10):
+                    raise RuntimeError('base moved during arm interruption; re-docking required')
+                self.event(phase,recovery=recovery+1,resumed=True)
+
     def move_arm(self,target,orientation=None):
         desired = np.asarray(target,dtype=float)
         correction = np.zeros(3)
-        recoveries = 0
         for attempt in range(3):
-            while True:
-                anchor = self.pose
-                try:
-                    measured = self._move_arm(desired+correction,orientation)
-                    break
-                except WorkspaceInterrupted:
-                    if recoveries >= 2:
-                        raise RuntimeError('arm workspace recovery limit exceeded; authority retained')
-                    recoveries += 1
-                    phase = self.phase
-                    self.event('wait_for_clearance',resume_phase=phase,recovery=recoveries)
-                    self.wait_workspace()
-                    if (math.hypot(self.pose[0]-anchor[0],self.pose[1]-anchor[1]) > .04 or
-                            abs(angle(self.pose[2]-anchor[2])) > .10):
-                        raise RuntimeError('base moved during arm interruption; re-docking required')
-                    self.event(phase,recovery=recoveries,resumed=True)
+            measured = self.arm_with_recovery(desired+correction,orientation)
             error = desired-measured
             distance = float(np.linalg.norm(error))
             self.event(self.phase,hand_error_m=distance,servo_iteration=attempt)
@@ -340,6 +445,17 @@ class TransportMission(Node):
             return now-clear_since >= dwell
         self.wait(ready,timeout,'manipulation workspace did not remain clear')
 
+    def move_to_carry(self,orientation=None):
+        if self.args.carry_posture == 'ik':
+            return self.move_arm(np.array((.36,-.20,.37)),orientation)
+        # Keep the locomotion actor inside its explicitly trained arm-posture
+        # distribution instead of selecting a new redundant IK branch each lift.
+        joints = dict(self.joints,**dict(zip(self.kin.names,PAYLOAD_V1_POSTURES[0])))
+        position,R,_,_ = self.kin.forward(joints)
+        measured = self.arm_with_recovery(position,R,joint_solution=joints)
+        if np.linalg.norm(measured-position) > .035:
+            raise RuntimeError('measured carry posture outside tolerance')
+
     def _move_arm(self,target,orientation=None,joint_solution=None):
         self.wait_workspace()
         if joint_solution is None:
@@ -349,7 +465,7 @@ class TransportMission(Node):
             solution,error = joint_solution,0.
         self.event(self.phase,hand_target_pelvis=np.asarray(target).tolist(),ik_error_m=error)
         if error > .012:
-            raise RuntimeError(f'hand target unreachable ({error:.3f} m)')
+            raise ReachUnreachable(f'hand target unreachable ({error:.3f} m)')
         # IK can outlast a people measurement. Never dispatch using the snapshot
         # that was fresh before the solve; revalidate after computation.
         if not self.workspace_clear():
@@ -395,50 +511,81 @@ class TransportMission(Node):
         self.event(self.phase,measured_hand_pelvis=measured.tolist(),hand_error_m=measured_error)
         return measured
 
+    def reach_box(self,identifier,forward,left,yaw):
+        # Reproject after each attempt: moving the arm shifts an unpinned base.
+        for correction in range(3):
+            self.wait(lambda: self.observe(identifier,20.) is not None,8.,'tabletop box observation expired')
+            box = np.array(self.observe(identifier,20.)['position'])
+            try:
+                self.move_arm(self.to_pelvis(box)+np.array((-.055,0.,0.)),np.eye(3))
+            except ReachUnreachable:
+                if correction == 2:
+                    raise
+                self.event('redock_pickup',recovery=correction+1)
+                self.dock((*(box[:2]-.43*forward+.15*left),yaw))
+                continue
+            # A stationary tabletop box can be occluded by the reaching hand.
+            # Retain its recent estimate, but never enlarge attachment tolerance.
+            self.wait(lambda: self.observe(identifier,20.) is not None,8.,'box observation expired at attachment')
+            box = np.array(self.observe(identifier,20.)['position'])
+            hand_distance = float(np.linalg.norm(self.kin.forward(self.joints)[0]-self.to_pelvis(box)))
+            self.event('attachment_check',hand_to_box_m=hand_distance,correction=correction)
+            if hand_distance <= .085:
+                return box
+        raise RuntimeError('measured hand outside magnetic attachment range')
+
     def run(self):
         self.wait(lambda: self.pose is not None and self.kin is not None and len(self.joints)>20,40.,'robot state unavailable')
         from dynamic_obstacle_benchmarks.source_contract import audit_onboard_graph
         self.wait(lambda: not audit_onboard_graph(self),30.,'onboard source audit failed')
+        snapshot = capture_parameters(self,lambda seconds:self.spin(seconds))
+        encoded = (json.dumps(snapshot,indent=2,allow_nan=False)+'\n').encode()
+        self.args.output.parent.mkdir(parents=True,exist_ok=True)
+        (self.args.output.parent/'effective_parameters.json').write_bytes(encoded)
+        self.event('runtime_parameters',required_complete=snapshot['required_complete'],
+                   sha256=hashlib.sha256(encoded).hexdigest(),
+                   incomplete_required_nodes=snapshot['incomplete_required_nodes'])
+        if not snapshot['required_complete']:
+            raise RuntimeError('required effective parameter snapshot incomplete')
+        if not snapshot['motion_parameter_agreement']['consistent']:
+            raise RuntimeError('planner/supervisor/policy motion parameter mismatch; see effective_parameters.json')
         self.spin(3.)
         for pair in self.args.pairs:
             identifier,destination = pair['object_id'],pair['destination_id']
+            # Observe the destination with an empty hand, before a carried cube
+            # can obscure it. This is measured scene memory, not a layout lookup;
+            # placement still requires a recent complete destination observation.
+            self.event('survey_destination',destination_id=destination)
+            destination_view = dict(self.discover(destination))
             item = self.discover(identifier)
             box = np.array(item['position'])
-            yaw = math.atan2(box[1]-self.pose[1],box[0]-self.pose[0])
+            yaw = item.get('approach_yaw',math.atan2(box[1]-self.pose[1],box[0]-self.pose[0]))
+            self.event('pickup_approach',source='observed_support_edge' if 'approach_yaw' in item else 'box_bearing',yaw=yaw)
             forward,left = np.array((math.cos(yaw),math.sin(yaw))),np.array((-math.sin(yaw),math.cos(yaw)))
             self.event('navigate_pickup',object_id=identifier)
             stage = box[:2]-1.05*forward+.15*left
             self.navigate((*stage,yaw))
+            # Complete the large arm/ownership transition at the staging
+            # distance. Precision docking then measures and corrects its base
+            # displacement before approaching the table with the hand raised.
+            self.event('prepare_pickup',object_id=identifier)
+            if self.rest_arm_positions is None:
+                self.rest_arm_positions = {name:self.joints[name] for name in self.kin.names}
+            self.service(self.authority,SetBool.Request(data=True))
+            self.move_to_carry(np.eye(3))
             self.event('dock_pickup')
             dock = box[:2]-.43*forward+.15*left
             self.dock((*dock,yaw))
             self.wait(lambda: self.observe(identifier,20.) is not None,8.,'no recent tabletop box observation')
-            self.rest_arm_positions = {name:self.joints[name] for name in self.kin.names}
-            self.service(self.authority,SetBool.Request(data=True))
             self.event('reach')
             box = np.array(self.observe(identifier,20.)['position'])
-            # Raise through the validated carrying workspace first. Reaching
-            # directly above a very close box folds the elbow/wrist to a much
-            # less stable posture before the actual grasp approach.
-            self.move_arm(np.array((.36,-.20,.37)),np.eye(3))
-            # Reproject after reaching: the unpinned base may settle as the
-            # arm's mass moves, so the old pelvis-relative target is stale.
-            for correction in range(3):
-                # The reaching hand can occlude a stationary tabletop box.
-                # Retain its last sensed odom-frame pose through the reach;
-                # attachment still requires the actual hand capture distance.
-                self.wait(lambda: self.observe(identifier,20.) is not None,8.,'tabletop box observation expired')
-                box = np.array(self.observe(identifier,20.)['position'])
-                self.move_arm(self.to_pelvis(box)+np.array((-.055,0.,0.)),np.eye(3))
-                self.wait(lambda: self.observe(identifier,20.) is not None,8.,'box observation expired at attachment')
-                box = np.array(self.observe(identifier,20.)['position'])
-                hand_distance = float(np.linalg.norm(self.kin.forward(self.joints)[0]-self.to_pelvis(box)))
-                self.event('attachment_check',hand_to_box_m=hand_distance,correction=correction)
-                if hand_distance <= .085:
-                    break
-            if hand_distance > .085:
-                raise RuntimeError('measured hand outside magnetic attachment range')
-            self.event('grasp')
+            box = self.reach_box(identifier,forward,left,yaw)
+            observation = self.observe(identifier,20.)
+            if observation is None:
+                raise RuntimeError('confirmed image observation expired before grasp')
+            self.event('grasp',object_id=identifier,perception_source='registered_rgbd',
+                       observed_position=observation['position'],observation_age_s=self.seconds()-observation['observed_stamp'],
+                       observation_count=observation.get('observation_count',0))
             grasp_stamp = self.seconds()
             # Establish a conservative payload pose before a request can attach
             # the box, including when its acknowledgement is subsequently lost.
@@ -447,7 +594,7 @@ class TransportMission(Node):
             self.grasp_R = R
             self.service(self.grasp,GraspObject.Request(arm='right',object_id=identifier),attachment_after='held')
             self.event('lift')
-            self.move_arm(np.array((.36,-.20,.37)),R)
+            self.move_to_carry(R)
             self.wait(lambda: self.observe(identifier) is not None and
                       self.observe(identifier)['observed_stamp'] > grasp_stamp and
                       self.observe(identifier)['position'][2] > box[2]+.08,
@@ -455,8 +602,10 @@ class TransportMission(Node):
             self.event('retreat_pickup')
             # Leave enough room for loaded-turn drift before searching; a
             # near-table scan can put Nav2's start inside its inflation region.
-            self.dock((self.pose[0]-1.1*forward[0],self.pose[1]-1.1*forward[1],yaw))
-            pad = self.discover(destination)
+            self.retreat(1.1,yaw)
+            pad = self.observe(destination,60.) or destination_view
+            self.event('remembered_destination',destination_id=destination,
+                       observation_age_s=self.seconds()-pad['observed_stamp'])
             point = np.array(pad['position'])
             bearing = math.atan2(point[1]-self.pose[1],point[0]-self.pose[0])
             yaw = min((pad['yaw']+k*math.pi/2 for k in range(4)),key=lambda value:abs(angle(value-bearing)))
@@ -502,24 +651,17 @@ class TransportMission(Node):
                 hand_target = self.to_pelvis(pad+np.array((0.,0.,.075)))-self.grasp_R@self.offset
             self.event('lower')
             self.move_arm(hand_target,self.grasp_R)
-            self.event('release')
-            self.service(self.release,Trigger.Request(),attachment_after='empty')
-            release_stamp = self.seconds()
-            self.event('verify_place',object_id=identifier,destination_id=destination,release_ack_stamp=release_stamp)
-            self.spin(2.)
-            self.wait(lambda: self.placement_observed(identifier,pad,release_stamp),
-                      8.,'camera did not verify post-release placement')
-            self.event('retract')
-            self.move_arm(np.array((.36,-.20,.37)),self.grasp_R)
-            self.dock((self.pose[0]-.5*forward[0],self.pose[1]-.5*forward[1],yaw))
-            self.event('restore_arm')
-            rest = dict(self.joints,**self.rest_arm_positions)
-            position,orientation,_,_ = self.kin.forward(rest)
-            measured = self._move_arm(position,orientation,joint_solution=rest)
-            if np.linalg.norm(measured-position) > .035:
-                raise RuntimeError('arm did not return to its measured rest pose')
-            self.service(self.authority,SetBool.Request(data=False))
+            self.release_and_verify(identifier,destination,pad,forward,yaw)
             self.event('delivered',object_id=identifier,destination_id=destination)
+        # Keep the already-retracted arm under continuous ownership between
+        # deliveries, avoiding an unnecessary down/up and gain handover cycle.
+        self.event('restore_arm')
+        rest = dict(self.joints,**self.rest_arm_positions)
+        position,orientation,_,_ = self.kin.forward(rest)
+        measured = self.arm_with_recovery(position,orientation,joint_solution=rest)
+        if np.linalg.norm(measured-position) > .035:
+            raise RuntimeError('arm did not return to its measured rest pose')
+        self.service(self.authority,SetBool.Request(data=False))
         self.event('complete')
 
 
@@ -535,6 +677,7 @@ class TransportEvaluator(Node):
         self.shapes = {}
         self.drops = set()
         self.objects,self.initial,self.history = {},{},{}
+        self.object_timestamp_sources = set()
         self.contacts = 0
         self.minimum_clearance = math.inf
         required = ['robot',*[key for pair in pairs for key in (pair['object_id'],pair['destination_id'])]]
@@ -570,7 +713,18 @@ class TransportEvaluator(Node):
             if not np.all(np.isfinite(position)):
                 self.health.fail(f'{identity}: nonfinite pose')
                 continue
-            self.health.observe(identity)
+            native_stamp = getattr(detection,'id','').startswith('native_acquisition_v2:')
+            sources = getattr(self,'object_timestamp_sources',set())
+            sources.add('native_acquisition_v2' if native_stamp else 'legacy_receipt')
+            self.object_timestamp_sources = sources
+            stamp = detection.header.stamp.sec+detection.header.stamp.nanosec*1e-9 if native_stamp else None
+            if native_stamp:
+                age = self.get_clock().now().nanoseconds*1e-9-stamp
+                if not 0.<=age<=self.health.max_gap:
+                    self.health.fail(f'{identity}: native acquisition age invalid')
+                    continue
+            if not self.health.observe(identity,stamp):
+                continue
             self.objects[identity] = position
             q = detection.bbox.center.orientation
             x,y,z,w = q.x,q.y,q.z,q.w
@@ -630,6 +784,7 @@ class TransportEvaluator(Node):
                 passed = bool(lift>.08 and travel>.8 and inside and abs(p[2]-q[2]-.055)<.035 and stable)
             deliveries.append(dict(**pair,verified=passed,lift_m=lift,travel_m=travel))
         health = self.health.report()
+        health['object_timestamp_scope'] = sorted(getattr(self,'object_timestamp_sources',{'legacy_receipt'}))
         healthy = health['valid'] and now-self.robot_updated < 1. and (self.people_requested == 0 or self.aligned_samples >= 10)
         required = {pair[key] for pair in self.pairs for key in ('object_id','destination_id')}
         healthy = healthy and all(self.history.get(key) and now-self.history[key][-1][0] < 1. for key in required)
@@ -646,13 +801,15 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--duration',type=float,default=420.)
     parser.add_argument('--people',type=int,default=0)
+    parser.add_argument('--carry-posture',choices=('ik','payload_v1'),default='ik')
+    parser.add_argument('--camera-pitch-deg',type=float,default=0.)
     args = parser.parse_args()
     args.pairs = json.loads(args.pairs.read_text())['pairs']
     rclpy.init()
     # Dedicated executors avoid high-rate IMU/image work starving the mission's
     # odometry and workspace callbacks in a shared thread-pool queue.
     executor = SingleThreadedExecutor()
-    perception = TransportPerception()
+    perception = TransportPerception(args.camera_pitch_deg)
     evaluator = TransportEvaluator(args.pairs,args.people)
     mission = TransportMission(args,executor)
     executor.add_node(mission)
@@ -684,6 +841,7 @@ def main():
                       final_sensed_pose=mission.pose,pose_age_s=mission.seconds()-getattr(mission,'pose_stamp',0.),
                        grasp_model='capture_radius_weld',base_pinning=False,perception='registered_rgbd',
                        attachment_state=mission.attachment_state,object_may_be_held=mission.object_may_be_held)
+        result['carry_posture'] = args.carry_posture
         result['success'] = result['success'] and success
         args.output.parent.mkdir(parents=True,exist_ok=True)
         args.output.write_text(json.dumps(result,indent=2)+'\n')

@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from unitree_g1_mujoco_bridge.arm_kinematics import ArmKinematics
-from unitree_g1_mujoco_bridge.transport_perception import colour_detections
+from unitree_g1_mujoco_bridge.transport_perception import colour_detections,support_approach
 
 
 def kinematics():
@@ -45,3 +45,28 @@ def test_rgbd_box_projection_and_below_table_rejection():
     assert detections[0]['id'] == 'box_red'
     np.testing.assert_allclose(detections[0]['position'], (1., 0., 1.055), atol=1e-6)
     assert not colour_detections(rgb, depth, intrinsics, np.array((0., 0., .6)), optical)
+
+
+def test_trained_carry_posture_is_within_limits_and_lifts_fixture_hand():
+    from unitree_g1_mujoco_bridge.payload_postures import PAYLOAD_V1_POSTURES
+    kin = kinematics()
+    kin.tool_offset = np.array((.12,.01,0.))
+    positions = np.array(PAYLOAD_V1_POSTURES[0])
+    assert np.all(positions > kin.limits[:,0])
+    assert np.all(positions < kin.limits[:,1])
+    hand = kin.forward(dict(zip(kin.names,positions)))[0]
+    assert .30 < hand[0] < .45 and -.3 < hand[1] < -.1
+    assert hand[2] > .32
+
+
+def test_pickup_approach_uses_measured_support_edge_under_rotation():
+    x,y = np.meshgrid(np.linspace(-.55,.55,20),np.linspace(-.5,.5,20))
+    points = np.column_stack((x.ravel(),y.ravel(),np.ones(x.size)*.95))
+    box = np.array((-.47,0.,1.01))
+    for yaw in (0.,.4,1.2):
+        R = np.array(((np.cos(yaw),-np.sin(yaw),0.),(np.sin(yaw),np.cos(yaw),0.),(0.,0.,1.)))
+        observed = support_approach(points@R.T,box@R.T)
+        assert observed is not None
+        assert abs(np.arctan2(np.sin(observed-yaw),np.cos(observed-yaw)))<.03
+    assert support_approach(points,np.array((2.,0.,1.01))) is None
+    assert support_approach(points,np.array((0.,0.,1.01))) is None

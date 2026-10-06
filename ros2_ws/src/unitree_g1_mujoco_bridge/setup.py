@@ -44,6 +44,7 @@ setup(
             "human_aware_run_logger = unitree_g1_mujoco_bridge.human_aware_run_logger:main",
             "g1_arm_command_compositor = unitree_g1_mujoco_bridge.arm_command_compositor:main",
             "g1_sim_manipulation_io = unitree_g1_mujoco_bridge.sim_manipulation_io:main",
+            "brainco_stark_adapter = unitree_g1_mujoco_bridge.brainco_stark_adapter:main",
         ],
     },
 )

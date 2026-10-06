@@ -2,7 +2,16 @@
 import math
 
 
-def forward_reference(local_x, local_y, speed, max_yaw=.35, max_clockwise=None):
+def loaded_turn_reference(error,limit=.6):
+    """Taper ordinary loaded turns before arrival; emergency commands stay separate."""
+    if not math.isfinite(error) or abs(error)<=.12:
+        return 0.
+    # Native held-arm probes turn at +/- .35; the former .15 floor can
+    # equilibrate below the gait's response region and block all translation.
+    return math.copysign(min(limit,max(.35,1.2*abs(error))),error)
+
+
+def forward_reference(local_x, local_y, speed, max_yaw=.35, max_clockwise=None,smooth_loaded=False):
     """Turn toward route lookahead, then walk forward without sustained strafing.
 
     A 20 degree alignment gate avoids traversing corners while facing across
@@ -31,5 +40,10 @@ def forward_reference(local_x, local_y, speed, max_yaw=.35, max_clockwise=None):
         else:
             angular = min(max_yaw, .15 + 1.2*heading)
     alignment = max(0., math.cos(heading))
+    if smooth_loaded:
+        limit = min(.6,max_yaw if heading>=0. else (max_clockwise or max_yaw))
+        angular = loaded_turn_reference(heading,limit)
+        if abs(heading)<math.pi/9:
+            angular = max(-.35,min(.35,angular))
     forward = max(0., speed)*alignment*alignment if abs(heading) < math.pi/9 else 0.
     return forward, 0., angular

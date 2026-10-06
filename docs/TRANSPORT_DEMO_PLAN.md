@@ -22,6 +22,11 @@ promotion gates. The dated checkpoints and experiment ledger below are retained
 as historical evidence; their older next-step statements are superseded by the
 active roadmap.
 
+The [gap-aligned P0–P7 research programme](RESEARCH_PROGRAMME.md) specifies how
+the engineering work can support distinct scientific studies and candidate
+papers. Use its protocol, comparison and claim gates alongside the operational
+milestones; this document preserves the earlier transport experiment history.
+
 ## End-state demonstration
 
 The G1 repeatedly discovers a box on a table, selects its matching empty marked

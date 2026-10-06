@@ -17,6 +17,7 @@ SKIP_BUILD="0"
 SIM_STARTUP_SECONDS="28"
 RUN_RVIZ="1"
 RECORD_ROSBAG="0"
+CAPTURE_PARAMETERS="0"
 REQUIRE_AVOIDANCE="0"
 VISUAL_SESSION="0"
 MINIMUM_SCORE="70"
@@ -45,6 +46,7 @@ Options:
   --skip-build             Reuse the existing verification workspace build
   --no-rviz                Do not launch RViz with the simulation
   --record-rosbag          Record diagnostic ROS topics during the benchmark
+  --capture-parameters    Require a resolved onboard motion-parameter snapshot before the trial
   --startup-seconds N      Maximum simulation readiness wait (default: 28)
   --minimum-score N        Validation threshold (default: 70)
   --require-avoidance      Require prolonged moving-person yield and resume evidence
@@ -71,6 +73,7 @@ while [ "$#" -gt 0 ]; do
     --skip-build) SKIP_BUILD="1"; shift ;;
     --no-rviz) RUN_RVIZ="0"; shift ;;
     --record-rosbag) RECORD_ROSBAG="1"; EXTRA_ARGS+=("--record-rosbag"); shift ;;
+    --capture-parameters) CAPTURE_PARAMETERS="1"; shift ;;
     --startup-seconds) SIM_STARTUP_SECONDS="$2"; shift 2 ;;
     --minimum-score) MINIMUM_SCORE="$2"; shift 2 ;;
     --require-avoidance) REQUIRE_AVOIDANCE="1"; shift ;;
@@ -224,6 +227,12 @@ if [ "${START_SIM}" = "1" ]; then
       >"${HOST_ROSBAG_LOG}" 2>&1 &
     BAG_PID="$!"
   fi
+fi
+
+if [ "${CAPTURE_PARAMETERS}" = "1" ] && [ "${BACKEND}" = "mujoco" ]; then
+  docker compose run --rm -e COLCON_INSTALL_BASE="${CONTAINER_INSTALL_BASE}" unitree-g1-sim bash -lc \
+    'source /opt/ros/${ROS_DISTRO:-humble}/setup.bash; source "${COLCON_INSTALL_BASE}/setup.bash"; exec python3 -m unitree_g1_mujoco_bridge.runtime_parameters --scope navigation --output "$1"' \
+    bash "${CONTAINER_STEM}_parameters.json"
 fi
 
 {

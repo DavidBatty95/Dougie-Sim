@@ -1,8 +1,9 @@
 from types import SimpleNamespace as S
+import pytest
 
 from dynamic_obstacle_benchmarks.benchmark_runner import BenchmarkRosNode
 from dynamic_obstacle_benchmarks.observed_space import observed_free
-from dynamic_obstacle_benchmarks.source_contract import NAVIGATION_NODES, REQUIRED_FEEDBACK, audit_onboard_graph
+from dynamic_obstacle_benchmarks.source_contract import CONTROL_OWNERS,NAVIGATION_NODES, REQUIRED_FEEDBACK, audit_onboard_graph
 
 
 class Graph:
@@ -18,6 +19,8 @@ class Graph:
         return [(topic,[]) for topic in REQUIRED_FEEDBACK.get(name,set())] + [("/onboard/lidar", ["sensor_msgs/msg/PointCloud2"])]
 
     def get_publishers_info_by_topic(self, topic):
+        if topic in CONTROL_OWNERS:
+            return [S(node_name=CONTROL_OWNERS[topic])]
         if topic == "/map":
             return [S(node_name="slam_toolbox")]
         return [S(node_name=self.odom_owner)] if topic == "/odom" else []
@@ -50,6 +53,17 @@ def test_runtime_boundary_rejects_simulator_objects_on_perception_topic():
     original = graph.get_publishers_info_by_topic
     graph.get_publishers_info_by_topic = lambda topic: [S(node_name='g1_sim_manipulation_io')] if topic == '/objects' else original(topic)
     assert any('object truth' in error for error in audit_onboard_graph(graph))
+
+
+@pytest.mark.parametrize('topic',list(CONTROL_OWNERS))
+@pytest.mark.parametrize('mode',['missing','duplicate','foreign'])
+def test_command_channels_require_exactly_one_expected_writer(topic,mode):
+    graph = Graph()
+    original = graph.get_publishers_info_by_topic
+    owners = ([] if mode=='missing' else
+              [S(node_name=CONTROL_OWNERS[topic])]*2 if mode=='duplicate' else [S(node_name='foreign_writer')])
+    graph.get_publishers_info_by_topic = lambda name: owners if name==topic else original(name)
+    assert any(topic+' command owners' in error for error in audit_onboard_graph(graph))
 
 
 def test_goal_people_are_invariant_to_unseen_simulator_people():

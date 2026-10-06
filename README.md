@@ -27,12 +27,13 @@ collision-free navigation is not yet reliable. Published datasets include
 collisions, incomplete goals and invalid attempts. Historical oracle results
 and unscored visual sessions are labelled separately.
 
-**Project update — 5 October 2026:** the published development baseline is
-[`3a7ceac`](https://github.com/DavidBatty95/Geoff-Sim/commit/3a7ceac).
-The latest retained full navigation matrix, v84, passed **10/18** strict trials;
-the isolated payload fixture has **two consecutive complete runs**. The next
-priorities are reproducibility, mission-state correctness and reliable onboard
-navigation. [Read the status and progression](docs/PROJECT_STATUS.md) ·
+**Project update — 6 October 2026:** the hardware-facing fidelity pass adds
+canonical G1 topics with valid command CRCs, measured sensor-site IMUs, portable
+point-cloud decoding and an articulated BrainCo interface probe. Full CI passes;
+the latest unchanged-code zero-person **two-cube/four-table** pair completed both
+deliveries. The latest retained full navigation matrix, v84, remains **10/18**;
+crowd acceptance is still open. [Hardware fidelity and measured limits](docs/HARDWARE_FIDELITY.md) ·
+[Read the status and progression](docs/PROJECT_STATUS.md) ·
 [Follow the forward plan](docs/PROJECT_PLAN.md).
 
 ## Explore Geoff-Sim
@@ -113,10 +114,22 @@ The convenient daily entry point is `./geoff`:
 ./geoff results
 ```
 
-The experimental magnetic transport demo now has two full native passes in its
-zero-person fixture. It uses physically positioned arms and a locally trained
-payload policy. See [training, results and the single-command launcher](docs/PAYLOAD_POLICY_TRAINING.md)
-for the checkpoint and tested command; this is separate from crowd-navigation acceptance.
+The experimental magnetic transport demo has repeated complete native dual-cube
+deliveries with a locally trained, native-inertial/delay-aware payload policy.
+See [the current checkpoint, retained failures and command](docs/NATIVE_PAYLOAD_CONTRACT.md).
+Checkpoints are local training artifacts; this is separate from crowd-navigation
+and contact-only grasp acceptance.
+
+To inspect the articulated-hand hardware-facing profile after building:
+
+```bash
+python3 scripts/run_hardware_parity_probe.py \
+  --output vendor/mjlab/logs/my_hardware_probe/interfaces.json --duration 20
+```
+
+This checks live message contracts and measured sensor delivery. The
+[fidelity guide](docs/HARDWARE_FIDELITY.md) lists the standard topics, BrainCo
+Stark adapter, model differences and reduced sensor bandwidth.
 
 The installer initializes pinned sources, applies the reviewed [source patches](patches/README.md),
 builds dependencies and generates pedestrian animation/world assets. The official
@@ -275,6 +288,11 @@ completion criteria and an update process for every stage. The
 [technical roadmap](docs/SOCIAL_LOCOMANIPULATION_ROADMAP.md) retains the detailed
 implementation ledger. Dates are recorded for completed work; future stages are
 ordered by evidence requirements rather than promised delivery dates.
+
+The [P0–P7 research programme](docs/RESEARCH_PROGRAMME.md) maps the five literature
+gaps to controlled experiments, baselines and candidate papers. It starts with
+calibrated observation-to-execution planning and causal diagnosis, then develops
+distinct coordination, articulated-risk and human-evaluation studies where justified.
 
 </details>
 

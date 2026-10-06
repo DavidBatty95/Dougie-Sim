@@ -14,19 +14,27 @@ from avoidance_worlds import ROOT,SCENES
 from demo_suite import case_catalog
 from transport_worlds import TRANSPORT_WORLDS,INITIAL_KEYFRAME,generate
 from transport_evidence import capture_source
+from analyze_response_trace import write_report
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--world',choices=TRANSPORT_WORLDS,default='transport_lab')
+    parser.add_argument('--world',choices=TRANSPORT_WORLDS,default='transport_dual')
     parser.add_argument('--people',type=int,choices=range(9),default=0)
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--duration',type=float,default=420.)
     parser.add_argument('--headless',action='store_true',help='Disable RViz; the native MuJoCo viewer may still open')
     parser.add_argument('--no-rviz',action='store_true')
     parser.add_argument('--fast-start',action='store_true')
+    parser.add_argument('--camera-width',type=int,default=192,
+                        help='Native raycast image width; 192 keeps dual-scene acquisition within the confirmation interval')
+    parser.add_argument('--camera-height',type=int,default=108)
+    parser.add_argument('--carry-posture',choices=('ik','payload_v1'),default='ik',
+                        help='Explicit cycle-01 trained posture or historical Cartesian IK carry')
     parser.add_argument('--policy',type=Path,help='Repository-local 480/29 ONNX checkpoint; uses measured arm observations')
     args = parser.parse_args()
+    if args.camera_width<=0 or args.camera_height<=0:
+        parser.error('camera dimensions must be positive')
     if args.policy is not None:
         args.policy = args.policy.resolve()
         if not args.policy.is_file() or not args.policy.is_relative_to(ROOT):
@@ -53,7 +61,8 @@ def main():
         bridge_arm_gains_require_authority='true',
         external_arm_observation_mask='true',
         run_rviz='false' if args.headless or args.no_rviz else 'true',publish_camera='true',
-        camera_width='384',camera_height='216',camera_rate_hz='2.0',
+        camera_width=str(args.camera_width),camera_height=str(args.camera_height),camera_rate_hz='2.0',
+        camera_mount_pitch_deg=str(TRANSPORT_WORLDS[args.world].get('camera_pitch_deg',0.)),
         startup_current_pose_hold_time='0.0',startup_blend_time='0.0',startup_hold_time='0.0',
         startup_max_recovery_time='0.0',policy_action_ramp_time='0.0',mujoco_reset_on_controller_start='false',
         run_human_aware_run_logger='true',human_aware_run_log_path=container_run+'/trace.jsonl')
@@ -68,7 +77,9 @@ def main():
         sources.append(args.policy)
     hashes = {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}
     (run/'manifest.json').write_text(json.dumps(dict(world=args.world,people=args.people,seed=args.seed,
-        duration_s=args.duration,build_reused=args.fast_start,settings=settings,source_sha256=hashes),indent=2)+'\n')
+        duration_s=args.duration,build_reused=args.fast_start,carry_posture=args.carry_posture,
+        camera_pitch_deg=TRANSPORT_WORLDS[args.world].get('camera_pitch_deg',0.),
+        settings=settings,source_sha256=hashes),indent=2)+'\n')
     capture_source(ROOT,run,args.policy)
     process = None
     try:
@@ -81,7 +92,9 @@ def main():
                      f'python3 /workspace/scripts/transport_evidence.py {container_run}/runtime_provenance.json && '
                      'exec python3 -m unitree_g1_mujoco_bridge.transport_demo "$@"')
             result = subprocess.run(['docker','compose','run','--rm','--no-deps','--name',name+'-mission','unitree-g1-sim','bash','-lc',shell,'bash',
-                '--pairs',pairs,'--output',container_run+'/result.json','--duration',str(args.duration),'--people',str(args.people)],cwd=ROOT)
+                '--pairs',pairs,'--output',container_run+'/result.json','--duration',str(args.duration),'--people',str(args.people),
+                '--carry-posture',args.carry_posture,
+                '--camera-pitch-deg',str(TRANSPORT_WORLDS[args.world].get('camera_pitch_deg',0.))],cwd=ROOT)
             print(f'Transport artifacts: {run}',flush=True)
             return result.returncode
     finally:
@@ -96,6 +109,8 @@ def main():
                 os.killpg(process.pid,signal.SIGKILL)
             subprocess.run(['docker','rm','-f',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             subprocess.run(['docker','rm','-f',name+'-mission'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            if (run/'trace.jsonl').is_file():
+                write_report(run/'trace.jsonl',run/'response_diagnostics.json')
 
 
 if __name__=='__main__':

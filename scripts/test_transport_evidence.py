@@ -1,8 +1,7 @@
 import json
-from pathlib import Path
 import zipfile
 
-from transport_evidence import capture_source,digest,inventory
+from transport_evidence import capture_source,compare_python_sources,digest,inventory
 
 
 def test_inventory_excludes_results_secrets_and_outside_symlinks(tmp_path):
@@ -32,3 +31,15 @@ def test_snapshot_retains_dirty_source_and_hashes_policy_without_archiving_it(tm
         assert 'candidate.onnx' not in archive.namelist()
     assert result['source_sha256']['candidate.onnx'] == digest(policy)
     assert json.loads((run/'source_provenance.json').read_text()) == result
+
+
+def test_stale_missing_and_extra_installed_modules_are_detected():
+    source = {'ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/mission.py':'new',
+              'ros2_ws/src/unitree_g1_mujoco_bridge/unitree_g1_mujoco_bridge/health.py':'health'}
+    packages = {'unitree_g1_mujoco_bridge':{'files':{'mission.py':'old','obsolete.py':'old'}},
+                'dynamic_obstacle_benchmarks':{'files':{}}}
+    report = compare_python_sources(source,packages)
+    assert not report['matched']
+    assert len(report['mismatches']) == 3
+    packages['unitree_g1_mujoco_bridge']['files'] = {'mission.py':'new','health.py':'health'}
+    assert compare_python_sources(source,packages)['matched']

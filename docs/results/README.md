@@ -31,7 +31,27 @@ described by the [repository guide](../REPOSITORY_GUIDE.md#where-results-go).
 | [avoidance_v84_matrix.json](avoidance_v84_matrix.json) | Later complete matrix: 10/18 strict passes, six contacts |
 | [avoidance_v85_alignment_audit.json](avoidance_v85_alignment_audit.json) | Targeted evaluation-alignment diagnostic, not a complete release matrix |
 | [payload_training_cycle_01.json](payload_training_cycle_01.json) | Payload-training evaluation and native candidate attempts |
+| [hardware_fidelity_20261006.json](hardware_fidelity_20261006.json) | Nominal model and live articulated-hand interface audits; no physical calibration |
+| [avoidance_hardware_fidelity_smoke_20261006.json](avoidance_hardware_fidelity_smoke_20261006.json) | Updated-interface native one-person smoke: 3/3 goals, zero contacts, strict pass |
+| [transport_hardware_fidelity_20261006.json](transport_hardware_fidelity_20261006.json) | Two unchanged-code dual-delivery passes following interface/sensor changes |
+| [transport_native_contract_20261006.json](transport_native_contract_20261006.json) | Native-inertial/delay development attempts and earlier dual-delivery passes |
+| [transport_acquisition_approach_20261006.json](transport_acquisition_approach_20261006.json) | Acquisition-stamp/viewpoint/support-edge follow-up, including failures |
 | [visual_goal_handoffs.json](visual_goal_handoffs.json) | Unscored goal-cycling observations |
+| [avoidance_r1_baseline_20261005.json](avoidance_r1_baseline_20261005.json) | Instrumented synchronized courtyard baseline; failed trial retained |
+| [avoidance_r3_profile_20261005.json](avoidance_r3_profile_20261005.json) | Scoring-phase profiling pilot; failed trial retained |
+| [avoidance_r3_bounded_20261005.json](avoidance_r3_bounded_20261005.json) | Bounded priority pilot: one of two strict passes |
+| [avoidance_r2_stop_generation_20261005.json](avoidance_r2_stop_generation_20261005.json) | Stop-generation follow-up: both crowd cases failed |
+| [transport_runtime_capture_20261005.json](transport_runtime_capture_20261005.json) | Two deliberately short startup/deadline diagnostics, not delivery acceptance |
+| [avoidance_r2_atomic_20261005.json](avoidance_r2_atomic_20261005.json) | Atomic planner-command handoff pilot; seed-44 failure retained |
+| [avoidance_r2_alignment_20261005.json](avoidance_r2_alignment_20261005.json) | Checked alignment-priority pilot; one of two strict passes |
+| [avoidance_r3_supervisor_timing_20261005.json](avoidance_r3_supervisor_timing_20261005.json) | Supervisor timing baseline; failed crowd case |
+| [avoidance_r3_prepared_20261005.json](avoidance_r3_prepared_20261005.json) | Immutable prediction preparation; one of two strict passes |
+| [avoidance_r3_batched_20261005.json](avoidance_r3_batched_20261005.json) | Batched static checks; both crowd cases failed |
+| [avoidance_r2_protocol_smoke_20261005.json](avoidance_r2_protocol_smoke_20261005.json) | One-person, one-goal native protocol smoke passed |
+| [avoidance_r2_protocol_handoffs_20261005.json](avoidance_r2_protocol_handoffs_20261005.json) | Full-pose envelope: one person, three goals, strict pass; includes lineage summary |
+| [avoidance_r3_async20_20261005.json](avoidance_r3_async20_20261005.json) | Asynchronous search at 20 Hz: both crowd cases failed |
+| [avoidance_r3_async50_20261005.json](avoidance_r3_async50_20261005.json) | 50 Hz candidate: no strict passes; seed 42 completed without contact but below score threshold |
+| [avoidance_r3_async_handoffs_20261005.json](avoidance_r3_async_handoffs_20261005.json) | Idle-drain follow-up: one person, three goals, strict pass |
 
 Version numbers identify development datasets, not software releases or rankings.
 Files named `pilot`, `validation`, `smoke` and `matrix` may contain different

@@ -20,6 +20,12 @@ REQUIRED_FEEDBACK = {
     "human_aware_motion_planner": {"/odom", "/g1/policy_cmd_vel"},
     "human_collision_avoidance": {"/odom", "/g1/policy_cmd_vel"},
 }
+CONTROL_OWNERS = {
+    '/cmd_vel_human_aware':'human_aware_motion_planner',
+    '/human_avoidance_command_sequence':'human_aware_motion_planner',
+    '/cmd_vel_safe':'human_collision_avoidance',
+    '/g1/policy_cmd_vel':'g1_policy_cmd_vel_controller',
+}
 
 
 def audit_onboard_graph(node):
@@ -47,4 +53,8 @@ def audit_onboard_graph(node):
         errors.append("scene-derived map publisher present")
     if any(endpoint.node_name == "g1_sim_manipulation_io" for endpoint in node.get_publishers_info_by_topic("/objects")):
         errors.append("simulator object truth exposed as onboard /objects perception")
+    for topic,owner in CONTROL_OWNERS.items():
+        endpoints = node.get_publishers_info_by_topic(topic)
+        if len(endpoints) != 1 or endpoints[0].node_name != owner:
+            errors.append(f'unexpected {topic} command owners: '+','.join(endpoint.node_name for endpoint in endpoints))
     return errors

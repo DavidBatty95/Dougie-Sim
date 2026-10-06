@@ -16,7 +16,8 @@
 </p>
 <!-- geoff-nav:end -->
 
-Related: [Technical implementation roadmap](SOCIAL_LOCOMANIPULATION_ROADMAP.md).
+Related: [Technical implementation roadmap](SOCIAL_LOCOMANIPULATION_ROADMAP.md) ·
+[Gap-aligned research and publication programme](RESEARCH_PROGRAMME.md).
 
 **Planning snapshot: 5 October 2026.** The target is repeated, sensor-driven
 table-to-table delivery by a Unitree G1 with BrainCo hands in a declared indoor
@@ -27,6 +28,14 @@ This page organizes the active technical roadmap into reviewable work packages.
 It does not assign unconfirmed owners or promise dates. An item is complete only
 when its stated evidence exists; source implementation, unit coverage, native
 integration and acceptance are separate milestones.
+
+**Research extension — 6 October 2026:** the [P0–P7 programme](RESEARCH_PROGRAMME.md) translates the
+[five research gaps](literature_review/README.md#research-gaps-and-intended-contributions)
+into hypotheses, methods, baselines, controlled experiments and paper-release
+criteria. S0–S7 below qualify the engineering platform; P0–P7 establish the
+scientific evidence and novelty boundary. Research studies can proceed as soon
+as their measurements are trustworthy, while operational promotion retains its
+existing acceptance rules.
 
 ![Eight stages from reproducible baseline to physical deployment](media/project-roadmap.svg)
 
@@ -206,7 +215,69 @@ behavior criteria, with zero prohibited contacts, falls or drops and valid evalu
 **Exit evidence:** the relevant acceptance suite passes on the physical system.
 Simulation or interface compatibility alone does not satisfy this gate.
 
+## Research phases for paper-level contributions
+
+![Eight research phases linking the identified gaps to controlled experiments and reproducible papers](media/research-programme.svg)
+
+The [detailed research programme](RESEARCH_PROGRAMME.md) is the specification for
+these additional phases. **All begin as planned.** Current source changes,
+pilots and regression checks are inputs to the programme, not completed research
+contributions. A stage can produce a valuable negative result; a positive claim
+requires its own evidence and comparison against the nearest prior work.
+
+| Phase | Research gap | Required output | Paper role |
+| --- | --- | --- | --- |
+| [P0 — Protocol and novelty audit](RESEARCH_PROGRAMME.md#p0--protocol-and-novelty-audit) | G1–G5 | Nearest-prior-work matrix, exact proposed difference, frozen study and analysis protocol | Establish a defensible question before collecting final evidence |
+| [P1 — Response and uncertainty identification](RESEARCH_PROGRAMME.md#p1--response-and-uncertainty-identification) | G1 | Held-out response models, stopping/error distributions, uncertainty coverage and runtime | Model foundation for the first methods paper |
+| [P2 — Causal oracle-to-onboard analysis](RESEARCH_PROGRAMME.md#p2--causal-oracle-to-onboard-analysis) | G2 | Matched source/timing interventions, interaction effects and a failure taxonomy | Attribution for the first paper; independent empirical paper only if distinct |
+| [P3 — Age-aware response-calibrated planning](RESEARCH_PROGRAMME.md#p3--age-aware-response-calibrated-planning) | G1, informed by G2 | Explicit method, matched external baselines, fixed-margin controls and held-out mission comparisons | **Paper A: first priority** |
+| [P4 — Safety–liveness coordination](RESEARCH_PROGRAMME.md#p4--safety-liveness-coordination) | G3 | A new coordination rule tested independently of sensing/response improvements | Paper B if it establishes an additional mechanism; otherwise an A ablation |
+| [P5 — Articulated and payload-aware risk](RESEARCH_PROGRAMME.md#p5--articulated-and-payload-aware-risk) | G4 | Reference contact/clearance data and a measured abstraction/fidelity–latency result | Paper C: body/load-aware decision-making |
+| [P6 — Contextual human evaluation](RESEARCH_PROGRAMME.md#p6--contextual-human-evaluation) | G5 | Controlled participant evidence and its relationship to objective robot behavior | Paper D: task-specific human validity |
+| [P7 — Replication and paper release](RESEARCH_PROGRAMME.md#p7--replication-and-paper-release) | Every candidate | Repeatable analysis, claim-to-artifact audit, limitations and submission package | Apply separately to each paper |
+
+### Recommended sequence
+
+```text
+S0/S1 measurement readiness → P0 → P1 + P2 → P3 → P7 → first-paper candidate
+                                             ├→ P4 → P7 → coordination extension
+                                             └→ P5 → P7 → articulated/payload extension
+Qualified selected behaviors + human-study protocol → P6 → P7 → HRI extension
+```
+
+P7 does not wait for all extensions. P1/P2 can investigate failure-prone methods
+in simulation with valid measurement; a comparative result does not waive S2's
+all-pass/held-out promotion requirements. Physical human studies and integrated
+crowd transport still require the relevant S-stage qualification.
+
+The programme defines [shared experimental contracts](RESEARCH_PROGRAMME.md#shared-experimental-contract),
+[candidate paper boundaries](RESEARCH_PROGRAMME.md#candidate-paper-portfolio)
+and a [phase/claim ledger](RESEARCH_PROGRAMME.md#phase-tracking-and-claim-ledger).
+Use them to distinguish a completed experiment from a supported novelty claim.
+
 ## Next review cycle
+
+### Local implementation checkpoint — 5 October 2026
+
+The [asynchronous escape checkpoint](ASYNC_ESCAPE_SUPERVISOR.md) implements
+R3's worker/control-path split with immutable inputs, bounded result age, epoch
+fencing and fresh revalidation. The onboard profile is now a configured 50 Hz
+candidate; scheduling tails and failed crowd trials keep real-time and S2/S6
+acceptance open. Full upstream command leases and applied-motor lineage remain R2 work.
+
+The [command-handoff follow-up](COMMAND_HANDOFF_AND_SUPERVISOR.md) adds atomic
+planner requests, full-pose goal fences, command lineage and startup writer
+checks, plus prediction preparation/static-query optimizations. One-person native
+handoffs pass, but four-person cases still fail. R2's upstream lease arbiter
+remains open; the async checkpoint above addresses this earlier search-split backlog.
+
+[Phase evidence report](PHASE_PROGRESS_20261005.md): S0.2 now captures resolved ROS
+parameters and checks shared motion settings; R1 records per-inference target
+publication timing and planning overruns; R3 has a bounded/fair priority scheduler;
+R2 invalidates obsolete pre-stop inference and rejects late-consumed results.
+Native diagnostics and failed pilots are retained. These are partial work-package
+deliverables: clean reproduction, full command ownership, actual actuator timing,
+and S2/S6 acceptance remain open.
 
 ### Reactivity workstream
 
@@ -233,6 +304,7 @@ backends in the technical plan are hypotheses to evaluate, not validated default
 
 | Priority | Reviewable output | Decision it enables |
 | --- | --- | --- |
+| Research kickoff | P0 claim/comparator matrix for Paper A, plus a P1/P2 instrumentation and pilot protocol | Whether the proposed mechanism is distinct and its effect can be measured |
 | 1 | S0 candidate manifest and clean-build/native reproduction report | Which exact baseline to compare against |
 | 2 | S1 fault matrix and remaining coverage gaps | Which mission results are trustworthy |
 | 3 | S2 audited failure reproduction and single-factor experiment | Which navigation change to retain |
@@ -253,6 +325,8 @@ For every published milestone:
 3. Update [PROJECT_STATUS.md](PROJECT_STATUS.md): current snapshot, evidence and blockers.
 4. Update this plan and the [technical ledger](SOCIAL_LOCOMANIPULATION_ROADMAP.md)
    only when a deliverable or promotion criterion changes.
+   Update the [research phase/claim ledger](RESEARCH_PROGRAMME.md#phase-tracking-and-claim-ledger)
+   when a protocol, hypothesis, outcome or candidate-paper scope changes.
 5. Update affected package READMEs, public commands and the folder guide.
 6. Regenerate graphics if folder structure, timeline or stage labels changed;
    run documentation/graphics checks and review the rendered pages.

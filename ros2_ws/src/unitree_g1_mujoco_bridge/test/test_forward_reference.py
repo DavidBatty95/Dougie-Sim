@@ -1,6 +1,6 @@
 import math
 
-from unitree_g1_mujoco_bridge.forward_reference import forward_reference
+from unitree_g1_mujoco_bridge.forward_reference import forward_reference,loaded_turn_reference
 
 
 def test_forward_goal_uses_full_speed():
@@ -28,3 +28,12 @@ def test_directional_compensation_respects_calibrated_limits_and_stops_aligned()
     assert forward_reference(2, -.1, .6, .6, .9)[2] == 0.
     vx, vy, yaw = forward_reference(3, -1, .6, .6, .9)
     assert vx > 0 and vy == 0 and -.35 <= yaw < 0
+
+
+def test_loaded_turn_tapers_in_both_directions_without_clockwise_floor_jump():
+    for sign in (-1.,1.):
+        assert loaded_turn_reference(sign*1.) == sign*.6
+        assert abs(loaded_turn_reference(sign*.2)) == .35
+        assert loaded_turn_reference(sign*.1) == 0.
+        command = forward_reference(0.,sign*2.,.6,.6,.9,smooth_loaded=True)
+        assert command == (0.,0.,sign*.6)

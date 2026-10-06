@@ -9,6 +9,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray,Bool
 from unitree_hg.msg import LowCmd, LowState
 from unitree_go.msg import MotorCmds, MotorCmd as BraincoMotorCmd, MotorStates
+from .unitree_crc import lowcmd_crc
 
 from .g1_constants import (
     BRAINCO_HAND_JOINTS,
@@ -49,6 +50,7 @@ class G1MujocoBridge(Node):
         super().__init__("g1_mujoco_bridge")
 
         self.declare_parameter("body_kp", 60.0)
+        self.declare_parameter('legacy_rt_aliases',False)
         self.declare_parameter("body_kd", 2.5)
         self.declare_parameter("arm_kp_override", 0.0)
         self.declare_parameter('arm_gains_require_authority',False)
@@ -146,12 +148,14 @@ class G1MujocoBridge(Node):
         self.right_hand_position = [0.0] * len(BRAINCO_RIGHT_TF_JOINTS)
         self.lowstate_count = 0
         self.body_command_count = 0
+        self.mode_machine = None
 
         self.joint_state_pub = self.create_publisher(
             JointState, "/joint_states", LATEST_RELIABLE_QOS
         )
         self.lowcmd_pub = self.create_publisher(LowCmd, "/lowcmd", LATEST_RELIABLE_QOS)
-        self.lowcmd_rt_pub = self.create_publisher(LowCmd, "rt/lowcmd", LATEST_RELIABLE_QOS)
+        self.lowcmd_rt_pub = (self.create_publisher(LowCmd, "rt/lowcmd", LATEST_RELIABLE_QOS)
+                             if self.get_parameter('legacy_rt_aliases').value else None)
         self.left_hand_pub = self.create_publisher(
             MotorCmds, "/brainco/left/cmd", LATEST_RELIABLE_QOS
         )
@@ -165,9 +169,8 @@ class G1MujocoBridge(Node):
         self.create_subscription(
             LowState, "/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
         )
-        self.create_subscription(
-            LowState, "rt/lowstate", self._lowstate_callback, LATEST_RELIABLE_QOS
-        )
+        if self.get_parameter('legacy_rt_aliases').value:
+            self.create_subscription(LowState,"rt/lowstate",self._lowstate_callback,LATEST_RELIABLE_QOS)
         self.create_subscription(
             Float64MultiArray,
             str(self.get_parameter("body_command_topic").value),
@@ -198,6 +201,7 @@ class G1MujocoBridge(Node):
                 throttle_duration_sec=2.0,
             )
             return
+        self.mode_machine = int(msg.mode_machine)
         if len(msg.imu_state.rpy) < 3 or len(msg.imu_state.gyroscope) < 3:
             self.get_logger().warn(
                 "Ignoring lowstate with incomplete IMU data", throttle_duration_sec=2.0
@@ -284,11 +288,12 @@ class G1MujocoBridge(Node):
 
         cmd = LowCmd()
         cmd.mode_pr = 0
-        cmd.mode_machine = 0
+        if self.mode_machine is None:
+            return  # Firmware machine mode comes from measured LowState.
+        cmd.mode_machine = self.mode_machine
         if self.fallen:
             self._fill_fall_damping_command(cmd)
-            self.lowcmd_pub.publish(cmd)
-            self.lowcmd_rt_pub.publish(cmd)
+            self._publish_lowcmd(cmd)
             self.fall_damping_count += 1
             return
 
@@ -307,8 +312,13 @@ class G1MujocoBridge(Node):
             motor.tau = 0.0
             motor.kp = self.body_kp_by_joint[index]
             motor.kd = self.body_kd_by_joint[index]
+        self._publish_lowcmd(cmd)
+
+    def _publish_lowcmd(self,cmd):
+        cmd.crc = lowcmd_crc(cmd)
         self.lowcmd_pub.publish(cmd)
-        self.lowcmd_rt_pub.publish(cmd)
+        if self.lowcmd_rt_pub is not None:
+            self.lowcmd_rt_pub.publish(cmd)
 
     def _update_fallen_state(self) -> None:
         if not self.fall_damping_enable:

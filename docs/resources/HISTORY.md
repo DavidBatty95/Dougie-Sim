@@ -26,6 +26,7 @@
 | --- | --- | --- |
 | [Project status](../PROJECT_STATUS.md) | Guide / evidence | Dated assessed baseline, progression and current blockers |
 | [Detailed forward plan](../PROJECT_PLAN.md) | Plan | Work packages, dependencies, deliverables and update process |
+| [Research and publication programme](../RESEARCH_PROGRAMME.md) | Research plan | Gap-aligned P0–P7 phases, experiment contracts and candidate-paper boundaries |
 | [Social locomanipulation roadmap](../SOCIAL_LOCOMANIPULATION_ROADMAP.md) | Technical plan | S0–S7 stages, R1–R6 response work and implementation ledger |
 | [Transport-plan history](../TRANSPORT_DEMO_PLAN.md) | Plan / historical evidence | Earlier transport gates and dated investigations |
 | [Navigation investigation](../NAVIGATION_RELIABILITY_INVESTIGATION.md) | Evidence | Correction history and retained experiment outcomes |

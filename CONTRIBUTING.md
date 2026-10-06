@@ -22,7 +22,7 @@ prototype; reproducible failures are useful evidence.
 
 Use the [repository guide](docs/REPOSITORY_GUIDE.md) to locate components and the
 [project plan](docs/PROJECT_PLAN.md) to choose a bounded work package. Link its
-S0–S7 or R1–R6 identifier in the issue/PR, state the expected evidence, and assign
+S0–S7, R1–R6 or [P0–P7 research-phase](docs/RESEARCH_PROGRAMME.md) identifier in the issue/PR, state the expected evidence, and assign
 an owner when work begins. Update [project status](docs/PROJECT_STATUS.md) when a
 published milestone changes the assessment; keep historical experiment reports dated.
 

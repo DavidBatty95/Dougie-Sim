@@ -34,6 +34,18 @@ def csv_bytes(data):
     return output.getvalue().encode()
 
 
+def dataset_catalog(directory):
+    catalog = {}
+    for path in directory.glob('*.json'):
+        try:
+            data = json.loads(path.read_text())
+        except (OSError,ValueError):
+            continue
+        if isinstance(data,dict) and isinstance(data.get('records'),list):
+            catalog[path.name] = path
+    return catalog
+
+
 class Handler(BaseHTTPRequestHandler):
     def __init__(self, *args, dataset, **kwargs):
         self.dataset = dataset
@@ -42,8 +54,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             url = urlsplit(self.path)
-            catalog = {path.name: path for path in (ROOT / 'docs/results').glob('*.json')
-                       if isinstance(json.loads(path.read_text()).get('records'), list)}
+            catalog = dataset_catalog(ROOT/'docs/results')
             catalog[self.dataset.name] = self.dataset
             requested = parse_qs(url.query).get('dataset', [self.dataset.name])[0]
             if requested not in catalog:

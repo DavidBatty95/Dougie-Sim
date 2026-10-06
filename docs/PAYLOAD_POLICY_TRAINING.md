@@ -23,6 +23,11 @@ revalidate the recorded experiments.
 
 ## Status
 
+This is the cycle-01 historical report. The later
+[native-inertial/delay-aware cycle 03](NATIVE_PAYLOAD_CONTRACT.md) and
+[hardware-facing fidelity pass](HARDWARE_FIDELITY.md) record the current dual-cube
+command, new acquisition/approach checks, retained failures and publication validation.
+
 **Two consecutive, unchanged native ROS/MuJoCo runs completed the full mission**
 in the zero-person `transport_lab` fixture: sensed pickup, loaded turn/carry,
 placement, retreat, measured arm restoration and authority release.

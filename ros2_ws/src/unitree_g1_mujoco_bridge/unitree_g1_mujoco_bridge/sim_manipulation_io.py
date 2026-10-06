@@ -27,6 +27,7 @@ class StateRecord:
     position: tuple[float, float, float]
     orientation: tuple[float, float, float, float]
     size: tuple[float, float, float]
+    acquisition_time_ns: int | None = None
 
 
 def _validate_identifier(value: str) -> str:
@@ -47,14 +48,21 @@ def parse_state_record(datagram: bytes) -> StateRecord:
         raise ProtocolError("state record is not ASCII") from exc
 
     fields = text.split(" ")
-    if len(fields) != 12 or any(not field for field in fields):
-        raise ProtocolError("state record must contain exactly 12 space-separated fields")
+    versioned = fields[0] in ('OBJECT_V2','SURFACE_V2')
+    if len(fields) != (13 if versioned else 12) or any(not field for field in fields):
+        raise ProtocolError("state record must contain exactly 12 legacy or 13 V2 space-separated fields")
     record_type, object_id = fields[:2]
+    acquisition_time_ns = None
+    if versioned:
+        record_type = record_type[:-3]
+        if not fields[-1].isdigit() or not 0<int(fields[-1])<2**63:
+            raise ProtocolError('invalid acquisition timestamp')
+        acquisition_time_ns = int(fields[-1])
     if record_type not in _RECORD_TYPES:
         raise ProtocolError(f"unknown state record type: {record_type!r}")
     _validate_identifier(object_id)
     try:
-        values = tuple(float(field) for field in fields[2:])
+        values = tuple(float(field) for field in fields[2:12])
     except ValueError as exc:
         raise ProtocolError("state record contains a non-numeric value") from exc
     if not all(math.isfinite(value) for value in values):
@@ -74,11 +82,12 @@ def parse_state_record(datagram: bytes) -> StateRecord:
         position=values[0:3],
         orientation=tuple(component / quaternion_norm for component in (qx, qy, qz, qw)),
         size=size,
+        acquisition_time_ns=acquisition_time_ns,
     )
 
 
 class StateCache:
-    """Latest simulator record per type and identifier, with receipt timestamps."""
+    """Latest records with receipt expiry and V2 acquisition replay rejection."""
 
     def __init__(self) -> None:
         self._records: dict[tuple[str, str], tuple[float, StateRecord]] = {}
@@ -86,7 +95,12 @@ class StateCache:
     def update(self, record: StateRecord, received_at: float) -> None:
         if not math.isfinite(received_at):
             raise ValueError("receipt timestamp must be finite")
-        self._records[(record.record_type, record.object_id)] = (received_at, record)
+        key = (record.record_type,record.object_id)
+        previous = self._records.get(key)
+        if previous is not None and previous[1].acquisition_time_ns is not None:
+            if record.acquisition_time_ns is None or record.acquisition_time_ns<=previous[1].acquisition_time_ns:
+                return
+        self._records[key] = (received_at, record)
 
     def fresh_records(self, now: float, stale_timeout: float) -> tuple[StateRecord, ...]:
         if not math.isfinite(now) or not math.isfinite(stale_timeout) or stale_timeout < 0.0:
@@ -322,6 +336,11 @@ def _create_node_class():
             for record in self._cache.fresh_records(now, self.stale_timeout):
                 detection = Detection3D()
                 detection.header.stamp = stamp
+                if record.acquisition_time_ns is not None:
+                    # Construct a new stamp: assigning the array header's stamp
+                    # and mutating it would alias timestamps across detections.
+                    detection.header.stamp = rclpy.time.Time(nanoseconds=record.acquisition_time_ns).to_msg()
+                    detection.id = 'native_acquisition_v2:'+record.object_id
                 detection.header.frame_id = self.frame_id
                 hypothesis = ObjectHypothesisWithPose()
                 hypothesis.hypothesis.class_id = record.object_id

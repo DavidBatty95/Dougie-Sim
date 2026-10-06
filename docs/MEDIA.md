@@ -58,6 +58,7 @@ dataset and its configuration using the [results-review guide](RESULTS_REVIEW.md
 | [Repository map](media/repository-map.svg) | Task-oriented folder overview; the [folder guide](REPOSITORY_GUIDE.md) provides the text equivalent |
 | [Project progression](media/project-progression.svg) | Dated development milestones, with source and evidence in [project status](PROJECT_STATUS.md) |
 | [Forward roadmap](media/project-roadmap.svg) | Eight acceptance-driven stages; detailed deliverables are in [the plan](PROJECT_PLAN.md) |
+| [Research programme](media/research-programme.svg) | Planned P0–P7 studies aligned with G1–G5 and candidate papers; see [research delivery](RESEARCH_PROGRAMME.md) |
 
 The SVGs are schematics, not sensor output. The dashboard screenshot is a static
 example; launch `./geoff results` to inspect the checked-in datasets interactively.

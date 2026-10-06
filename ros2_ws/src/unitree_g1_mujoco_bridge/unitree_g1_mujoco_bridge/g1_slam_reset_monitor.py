@@ -31,7 +31,9 @@ class G1SlamResetMonitor(Node):
             self.create_client(ClearEntireCostmap, name) for name in self.get_parameter("costmap_reset_services").value
         ]
         self.create_subscription(LowState, "/lowstate", self._lowstate_callback, 10)
-        self.create_subscription(LowState, "rt/lowstate", self._lowstate_callback, 10)
+        self.declare_parameter('legacy_rt_aliases',False)
+        if self.get_parameter('legacy_rt_aliases').value:
+            self.create_subscription(LowState,"rt/lowstate",self._lowstate_callback,10)
         self.create_timer(0.2, self._timer_callback)
         self.get_logger().info("Fall recovery monitor ready; mapping will reset after falls")
 

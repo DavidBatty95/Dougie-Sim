@@ -28,6 +28,7 @@ guides, source code, results, research papers, upstream documentation and histor
 | First-time visitor | [Project status](PROJECT_STATUS.md) → [recorded gallery](../README.md#recorded-demo-gallery) → [demo walkthrough](DEMO_GUIDE.md) |
 | Demo operator | [Installation](../README.md#quick-start) → [visual runbook](ONBOARD_VISUAL_DEMO.md) → [suite reference](DEMO_SUITE.md) |
 | Developer | [Repository guide](REPOSITORY_GUIDE.md) → [architecture](ARCHITECTURE.md) → [development checks](DEVELOPMENT.md) |
+| Hardware-interface developer | [Fidelity contract](HARDWARE_FIDELITY.md) → [native payload contract](NATIVE_PAYLOAD_CONTRACT.md) → [validation](DEVELOPMENT.md) |
 | Researcher or reviewer | [Results review](RESULTS_REVIEW.md) → [datasets](results/README.md) → [literature review](literature_review/README.md) |
 | Project contributor | [Forward plan](PROJECT_PLAN.md) → [technical roadmap](SOCIAL_LOCOMANIPULATION_ROADMAP.md) → [contributing](../CONTRIBUTING.md) |
 

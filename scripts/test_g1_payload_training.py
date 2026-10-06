@@ -53,6 +53,28 @@ def test_payload_has_real_mass_and_cube_inertia_at_the_wrist(training):
     np.testing.assert_allclose(payload.inertia, np.full(3, .15*.11**2/6))
 
 
+def test_virtual_cup_axis_matches_mujoco_nominal_carry_pose(training):
+    model = training.payload_spec().compile()
+    data = training.mujoco.MjData(model)
+    joints = dict(zip(training.POLICY_NAMES,training.UNITREE_RL_LAB_G1_DEFAULT_POS))
+    joints.update(dict(zip(training.G1_29DOF_JOINTS[22:],training.PAYLOAD_V1_POSTURES[0])))
+    data.qpos[3:7] = (1.,0.,0.,0.)
+    for name,value in joints.items():
+        data.qpos[model.joint(name).qposadr[0]] = value
+    training.mujoco.mj_forward(model,data)
+    R = data.xmat[model.body('carried_payload').id].reshape(3,3)
+    np.testing.assert_allclose(R@training.cup_up_axis(),(0.,0.,1.),atol=1e-4)
+
+
+def test_fluid_objective_preserves_actor_contract_and_covers_native_yaw_range(training):
+    cfg = training.build_env(2,42,objective='fluid')
+    assert cfg.observations['actor'].history_length == 5
+    assert 'base_lin_vel' not in cfg.observations['actor'].terms
+    assert cfg.commands['twist'].yaw_speed_max == .9
+    assert cfg.rewards['fluid_carry'].weight < 0.
+    assert cfg.rewards['track_angular_velocity'].weight > 0.
+
+
 def test_episode_resamples_mass_before_writing_physics_and_scopes_arm_gains(training):
     torch = training.torch
     action = SimpleNamespace(mass=torch.zeros(2), held=torch.zeros(2, dtype=torch.bool))
@@ -78,3 +100,17 @@ def test_episode_resamples_mass_before_writing_physics_and_scopes_arm_gains(trai
     assert torch.all(model.actuator_biasprm[0, 15:, 2] == -10.)
     assert torch.all(model.actuator_biasprm[1, 15:, 2] == -4.)
     assert torch.all(model.actuator_gainprm[:, :15] == 123.)
+def test_native_inertial_configuration_matches_torso_geometry_and_motor_limits(training):
+    import numpy as np
+    native = training.native_robot_model()
+    aligned = training.native_inertial_payload_spec().compile()
+    for name in ('torso_link','waist_roll_link','waist_yaw_link'):
+        a,b = native.body(name).id,aligned.body(name).id
+        assert aligned.body_mass[b] == pytest.approx(native.body_mass[a])
+        np.testing.assert_allclose(aligned.body_pos[b],native.body_pos[a])
+        np.testing.assert_allclose(aligned.body_inertia[b],native.body_inertia[a])
+    cfg = training.build_env(2,42,dynamics='native_inertial',max_delay_steps=2)
+    actuators = cfg.scene.entities['robot'].articulation.actuators
+    assert actuators[1].effort_limit == 88.
+    assert actuators[12].effort_limit == 88.
+    assert cfg.actions['joint_pos'].max_delay_steps == 2

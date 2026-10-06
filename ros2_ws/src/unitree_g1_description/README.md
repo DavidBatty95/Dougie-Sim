@@ -31,6 +31,13 @@ must be reconciled with bridge joint order, MoveIt groups/controller mappings,
 arm-kinematics tests and any generated MuJoCo hand model. The simulator's MJCF
 assets live in `unitree_mujoco`; a URDF edit does not automatically update them.
 
+The [hardware fidelity audit](../../../docs/HARDWARE_FIDELITY.md) verifies the 29
+body-joint limits and actuator mapping and records the remaining torso/waist
+revision differences. The native build generates an articulated BrainCo scene
+from this description; raw simulation sensor TF is derived from measured IMU and
+encoders. Model mass and sensor bandwidth are documented rather than presented
+as measurements from a physical robot.
+
 The [development checks](../../../docs/DEVELOPMENT.md) cover description parsing
 and related package tests. Preserve upstream attribution and the
 [license inventory](../../../LICENSES.md) when changing assets.

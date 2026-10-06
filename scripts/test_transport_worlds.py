@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
+import math
 
-from transport_worlds import TRANSPORT_WORLDS, build_world, INITIAL_KEYFRAME, TABLE_HALF_SIZE, BOX_HALF_SIZE, PAD_HALF_SIZE
+from transport_worlds import TRANSPORT_WORLDS, build_world, camera_robot_xml, INITIAL_KEYFRAME, TABLE_HALF_SIZE, BOX_HALF_SIZE, PAD_HALF_SIZE
 
 
 def test_transport_fixtures_have_supported_pairs_and_no_base_pin():
@@ -26,3 +27,23 @@ def test_transport_fixtures_have_supported_pairs_and_no_base_pin():
                 assert dx+extent < TABLE_HALF_SIZE[0]
                 top=root.find(f"worldbody/body[@name='station_{record['station']}']/geom")
                 assert top.get('contype') == top.get('conaffinity') == '1'
+
+
+def test_dual_demo_contains_exactly_two_coloured_cubes_and_four_physical_tables():
+    text,pairs,layout = build_world('transport_dual')
+    root = ET.fromstring(text)
+    assert [pair['color'] for pair in pairs] == ['red','blue']
+    assert len([body for body in root.findall('worldbody/body') if body.get('name','').startswith('station_')]) == 4
+    assert len(root.findall('worldbody/body/freejoint')) == 2
+    assert len(layout) == 2
+    assert all('position' not in pair and 'table_center' not in pair for pair in pairs)
+
+
+def test_tabletop_camera_pitch_matches_declared_optical_axis():
+    pitch = TRANSPORT_WORLDS['transport_dual']['camera_pitch_deg']
+    root = ET.fromstring(camera_robot_xml(pitch))
+    w,x,y,z = map(float,root.find(".//site[@name='d435i_color_site']").get('quat').split())
+    forward = (2*(x*z+w*y),2*(y*z-w*x),1-2*(x*x+y*y))
+    assert abs(forward[0]-math.cos(math.radians(pitch))) < 1e-12
+    assert abs(forward[1]) < 1e-12
+    assert abs(forward[2]+math.sin(math.radians(pitch))) < 1e-12

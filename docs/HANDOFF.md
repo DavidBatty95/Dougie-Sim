@@ -20,6 +20,13 @@
 
 Reviewed 5 October 2026 against published development baseline `3a7ceac`.
 
+**6 October follow-up:** start with [hardware fidelity](HARDWARE_FIDELITY.md) and
+[the native payload ledger](NATIVE_PAYLOAD_CONTRACT.md). Full CI and two new
+unchanged-code dual-delivery trials passed; the robot-facing contract now includes
+CRC/machine-mode handling, measured sensor IMUs/TF and portable point-cloud layouts.
+No physical hardware is available; documented calibration and crowd-acceptance
+gaps remain part of the handoff.
+
 ## First session
 
 1. Read the [README](../README.md), [folder guide](REPOSITORY_GUIDE.md), [architecture](ARCHITECTURE.md), and

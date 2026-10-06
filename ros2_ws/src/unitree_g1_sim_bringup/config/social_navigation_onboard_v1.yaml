@@ -47,13 +47,19 @@ human_aware_motion_planner:
     local_safe_space_enabled: false
     holonomic_avoidance: true
     prefer_forward_travel: true
+    prefer_safe_route_alignment: true
     path_reference_speed: 0.60
     path_reference_lookahead: 1.5
-    # Short routes should not require a slow stationary policy pivot in crowds.
-    path_reference_holonomic_distance: 3.0
+    # Face the observed route for travel, including ordinary 1–3 m goals.
+    # Reserve holonomic finishing for the final approach; human escapes remain
+    # available independently through holonomic_avoidance.
+    path_reference_holonomic_distance: 0.75
     nav2_path_reference: true
     retain_observed_routes: true
     planning_budget_ms: 45.0
+    # Keep stop/previous/route checks; rotate bounded escape reservations rather
+    # than making every coarse proposal mandatory beyond the control deadline.
+    priority_candidate_limit: 4
     local_escape_enabled: true
     use_static_scene_map: false
     static_memory_seconds: 2.0
@@ -111,6 +117,10 @@ g1_policy_cmd_vel_controller:
 
 human_collision_avoidance:
   ros__parameters:
+    require_command_envelope: true
+    async_predictive_escape_search: true
+    escape_result_max_age: 0.20
+    rate_hz: 50.0
     predictive_escape_search: true
     use_planned_sequence: true
     max_planar_speed: 0.65

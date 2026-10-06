@@ -16,13 +16,20 @@
 </p>
 <!-- geoff-nav:end -->
 
-Updated 2026-10-05. This is the active implementation roadmap; the
+Updated 2026-10-06. This is the active implementation roadmap; the
 [transport plan](TRANSPORT_DEMO_PLAN.md) retains the historical experiment ledger.
 
 **Reader guide:** [current status and progression](PROJECT_STATUS.md) ·
 [detailed deliverables and forward plan](PROJECT_PLAN.md) ·
 [repository map](REPOSITORY_GUIDE.md). This page is the technical design and
 implementation ledger; the public plan uses the same S0–S7 stage identifiers.
+
+The [P0–P7 research programme](RESEARCH_PROGRAMME.md) adds the scientific delivery
+phases aligned with G1–G5: novelty/protocol audit, response identification, causal
+diagnosis, calibrated planning, safety–liveness coordination, body/load risk,
+human evaluation and repeatable paper release. Its
+[crosswalk](RESEARCH_PROGRAMME.md#phase-and-gap-crosswalk) maps every phase to the
+S-stage and R-workstream support it needs.
 
 ## Target and acceptance scope
 
@@ -85,6 +92,17 @@ controller and BrainCo controller → simulation or hardware adapters.
 
 ## Stages and promotion gates
 
+Latest [native-contract checkpoint](NATIVE_PAYLOAD_CONTRACT.md): two consecutive
+zero-person dual-cube fixture passes with unchanged final code/checkpoint;
+bounded localization recovery exercised in the second. Native inertials and
+0–40 ms action-delay exposure improved standing robustness. These advance
+S1/S4/S5 components without closing their full gates. The subsequent two-world
+four-person navigation pilot passed 0/2 strict trials, so S2 and S6 remain open.
+The follow-up adds native acquisition-stamped object evaluation, replay rejection,
+bounded viewpoint search and observed support-edge pickup approaches. Two later
+dual-delivery attempts also passed; cycle 03 totals 4/9 across evolving integration
+attempts. Complete contact accounting and broader acceptance gates remain open.
+
 | Stage | Work | Required exit evidence | Status |
 | --- | --- | --- | --- |
 | S0 Reproducible baseline | Full source/submodule/config/model/policy/build identity; effective parameters; reconcile documentation; native vs mock verification tiers | Clean rebuild reproduces baseline; all attempts retained; source and installed-code identities agree | Open |
@@ -105,6 +123,22 @@ The [reactive simulation workstream](#reactive-simulation-workstream-s1-s2-s4-an
 provides the detailed backlog: R1/R2 support S1 measurement and ownership;
 R3/R5 support S2 bounded response and perception; R4 supports S1 calibration and
 S5 locomotion; R6 supports S4 persistent mission recovery.
+
+### Research contribution handoff
+
+| Engineering work | Research consumer | Evidence to retain |
+| --- | --- | --- |
+| S0/S1 and R1 provenance/measurement | P0/P1/P2 | Frozen identity, timestamp boundaries, evaluator coverage and repeatable interventions |
+| R4 response/backend evaluation | P1/P3/P5 | Held-out response, posture/load conditions, matched policy contracts and stopping failures |
+| R3/R5 planning/perception work | P2/P3 | Source-matched traces, model/age/uncertainty ablations and compute/exposure accounting |
+| R2/R6 ownership and lifecycle | P4 | A fixed execution contract, interruption traces, veto/resume behavior and recovery outcomes |
+| S3/S5 articulated loaded motion | P5 | Reference geometry/contact data and decision errors of simpler abstractions |
+| S6/S7 qualified interactions | P6/P7 | Declared operating scope, participant protocol where applicable and repeatable final evidence |
+
+Record implementation corrections as baseline work. Promote a scientific claim
+only through the [research gates](RESEARCH_PROGRAMME.md), using the unchanged
+engineering acceptance criteria for any capability/deployment claim. The P phases
+remain planned until their protocol and artifacts are recorded.
 
 ## First implementation slice: S1 attachment and placement correctness
 
@@ -327,6 +361,90 @@ estimates: approximately 299 independent representative zero-failure trials are
 needed for a one-sided 95% upper failure-probability bound below 1%.
 
 ## Implementation ledger
+
+### R3 asynchronous escape search — 2026-10-05
+
+[Implementation, fault tests and native evidence](ASYNC_ESCAPE_SUPERVISOR.md):
+pure snapshot search in a single-flight worker; expiry/epoch rejection; fresh
+control-side revalidation; idle result drainage and best-effort stop-before-shutdown.
+Configured 50 Hz was exercised with 3.2–5.6 ms crowd callback p99, but timer jitter
+and strict crowd failures remain. One-person/three-goal handoffs passed. Full R3
+timing qualification, R2 ownership and S2/S6 acceptance are still open.
+
+### R2/R3 command handoff and supervisor work — 2026-10-05
+
+[Native evidence and contract](COMMAND_HANDOFF_AND_SUPERVISOR.md): atomic
+planner command/state/continuation envelopes, restart epochs, full-pose goal
+fences, startup single-writer checks and offline lineage joins. Prediction
+preparation and static-query batching preserve existing risk predicates while
+reducing repeated work. Final one-person handoff test: 3/3 goals, zero contacts;
+four-person acceptance remains unmet. The supervisor remains at 20 Hz pending
+separation of alternative search from immediate validation.
+
+### Updated-plan implementation: S0.2 and R1–R3 — 2026-10-05
+
+[Detailed report and artifacts](PHASE_PROGRESS_20261005.md): live resolved-parameter
+capture and cross-node motion checks; inference generation/sequence timing and
+overrun reporting; bounded/fair priority reservations; stop-generation invalidation
+and stale-result rejection. Two native transport deadline diagnostics, six crowd
+pilot cases and an isolated forward/stop check were retained. Partial work-package
+progress only: S0/R1/R2/R3 and full social-navigation/transport acceptance remain open.
+
+### Native iteration and goal-facing follow-up — 2026-10-05
+
+- Bounded action cleanup now awaits terminal results, including goals accepted
+  after mission timeout. Cleanup services callbacks independently of the expired
+  mission deadline. Navigation observes terminal failure; dock/scan failures
+  clear active intent.
+- Continuous evaluation health latches outages, rejects replayed/regressing
+  robot/people timestamps, checks population and final freshness. Stable
+  placement requires at least one second of coverage, not a message burst.
+  Native object acquisition timestamps and actual articulated contacts remain open.
+- Bounded workspace recovery rechecks freshness after IK and refuses retries
+  with unknown action termination or significant base movement. Pickup can
+  re-dock after a sensed unreachable target without enlarging capture tolerance.
+- Opt-in `--carry-posture payload_v1` shares the cycle-01 posture bank with
+  training, reducing redundant IK branch variation. Historical `ik` stays the
+  default for explicit comparison. Arm-transition/loaded-turn failures persist.
+- Release retracts and retreats before requiring a fresh visual placement
+  observation, responding to a retained correct physical placement that was
+  invisible to the close camera. Precise docking now stops/settles/rechecks fresh
+  pose under the same deadline. Clearance-based retreat avoids reversing toward
+  the table just to hit an exact observation endpoint.
+- Each transport run now captures source/config/model hashes, source-text archive,
+  imported runtime module hashes, dependencies, launch assets and native binary
+  identity. A Python source/install mismatch blocks launch. This is not complete
+  native-build attestation or clean-machine reproducibility.
+- [Grove-G1 review](GROVE_G1_REVIEW.md) informs ownership, measured docking,
+  camera-aware perception, persistent skills and an isolated AGILE comparison.
+- [Goal-facing travel](GOAL_FACING_NAVIGATION.md) uses a 0.75 m finishing region
+  with hysteresis instead of a permanently latched 3 m region. Lateral escapes
+  remain available. Faster yaw was measured but not adopted: the 0.75 rad/s trial
+  also produced 0.64 m in-turn translation.
+
+**Native outcomes:** nine zero-person development attempts were retained, with
+two complete passes and seven failures under evolving implementations. The latest
+pass (`20261005T110801Z`) verified 0.210 m lift and 3.496 m maximum displacement,
+but needed repeated precise-retreat corrections. The next clearance-retreat
+variant (`20261005T111141Z`) cleared pickup without endpoint chasing but failed
+delivery docking. Other failures include stale workspace, a loaded-turn fall,
+close-view verification, out-of-reach drift, tilt and odometry loss. These are
+development outcomes, not a frozen-cohort reliability estimate.
+
+All attempts: [portable transport ledger](results/transport_lifecycle_20261005.json).
+The four-person goal-facing smoke failed with 2/3 goals and one contact:
+[portable navigation result](results/avoidance_goal_facing_20261005.json).
+S2 and crowd-transport promotion remain open. Next priorities are calibrated
+docking deadband/coasting, loaded-turn drift and locomotion-policy compatibility.
+
+Final checks for this iteration: **342 bridge tests, 83 benchmark tests, 18
+bringup tests, eight focused script tests and three Torch/MJLab training-helper
+tests passed**. Documentation links, whitespace and modified shell syntax passed.
+The Torch tests ran with unrelated ROS pytest plugin autoload disabled in the
+MJLab environment; no training run or physical-hardware trial was performed.
+These software passes do not supersede the failed native acceptance results.
+
+### Earlier publication and initial slice
 
 - 2026-10-05 publication `3a7ceac`: source, simulator patch snapshot, navigation
   corrections, transport action/health helpers, provenance tools and retained

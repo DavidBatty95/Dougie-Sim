@@ -108,6 +108,9 @@ def build_robot():
 def generate():
     path = SCENES/'g1_29dof_brainco_physical.xml'
     ET.ElementTree(build_robot()).write(path,encoding='unicode')
+    scene = ET.parse(SCENES/'scene_29dof.xml')
+    scene.getroot().find('include').set('file',path.name)
+    scene.write(SCENES/'scene_29dof_brainco_hardware.xml',encoding='unicode')
     return path
 
 

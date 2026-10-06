@@ -36,6 +36,28 @@ def test_parser_normalizes_quaternion() -> None:
     assert math.sqrt(sum(value * value for value in record.orientation)) == pytest.approx(1.0)
 
 
+def test_versioned_acquisition_stamps_survive_parsing_and_replays_do_not_refresh_cache():
+    def stamped(stamp):
+        return parse_state_record(packet().replace(b'OBJECT ',b'OBJECT_V2 ')+f' {stamp}'.encode())
+    cache = StateCache()
+    record = stamped(1791270000123456789)
+    assert record.record_type == 'OBJECT'
+    assert record.acquisition_time_ns == 1791270000123456789
+    cache.update(record,10.)
+    cache.update(record,10.4)
+    cache.update(stamped(1791270000123456788),10.5)
+    assert not cache.fresh_records(10.6,.5)
+    fresh = stamped(1791270001123456789)
+    cache.update(fresh,10.7)
+    assert cache.fresh_records(10.8,.5) == (fresh,)
+
+
+@pytest.mark.parametrize('stamp',['0','-1','nan','1.0','9223372036854775808'])
+def test_versioned_timestamp_must_be_positive_int64(stamp):
+    with pytest.raises(ProtocolError,match='timestamp'):
+        parse_state_record(packet().replace(b'OBJECT ',b'OBJECT_V2 ')+f' {stamp}'.encode())
+
+
 @pytest.mark.parametrize(
     "malformed",
     [

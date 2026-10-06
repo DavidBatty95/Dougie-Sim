@@ -1,9 +1,11 @@
 import json
 import math
+import uuid
 import time
 import numpy as np
 from .observed_route import route_is_free, people_clear_corridor
-from .forward_reference import forward_reference
+from .forward_reference import forward_reference,loaded_turn_reference
+from .command_envelope import goal_signature
 from .avoidance_candidates import crossing_escape_directions, velocity_obstacle_command
 from dataclasses import dataclass
 
@@ -301,6 +303,8 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("visualization_rate_hz", 2.0)
         self.declare_parameter("holonomic_avoidance", False)
         self.declare_parameter("prefer_forward_travel", False)
+        self.declare_parameter('prefer_safe_route_alignment',False)
+        self.prefer_safe_route_alignment = bool(self.get_parameter('prefer_safe_route_alignment').value)
         self.declare_parameter("max_clockwise_angular_near_human", 0.0)
         self.declare_parameter("static_memory_seconds", 10.0)
         self.declare_parameter("use_low_obstacle_cloud", False)
@@ -309,6 +313,9 @@ class HumanAwareMotionPlanner(Node):
         self.declare_parameter("retain_observed_routes", False)
         self.declare_parameter("planning_budget_ms", 0.0)
         self.planning_budget_ms = float(self.get_parameter("planning_budget_ms").value)
+        self.declare_parameter('priority_candidate_limit',0)
+        self.priority_candidate_limit = max(0,int(self.get_parameter('priority_candidate_limit').value))
+        self.priority_search_phase = 0
         self.search_phase = 0
         self.escape_plan = None
         self.warm_start_plan = None
@@ -492,6 +499,9 @@ class HumanAwareMotionPlanner(Node):
         self.planning_cpu_started = time.thread_time()
         self.planning_phases = {}
         self.prediction_cache = {}
+        self.scoring_phases = {}
+        self.command_publisher_id = uuid.uuid4().hex
+        self.command_sequence_id = 0
         self.static_cache = {}
         self.static_points_cache = None
         self.static_field_cache = None
@@ -561,7 +571,8 @@ class HumanAwareMotionPlanner(Node):
             self.create_subscription(Path, "/plan", self._path_callback, 1)
             self.create_subscription(PoseStamped, "/benchmark/current_goal", self._goal_callback, 1)
             self.create_subscription(Bool, "/benchmark/goal_active", self._mission_callback, 1)
-        self.create_timer(1.0 / max(1.0, float(self.get_parameter("rate_hz").value)), self._timer_callback)
+        self.planner_period_s = 1.0 / max(1.0, float(self.get_parameter("rate_hz").value))
+        self.create_timer(self.planner_period_s, self._timer_callback)
         self.get_logger().info("Human-aware sampled motion planner ready")
 
     def _cmd_callback(self, msg: Twist) -> None:
@@ -630,7 +641,10 @@ class HumanAwareMotionPlanner(Node):
         error = self._wrap_pi(yaw-pose[2])
         cmd = Twist()
         if abs(error) > .12:
-            cmd.angular.z = min(.6,max(.55,1.5*abs(error))) if error > 0. else -min(.9,max(.65,1.5*abs(error)))
+            if getattr(self,'payload_active',False):
+                cmd.angular.z = loaded_turn_reference(error)
+            else:
+                cmd.angular.z = min(.6,max(.55,1.5*abs(error))) if error > 0. else -min(.9,max(.65,1.5*abs(error)))
         elif self.navigation_mode != 'scan':
             dx,dy = goal.pose.position.x-pose[0],goal.pose.position.y-pose[1]
             distance = math.hypot(dx,dy)
@@ -702,7 +716,12 @@ class HumanAwareMotionPlanner(Node):
         if np.linalg.norm(points[-1]-goal_point) > 1e-6:
             points = np.vstack((points, goal_point))
         goal_distance = float(np.linalg.norm(goal_point - pose[:2]))
-        if goal_distance <= self.path_reference_holonomic_distance:
+        # Lateral finishing is a local exception, not a latch for the whole
+        # mission. Resume facing the route if avoidance pushes us away again.
+        finishing_radius = self.path_reference_holonomic_distance
+        if finishing_radius <= 0. or goal_distance > finishing_radius+.25:
+            self.goal_holonomic = False
+        elif goal_distance <= finishing_radius:
             self.goal_holonomic = True
         self.reference_goal_world = tuple(goal_point)
         command = Twist()
@@ -745,7 +764,8 @@ class HumanAwareMotionPlanner(Node):
                 math.cos(pose[2])*dx + math.sin(pose[2])*dy,
                 -math.sin(pose[2])*dx + math.cos(pose[2])*dy,
                 speed, self.max_angular_near_human,
-                getattr(self, "max_clockwise_angular_near_human", 0.) or None)
+                getattr(self, "max_clockwise_angular_near_human", 0.) or None,
+                smooth_loaded=getattr(self,'payload_active',False))
         elif getattr(self, "prefer_forward_travel", False) and goal_distance <= 1.0:
             # Finish short adjustments holonomically without circling the goal.
             scale = min(1., .30 / max(1e-6, math.hypot(command.linear.x, command.linear.y)))
@@ -925,6 +945,7 @@ class HumanAwareMotionPlanner(Node):
         self.planning_started = time.perf_counter()
         self.planning_cpu_started = time.thread_time()
         self.planning_phases = {}
+        self.scoring_phases = {}
         self.kinodynamic_status = 'not_requested'
         self.prediction_cache = {}
         self.static_cache = {}
@@ -994,6 +1015,15 @@ class HumanAwareMotionPlanner(Node):
         if state == "NORMAL_NAVIGATION" and tracks:
             raw = self._candidate_commands(self.latest_cmd, state, pose, tracks)[0]
             raw_result = self._score_candidate(raw, pose, tracks, tentative_points, predicted_points, predictions, prediction_age)
+            if self._can_prioritize_alignment(raw_result,tracks):
+                # A broad caution activation radius is not itself a reason to
+                # abandon a fully checked alignment turn for faster sideways
+                # progress. Genuine forecast conflicts still activate search.
+                cmd = self._twist_from_candidate(raw)
+                self.last_cmd = cmd
+                self.path_reference_status = 'safe_route_alignment'
+                self._publish(cmd,'NORMAL_NAVIGATION',[raw_result],raw_result)
+                return
             warning_distance = max(self.robot_radius + track.body_radius + self.hard_safety_margin for track in tracks)
             warning_distance = max(warning_distance, getattr(self, "prediction_activation_clearance", 0.))
             holding_risk = (getattr(self, "prefer_forward_travel", False) and
@@ -1064,6 +1094,14 @@ class HumanAwareMotionPlanner(Node):
             self.escape_plan = (selected.candidate, self.get_clock().now().nanoseconds*1e-9,
                                 self._goal_key(self.reference_goal))
         self._publish(cmd, state, results, selected)
+
+    def _can_prioritize_alignment(self,result,tracks):
+        candidate = result.candidate
+        reserve = max([self.comfort_radius]+[self.robot_radius+t.body_radius+self.body_prediction_margin+.25 for t in tracks])
+        return (self.prefer_safe_route_alignment and self.prefer_forward_travel and self.nav2_path_reference and
+                self.mission_active and self.navigation_mode=='navigate' and not self.goal_holonomic and
+                not self.payload_active and not result.rejected and result.min_human_distance>=reserve and
+                abs(candidate.vx)+abs(candidate.vy)<1e-6 and abs(candidate.wz)>.05)
 
     def _update_goal_urgency(self,pose,seconds):
         if not self.mission_active or self.reference_goal_world is None:
@@ -1202,15 +1240,27 @@ class HumanAwareMotionPlanner(Node):
                      "escape_translation", "social_translation", "crossing_then_route")
             priority = set(names)
             first = [c for name in names for c in candidates if c.name == name]
-            priority_count = len(first)
             remaining = [c for c in candidates if c.name not in priority]
+            deferred = []
+            if self.priority_candidate_limit:
+                core_names = ('yield_stop','previous_command','raw_reference')
+                core = [c for name in core_names for c in first if c.name == name]
+                extra = [c for c in first if c.name not in core_names]
+                if extra:
+                    offset = self.priority_search_phase % len(extra)
+                    extra = extra[offset:]+extra[:offset]
+                reserved = extra[:self.priority_candidate_limit]
+                deferred = extra[self.priority_candidate_limit:]
+                self.priority_search_phase += len(reserved)
+                first = core+reserved
+            priority_count = len(first)
             # The budget is a soft deadline: reserve one rotating proposal even
             # when mandatory checks consume it, otherwise search can freeze.
             mandatory = max(3, priority_count + bool(remaining))
             if remaining:
                 offset = self.search_phase % len(remaining)
                 remaining = remaining[offset:] + remaining[:offset]
-            ordered = first + remaining
+            ordered = first + remaining + deferred
         results = []
         checked_original = 0
         self.search_budget_exhausted = False
@@ -1863,6 +1913,19 @@ class HumanAwareMotionPlanner(Node):
         return CandidateResult(candidate, score, False, "", trajectory, max(0.0, min_clearance), math.inf, 0.0, score_terms)
 
     def _score_candidate(
+        self,candidate,pose,tracks,tentative_points,predicted_points,predictions,prediction_age,prediction_margin=None,
+    ):
+        return self._timed_scoring('candidate_total_ms',self._score_candidate_impl,
+            candidate,pose,tracks,tentative_points,predicted_points,predictions,prediction_age,prediction_margin)
+
+    def _timed_scoring(self,label,callback,*args):
+        started = time.perf_counter()
+        try:
+            return callback(*args)
+        finally:
+            self.scoring_phases[label] = self.scoring_phases.get(label,0.)+(time.perf_counter()-started)*1000.
+
+    def _score_candidate_impl(
         self,
         candidate: Candidate,
         pose: tuple[float, float, float],
@@ -1873,7 +1936,7 @@ class HumanAwareMotionPlanner(Node):
         prediction_age: float,
         prediction_margin: float | None = None,
     ) -> CandidateResult:
-        trajectory = self._simulate(pose, candidate)
+        trajectory = self._timed_scoring('rollout_ms',self._simulate,pose,candidate)
         if candidate.schedule is not None and (self.policy_command_stamp is None or
                 not 0. <= self.get_clock().now().nanoseconds*1e-9-self.policy_command_stamp <= .4):
             return CandidateResult(candidate,math.inf,True,'stale_policy_feedback',trajectory,math.inf,math.inf,0.,{})
@@ -2000,7 +2063,7 @@ class HumanAwareMotionPlanner(Node):
                     personal_space_cost += math.exp(-0.5 * (distance / max(0.1, self.predicted_danger_radius)) ** 2) * (1.0 + 0.2 * t)
         if math.isfinite(body_collision_time):
             return CandidateResult(candidate, math.inf, True, "hard_human_collision", trajectory, min_human_distance, body_collision_time, front_cut_cost, {})
-        static_cost, static_reject = self._static_obstacle_cost(trajectory)
+        static_cost, static_reject = self._timed_scoring('static_ms',self._static_obstacle_cost,trajectory)
         if static_reject:
             return CandidateResult(candidate, math.inf, True, "static_obstacle", trajectory, min_human_distance, min_tcpa, front_cut_cost, {})
         # Preserve room to escape: individually clear trajectories can still
@@ -2316,13 +2379,14 @@ class HumanAwareMotionPlanner(Node):
         state_msg = String()
         state_msg.data = state
         self.state_pub.publish(state_msg)
-        sequence = {'stamp': now.nanoseconds*1e-9, 'frame': self.robot_frame,
+        self.command_sequence_id += 1
+        sequence = {'version': 1, 'publisher_id': self.command_publisher_id,
+                    'sequence_id': self.command_sequence_id, 'state': state,
+                    'stamp': now.nanoseconds*1e-9, 'frame': self.robot_frame,
                     'active': self.mission_active, 'first': [cmd.linear.x,cmd.linear.y,cmd.angular.z],
                     'duration': 0., 'then': None, 'goal': None}
         if self.reference_goal is not None:
-            goal = self.reference_goal
-            sequence['goal'] = [goal.header.frame_id,goal.header.stamp.sec,goal.header.stamp.nanosec,
-                                goal.pose.position.x,goal.pose.position.y]
+            sequence['goal'] = goal_signature(self.reference_goal)
         if selected is not None and (not selected.rejected or selected.reason == 'human_margin') and selected.candidate.follow_vx is not None:
             candidate = selected.candidate
             remaining = candidate.switch_time
@@ -2342,9 +2406,16 @@ class HumanAwareMotionPlanner(Node):
             patch_msg.pose.orientation.w = 1.0
             self.safe_patch_pub.publish(patch_msg)
         self.cmd_pub.publish(cmd)
+        command_published = self.get_clock().now()
         self.planning_phases["control_publish_ms"] = (time.perf_counter() - publishing_started) * 1000.0
         debug_pose = self._robot_pose()
         debug = {
+            "command_published_ros_s": command_published.nanoseconds*1e-9,
+            "planner_period_s": self.planner_period_s,
+            "planning_budget_ms": self.planning_budget_ms,
+            "scan_age_at_command_publish_s": self._age_seconds(self.latest_scan_time,command_published),
+            "tracks_age_at_command_publish_s": None if self.tracks_epoch is None else command_published.nanoseconds*1e-9-self.tracks_epoch,
+            "prediction_age_at_command_publish_s": None if self.prediction_epoch is None else command_published.nanoseconds*1e-9-self.prediction_epoch,
             "static_error": self.static_error,
             "static_memory_points": len(self.static_memory),
             "low_obstacle_points": len(self.low_obstacle_memory),
@@ -2355,6 +2426,7 @@ class HumanAwareMotionPlanner(Node):
             "evaluated_candidates": len(results),
             "planning_thread_ms": round((time.thread_time() - self.planning_cpu_started) * 1000.0, 3),
             "planning_phases_ms": {key: round(value, 3) for key, value in self.planning_phases.items()},
+            "scoring_phases_ms": {key: round(value, 3) for key, value in self.scoring_phases.items()},
             "tracks_age_s": None if self.tracks_epoch is None else round(now.nanoseconds * 1e-9 - self.tracks_epoch, 4),
             "prediction_age_s": None if self.prediction_epoch is None else round(now.nanoseconds * 1e-9 - self.prediction_epoch, 4),
             "measured_velocity": list(self.measured_velocity),

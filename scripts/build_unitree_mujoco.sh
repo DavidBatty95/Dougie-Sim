@@ -50,6 +50,7 @@ fi
 python3 "${SRC_DIR}/tools/generate_natural_pedestrians.py" --robot-dir "${SRC_DIR}/unitree_robots/g1"
 python3 /workspace/scripts/avoidance_worlds.py
 python3 /workspace/scripts/transport_worlds.py
+python3 /workspace/scripts/brainco_hand_model.py
 
 cmake -S "${SIM_DIR}" -B "${BUILD_DIR}" \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \

@@ -44,3 +44,10 @@ def test_server_refresh_and_route_restriction(tmp_path):
         server.shutdown()
         server.server_close()
         worker.join()
+def test_catalog_ignores_unrelated_report_shapes_and_partial_json(tmp_path):
+    from avoidance_results_gui import dataset_catalog
+    (tmp_path/'dataset.json').write_text('{"records":[]}')
+    (tmp_path/'transport.json').write_text('[{"success":true}]')
+    (tmp_path/'scalar.json').write_text('null')
+    (tmp_path/'partial.json').write_text('{')
+    assert set(dataset_catalog(tmp_path)) == {'dataset.json'}

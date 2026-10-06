@@ -35,8 +35,41 @@ def components(mask):
             yield np.array(group)
 
 
+def support_approach(points,box):
+    """Face-normal approach from the visible support rectangle, not scene axes."""
+    if len(points)<20:
+        return None
+    lower,upper = np.min(points[:,:2],axis=0),np.max(points[:,:2],axis=0)
+    if min(upper-lower)<.25 or np.any(np.asarray(box[:2])<lower-.04) or np.any(np.asarray(box[:2])>upper+.04):
+        return None
+    best = None
+    for yaw in np.linspace(0.,math.pi/2,91)[:-1]:
+        axes = np.array(((math.cos(yaw),-math.sin(yaw)),(math.sin(yaw),math.cos(yaw))))
+        projected = points[:,:2]@axes
+        lo,hi = np.min(projected,axis=0),np.max(projected,axis=0)
+        area = float(np.prod(hi-lo))
+        if best is None or area<best[0]:
+            best = area,axes,lo,hi
+    _,axes,lo,hi = best
+    extent = hi-lo
+    if min(extent)<.25 or max(extent)>2. or max(extent)<.45:
+        return None
+    local = np.asarray(box[:2])@axes
+    if np.any(local<lo-.04) or np.any(local>hi+.04):
+        return None
+    gaps = [local[0]-lo[0],hi[0]-local[0],local[1]-lo[1],hi[1]-local[1]]
+    edge = int(np.argmin(gaps))
+    if gaps[edge]>.20:
+        return None  # No observed nearby edge to justify a tabletop approach.
+    inward = axes[:,edge//2]*(1. if edge%2==0 else -1.)
+    return math.atan2(inward[1],inward[0])
+
+
 def colour_detections(rgb,depth,K,origin,R,table_height=.95,diagnostics=None):
     """Return geometric candidates in a level robot frame; no layout lookup."""
+    if (rgb.ndim!=3 or rgb.shape[2]!=3 or depth.shape!=rgb.shape[:2] or K.shape!=(3,3) or
+            not np.all(np.isfinite(K)) or K[0,0]<=0. or K[1,1]<=0.):
+        raise ValueError('RGB-D registration or camera intrinsics invalid')
     result = []
     for channel,colour in enumerate(('red','green','blue')):
         dominant = rgb[:,:,channel].astype(float)
@@ -84,11 +117,87 @@ def colour_detections(rgb,depth,K,origin,R,table_height=.95,diagnostics=None):
                     detection['yaw'] = best[1]
                     detection['position'][:2] = best[2].tolist()
                 result.append(detection)
+    boxes = [item for item in result if item['kind']=='box']
+    if boxes:
+        v,u = np.indices(depth.shape)
+        points = np.stack(((u-K[0,2])*depth/K[0,0],(v-K[1,2])*depth/K[1,1],depth),axis=-1)@R.T+origin
+        # Support orientation needs broad plane coverage, not every pixel.
+        # Decimation bounds Python connected-component work while cube/pad
+        # detection above retains full registered resolution.
+        points = points[::2,::2]
+        support_depth = depth[::2,::2]
+        support = ((support_depth>.15)&(support_depth<8.)&(points[:,:,2]>table_height-.03)&
+                   (points[:,:,2]<table_height+.07))
+        for pixels in components(support):
+            surface = points[pixels[:,0],pixels[:,1]]
+            for item in boxes:
+                approach = support_approach(surface,item['position'])
+                if approach is not None:
+                    item['approach_yaw'] = approach
     return result
 
 
+class ObservationConsensus:
+    """Confirm stationary geometry across distinct image acquisitions.
+
+    Ambiguity or a pose jump revokes the old estimate immediately. Missing views
+    retain only the original acquisition stamp for bounded occlusion memory.
+    """
+    def __init__(self,max_shift=.06,max_interval=1.5):
+        self.max_shift,self.max_interval = max_shift,max_interval
+        self.pending,self.confirmed = {},{}
+        self.latest_stamp = -math.inf
+
+    def update(self,detections,stamp):
+        # Replayed or delayed frames must not revoke newer confirmations or
+        # prune their memory using an older acquisition time.
+        if not math.isfinite(stamp) or stamp<=self.latest_stamp:
+            return dict(self.confirmed)
+        self.latest_stamp = stamp
+        grouped = {}
+        for item in detections:
+            grouped.setdefault(item['id'],[]).append(item)
+        for identifier,items in grouped.items():
+            if len(items)!=1:
+                self.pending.pop(identifier,None)
+                self.confirmed.pop(identifier,None)
+                continue
+            item = dict(items[0])
+            point = np.asarray(item['position'],dtype=float)
+            if point.shape!=(3,) or not np.all(np.isfinite(point)) or not math.isfinite(stamp):
+                self.pending.pop(identifier,None)
+                self.confirmed.pop(identifier,None)
+                continue
+            previous = self.pending.get(identifier)
+            if previous is not None and stamp<=previous['observed_stamp']:
+                continue
+            consistent = (previous is not None and stamp-previous['observed_stamp']<=self.max_interval and
+                          np.linalg.norm(point-np.asarray(previous['position']))<=self.max_shift)
+            count = min(10,previous.get('observation_count',1)+1) if consistent else 1
+            item.update(observed_stamp=stamp,observation_count=count,confirmed=count>=2)
+            approach_count = 0
+            if 'approach_yaw' in item and math.isfinite(item['approach_yaw']):
+                approach_count = 1
+                if consistent and 'approach_yaw' in previous:
+                    error = item['approach_yaw']-previous['approach_yaw']
+                    if abs(math.atan2(math.sin(error),math.cos(error)))<=.15:
+                        approach_count = min(10,previous.get('approach_observation_count',1)+1)
+            item['approach_observation_count'] = approach_count
+            self.pending[identifier] = item
+            if count>=2:
+                self.confirmed[identifier] = dict(item)
+                if approach_count<2:
+                    self.confirmed[identifier].pop('approach_yaw',None)
+            else:
+                self.confirmed.pop(identifier,None)
+        self.confirmed = {key:item for key,item in self.confirmed.items()
+                          if 0.<=stamp-item['observed_stamp']<(60. if item['kind']=='pad' else 30.)}
+        self.pending = {key:item for key,item in self.pending.items() if 0.<=stamp-item['observed_stamp']<60.}
+        return dict(self.confirmed)
+
+
 class TransportPerception(Node):
-    def __init__(self):
+    def __init__(self,camera_pitch_deg=0.):
         super().__init__('transport_perception')
         qos = QoSProfile(depth=1,reliability=ReliabilityPolicy.BEST_EFFORT)
         image_qos = QoSProfile(depth=1,reliability=ReliabilityPolicy.RELIABLE)
@@ -97,7 +206,12 @@ class TransportPerception(Node):
         self.depth = {}
         self.imu,self.joints = deque(maxlen=200),deque(maxlen=200)
         self.objects = {}
+        self.consensus = ObservationConsensus()
+        self.camera_pitch_deg = float(camera_pitch_deg)
         self.snapshot = None
+        self.frame_history = deque(maxlen=180)
+        self.attempt_history = deque(maxlen=600)
+        self.last_processed_stamp = -math.inf
         self.process_status = 'waiting_for_images'
         self.tf = Buffer()
         self.listener = TransformListener(self.tf,self)
@@ -131,8 +245,19 @@ class TransportPerception(Node):
         self._process(self.stamp(msg.header))
 
     def _process(self,stamp):
+        if stamp<=self.last_processed_stamp:
+            self.colour.pop(stamp,None)
+            self.depth.pop(stamp,None)
+            return
+        self._process_frame(stamp)
+        self.attempt_history.append(dict(stamp=stamp,processed_at=self.seconds(),status=self.process_status,
+            latest_imu_stamp=self.imu[-1][0] if self.imu else None,
+            latest_joint_stamp=self.joints[-1][0] if self.joints else None))
+
+    def _process_frame(self,stamp):
         msg = self.depth.get(stamp)
         if msg is None:
+            self.process_status = 'waiting_for_depth'
             return
         colour = self.colour.get(stamp)
         if colour is None or self.info is None or not self.imu or not self.joints or msg.encoding != '16UC1':
@@ -160,23 +285,39 @@ class TransportPerception(Node):
         world_R = rpy_matrix((0.,0.,yaw))
         offset = np.array((transform.translation.x,transform.translation.y,0.))
         diagnostics = []
-        detections = colour_detections(rgb,depth,self.info,origin,torso_R@optical_R,diagnostics=diagnostics)
+        try:
+            detections = colour_detections(rgb,depth,self.info,origin,
+                torso_R@rpy_matrix((0.,math.radians(self.camera_pitch_deg),0.))@optical_R,diagnostics=diagnostics)
+        except ValueError as exc:
+            self.process_status = str(exc)
+            return
         self.snapshot = dict(rgb=rgb.copy(),depth=depth.copy(),stamp=stamp,origin=origin.tolist(),
-                             rpy=list(imu[1]),regions=diagnostics,detections=detections)
+                             rpy=list(imu[1]),torso_rotation=torso_R.tolist(),regions=diagnostics,detections=detections)
         for item in detections:
             item['position'] = (world_R@item['position']+offset).tolist()
             if 'yaw' in item:
                 item['yaw'] += yaw
+            if 'approach_yaw' in item:
+                item['approach_yaw'] += yaw
             item['observed_stamp'] = stamp
-            self.objects[item['id']] = item
+        self.objects = self.consensus.update(detections,stamp)
+        self.frame_history.append(dict(stamp=stamp,detected=[item['id'] for item in detections],
+            confirmed=list(self.objects),regions=diagnostics,detections_odom=detections,
+            pose_odom=[*offset[:2],yaw],imu_stamp=imu[0],joint_stamp=joints[0],
+            processed_at=self.seconds(),
+            acquisition_interval_s=stamp-self.last_processed_stamp if math.isfinite(self.last_processed_stamp) else None))
+        self.last_processed_stamp = stamp
         self.colour.pop(stamp,None)
         self.depth.pop(stamp,None)
 
     def save_snapshot(self,directory):
+        directory.mkdir(parents=True,exist_ok=True)
+        (directory/'perception_history.json').write_text(json.dumps(list(self.frame_history),indent=2)+'\n')
+        (directory/'perception_attempts.json').write_text(json.dumps(list(self.attempt_history),indent=2)+'\n')
         if self.snapshot is None:
             return
-        directory.mkdir(parents=True,exist_ok=True)
         snapshot = dict(self.snapshot)
+        snapshot['camera_pitch_deg'] = self.camera_pitch_deg
         snapshot.update(process_status=self.process_status,colour_stamps=list(self.colour),depth_stamps=list(self.depth),
                         latest_imu_stamp=self.imu[-1][0] if self.imu else None,
                         latest_joint_stamp=self.joints[-1][0] if self.joints else None,

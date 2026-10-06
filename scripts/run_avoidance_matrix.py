@@ -9,8 +9,14 @@ from pathlib import Path
 
 from avoidance_worlds import ROOT, SCENES, WORLDS, WORLD_VERSION, generate
 from demo_suite import case_catalog, file_sha256, git_output, stream_process, write_json
+from analyze_response_trace import write_report
 
 DEFAULT_OUTPUT = ROOT / 'ros2_ws/src/dynamic_obstacle_benchmarks/results/avoidance_matrix'
+
+
+def benchmark_artifacts(directory):
+    return sorted(path for path in directory.glob('person_avoidance_*.json')
+                  if not path.name.endswith('_parameters.json'))
 
 
 def publish_dataset(path, dataset):
@@ -23,6 +29,7 @@ def publish_dataset(path, dataset):
 
 def command_for(directory, world, seed, people, goals, config, fast_start=True, synchronized_start=False):
     command = list(case_catalog(directory, seed, True, fast_start, goals, onboard_people=people)['onboard-waypoints'].command)
+    command.append('--capture-parameters')
     for flag, value in {'--scene': f'scene_29dof_avoidance_{world}.xml',
                         '--environment-name': world, '--config': str(config),
                         '--result-dir': str(directory)}.items():
@@ -114,7 +121,7 @@ def main():
             except KeyboardInterrupt:
                 code, timeout, interrupted = 130, False, True
             attempt.update(return_code=code, timed_out=timeout, status='interrupted' if interrupted else 'finished')
-            artifacts = sorted(directory.glob('person_avoidance_*.json'))
+            artifacts = benchmark_artifacts(directory)
             if len(artifacts) == 1:
                 artifact = artifacts[0]
                 result = json.loads(artifact.read_text())
@@ -127,10 +134,30 @@ def main():
                 source, digest = None, None
             if interrupted:
                 result.update(valid_trial=False, success=False, invalid_reason='interrupted', failure_reason='interrupted')
+            response_report = None
+            parameter_snapshot = None
+            parameter_files = sorted(directory.glob('person_avoidance_*_parameters.json'))
+            if len(parameter_files) == 1:
+                parameters = parameter_files[0]
+                captured = json.loads(parameters.read_text())
+                parameter_snapshot = dict(path=str(parameters.relative_to(ROOT)),sha256=file_sha256(parameters),
+                    required_complete=captured['required_complete'],motion_parameter_agreement=captured['motion_parameter_agreement'])
+            if source is not None:
+                trace = artifact.with_name(artifact.stem+'_human_aware.jsonl')
+                if trace.is_file():
+                    report_path = directory/'response_diagnostics.json'
+                    report = write_report(trace,report_path)
+                    response_report = dict(path=str(report_path.relative_to(ROOT)),sha256=file_sha256(report_path),
+                                           planner_period=report['planner_period'],
+                                           planner_active_period=report['planner_active_period'],metrics=report['metrics'],
+                                           planner_supervisor_lineage=report['planner_supervisor_lineage'],
+                                           async_escape_states=report['async_escape_states'],
+                                           escape_worker_latest=report['escape_worker_latest'])
             records.append(dict(id=run_id, role='scored', world=world,
                                 world_size_m=WORLDS[world]['size'], complexity=WORLDS[world]['complexity'],
                                 source_artifact=source, source_sha256=digest, result=result,
-                                execution=attempt.copy()))
+                                execution=attempt.copy(),response_diagnostics=response_report,
+                                effective_parameters=parameter_snapshot))
             dataset = dict(schema_version=1, scope='Multi-world onboard avoidance; invalid attempts retained',
                            provenance=manifest, records=records)
             write_json(output / 'dataset.json', dataset)

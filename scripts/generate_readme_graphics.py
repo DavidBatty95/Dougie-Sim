@@ -38,6 +38,21 @@ PANELS = {
 }
 
 BOARDS = {
+    "research-programme.svg": (
+        "From research gaps to evidence and papers",
+        "P0-P7 research delivery | Complements the S0-S7 engineering roadmap",
+        [
+            ("P0 / Protocol and novelty", "All gaps | Define the intended difference", "Audit nearest prior work; freeze study conditions, comparators and the analysis plan.", "PLANNED", "#43d2ec"),
+            ("P1 / Measured response", "G1 | Identification and uncertainty", "Test policy response and occupancy coverage on held-out motions and operating conditions.", "PLANNED", "#43d2ec"),
+            ("P2 / Causal diagnosis", "G2 | Oracle-to-onboard interventions", "Separate sensing, age and execution effects with matched encounters and failure traces.", "PLANNED", "#7de39a"),
+            ("P3 / Calibrated planning", "G1 + G2 | First-paper priority", "Specify the method; compare collision-completion tradeoffs with strong matched baselines.", "PLANNED", "#7de39a"),
+            ("P4 / Safety and liveness", "G3 | Distinct coordination mechanism", "Test veto, yield and resume decisions without shifting risk into contacts or falls.", "PLANNED", "#d3a5ff"),
+            ("P5 / Articulated risk", "G4 | Body, arm and payload effects", "Establish when base-only models fail and whether added fidelity improves decisions.", "PLANNED", "#d3a5ff"),
+            ("P6 / Human evaluation", "G5 | Context and perceived behavior", "Control speed, clearance and order; measure participant judgments and task outcomes.", "PLANNED", "#f4c978"),
+            ("P7 / Replication and release", "Every paper | Claims linked to artifacts", "Repeat the evidence, audit analysis and publish methods, failures and limitations together.", "PLANNED", "#f4c978"),
+        ],
+        "P7 applies to each candidate paper. These are planned studies, not completed findings. See docs/RESEARCH_PROGRAMME.md.",
+    ),
     "repository-map.svg": (
         "Find your way around Geoff-Sim",
         "A task-oriented map of the repository | Start with README.md and ./geoff",

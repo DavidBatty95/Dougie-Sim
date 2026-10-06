@@ -23,6 +23,9 @@ from .bridge_safety import (
 )
 from .pointcloud import iter_xyz
 from .motion_envelope import load_motion_envelope, advance_planar_pose
+from .command_envelope import CommandEnvelopeGate,goal_signature
+from .prediction_risk import PreparedPredictions,prepare_predictions,time_aligned_prediction_risk
+from .escape_search import EscapeSnapshot,EscapeSearchWorker,search_escape,checked_escape,stopped_tail
 
 
 LATEST_SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -30,95 +33,6 @@ LATEST_SENSOR_QOS = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFOR
 
 def _duration_seconds(duration) -> float:
     return float(duration.sec) + float(duration.nanosec) * 1e-9
-
-
-def _robot_position_at(
-    start_x: float,
-    start_y: float,
-    start_yaw: float,
-    vx: float,
-    vy: float,
-    wz: float,
-    offset: float,
-    dt: float,
-) -> tuple[float, float]:
-    """Integrate a body-frame velocity command to a future world position."""
-    x, y, yaw = start_x, start_y, start_yaw
-    remaining = max(0.0, offset)
-    step_size = max(0.01, dt)
-    while remaining > 1e-9:
-        step = min(step_size, remaining)
-        x += (math.cos(yaw) * vx - math.sin(yaw) * vy) * step
-        y += (math.sin(yaw) * vx + math.cos(yaw) * vy) * step
-        yaw += wz * step
-        remaining -= step
-    return x, y
-
-
-def time_aligned_prediction_risk(
-    trajectories: list[list[tuple[float, float, float, float, float, float]]],
-    message_age: float,
-    robot_pose: tuple[float, float, float],
-    command: tuple[float, float, float],
-    horizon: float,
-    integration_dt: float,
-    collision_radius: float,
-    uncertainty_scale: float,
-    minimum_confidence: float,
-    robot_trajectory: list[tuple[float, float, float, float]] | None = None,
-    minimum_time: float = 0.0,
-) -> tuple[float, float, float, float] | None:
-    """Return the nearest same-time human conflict as clearance, time, x, y."""
-    if message_age < 0.0:
-        return None
-    best = None
-    for trajectory in trajectories:
-        valid_samples = []
-        previous_offset = -math.inf
-        for offset, x, y, cov_xx, cov_yy, confidence in trajectory:
-            if not all(math.isfinite(value) for value in (offset, x, y, cov_xx, cov_yy, confidence)):
-                continue
-            if offset <= previous_offset:
-                continue
-            previous_offset = offset
-            valid_samples.append((offset, x, y, cov_xx, cov_yy, confidence))
-        dense_samples = []
-        for index, right in enumerate(valid_samples):
-            if index == 0:
-                dense_samples.append(right)
-                continue
-            left = valid_samples[index - 1]
-            span = right[0] - left[0]
-            steps = max(1, math.ceil(span / max(0.01, integration_dt)))
-            for step in range(1, steps + 1):
-                fraction = step / steps
-                dense_samples.append(tuple(
-                    left[field] + fraction * (right[field] - left[field])
-                    for field in range(6)
-                ))
-        for offset, x, y, cov_xx, cov_yy, confidence in dense_samples:
-            time_from_now = offset - max(0.0, message_age)
-            if time_from_now < max(0.,minimum_time) or time_from_now > horizon or confidence < minimum_confidence:
-                continue
-            if robot_trajectory:
-                index = min(len(robot_trajectory) - 1, int(time_from_now / max(1e-6, robot_trajectory[-1][3]) * (len(robot_trajectory) - 1)))
-                left = robot_trajectory[index]
-                right = robot_trajectory[min(index + 1, len(robot_trajectory) - 1)]
-                fraction = max(0.0, min(1.0, (time_from_now - left[3]) / max(1e-6, right[3] - left[3])))
-                robot_x = left[0] + fraction * (right[0] - left[0])
-                robot_y = left[1] + fraction * (right[1] - left[1])
-            else:
-                robot_x, robot_y = _robot_position_at(
-                    robot_pose[0], robot_pose[1], robot_pose[2],
-                    command[0], command[1], command[2], time_from_now, integration_dt,
-                )
-            uncertainty = uncertainty_scale * math.sqrt(max(0.0, cov_xx, cov_yy))
-            clearance = math.hypot(x - robot_x, y - robot_y) - uncertainty
-            if best is None or clearance < best[0]:
-                best = (clearance, time_from_now, x, y)
-    if best is None or best[0] > collision_radius:
-        return None
-    return best
 
 
 class HumanCollisionAvoidance(Node):
@@ -191,7 +105,24 @@ class HumanCollisionAvoidance(Node):
         self.declare_parameter("scan_timeout", 0.6)
         self.declare_parameter("static_escape_clearance", 0.48)
         self.declare_parameter("predictive_escape_search", False)
+        self.declare_parameter('async_predictive_escape_search',False)
+        self.declare_parameter('escape_result_max_age',.2)
+        self.async_predictive_escape_search = bool(self.get_parameter('async_predictive_escape_search').value)
+        self.escape_result_max_age = float(self.get_parameter('escape_result_max_age').value)
+        if not 0.<self.escape_result_max_age<=.5:
+            raise ValueError('escape_result_max_age must be in (0, 0.5] seconds')
+        self.escape_worker = None
+        self.cached_escape = None
+        self.async_escape_state = 'idle'
+        self.async_escape_rejections = 0
         self.declare_parameter("use_planned_sequence", False)
+        self.declare_parameter('require_command_envelope',False)
+        self.require_command_envelope = bool(self.get_parameter('require_command_envelope').value)
+        if self.async_predictive_escape_search and not self.require_command_envelope:
+            raise ValueError('async_predictive_escape_search requires require_command_envelope for intent fencing')
+        if self.async_predictive_escape_search:
+            self.escape_worker = EscapeSearchWorker()
+        self.command_gate = CommandEnvelopeGate()
         self.declare_parameter("odom_timeout", 0.4)
         self.odom_timeout = float(self.get_parameter("odom_timeout").value)
         self.declare_parameter("response_delay", 0.10)
@@ -271,6 +202,10 @@ class HumanCollisionAvoidance(Node):
         self.scan_frame = None
         self.scan_stamp = None
         rate_hz = max(1.0, float(self.get_parameter("rate_hz").value))
+        self.supervisor_period_s = 1.0/rate_hz
+        self.supervisor_tick_started = None
+        self.supervisor_tick_interval_ms = None
+        self.supervisor_search_ms = 0.
         if self.critical_radius > self.danger_radius:
             raise ValueError("critical_radius must be less than or equal to danger_radius")
         if self.trajectory_dt <= 0.0 or self.escape_search_dt <= 0.0:
@@ -359,7 +294,7 @@ class HumanCollisionAvoidance(Node):
             self._scan_callback,
             LATEST_SENSOR_QOS,
         )
-        if self.use_planned_sequence:
+        if self.use_planned_sequence or self.require_command_envelope:
             self.create_subscription(String,'/human_avoidance_command_sequence',self._sequence_callback,1)
             self.create_subscription(Bool,'/benchmark/goal_active',self._mission_callback,1)
             self.create_subscription(PoseStamped,'/benchmark/current_goal',self._goal_callback,1)
@@ -373,21 +308,52 @@ class HumanCollisionAvoidance(Node):
         self.command_sequence = None
 
     def _payload_callback(self,msg):
-        self.prediction_collision_radius = self.empty_prediction_collision_radius+(.16 if msg.data else 0.)
+        radius = self.empty_prediction_collision_radius+(.16 if msg.data else 0.)
+        if radius != self.prediction_collision_radius:
+            self._invalidate_escape()
+        self.prediction_collision_radius = radius
         self.recovery_min_clearance = .96 if msg.data else .80
 
     def _goal_callback(self,msg):
+        signature = goal_signature(msg)
+        if signature != self.goal_signature:
+            self._invalidate_escape()
+        if self.require_command_envelope and signature != self.goal_signature:
+            self._fence_command_input()
         self._clear_sequence()
-        self.goal_signature = [msg.header.frame_id,msg.header.stamp.sec,msg.header.stamp.nanosec,
-                               msg.pose.position.x,msg.pose.position.y]
+        self.goal_signature = signature
 
     def _mission_callback(self,msg):
+        if bool(msg.data) != self.mission_active:
+            self._invalidate_escape()
+        if self.require_command_envelope and bool(msg.data) != self.mission_active:
+            self._fence_command_input()
         self.mission_active = bool(msg.data)
         self.mission_state_time = self.get_clock().now()
         if not self.mission_active:
             self._clear_sequence()
 
     def _sequence_callback(self,msg):
+        if self.require_command_envelope:
+            try:
+                sequence = json.loads(msg.data)
+            except (ValueError,TypeError):
+                self.command_gate.reject('invalid_json')
+                return
+            now = self.get_clock().now()
+            previous_publisher = self.command_gate.publisher
+            error = self.command_gate.accept(sequence,now.nanoseconds*1e-9,self.robot_frame,
+                self.goal_signature,self.mission_active,min(.25,self.input_timeout))
+            if error is not None:
+                return
+            if previous_publisher != self.command_gate.publisher:
+                self._invalidate_escape()
+            self.latest_cmd = self._twist_from_velocity(tuple(sequence['first']))
+            self.latest_cmd_time = rclpy.time.Time(nanoseconds=int(sequence['stamp']*1e9),clock_type=now.clock_type)
+            self.planner_state = sequence['state']
+            self.planner_state_time = self.latest_cmd_time
+            self.command_sequence = sequence if sequence.get('then') is not None else None
+            return
         self._clear_sequence()
         try:
             sequence = json.loads(msg.data)
@@ -440,12 +406,30 @@ class HumanCollisionAvoidance(Node):
             self.policy_command_stamp = _duration_seconds(msg.header.stamp)
 
     def _cmd_callback(self, msg: Twist) -> None:
+        if self.require_command_envelope:
+            return  # The Twist remains a visualization/legacy interface only.
         self.latest_cmd = msg
         self.latest_cmd_time = self.get_clock().now()
 
     def _planner_state_callback(self, msg: String) -> None:
+        if self.require_command_envelope:
+            return
         self.planner_state = msg.data
         self.planner_state_time = self.get_clock().now()
+
+    def _fence_command_input(self):
+        self.command_gate.fence(self.get_clock().now().nanoseconds*1e-9)
+        self.latest_cmd = Twist()
+        self.latest_cmd_time = None
+        self.planner_state = ''
+        self.planner_state_time = None
+        self._clear_sequence()
+
+    def _invalidate_escape(self):
+        self.cached_escape = None
+        self.async_escape_state = 'invalidated'
+        if self.escape_worker is not None:
+            self.escape_worker.invalidate()
 
     def _safe_patch_callback(self, msg: PoseStamped) -> None:
         if msg.header.frame_id and msg.header.frame_id != self.target_frame:
@@ -676,7 +660,9 @@ class HumanCollisionAvoidance(Node):
                     float(point.confidence),
                 ))
             trajectories.append(samples)
-        self.latest_predictions = trajectories
+        if self.prediction_epoch is not None and epoch<self.prediction_epoch:
+            self._invalidate_escape()
+        self.latest_predictions = prepare_predictions(trajectories,.1)
         self.prediction_epoch = epoch
         self.person_cloud_times["predicted_typed"] = now
 
@@ -716,9 +702,13 @@ class HumanCollisionAvoidance(Node):
                 if improves:
                     return self._twist_from_velocity(command), "clearance_recovery"
             if self.predictive_escape_search and stop_risk is not None and stop_risk[0] < self.prediction_collision_radius:
-                escape = self._validated_predictive_escape(pose, seconds, horizon, filtered, stop_risk[0], command)
+                search_started = time.perf_counter()
+                escape = (self._async_predictive_escape(pose,seconds,horizon,filtered,stop_risk[0],command)
+                          if self.async_predictive_escape_search else
+                          self._validated_predictive_escape(pose,seconds,horizon,filtered,stop_risk[0],command))
+                self.supervisor_search_ms += (time.perf_counter()-search_started)*1000.
                 if escape is not None:
-                    return self._twist_from_velocity(escape), "validated_escape"
+                    return self._twist_from_velocity(escape), "validated_escape_async" if self.async_predictive_escape_search else "validated_escape"
             clearance, conflict_time, x, y = risk
             self.last_risk_source = "predicted_typed"
             self.last_risk_point = ("predicted_typed", x, y, clearance)
@@ -734,46 +724,56 @@ class HumanCollisionAvoidance(Node):
 
     def _validated_predictive_escape(self, pose, seconds, horizon, filtered, stop_clearance, preferred):
         """Find a checked alternative when stopping also predicts a conflict."""
+        snapshot = self._escape_snapshot(pose,seconds,horizon,filtered,stop_clearance,preferred)
+        return None if snapshot is None else search_escape(snapshot)
+
+    def _escape_snapshot(self,pose,seconds,horizon,filtered,stop_clearance,preferred):
         if (self.scan_frame != self.robot_frame or self.scan_stamp is None or
                 not 0. <= seconds-self.scan_stamp <= self.input_timeout):
             return None
-        c, s = math.cos(pose[2]), math.sin(pose[2])
-        best = None
-        best_rank = None
-        stop_rollout = self.motion_envelope.rollout(pose,(0.,0.,0.),self.measured_velocity,
-            horizon,.1,self.response_delay,filtered_command=filtered)
-        stop_tail = self._tail_clearance(pose,(0.,0.,0.),stop_rollout,seconds,horizon)
-        commands = [preferred] + [(vx,vy,0.)
-                    for vx in (-min(.45, self.motion_envelope.max_x), 0., .5*self.motion_envelope.max_x, self.motion_envelope.max_x)
-                    for vy in (-self.motion_envelope.max_y, 0., self.motion_envelope.max_y)]
-        for proposed in commands:
-            command = self.motion_envelope.normalize(proposed)
-            if not any(command):
-                continue
-            rollout = self.motion_envelope.rollout(pose, command, self.measured_velocity,
-                horizon, .1, self.response_delay, filtered_command=filtered)
-            local = [(c*(x-pose[0])+s*(y-pose[1]), -s*(x-pose[0])+c*(y-pose[1]), yaw-pose[2])
-                     for x,y,yaw,_ in rollout]
-            if trajectory_static_cost(local, self.scan_obstacles, self.static_escape_clearance,
-                                      max(self.static_escape_clearance,self.wall_repulsion_range))[1]:
-                continue
-            risk = time_aligned_prediction_risk(self.latest_predictions, seconds-self.prediction_epoch,
-                pose, command, horizon, .1, math.inf, self.prediction_uncertainty_scale,
-                self.prediction_min_confidence, rollout)
-            if risk is None or risk[0] < self.recovery_min_clearance or risk[0] < stop_clearance-.001:
-                continue
-            tail = self._tail_clearance(pose,command,rollout,seconds,horizon)
-            if risk[0] <= stop_clearance+.05 and (tail is None or stop_tail is None or tail <= stop_tail+.05):
-                continue
-            full = self.motion_envelope.rollout(pose, command, self.measured_velocity,
-                self.trajectory_horizon, .1, self.response_delay, filtered_command=filtered)
-            forecast = time_aligned_prediction_risk(self.latest_predictions, seconds-self.prediction_epoch,
-                pose, command, self.trajectory_horizon, .1, math.inf, self.prediction_uncertainty_scale,
-                self.prediction_min_confidence, full)
-            rank = ((forecast or risk)[0], risk[0], tail if tail is not None else -math.inf)
-            if best_rank is None or rank > best_rank:
-                best, best_rank = command, rank
-        return best
+        predictions = (self.latest_predictions if isinstance(self.latest_predictions,PreparedPredictions)
+                       else prepare_predictions(self.latest_predictions,.1))
+        return EscapeSnapshot(tuple(pose),seconds,horizon,self.trajectory_horizon,self.motion_envelope,
+            tuple(self.measured_velocity),None if filtered is None else tuple(filtered),
+            predictions,self.prediction_epoch,tuple(tuple(point) for point in self.scan_obstacles),
+            self.static_escape_clearance,max(self.static_escape_clearance,self.wall_repulsion_range),
+            self.response_delay,self.prediction_uncertainty_scale,self.prediction_min_confidence,
+            self.recovery_min_clearance,stop_clearance,tuple(preferred))
+
+    def _async_predictive_escape(self,pose,seconds,horizon,filtered,stop_clearance,preferred):
+        snapshot = self._escape_snapshot(pose,seconds,horizon,filtered,stop_clearance,preferred)
+        if snapshot is None:
+            self.cached_escape = None
+            self.async_escape_state = 'stale_scan'
+            return None
+        self._collect_escape_result()
+        # Only one job may exist. The worker receives no mutable node state.
+        self.escape_worker.submit(snapshot)
+        cached = self.cached_escape
+        if (cached is None or cached.generation != self.escape_worker.generation or
+                not 0.<=seconds-cached.snapshot.seconds<=self.escape_result_max_age or
+                not 0.<=time.monotonic()-cached.submitted_at<=self.escape_result_max_age):
+            self.cached_escape = None
+            self.async_escape_state = 'waiting_for_current_result'
+            return None
+        if cached.command is None:
+            self.async_escape_state = 'no_feasible_proposal'
+            return None
+        # The worker's old clearance is never a publication certificate.
+        checked = checked_escape(snapshot,cached.command,stopped_tail(snapshot))
+        if checked is None:
+            self.cached_escape = None
+            self.async_escape_rejections += 1
+            self.async_escape_state = 'revalidation_rejected'
+            return None
+        self.async_escape_state = 'revalidated'
+        return checked[0]
+
+    def _collect_escape_result(self):
+        if self.escape_worker is not None:
+            result = self.escape_worker.poll(self.escape_result_max_age)
+            if result is not None:
+                self.cached_escape = result
 
     def _typed_safety_fresh(self) -> bool:
         return self.prediction_min_confidence <= 1.0 and self.prediction_epoch is not None and 0.0 <= self.get_clock().now().nanoseconds * 1e-9 - self.prediction_epoch <= self.person_cloud_timeout
@@ -1154,6 +1154,15 @@ class HumanCollisionAvoidance(Node):
         return min_clearance + 0.35 * radius_clearance
 
     def _timer_callback(self) -> None:
+        started = time.perf_counter()
+        self.supervisor_tick_interval_ms = None if self.supervisor_tick_started is None else (started-self.supervisor_tick_started)*1000.
+        self.supervisor_tick_started = started
+        self.supervisor_search_ms = 0.
+        self.async_escape_state = 'idle'
+        # Drain finished work even when the nominal command is safe, so a
+        # completed stale job cannot occupy the single-flight mailbox until the
+        # next encounter. Proposals still require fresh validation before use.
+        self._collect_escape_result()
         now = self.get_clock().now()
         self._expire_stale_people_forces(now)
         pose = self._robot_pose()
@@ -1211,6 +1220,21 @@ class HumanCollisionAvoidance(Node):
         wall_x, wall_y = self._active_wall_force()
         people_x, people_y = self._active_people_force()
         payload = {
+            "async_escape_search": self.async_predictive_escape_search,
+            "async_escape_state": self.async_escape_state,
+            "async_escape_rejections": self.async_escape_rejections,
+            "escape_worker": None if self.escape_worker is None else self.escape_worker.diagnostics(),
+            "tick_to_publication_ms": None if self.supervisor_tick_started is None else (time.perf_counter()-self.supervisor_tick_started)*1000.,
+            "tick_interval_ms": self.supervisor_tick_interval_ms,
+            "predictive_search_ms": None if self.async_predictive_escape_search else self.supervisor_search_ms,
+            "escape_control_path_ms": self.supervisor_search_ms,
+            "period_s": self.supervisor_period_s,
+            "command_envelope_required": self.require_command_envelope,
+            "command_publisher_id": self.command_gate.publisher,
+            "command_sequence_id": self.command_gate.sequence,
+            "command_envelope_valid": self.require_command_envelope and not self._input_stale(),
+            "command_source_stamp": None if self.latest_cmd_time is None else self.latest_cmd_time.nanoseconds*1e-9,
+            "command_rejections": dict(self.command_gate.rejections),
             "mode": mode,
             "reason": self.last_avoid_reason if mode == "override" else mode,
             "input_cmd": self._twist_dict(input_cmd),
@@ -1371,7 +1395,12 @@ class HumanCollisionAvoidance(Node):
     def _input_stale(self) -> bool:
         if self.latest_cmd_time is None:
             return True
-        return (self.get_clock().now() - self.latest_cmd_time).nanoseconds * 1e-9 > self.input_timeout
+        now = self.get_clock().now()
+        if self.require_command_envelope and (self.mission_state_time is None or
+                not 0. <= (now-self.mission_state_time).nanoseconds*1e-9 <= 1.):
+            return True
+        limit = min(.25,self.input_timeout) if self.require_command_envelope else self.input_timeout
+        return not 0. <= (now-self.latest_cmd_time).nanoseconds*1e-9 <= limit
 
     def _input_active(self) -> bool:
         if self._input_stale():
@@ -1446,6 +1475,18 @@ class HumanCollisionAvoidance(Node):
     @staticmethod
     def _wrap_pi(value: float) -> float:
         return math.atan2(math.sin(value), math.cos(value))
+
+    def destroy_node(self):
+        # Request a balanced stop before waiting for any finite background job.
+        # This is best-effort publication, not a motor-stop acknowledgement.
+        if self.context.ok():
+            try:
+                self.pub.publish(Twist())
+            except Exception as exc:
+                self.get_logger().warning(f'Unable to publish shutdown stop: {exc}')
+        if self.escape_worker is not None:
+            self.escape_worker.shutdown()
+        return super().destroy_node()
 
 
 def main() -> None:

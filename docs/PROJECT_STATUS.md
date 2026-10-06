@@ -16,12 +16,21 @@
 </p>
 <!-- geoff-nav:end -->
 
-**Last reviewed: 5 October 2026.** This page summarizes the published development
-baseline [`3a7ceac`](https://github.com/DavidBatty95/Geoff-Sim/commit/3a7ceac).
-It is a manually maintained evidence snapshot, not a live view of local work or
-an acceptance release. Later commits and local experiments need their own checks.
+**Last reviewed: 6 October 2026.** This page retains the historical development
+baseline [`3a7ceac`](https://github.com/DavidBatty95/Geoff-Sim/commit/3a7ceac)
+alongside the dated follow-ups below. It is a manually maintained
+evidence snapshot, not an acceptance release. Later experiments need their own checks.
 
 ## At a glance
+
+**6 October fidelity/publication follow-up:** [full report](HARDWARE_FIDELITY.md).
+Canonical G1 CRC/machine-mode handling, measured sensor-site IMUs, raw measured
+sensor TF and driver-layout-aware point clouds are validated. Full CI passed,
+including 624 ROS test results and 11 native CTests. The final two zero-person
+dual-delivery runs passed on unchanged code. Hardware calibration, complete
+contact coverage and strict crowd acceptance remain open.
+The updated native one-person/three-goal smoke passed with score 86.752 and
+0.646 m minimum body clearance; it does not replace the full crowd matrix.
 
 | Area | Current state | What remains |
 | --- | --- | --- |
@@ -32,6 +41,11 @@ an acceptance release. Later commits and local experiments need their own checks
 | BrainCo hands | Description, interfaces and experimental contact-bench work | Repeated mobile contact-only grasp validation |
 | Research | 50-work literature-review package, published trials and retained failure ledger | Controlled comparisons, held-out experiments and stronger reliability estimates |
 | Hardware | Physical G1 is the target | Calibrated deployment and hardware acceptance remain future work |
+
+**Planned research delivery:** [P0–P7](RESEARCH_PROGRAMME.md) maps the five review
+gaps to calibration, causal diagnosis, method comparisons and publication evidence.
+All phases are planned; first priority is P0 followed by P1/P2 and the G1-focused
+Paper A candidate. These research plans do not change the acceptance status above.
 
 ## Current evidence
 
@@ -55,6 +69,65 @@ filename version does not mean a better or qualified controller. See
 [results review](RESULTS_REVIEW.md) for denominators and provenance.
 
 ## Project progression
+
+### Local native-contract follow-up — 6 October 2026
+
+[Native payload contract work](NATIVE_PAYLOAD_CONTRACT.md) produced two consecutive
+complete zero-person **two-colour/four-table** deliveries using the cycle-03
+native-inertial/delay-trained policy. Both runs verified red and blue placement;
+the second exercised cancel/wait/relocalize/resume. No falls or drops were recorded.
+This is 2/2 on the final repeated configuration, and 2/5 across its evolving
+integration attempts; it remains a simulated-weld fixture, not contact-only grasp.
+
+Matched delayed/native-inertial loaded probes retained 32/32 cycle-03 environments
+versus 23/32 baseline, but left-pivot tracking regressed, so fluid-carry acceptance
+is still open. A subsequent four-person navigation pilot with the original
+navigation policy passed **0/2 strict trials**: small-open reached 3/3 goals but
+scored 67.933; medium-doorway reached 2/3 and recorded one collision. The full
+S0–S7 plan is not complete. Latest checks: 417 bridge, 95 benchmark, 18 bringup,
+19 focused script and 9 Torch/training tests passed.
+
+The subsequent acquisition/approach slice adds native object acquisition stamps,
+replay-safe placement evidence, closer observation viewpoints and RGB-D support-edge
+pickup directions. Two further complete dual-delivery runs passed after retained
+failures (perception optimization changed between those successes). Cycle 03 now
+has **4 complete passes among 9 evolving integration attempts**. Latest checks:
+426 bridge tests and 10 native CTests passed; benchmark/bringup/script/training
+checks above also passed. Full phase acceptance remains open.
+
+### Local phase follow-up — 5 October 2026
+
+Latest [dual-cube perception diagnostics](DUAL_TRANSPORT_PERCEPTION.md) identified
+multi-second camera delivery latency at 384×216. At 192×108, both cubes and both
+destinations acquired visual confirmation; one 120-second diagnostic run verified
+the red delivery. Full-budget baseline and fluid-policy runs still fell, so no
+complete two-cube success or native fluid-policy qualification is established.
+Current checks: 412 bridge, 95 benchmark, 18 bringup, 8 focused script and 8
+Torch/training tests passed. All five native attempts remain in the evidence ledger.
+
+Latest [asynchronous supervisor work](ASYNC_ESCAPE_SUPERVISOR.md) separates escape
+search from immediate validation. Crowd callback p99 measured 3.2–5.6 ms at
+configured 50 Hz, with ~35 ms p99 actual tick intervals. One-person handoff testing
+passed 3/3 goals; the two four-person cases still failed strict acceptance (one
+completed without contact but scored below 70). Faster callbacks are not a
+collision-free or hard-real-time qualification.
+
+Earlier [handoff/supervisor iteration](COMMAND_HANDOFF_AND_SUPERVISOR.md): the
+full-pose atomic command path completed a one-person, three-goal native test
+with zero contacts and 507/507 matched planner-to-supervisor records. Prediction
+preparation and batched static checks reduced observed supervisor work in pilots,
+but the final four-person pair failed both cases. No crowd-acceptance promotion.
+
+After the published baseline, runtime parameter capture, inference-publication
+timing, bounded priority scheduling and stop-generation invalidation were implemented
+and tested. In a courtyard pilot, active-planning p99 was 82 ms versus 154 ms in
+the instrumented baseline; that seed completed all three goals, but other trials
+still collided. The interruption follow-up passed its isolated stopping check
+and failed both crowd cases. No stage acceptance is claimed.
+
+See the [phase implementation and native evidence report](PHASE_PROGRESS_20261005.md)
+for all conditions, limitations, failed runs and remaining gates. These local
+results supplement rather than replace the dated publication table above.
 
 ![Development milestones from simulation foundation to the October source publication](media/project-progression.svg)
 
