@@ -12,7 +12,7 @@ amber presentation belongs to Dougie; no G1 footage is used in its gallery.
 | [Walking GIF](media/dougie/walking.gif) | New six-second MuJoCo `Simulation('room')` run. Command `(0.3, 0, 0)` m/s, m/s, rad/s; startup settling is part of the clip. 120 frames at 20 fps, nominal 1× simulated-time playback. Camera follows actual base position. Twelve-joint policy/torque physics; no pose interpolation. |
 | [Radiation replay GIF](media/dougie/radiation-replay.gif) | Seed-3 initial Poisson cohort. 270 integration-window detector positions from 0.5–135 s shown in 90 frames over nine seconds, approximately 15× playback. The full run returned at 135.23 s. XY projection, metre grid, home square, measured dose/rate and latest available planner state. This is a log visualization, not the live MuJoCo or RViz view and not a GP heatmap. |
 | [Reactor still](media/dougie-reactor.png) | Existing actual reactor-model render, produced by [the reactor renderer](../scripts/render_dougie_reactor.py). |
-| [Title banner](media/dougie/banner.svg) | Original decorative vector quadruped and animated scan ring; schematic, not telemetry. |
+| [Title banner](media/dougie/banner.svg) | Original Go2-inspired vector illustration: rounded silver chassis, dark front sensor housing, circular hip motors and four articulated legs with a diagonal-pair trot, body bob and rotating scan ring. Decorative SVG animation, not recorded gait or telemetry. |
 | [Architecture](media/dougie/architecture.svg) | Original static system schematic. |
 
 Both GIFs are 640 × 420 and loop. Restarting a loop resets the displayed time;

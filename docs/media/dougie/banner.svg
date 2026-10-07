@@ -1,18 +1,111 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
   <title id="title">Dougie-Sim — explore, measure, return</title>
-  <desc id="desc">Quadruped radiation mapping research. Animated scanning rings are a decorative schematic.</desc>
+  <desc id="desc">A Go2-inspired quadruped with a rounded silver shell, dark front sensor housing, circular hip motors and four articulated legs trots within scanning rings. Decorative animation, not recorded robot telemetry.</desc>
   <defs>
     <linearGradient id="bg"><stop stop-color="#0b1724"/><stop offset="1" stop-color="#183b4b"/></linearGradient>
+    <linearGradient id="shell" x1="0" y1="0" x2="0.3" y2="1"><stop stop-color="#f1f6f8"/><stop offset=".48" stop-color="#c4d3dc"/><stop offset="1" stop-color="#819baa"/></linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5f9fc"/><stop offset="1" stop-color="#b4cad6"/></linearGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#283d4c"/><stop offset="1" stop-color="#080f17"/></linearGradient>
+    <radialGradient id="lens"><stop stop-color="#b4fff0"/><stop offset=".3" stop-color="#48daca"/><stop offset=".65" stop-color="#196573"/><stop offset="1" stop-color="#081823"/></radialGradient>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#48daca" stroke-opacity=".09"/></pattern>
   </defs>
   <rect width="1200" height="300" rx="20" fill="url(#bg)"/>
   <rect width="1200" height="300" rx="20" fill="url(#grid)"/>
-  <g fill="none" stroke="#48daca" transform="translate(975 147)">
-    <circle r="108" opacity=".2"/><circle r="75" opacity=".4"/>
-    <circle r="108" stroke-width="3" stroke-dasharray="120 560"><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="9s" repeatCount="indefinite"/></circle>
-    <path d="M-67-19H32L62-5V14H-60Z" fill="#183b4b" stroke-width="5"/>
-    <path d="M-49 14L-64 43L-49 65M-19 14L-6 40L-18 65M22 14L10 41L23 65M44 14L60 42L48 65" stroke-width="7" stroke-linecap="round"/>
-    <circle cx="49" cy="-5" r="4" fill="#ffbc66" stroke="none"/>
+  <g transform="translate(990 142)">
+    <!-- Sensor rings are decorative; the illustration is not a gait measurement. -->
+    <g fill="none" stroke="#48daca">
+      <circle r="116" opacity=".15"/><circle r="88" opacity=".12"/>
+      <circle r="116" stroke-width="2" stroke-dasharray="100 629" opacity=".7"><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="9s" repeatCount="indefinite"/></circle>
+      <path d="M-126 0H-116M116 0H126M0-126V-116M0 116V126" opacity=".5"/>
+    </g>
+    <ellipse cx="0" cy="93" rx="96" ry="10" fill="#050e18" opacity=".45">
+      <animate attributeName="rx" values="96;90;96;90;96" dur="1.6s" repeatCount="indefinite"/>
+    </ellipse>
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0;0 -2;0 0" dur="1.6s" repeatCount="indefinite"/>
+      <!-- Far-side diagonal pair, visible behind the chassis. -->
+      <g transform="translate(-51 -8)">
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="-12;14;-12" dur="1.6s" repeatCount="indefinite"/>
+          <path d="M0 0L-20 42" fill="none" stroke="#597585" stroke-width="16" stroke-linecap="round"/>
+          <circle cx="-20" cy="42" r="9" fill="#253d4d" stroke="#8ea8b6" stroke-width="2"/>
+          <g transform="translate(-20 42)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" values="8;-18;8" dur="1.6s" repeatCount="indefinite"/>
+              <path d="M0 0L21 46" fill="none" stroke="#698797" stroke-width="7" stroke-linecap="round"/>
+              <ellipse cx="21" cy="47" rx="7" ry="5" fill="#0a1520"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      <g transform="translate(62 -8)">
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="14;-12;14" dur="1.6s" repeatCount="indefinite"/>
+          <path d="M0 0L-21 42" fill="none" stroke="#597585" stroke-width="16" stroke-linecap="round"/>
+          <circle cx="-21" cy="42" r="9" fill="#253d4d" stroke="#8ea8b6" stroke-width="2"/>
+          <g transform="translate(-21 42)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" values="-18;8;-18" dur="1.6s" repeatCount="indefinite"/>
+              <path d="M0 0L21 46" fill="none" stroke="#698797" stroke-width="7" stroke-linecap="round"/>
+              <ellipse cx="21" cy="47" rx="7" ry="5" fill="#0a1520"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      <!-- Compact rounded Go2 shell, rear grille and black forward sensor face. -->
+      <path d="M-88-37Q-94-51-75-59L36-64Q57-64 76-49L92-31L78-8L-73-8Q-89-13-88-37Z" fill="url(#shell)" stroke="#7697a9" stroke-width="1.5"/>
+      <path d="M-77-57L34-63Q52-63 69-51L54-40L-78-36L-88-42Q-90-51-77-57Z" fill="url(#top)"/>
+      <path d="M-83-26L60-29L76-12L-72-9Z" fill="#405b6c"/>
+      <path d="M-68-52L26-56L40-50L-58-46Z" fill="#b4c8d2"/>
+      <path d="M-78-36L-77-19M-72-36L-71-19M-66-36L-65-19" stroke="#233d4e" stroke-width="3"/>
+      <path d="M-39-34H13" stroke="#93abb8" stroke-width="1.5"/>
+      <text x="-30" y="-20" fill="#344f61" font-family="DejaVu Sans,Arial,sans-serif" font-size="10" font-weight="bold" letter-spacing="2">GO2</text>
+      <path d="M69-51Q88-46 94-30L90-9Q74 0 60-12L55-35Z" fill="url(#visor)" stroke="#68899b" stroke-width="1.5"/>
+      <!-- Front depth/camera aperture and lower hemispherical LiDAR housing. -->
+      <path d="M67-36L85-30L84-24L66-29Z" fill="#040a10" stroke="#3c5c6e"/>
+      <ellipse cx="75" cy="-29" rx="3.5" ry="3" fill="#648fa5"/>
+      <ellipse cx="79" cy="-12" rx="10" ry="9" fill="#070e15" stroke="#354f60"/>
+      <ellipse cx="81" cy="-13" rx="6" ry="6.5" fill="url(#lens)"/>
+      <path d="M90-23L103-20" stroke="#48daca" stroke-width="1" opacity=".5"/>
+      <!-- Near-side legs: large hip actuators, broad thighs, slender shins and rubber feet. -->
+      <g transform="translate(-64 -7)">
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="14;-12;14" dur="1.6s" repeatCount="indefinite"/>
+          <path d="M0 0Q-6 19-23 43" fill="none" stroke="#718e9f" stroke-width="19" stroke-linecap="round"/>
+          <path d="M-2 7L-22 40" fill="none" stroke="url(#shell)" stroke-width="12" stroke-linecap="round"/>
+          <circle cx="-23" cy="43" r="10" fill="#233b4b" stroke="#adc4d1" stroke-width="3"/>
+          <g transform="translate(-23 43)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" values="-18;8;-18" dur="1.6s" repeatCount="indefinite"/>
+              <path d="M0 0L25 48" fill="none" stroke="#d1e0e8" stroke-width="8" stroke-linecap="round"/>
+              <path d="M3 7L21 40" stroke="#7997a9" stroke-width="2"/>
+              <ellipse cx="25" cy="50" rx="8" ry="5" fill="#0a131d" stroke="#526e7e"/>
+            </g>
+          </g>
+        </g>
+        <circle r="16" fill="#b4c9d5" stroke="#e3eef3" stroke-width="2"/>
+        <circle r="11" fill="#2c4556"/><circle r="5" fill="#7192a5"/>
+      </g>
+      <g transform="translate(48 -6)">
+        <g>
+          <animateTransform attributeName="transform" type="rotate" values="-12;14;-12" dur="1.6s" repeatCount="indefinite"/>
+          <path d="M0 0Q-5 20-22 43" fill="none" stroke="#718e9f" stroke-width="19" stroke-linecap="round"/>
+          <path d="M-2 7L-21 40" fill="none" stroke="url(#shell)" stroke-width="12" stroke-linecap="round"/>
+          <circle cx="-22" cy="43" r="10" fill="#233b4b" stroke="#adc4d1" stroke-width="3"/>
+          <g transform="translate(-22 43)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" values="8;-18;8" dur="1.6s" repeatCount="indefinite"/>
+              <path d="M0 0L25 48" fill="none" stroke="#d1e0e8" stroke-width="8" stroke-linecap="round"/>
+              <path d="M3 7L21 40" stroke="#7997a9" stroke-width="2"/>
+              <ellipse cx="25" cy="50" rx="8" ry="5" fill="#0a131d" stroke="#526e7e"/>
+            </g>
+          </g>
+        </g>
+        <circle r="16" fill="#b4c9d5" stroke="#e3eef3" stroke-width="2"/>
+        <circle r="11" fill="#2c4556"/><circle r="5" fill="#7192a5"/>
+      </g>
+    </g>
+    <text x="0" y="119" text-anchor="middle" fill="#7ea7b8" font-family="DejaVu Sans,Arial,sans-serif" font-size="9" letter-spacing="2">GO2 / EXPLORATION PLATFORM</text>
   </g>
   <g font-family="DejaVu Sans,Arial,sans-serif">
     <text x="54" y="63" fill="#48daca" font-size="16" letter-spacing="4">QUADRUPED EXPLORATION RESEARCH</text>
