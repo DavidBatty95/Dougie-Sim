@@ -1,11 +1,11 @@
 name: Bug report
-description: Reproducible simulation, visualization or tooling failure
+description: Reproducible Go2 simulation, radiation mapping, terrain or tooling failure
 labels: [bug]
 body:
   - type: textarea
     attributes:
       label: Command and reproduction steps
-      description: Include the scene, seed, people count and flags.
+      description: Include the command, seed, dose budget, rate limit, GP likelihood and flags.
     validations:
       required: true
   - type: textarea
@@ -21,9 +21,9 @@ body:
     attributes:
       label: Run type
       options:
-        - Onboard visual session (unscored)
-        - Onboard scored navigation
-        - Oracle diagnostic
-        - Fixed-command diagnostic
-        - Mock/CI tooling
+        - Radiation mapping and dose-constrained exploration
+        - Online GP prediction or uncertainty
+        - Go2 locomotion or terrain traversal
+        - ROS or planar navigation integration
+        - Build or CI tooling
         - Other

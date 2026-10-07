@@ -1,0 +1,12 @@
+FROM osrf/ros:humble-desktop-full@sha256:1db1e4e941d4f77fab55bcd479158a75273329335e86ec468bff280859e8178c
+ENV DEBIAN_FRONTEND=noninteractive ROS_DISTRO=humble PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pip python3-venv libglfw3 libgl1-mesa-dri \
+    ros-humble-navigation2 ros-humble-nav2-bringup ros-humble-slam-toolbox \
+    ros-humble-rmw-cyclonedds-cpp && rm -rf /var/lib/apt/lists/*
+COPY docker/requirements-dougie.txt /tmp/requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt && \
+    python3 -m pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+WORKDIR /workspace
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["python3", "-m", "dougie_sim.run", "--ros"]

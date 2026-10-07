@@ -1,4 +1,5 @@
 # Local environment and machine-specific settings
+/.dougie/
 .env
 .env.*
 !.env.example

@@ -1,40 +1,26 @@
+name: dougie-sim
 services:
-  unitree-g1-sim:
+  dougie-sim:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-      args:
-        USER_UID: ${UID:-1000}
-        USER_GID: ${GID:-1000}
-    image: unitree-g1-ros2-mujoco:humble
-    container_name: unitree-g1-ros2-mujoco
+      dockerfile: docker/Dockerfile.dougie
+    image: dougie-sim:humble
+    user: "${DOUGIE_UID:-1000}:${DOUGIE_GID:-1000}"
     network_mode: host
-    ipc: host
-    privileged: false
-    runtime: ${DOCKER_RUNTIME:-runc}
     environment:
-      DISPLAY: ${DISPLAY:-:0}
-      QT_X11_NO_MITSHM: "1"
-      XAUTHORITY: ${XAUTHORITY:-/tmp/.docker.xauth}
-      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-42}
+      HOME: /tmp
+      DISPLAY: ${DISPLAY:-}
+      XAUTHORITY: /tmp/dougie.xauthority
+      ROS_DOMAIN_ID: ${DOUGIE_ROS_DOMAIN_ID:-43}
       RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-      CYCLONEDDS_URI: file:///workspace/ros2_ws/config/cyclonedds.xml
-      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-void}
-      NVIDIA_DRIVER_CAPABILITIES: ${NVIDIA_DRIVER_CAPABILITIES:-graphics,utility,compute}
+      CYCLONEDDS_URI: file:///workspace/config/dougie_cyclonedds.xml
+      PYTHONPATH: /workspace
+      PYTHONDONTWRITEBYTECODE: '1'
+      QT_X11_NO_MITSHM: '1'
     volumes:
-      - ./ros2_ws:/workspace/ros2_ws
-      - ./vendor:/workspace/vendor
-      - ./scripts:/workspace/scripts:ro
-      - ./tools:/workspace/tools:ro
-      - ./geoff:/workspace/geoff:ro
-      - ./docs:/workspace/docs:ro
-      - ./patches:/workspace/patches:ro
-      - ./.git:/workspace/.git:ro
-      - ./integrations:/workspace/integrations:ro
+      - .:/workspace
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      - ${XAUTHORITY:-/tmp/.docker.xauth}:${XAUTHORITY:-/tmp/.docker.xauth}:ro
-    devices:
-      - /dev/dri:/dev/dri
-    working_dir: /workspace/ros2_ws
+      - ${XAUTHORITY:-/dev/null}:/tmp/dougie.xauthority:ro
+    working_dir: /workspace
     stdin_open: true
     tty: true

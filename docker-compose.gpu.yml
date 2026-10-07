@@ -1,5 +1,5 @@
 services:
-  unitree-g1-sim:
+  dougie-sim:
     runtime: nvidia
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}

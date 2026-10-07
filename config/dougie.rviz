@@ -1,0 +1,49 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Fixed Frame: map
+    Background Color: 35; 40; 48
+    Frame Rate: 30
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 30
+    - Class: rviz_default_plugins/Map
+      Name: SLAM map
+      Enabled: true
+      Topic:
+        Value: /map
+        Durability Policy: Transient Local
+    - Class: rviz_default_plugins/LaserScan
+      Name: Virtual scan
+      Enabled: true
+      Topic:
+        Value: /scan
+        Reliability Policy: Best Effort
+      Size (m): 0.04
+    - Class: rviz_default_plugins/Marker
+      Name: Dougie body
+      Enabled: true
+      Marker Topic:
+        Value: /dougie/body
+    - Class: rviz_default_plugins/Path
+      Name: Navigation plan
+      Enabled: true
+      Topic:
+        Value: /plan
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Scale: 50
+      Target Frame: map
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+Window Geometry:
+  Width: 1280
+  Height: 800
