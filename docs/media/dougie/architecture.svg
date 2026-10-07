@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370" role="img" aria-labelledby="title desc">
+ <title id="title">Dougie radiation mission architecture</title>
+ <desc id="desc">Ideal pose and ranges plus detector counts feed observed terrain and a sparse Gaussian process. Dose-aware planning commands the walking policy and torque-driven physics. Hidden radiation truth is used separately for scoring.</desc>
+ <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#48daca"/></marker></defs>
+ <rect width="1200" height="370" rx="16" fill="#0b1724"/>
+ <g font-family="DejaVu Sans,Arial,sans-serif">
+  <text x="30" y="40" fill="#48daca" font-size="22">OBSERVE → INFER → PLAN → WALK</text>
+  <g fill="#122638" stroke="#31566a">
+   <rect x="30" y="85" width="250" height="145" rx="12"/><rect x="325" y="85" width="250" height="145" rx="12"/>
+   <rect x="620" y="85" width="250" height="145" rx="12"/><rect x="915" y="85" width="255" height="145" rx="12"/>
+  </g>
+  <g fill="#ecf5ff" font-size="21"><text x="50" y="122">Sensing</text><text x="345" y="122">Online world model</text><text x="640" y="122">Mission decisions</text><text x="935" y="122">Go2 execution</text></g>
+  <g fill="#a7bdcf" font-size="16">
+   <text x="50" y="158">Ideal pose + 3-D ranges</text><text x="50" y="189">2 Hz Poisson counts</text>
+   <text x="345" y="158">Multi-height support graph</text><text x="345" y="189">Bounded XYZ Poisson GP</text>
+   <text x="640" y="158">Information + route dose</text><text x="640" y="189">Return reserve + deadline</text>
+   <text x="935" y="158">50 Hz walking policy</text><text x="935" y="189">200 Hz torque physics</text>
+  </g>
+  <g fill="none" stroke="#48daca" stroke-width="2" marker-end="url(#arrow)"><path d="M280 155H315"/><path d="M575 155H610"/><path d="M870 155H905"/><path d="M1040 230V265H155V240"/></g>
+  <text x="370" y="291" fill="#48daca" font-size="15">Actual motion produces the next observations</text>
+  <text x="30" y="338" fill="#ffbc66" font-size="17">EVALUATION ONLY: hidden sources → independent actual-exposure score → retained outcome artifacts</text>
+ </g>
+</svg>

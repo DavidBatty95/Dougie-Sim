@@ -8,10 +8,10 @@ files = [ROOT/'README.md', *sorted((ROOT/'docs').glob('DOUGIE_*.md'))]
 errors = []
 for path in files:
     for target in re.findall(r'\]\(([^)]+)\)', path.read_text()):
-        if '://' in target or target.startswith('#'):
+        if '://' in target:
             continue
         destination, _, fragment = target.partition('#')
-        resolved = (path.parent/destination).resolve()
+        resolved = (path.parent/destination).resolve() if destination else path
         if not resolved.exists():
             errors.append(f'{path.relative_to(ROOT)}: missing {target}')
         elif fragment and resolved.suffix == '.md':

@@ -1,0 +1,51 @@
+{
+  "renderer_sha256": "700cd7e2bc707168390137d615ccc90bd96b6891a2a79d158afad5b678c56f56",
+  "source_sha256": {
+    "dougie_sim/simulation.py": "a3712f5ea321ad440cf27bd5cb150b9bba15e268bfbec79ac3e664e10a01cdd5",
+    "config/dougie_assets.json": "ed5f75bcf7dde8513848590a22f05c55465a55bbeefe59bf3f5278371211f783"
+  },
+  "versions": {
+    "mujoco": "3.3.6",
+    "numpy": "2.2.6",
+    "pillow": "9.0.1"
+  },
+  "walking.gif": {
+    "sha256": "6456dcdb2ee398f8da5c1ea3b8bc10e521fd363fee890248350f5d6c5a241741",
+    "frames": 120,
+    "size": [
+      640,
+      420
+    ],
+    "frame_duration_ms": 50,
+    "bytes": 5611692
+  },
+  "walking_final_metrics": {
+    "simulation_time_s": 5.999999999999894,
+    "base_position": [
+      0.947446985478124,
+      0.46789009676185844,
+      0.31675327874985254
+    ],
+    "upright": 0.99961692871869,
+    "controller": "policy",
+    "command": [
+      0.3,
+      0.0,
+      0.0
+    ],
+    "joints": 12,
+    "odometry_source": "mujoco_ground_truth",
+    "scan_source": "ideal_mujoco_raycast"
+  },
+  "radiation-replay.gif": {
+    "sha256": "787dc11755c7f2def5397c6015ae5c972a04a486ff30b39eff032c8058922bb4",
+    "frames": 90,
+    "size": [
+      640,
+      420
+    ],
+    "frame_duration_ms": 100,
+    "bytes": 593694
+  },
+  "replay_input_sha256": "ca51604fde997c8a742240ac93e26e8fe00bf54f6408d999ae1a7ce7571ada0f"
+}
