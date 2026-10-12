@@ -7,6 +7,10 @@ records source/asset hashes and the Docker image identity. Raw artifacts remain
 under ignored `results/dougie/`. These are simulation qualification trials,
 not a general reliability study, hardware deployment or SOTA comparison.
 
+**Superseding terrain assessment:** the [680-trial qualification](DOUGIE_TERRAIN_QUALIFICATION.md)
+found that the original stair completions do not establish reliable or clean
+traversal. Read that report for current stair/uneven-ground capability limits.
+
 ## Software and interfaces
 
 **25 tests passed**, including the real-DDS radiation publication test.
@@ -58,7 +62,7 @@ development runs also returned within budget; they are not pooled with the
 frozen Poisson cohort.
 
 ```bash
-./dougie radiation --headless --fast --duration 180 --dose-budget 0.2 --seed 3
+./dougie radiation --source-profile baseline --headless --fast --duration 180 --dose-budget 0.2 --seed 3
 ```
 
 ## GP accuracy and computational cost
@@ -89,6 +93,10 @@ fast inference does not imply an accurate peak-dose estimate everywhere.
 ```
 
 ## Physical terrain capability
+
+The following are the **initial demonstrations**, retained as historical
+observations. They are not qualification passes under the later contact-aware
+and repeatability criteria.
 
 - **Stairs:** all six ascent and six descent steps contacted. Risers 6 cm,
   tread 40 cm, platform 36 cm high. The untethered Go2 crossed 8 m in 119.4 s,

@@ -59,13 +59,12 @@ def add_reactor(body):
         box(body, f'floor_plate_{i}', (x, y, h/2), (.28, .3, h/2), '.35 .36 .38 1')
 
 
-def radiation_description():
-    return dict(background_usv_h=.2, sources=[
-        dict(position=[5.8, 3.8, 1.2], strength_usv_h_m2=450., core_radius_m=.25),
-        dict(position=[-5.2, 4.8, .6], strength_usv_h_m2=65., core_radius_m=.2),
-        dict(position=[4.2, -3., 1.1], strength_usv_h_m2=35., core_radius_m=.15),
-    ], shields=[
+def radiation_description(profile='baseline', source_config=None):
+    from .source_config import load_source_profile
+    description = load_source_profile(profile, source_config)
+    description['shields'] = [
         dict(lower=[2.7, 1.6, 0.], upper=[3.3, 6., 3.], attenuation_per_m=3.5),
         dict(lower=[3.7, 1.3, 0.], upper=[7.5, 1.9, 3.], attenuation_per_m=3.5),
         dict(lower=[-3.65, 1.6, 0.], upper=[-3.35, 6., 2.8], attenuation_per_m=2.),
-    ])
+    ]
+    return description

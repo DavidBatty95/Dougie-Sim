@@ -1,0 +1,54 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Fixed Frame: odom
+    Background Color: 35; 40; 48
+    Frame Rate: 30
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 30
+    - Class: rviz_default_plugins/MarkerArray
+      Name: World (diagnostic truth)
+      Enabled: true
+      Topic:
+        Value: /dougie/scene
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Go2 physical geometry
+      Enabled: true
+      Topic:
+        Value: /dougie/robot
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Radiation map and mission
+      Enabled: true
+      Topic:
+        Value: /radiation/visualization
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Live mission dashboard
+      Enabled: true
+      Topic:
+        Value: /radiation/dashboard
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 16
+      Pitch: 0.7
+      Yaw: 0.8
+      Target Frame: odom
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+Window Geometry:
+  Width: 1280
+  Height: 800

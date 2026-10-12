@@ -25,7 +25,7 @@ def rotation(quaternion):
     return matrix.reshape(3, 3)
 
 
-def scene_xml(world='flat', people=0):
+def scene_xml(world='flat', people=0, radiation_sources=None):
     if world not in WORLDS or not 0 <= people <= 8:
         raise ValueError('invalid world or people count')
     root = ET.parse(ASSETS / 'go2/go2.xml').getroot()
@@ -58,11 +58,16 @@ def scene_xml(world='flat', people=0):
         if world == 'reactor':
             add_reactor(body)
             from .reactor import radiation_description
-            ET.SubElement(root, 'size', nuser_site='2', nuser_geom='1')
-            for i, source in enumerate(radiation_description()['sources']):
-                ET.SubElement(body, 'site', name=f'radiation_source_{i}',
-                    pos=' '.join(map(str, source['position'])), size='.08', group='5',
-                    user=f"{source['strength_usv_h_m2']} {source['core_radius_m']}")
+            description = radiation_description() if radiation_sources is None else radiation_sources
+            ET.SubElement(root, 'size', nuser_site='3', nuser_geom='1')
+            custom = ET.SubElement(root, 'custom')
+            ET.SubElement(custom, 'numeric', name='radiation_background_usv_h', data=str(description['background_usv_h']))
+            for i, source in enumerate(description['sources']):
+                leak = source.get('kind', 'hotspot') == 'leak'
+                ET.SubElement(body, 'site', name='radiation_source_'+source.get('id', str(i)),
+                    type='sphere', pos=' '.join(map(str, source['position'])), size='.09', group='5',
+                    rgba='1 .55 .05 1' if leak else '1 .05 .1 1',
+                    user=f"{source['strength_usv_h_m2']} {source['core_radius_m']} {int(leak)}")
             for name, attenuation in (('shield_west', 3.5), ('shield_south', 3.5), ('service_partition', 2.)):
                 body.find(f"geom[@name='{name}']").set('user', str(attenuation))
         else:
@@ -75,8 +80,11 @@ def scene_xml(world='flat', people=0):
 
 
 class Simulation:
-    def __init__(self, world='flat', people=0, controller='policy'):
-        self.model = mujoco.MjModel.from_xml_string(scene_xml(world, people))
+    def __init__(self, world='flat', people=0, controller='policy', *, model_xml=None, radiation_sources=None):
+        self.model = mujoco.MjModel.from_xml_string(model_xml if model_xml is not None else scene_xml(world, people, radiation_sources))
+        self.control_decimation = round(.02 / self.model.opt.timestep)
+        if self.control_decimation < 1 or not math.isclose(self.control_decimation*self.model.opt.timestep, .02):
+            raise ValueError('physics timestep must divide the 20 ms policy period')
         self.data = mujoco.MjData(self.model)
         self.people = people
         self.joint_ids = np.array([self.model.joint(name).id for name in JOINTS])
@@ -116,7 +124,7 @@ class Simulation:
         command = np.clip(command, [-.5, -.3, -.8], [.6, .3, .8])
         if self.data.time < 1.:
             command = np.zeros(3)
-        if self.counter % 4 == 0:
+        if self.counter % self.control_decimation == 0:
             self.last_command = command.copy()
             if self.policy is not None and self.data.time >= .5:
                 with torch.inference_mode():
@@ -142,13 +150,14 @@ class Simulation:
         start = self.data.qpos[:3].copy()
         start[2] += .12
         group = np.array([1, 1, 0, 1, 0, 1], dtype=np.uint8)
-        geom = np.empty(1, dtype=np.int32)
-        ranges = []
-        for angle in np.linspace(-math.pi, math.pi, rays, endpoint=False):
-            direction = np.array([math.cos(yaw + angle), math.sin(yaw + angle), 0.])
-            distance = mujoco.mj_ray(self.model, self.data, start, direction, group, 1, self.base, geom)
-            ranges.append(float(distance) if 0.05 <= distance <= max_range else float('inf'))
-        return ranges
+        angles = np.linspace(-math.pi, math.pi, rays, endpoint=False)+yaw
+        directions = np.column_stack((np.cos(angles), np.sin(angles), np.zeros(rays)))
+        distances = np.empty(rays)
+        ids = np.empty(rays, dtype=np.int32)
+        mujoco.mj_multiRay(self.model, self.data, start, directions.reshape(-1), group,
+                          1, self.base, ids, distances, rays, max_range)
+        distances[(distances < .05) | (distances > max_range)] = np.inf
+        return distances.tolist()
 
     def lidar3d(self, max_range=6.):
         """Organized ideal 3-D returns and normals estimated from adjacent rays.

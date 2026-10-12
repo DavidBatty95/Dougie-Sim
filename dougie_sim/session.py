@@ -85,8 +85,8 @@ def main():
         sim_cmd = [sys.executable, '-m', 'dougie_sim.run', '--ros', '--world', args.world,
                    '--people', str(args.people), '--duration', str(args.duration), '--output', str(output/'simulation.json'),
                    '--vx', str(args.vx), '--vy', str(args.vy), '--yaw-rate', str(args.yaw_rate)]
-        if args.headless:
-            sim_cmd.append('--headless')
+        # RViz owns rendering; the physics process never creates a GL viewer.
+        sim_cmd.append('--headless')
         sim = start('simulation', sim_cmd)
         if args.explore:
             nav_config = output/'nav2.yaml'
@@ -96,8 +96,9 @@ def main():
             start('navigation', ['ros2', 'launch', 'nav2_bringup', 'navigation_launch.py',
                   'use_sim_time:=true', 'autostart:=true', 'use_composition:=False', 'params_file:='+str(nav_config)])
             start('exploration', [sys.executable, '-m', 'dougie_sim.explore', '--ros-args', '-p', 'use_sim_time:=true'])
-            if not args.headless:
-                start('rviz', ['rviz2', '-d', str(ROOT/'config/dougie.rviz'), '--ros-args', '-p', 'use_sim_time:=true'])
+        if not args.headless:
+            rviz_config = 'dougie.rviz' if args.explore else 'dougie_radiation.rviz'
+            start('rviz', ['rviz2', '-d', str(ROOT/'config'/rviz_config), '--ros-args', '-p', 'use_sim_time:=true'])
         print(f'Dougie running; logs and metrics: {output}', flush=True)
         deadline = time.monotonic()+args.duration*2+60.
         while sim.poll() is None:

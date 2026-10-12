@@ -30,7 +30,7 @@ class CommandWatchdog:
 
 
 class Bridge:
-    def __init__(self, sim, preset=(0., 0., 0.)):
+    def __init__(self, sim, preset=(0., 0., 0.), *, publish_scan=True):
         rclpy.init()
         self.node = rclpy.create_node('dougie_simulator')
         self.sim = sim
@@ -38,6 +38,7 @@ class Bridge:
         self.watchdog = CommandWatchdog()
         self.has_command = False
         self.scan_ranges = []
+        self.scan_enabled = publish_scan
         self.pub_clock = self.node.create_publisher(Clock, '/clock', 10)
         self.pub_odom = self.node.create_publisher(Odometry, '/odom', 10)
         self.pub_imu = self.node.create_publisher(Imu, '/imu', 10)
@@ -46,18 +47,18 @@ class Bridge:
         self.pub_marker = self.node.create_publisher(Marker, '/dougie/body', 10)
         self.tf = TransformBroadcaster(self.node)
         self.sub = self.node.create_subscription(Twist, '/cmd_vel', self.receive, 10)
-        self.node.get_logger().info('Go2 ready: 12 joints; simulator-truth odometry; virtual horizontal scan')
+        self.node.get_logger().info(f'Go2 ready: 12 joints; simulator-truth odometry; horizontal scan enabled={publish_scan}')
 
     def receive(self, message):
         self.has_command = True
         self.watchdog.update((message.linear.x, message.linear.y, message.angular.z), time.monotonic())
 
     def tick(self):
-        rclpy.spin_once(self.node, timeout_sec=0.)
         sim = self.sim
         if sim.counter % 4 == 0:
+            rclpy.spin_once(self.node, timeout_sec=0.)
             self.publish_state()
-        if sim.counter % 20 == 0:
+        if self.scan_enabled and sim.counter % 20 == 0:
             self.publish_scan()
         command = self.watchdog.value(time.monotonic()) if self.has_command else self.preset.copy()
         # Simple forward-stop assistance. Nav2 owns routing; this is not a

@@ -35,16 +35,20 @@ jobs:
         run: |
           export DOUGIE_UID="$(id -u)" DOUGIE_GID="$(id -g)"
           docker compose run --rm -T dougie-sim python3 -m dougie_sim.radiation_run \
-            --headless --fast --duration 180 --dose-budget 0.2 --seed 3 \
+            --headless --fast --duration 180 --dose-budget 0.2 --seed 3 --source-profile baseline --terrain-profile experimental --planner baseline \
             --output results/dougie/radiation-ci
           python3 scripts/check_dougie_radiation.py results/dougie/radiation-ci --require-return
-      - name: Physical stair and uneven-ground traversal
+      - name: Legacy terrain demonstrations (completion only)
         run: |
           export DOUGIE_UID="$(id -u)" DOUGIE_GID="$(id -g)"
           docker compose run --rm -T dougie-sim python3 scripts/probe_dougie_terrain.py \
             --output results/dougie/stairs.json
           docker compose run --rm -T dougie-sim python3 scripts/probe_dougie_terrain.py \
             --terrain uneven --output results/dougie/uneven.json
+      - name: Contact-aware qualified baseline regression
+        run: |
+          ./dougie terrain-qualify --cases flat tiles_020 --seeds 0 101 \
+            --workers 2 --output results/dougie/terrain-ci --require-qualified
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

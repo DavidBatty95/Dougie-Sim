@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "screening_cohort": "results/dougie/terrain_matrix_v1",
+  "screening_cases": 52,
+  "screening_seeds": [1, 2, 3, 4, 5],
+  "holdout_cases": ["flat", "stairs_up_030", "stairs_down_030", "tiles_020", "tiles_040", "ramp_up_10", "ramp_down_10"],
+  "holdout_seed_first": 101,
+  "holdout_seed_last": 160,
+  "selection_rule": "Choose baseline small-step, mild roughness and moderate-ramp candidates that passed all five screening repeats. Evaluate each on sixty new seeded initializations/layouts.",
+  "interpretation": "Selected after screening, before holdout runs. Not a preregistered or exhaustive hardware validation study.",
+  "observed_guidance_correction": "The original 20 observed-guidance trials aimed at the finish plane, stopping short by the follower tolerance. Retain them as superseded harness-development evidence. Rerun all four observed profiles with the goal 0.5 m beyond the same unchanged crossing plane.",
+  "threshold_policy": "Keep dougie_terrain_protocol.json acceptance thresholds unchanged. Do not tune the walking policy using holdout outcomes."
+}

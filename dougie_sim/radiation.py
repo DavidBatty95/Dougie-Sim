@@ -28,11 +28,16 @@ class RadiationField:
     @classmethod
     def from_mujoco(cls, model, data):
         sources, shields = [], []
+        background = .2
+        for index in range(model.nnumeric):
+            if model.numeric(index).name == 'radiation_background_usv_h':
+                background = float(model.numeric_data[model.numeric_adr[index]])
         for index in range(model.nsite):
             name = model.site(index).name
             if name.startswith('radiation_source_'):
                 strength, radius = model.site_user[index, :2]
-                sources.append(dict(position=data.site_xpos[index].tolist(),
+                kind = 'leak' if model.nuser_site >= 3 and model.site_user[index, 2] == 1 else 'hotspot'
+                sources.append(dict(id=name.removeprefix('radiation_source_'), kind=kind, position=data.site_xpos[index].tolist(),
                     strength_usv_h_m2=float(strength), core_radius_m=float(radius)))
         if model.nuser_geom:
             for index in range(model.ngeom):
@@ -40,7 +45,7 @@ class RadiationField:
                 if attenuation > 0:
                     centre, half = data.geom_xpos[index], model.geom_size[index]
                     shields.append(dict(lower=(centre-half).tolist(), upper=(centre+half).tolist(), attenuation_per_m=attenuation))
-        return cls(dict(background_usv_h=.2, sources=sources, shields=shields))
+        return cls(dict(background_usv_h=background, sources=sources, shields=shields))
 
     def __init__(self, description):
         self.background = float(description['background_usv_h'])
@@ -58,19 +63,36 @@ class RadiationField:
                     or not math.isfinite(shield['attenuation_per_m']) or shield['attenuation_per_m'] < 0
                     or np.any(np.asarray(shield['upper']) <= np.asarray(shield['lower']))):
                 raise ValueError('invalid shielding')
+        # The field is static for a mission. Compile its source/shield pairs once;
+        # the 200 Hz detector path must not rebuild arrays for every intersection.
+        self._origins = np.asarray([s['position'] for s in self.sources], dtype=float).reshape(-1, 3)
+        self._strengths = np.asarray([s['strength_usv_h_m2'] for s in self.sources])
+        self._cores2 = np.asarray([s['core_radius_m']**2 for s in self.sources])
+        lower = np.asarray([s['lower'] for s in self.shields], dtype=float).reshape(-1, 3)
+        upper = np.asarray([s['upper'] for s in self.shields], dtype=float).reshape(-1, 3)
+        self._lower_delta = lower[None, :, :]-self._origins[:, None, :]
+        self._upper_delta = upper[None, :, :]-self._origins[:, None, :]
+        self._attenuation = np.asarray([s['attenuation_per_m'] for s in self.shields])
 
     def rate(self, point):
         point = np.asarray(point, dtype=float)
         if point.shape != (3,) or not np.isfinite(point).all():
             raise ValueError('invalid detector position')
-        rate = self.background
-        for source in self.sources:
-            origin = np.asarray(source['position'])
-            distance2 = float(np.sum((point-origin)**2))
-            optical_depth = sum(shield['attenuation_per_m']*segment_box_length(origin, point, shield['lower'], shield['upper'])
-                                for shield in self.shields)
-            rate += source['strength_usv_h_m2']/(distance2+source['core_radius_m']**2)*math.exp(-optical_depth)
-        return rate
+        delta = point-self._origins
+        distance2 = np.einsum('ij,ij->i', delta, delta)
+        contributions = self._strengths/(distance2+self._cores2)
+        if len(self._attenuation):
+            parallel = np.abs(delta[:, None, :]) < 1e-12
+            divisor = np.where(parallel, 1., delta[:, None, :])
+            a, b = self._lower_delta/divisor, self._upper_delta/divisor
+            entry = np.where(parallel, -np.inf, np.minimum(a, b)).max(axis=2)
+            exit = np.where(parallel, np.inf, np.maximum(a, b)).min(axis=2)
+            outside = np.any(parallel & ((self._lower_delta > 0) | (self._upper_delta < 0)), axis=2)
+            fraction = np.maximum(0., np.minimum(1., exit)-np.maximum(0., entry))
+            fraction[outside] = 0.
+            depth = (fraction @ self._attenuation)*np.sqrt(distance2)
+            contributions *= np.exp(-depth)
+        return float(self.background+contributions.sum())
 
 
 @dataclass(frozen=True)

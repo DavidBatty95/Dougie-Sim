@@ -11,11 +11,13 @@ Geoff's G1 humanoid development history.
 | Install and run a first mission | [Quick start](../README.md#quick-start) |
 | See the robot and recorded mission | [Animated gallery](../README.md#recorded-demo-gallery) |
 | Set budgets, likelihood and mission duration | [Radiation runbook](../README.md#run-a-radiation-mission) |
+| Configure point-source hotspots and leaks | [Source presets, markers and configuration](DOUGIE_SOURCES.md) |
 | Drive Go2 or inspect ROS | [Walking, exploration and ROS](../README.md#walking-exploration-and-ros) |
 | Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
 | Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |
 | Inspect measured outcomes and limitations | [Validation](DOUGIE_VALIDATION.md) · [Portable report](results/dougie_initial_20261007.json) |
+| Check stair and uneven-ground capability | [680-trial terrain qualification](DOUGIE_TERRAIN_QUALIFICATION.md) · [Per-run data](results/dougie_terrain_qualification_20261007.json) |
 | Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
 | Find implementation files | [Repository map](../README.md#repository-map) |
 | Diagnose setup problems | [Troubleshooting](../README.md#troubleshooting) |

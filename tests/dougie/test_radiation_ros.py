@@ -12,6 +12,8 @@ from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import String
+from rclpy.qos import QoSProfile, DurabilityPolicy
+from visualization_msgs.msg import MarkerArray
 
 
 def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path):
@@ -22,9 +24,14 @@ def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path)
     executor = SingleThreadedExecutor(context=context)
     executor.add_node(node)
     samples, clouds = [], []
+    scenes, robots, maps, dashboards = [], [], [], []
+    retained = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
     subscriptions = [
         node.create_subscription(String, '/radiation/measurement', lambda m:samples.append(json.loads(m.data)), 10),
         node.create_subscription(PointCloud2, '/radiation/gp_map', clouds.append, 10),
+        node.create_subscription(MarkerArray, '/dougie/robot', robots.append, 10),
+        node.create_subscription(MarkerArray, '/radiation/visualization', maps.append, retained),
+        node.create_subscription(MarkerArray, '/radiation/dashboard', dashboards.append, retained),
     ]
     log = (tmp_path/'child.log').open('w')
     process = subprocess.Popen([sys.executable, '-m', 'dougie_sim.radiation_run', '--headless', '--ros',
@@ -34,6 +41,9 @@ def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path)
         deadline = time.monotonic()+60.
         while process.poll() is None and time.monotonic() < deadline:
             executor.spin_once(timeout_sec=.1)
+            # RViz often joins after startup: the static scene must be retained.
+            if samples and len(subscriptions) == 5:
+                subscriptions.append(node.create_subscription(MarkerArray, '/dougie/scene', scenes.append, retained))
         assert process.poll() == 0, (tmp_path/'child.log').read_text()
         assert len(samples) >= 3 and clouds
         sample = samples[-1]
@@ -43,6 +53,22 @@ def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path)
         cloud = clouds[-1]
         assert cloud.header.frame_id == 'odom' and cloud.width > 0
         assert {'x', 'y', 'z', 'dose_rate_usv_h', 'upper_rate_usv_h'} <= {f.name for f in cloud.fields}
+        assert scenes and robots and maps
+        assert all(m.header.frame_id == 'odom' for m in scenes[-1].markers+robots[-1].markers+maps[-1].markers)
+        assert all(m.ns != 'sources' for m in scenes[-1].markers)
+        assert any(m.ns == 'gp' and len(m.points) == len(m.colors) > 0 for m in maps[-1].markers)
+        assert all(len(m.points) <= 450 for batch in maps for m in batch.markers if m.ns == 'gp')
+        assert any(m.ns == 'return route' for m in maps[-1].markers)
+        assert any(m.ns == 'exploration target' for m in maps[-1].markers)
+        assert dashboards
+        assert any('Measured dose' in m.text and 'uSv/h' in m.text for m in dashboards[-1].markers)
+        assert all(m.ns != 'gp' for batch in dashboards for m in batch.markers)
+        assert len(robots[-1].markers) > 12  # Articulated physical geometry, not just a base cube.
+        stamps = [m.markers[0].header.stamp.sec+m.markers[0].header.stamp.nanosec/1e9 for m in robots]
+        assert all(b-a >= .049 for a, b in zip(stamps, stamps[1:]))
+        summary = json.loads((tmp_path/'run/radiation_summary.json').read_text())
+        assert summary['performance']['mujoco_viewer']['count'] == 0
+        assert summary['performance']['active_loop']['count'] > 0
     finally:
         if process.poll() is None:
             process.send_signal(signal.SIGINT)

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "baseline_vessel": {"kind": "hotspot", "position": [5.8, 3.8, 1.2], "strength_usv_h_m2": 450.0, "core_radius_m": 0.25},
+    "baseline_drums": {"kind": "hotspot", "position": [-5.2, 4.8, 0.6], "strength_usv_h_m2": 65.0, "core_radius_m": 0.2},
+    "baseline_deck": {"kind": "hotspot", "position": [4.2, -3.0, 1.1], "strength_usv_h_m2": 35.0, "core_radius_m": 0.15},
+    "vessel_hotspot": {"kind": "hotspot", "position": [5.8, 3.8, 1.2], "strength_usv_h_m2": 450.0, "core_radius_m": 0.06},
+    "waste_drum_hotspot": {"kind": "hotspot", "position": [-5.2, 4.8, 0.6], "strength_usv_h_m2": 65.0, "core_radius_m": 0.05},
+    "floor_contamination": {"kind": "hotspot", "position": [2.6, -1.8, 0.12], "strength_usv_h_m2": 20.0, "core_radius_m": 0.04},
+    "coolant_pipe_leak": {"kind": "leak", "position": [-1.5, 2.8, 2.8], "strength_usv_h_m2": 60.0, "core_radius_m": 0.04},
+    "pump_seal_leak": {"kind": "leak", "position": [-5.0, 2.5, 0.65], "strength_usv_h_m2": 40.0, "core_radius_m": 0.05},
+    "drain_leak": {"kind": "leak", "position": [6.5, -4.4, 0.12], "strength_usv_h_m2": 50.0, "core_radius_m": 0.04}
+  },
+  "profiles": {
+    "baseline": {"background_usv_h": 0.2, "sources": ["baseline_vessel", "baseline_drums", "baseline_deck"]},
+    "hotspots": {"background_usv_h": 0.2, "sources": ["vessel_hotspot", "waste_drum_hotspot", "floor_contamination"]},
+    "leaks": {"background_usv_h": 0.2, "sources": ["coolant_pipe_leak", "pump_seal_leak", "drain_leak"]},
+    "hotspots-and-leaks": {"background_usv_h": 0.2, "sources": ["vessel_hotspot", "waste_drum_hotspot", "floor_contamination", "coolant_pipe_leak", "pump_seal_leak", "drain_leak"]}
+  }
+}

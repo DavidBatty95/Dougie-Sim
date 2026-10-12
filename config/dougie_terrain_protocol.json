@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scope": "Simulation qualification of the pinned Go2 robot_lab policy; no hardware certification",
+  "policy_period_s": 0.02,
+  "initial_lateral_jitter_m": 0.04,
+  "initial_yaw_jitter_deg": 5.0,
+  "initial_joint_jitter_rad": 0.01,
+  "initial_height_jitter_m": 0.003,
+  "settle_time_s": 2.0,
+  "settled_planar_speed_max_m_s": 0.15,
+  "corridor_body_margin_m": 0.25,
+  "tilt_limit_deg": 50.0,
+  "tilt_limit_duration_s": 0.15,
+  "ground_clearance_min_m": 0.14,
+  "low_clearance_duration_s": 0.20,
+  "stall_window_s": 20.0,
+  "stall_progress_m": 0.10,
+  "nonfoot_contact_force_min_n": 1.0,
+  "nonfoot_contact_impulse_limit_ns": 0.10,
+  "nonfoot_contact_peak_limit_n": 25.0,
+  "penetration_limit_m": 0.03,
+  "joint_limit_tolerance_rad": 0.05,
+  "upper_landing_witness_s": 0.20,
+  "trace_rate_hz": 20.0,
+  "confidence": 0.95,
+  "repeatability_target": 0.95,
+  "notes": [
+    "Protocol frozen before matrix runs; failures are retained rather than thresholds relaxed.",
+    "Nominal effective foot sliding friction is 0.4. Foot priority overrides the terrain material.",
+    "Traversal and strict qualification are separate outcomes. Non-foot contact may fail qualification after completion.",
+    "Repeatability bounds apply only to the declared seeded simulation perturbations."
+  ]
+}

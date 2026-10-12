@@ -26,11 +26,11 @@ Visualization Manager:
         Value: /scan
         Reliability Policy: Best Effort
       Size (m): 0.04
-    - Class: rviz_default_plugins/Marker
-      Name: Dougie body
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Go2 physical geometry
       Enabled: true
-      Marker Topic:
-        Value: /dougie/body
+      Topic:
+        Value: /dougie/robot
     - Class: rviz_default_plugins/Path
       Name: Navigation plan
       Enabled: true

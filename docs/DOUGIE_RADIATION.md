@@ -34,6 +34,10 @@ does not establish a better radiation mapper. No external algorithm was replicat
 
 ## Radiation and sensor model
 
+The demo supports named, configurable [hotspot/leak point-source profiles](DOUGIE_SOURCES.md).
+The original field is available as `--source-profile baseline`; the current
+default is `hotspots-and-leaks`. Each profile remains static during a mission.
+
 The facility includes a vessel/hot-cell area, waste drums, pipes, cabinets,
 concrete shielding, aisle markings, uneven plates and an inspection deck.
 Source strength/core radius are MuJoCo site user fields; attenuation is stored
@@ -99,6 +103,10 @@ can expose the robot before the next sensor sample. All evaluator-detected
 budget exceedances produce a failed exit and remain recorded.
 
 ## Next research gates
+
+The [contact-aware terrain study](DOUGIE_TERRAIN_QUALIFICATION.md) now measures
+the locomotion gap directly: ordinary industrial stairs are not qualified, and
+the planner's geometric edge limit should not be interpreted as executable capability.
 
 1. Compare radiation-blind frontiers, mean-only risk, upper-bound risk and a
    SafeEstMDP-style method under matched sensing/compute. Report coverage versus

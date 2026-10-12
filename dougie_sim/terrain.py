@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 
 
 class SurfaceMap:
-    def __init__(self, resolution=.25, max_step=.075, radius=.3):
+    def __init__(self, resolution=.25, max_step=.075, radius=.3, max_local_relief=None):
         self.resolution, self.max_step, self.radius = resolution, max_step, radius
         self.surfaces = {}
         self.hits = {}
@@ -19,8 +19,12 @@ class SurfaceMap:
         self.nodes = {}
         self.graph = {}
         self.version = 0
+        self.max_local_relief = max_local_relief
+        self._known_columns = None
+        self._edge_lengths = {}
 
     def update(self, points, supports, origin=None):
+        self._known_columns = None
         if origin is not None and len(points) and len(self.free_voxels) < 500000:
             rays = np.asarray(points)[::16]-np.asarray(origin)
             fractions = np.linspace(0., .97, 32)
@@ -45,18 +49,30 @@ class SurfaceMap:
         columns = {}
         for key in candidates:
             columns.setdefault(key[:2], []).append(key)
+        self._known_columns = set(columns)
         hit_points = np.asarray(list(self.hits.values())).reshape(-1, 3)
         tree = cKDTree(hit_points[:, :2]) if len(hit_points) else None
+        candidate_keys = list(candidates)
+        nearby = tree.query_ball_point(np.asarray(list(candidates.values()))[:, :2], self.radius) if tree is not None and candidates else None
         nodes = {}
         footprint = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
                      if math.hypot(dx, dy)*self.resolution <= self.radius]
-        for key, point in candidates.items():
+        for index, key in enumerate(candidate_keys):
+            point = candidates[key]
             # Require sensed support beneath the conservative local footprint.
             if not all(any(abs(candidates[other][2]-point[2]) <= .15
                            for other in columns.get((key[0]+dx, key[1]+dy), [])) for dx, dy in footprint):
                 continue
+            if self.max_local_relief is not None:
+                # Coarse XY cells may contain both floor and a low ledge. Do not
+                # route through the lower hypothesis underneath that ledge.
+                nearby_heights = [candidates[other][2] for dx, dy in footprint
+                                  for other in columns.get((key[0]+dx, key[1]+dy), [])
+                                  if abs(candidates[other][2]-point[2]) <= .2]
+                if nearby_heights and max(nearby_heights)-min(nearby_heights) > self.max_local_relief+1e-6:
+                    continue
             if tree is not None:
-                near = tree.query_ball_point(point[:2], self.radius)
+                near = nearby[index]
                 relative = hit_points[near, 2]-point[2]
                 if np.any((relative > .12) & (relative < .7)):
                     continue
@@ -68,6 +84,8 @@ class SurfaceMap:
                     if other in nodes and abs(nodes[other][2]-point[2]) <= self.max_step:
                         graph[key].append(other)
         self.nodes, self.graph = nodes, graph
+        self._edge_lengths = {(key, other): math.dist(nodes[key], nodes[other])
+                              for key, neighbours in graph.items() for other in neighbours}
         return nodes, graph
 
     def nearest(self, position):
@@ -89,7 +107,9 @@ class SurfaceMap:
             if cost > costs[key]+1e-10:
                 continue
             for other in self.graph.get(key, []):
-                distance = float(np.linalg.norm(self.nodes[other]-self.nodes[key]))
+                distance = self._edge_lengths.get((key, other))
+                if distance is None:
+                    distance = math.dist(self.nodes[other], self.nodes[key])
                 rate = 0. if rates is None else max(rates[key], rates[other])
                 edge_speed = min(speed, .06) if abs(self.nodes[other][2]-self.nodes[key][2]) > .025 else speed
                 exposure = rate*distance/edge_speed/3600.
@@ -108,6 +128,8 @@ class SurfaceMap:
 
     def novelty(self, key):
         # Nearby unsensed support columns, not unseen simulator geometry.
-        known = {item[:2] for item in self.surfaces}
+        if self._known_columns is None:
+            self._known_columns = {item[:2] for item in self.surfaces}
+        known = self._known_columns
         return sum((key[0]+dx, key[1]+dy) not in known
                    for dx in range(-5, 6) for dy in range(-5, 6))

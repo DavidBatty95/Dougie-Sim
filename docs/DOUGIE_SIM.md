@@ -57,6 +57,11 @@ near-horizontal surfaces and small steps, not arbitrary slopes or large risers.
 Old range hits are cached conservatively; dynamic clearing is not implemented
 in radiation mode.
 
+The [terrain qualification](DOUGIE_TERRAIN_QUALIFICATION.md) distinguishes
+geometry admission from executable locomotion. The 7.5 cm graph-edge threshold
+is a geometry heuristic, not a validated stair capability: the current policy
+stalls or strikes stair edges under conditions that pass that geometric test.
+
 ## Artifact meanings
 
 | Artifact | Meaning |

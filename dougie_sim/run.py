@@ -30,11 +30,14 @@ def main():
     ensure_assets()
     sim = Simulation(args.world, args.people, args.controller)
     bridge = None
+    visualization = None
     viewer = None
     error = None
     if args.ros:
         from .ros_bridge import Bridge
         bridge = Bridge(sim, (args.vx, args.vy, args.yaw_rate))
+        from .rviz_visualization import Visualization
+        visualization = Visualization(bridge)
     if not args.headless:
         import mujoco.viewer
         viewer = mujoco.viewer.launch_passive(sim.model, sim.data)
@@ -46,6 +49,7 @@ def main():
             command = (args.vx, args.vy, args.yaw_rate)
             if bridge:
                 command = bridge.tick()
+                visualization.tick()
             sim.step(command)
             if viewer and sim.counter % 4 == 0:
                 viewer.cam.lookat[:] = sim.data.qpos[:3]

@@ -25,6 +25,12 @@ reactor layout. Physical simulation trials also crossed 6 cm stair risers and
 sensor-only autonomy, general dose safety and multi-floor coverage remain open.
 [Read the measured scope](docs/DOUGIE_VALIDATION.md).
 
+**Terrain update — [680 scored qualification trials](docs/DOUGIE_TERRAIN_QUALIFICATION.md):**
+ordinary industrial stairs are **not qualified**. The tested 2 cm random-tile
+distribution and 10° ramp courses passed 60/60 holdout repeats each. Earlier
+6 cm stair completions included calf impacts or failed to repeat reliably;
+they are demonstrations of traversal, not a validated operating envelope.
+
 ## Explore Dougie-Sim
 
 | Capability | What runs today | Entry point |
@@ -33,7 +39,7 @@ sensor-only autonomy, general dose safety and multi-floor coverage remain open.
 | **Radiation mapping** | 2 Hz Poisson detector and bounded XYZ log-rate GP | `./dougie radiation` |
 | **Dose-aware exploration** | Observed multi-height support, route exposure, return reserve and deadline checks | `./dougie radiation` |
 | **Planar comparison** | Horizontal scans, SLAM Toolbox, Nav2 and frontier goals | `./dougie explore` |
-| **Terrain qualification** | Heading-guided ascent/descent on small stairs; uneven-floor probe | `./dougie terrain-test` |
+| **Terrain qualification** | 52 profiles, contact-aware scoring and independent repeatability trials | `./dougie terrain-qualify` |
 | **Reproducible evidence** | Seeded detector noise, source hashes, retained traces and independent exposure scoring | [Validation](docs/DOUGIE_VALIDATION.md) |
 
 ## Recorded demo gallery
@@ -90,9 +96,13 @@ speedup. Omit `--fast` for paced runs with ROS topics.
 
 ## Run a radiation mission
 
+The default field now contains **point-source hotspots and localized leaks**.
+Use `--show-sources` for red hotspot/amber leak markers, or omit it to display
+only the learned GP map. [Source locations, strengths and configuration](docs/DOUGIE_SOURCES.md).
+
 ```bash
 # Interactive reactor mission, default Poisson GP:
-./dougie radiation --dose-budget 2 --rate-limit 100 --duration 600
+./dougie radiation --source-profile hotspots-and-leaks --show-sources --dose-budget 2 --rate-limit 100 --duration 600
 
 # Repeatable detector-noise seed, no display or DDS:
 ./dougie radiation --headless --fast --dose-budget 0.2 --duration 180 --seed 3
@@ -109,10 +119,18 @@ speedup. Omit `--fast` for paced runs with ROS topics.
 | `--seed` | `1` | Detector-noise seed; does not randomize facility geometry |
 | `--gp-capacity` | `128` | Maximum inducing dictionary size |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
+| `--source-profile` | `hotspots-and-leaks` | Combined emitters, `hotspots`, `leaks`, or the original `baseline` |
+| `--source-config` | Built-in JSON | Alternative source file inside the checkout |
+| `--show-sources` | Off | Diagnostic true-source markers; never supplied to autonomy |
 | `--headless` | Off | Suppress the MuJoCo viewer |
 | `--fast` | Off | Headless unpaced physics without ROS |
 
 ### What to expect
+
+The interactive demo now opens **RViz in a separate process**. MuJoCo runs
+physics without a viewer. RViz shows the diagnostic world geometry, articulated
+Go2 collision shapes, learned GP volume, planned/travelled paths and mission
+state. See [rendering performance and measurements](docs/DOUGIE_PERFORMANCE.md).
 
 1. Go2 settles into stance, then the mission uses observed support surfaces to
    select routes. It does not receive hidden source positions or a facility map.
@@ -143,7 +161,8 @@ model supplies radiation observations. [Full methods and assumptions](docs/DOUGI
 ./dougie explore --world office --people 1 --duration 300
 ```
 
-`demo` opens MuJoCo; `explore` also opens RViz. Both accept `--headless`.
+`demo` and `explore` open RViz, with MuJoCo physics running without a viewer.
+Both accept `--headless`.
 The zero-command demo balances until it receives commands and can drift.
 Exploration uses planar SLAM/Nav2; completed office coverage is not yet established.
 Moving people are simplified kinematic capsules, not validated crowd behavior.
@@ -154,7 +173,7 @@ Moving people are simplified kinematic capsules, not validated crowd behavior.
 | `room` | `demo --world room` | 12 × 12 m enclosure, scans and manual commands |
 | `office` | `explore --world office` | Partitions, furniture and planar frontiers |
 | `reactor` | `radiation` | Shielding, vessel, drums, floor plates and inspection deck |
-| `stairs` | `terrain-test` | Dedicated small-riser qualification course |
+| `stairs` | `terrain-test` | Legacy small-riser completion demonstration; use `terrain-qualify` for qualification |
 
 `worlds` lists all scenes; `demo` and `explore` accept only `flat`, `room`, or
 `office`. Reactor and stair runs have their dedicated entry points.
@@ -230,6 +249,7 @@ For radiation, keep the whole run directory:
 | Artifact | What to inspect |
 |---|---|
 | `run_config.json` | CLI settings, source hashes and asset-manifest identity |
+| `source_scenario.json` | Selected point-source profile and resolved simulator configuration |
 | `measurements.jsonl` | Time, XYZ, counts, integration window, estimated rate and dose |
 | `trace.jsonl` | Mission states, observed coverage and planning timings |
 | `radiation_summary.json` | Outcome, estimated/actual exposure, return and sampled heights |
@@ -247,6 +267,8 @@ hashes and retain failed runs. [Report reproduction](docs/DOUGIE_VALIDATION.md#r
 
 The frozen initial Poisson cohort used a **0.2 µSv budget**, **100 µSv/h rate
 threshold**, **128 inducing points** and **180 s maximum** in one reactor scene.
+Select `--source-profile baseline` to reproduce that field; the new default
+hotspot/leak scenario has different source positions and concentrations.
 
 | Detector seed | Return time (s) | Actual dose (µSv) | Observed surface proxy (m²) | Outcome |
 |---|---:|---:|---:|---|
@@ -266,6 +288,10 @@ does not establish volumetric radiation reconstruction.
 | Uneven floor | Three 2–4 cm plates contacted, upright traversal | Dedicated course |
 | Poisson GP, capacity 128 | 0.245 ms update p95; 9.48 ms / 1,000-query batch | Synthetic benchmark, host-dependent |
 | GP accuracy, same benchmark | 0.439 log1p-rate RMSE; 36.54 µSv/h raw-rate RMSE | Substantial hotspot error remains |
+
+The small-stair/plate rows above preserve the initial demonstrations. The
+[later terrain assessment](docs/DOUGIE_TERRAIN_QUALIFICATION.md) supersedes any
+interpretation of them as reliable or clean terrain qualification.
 
 [Full validation and caveats](docs/DOUGIE_VALIDATION.md) · [Machine-readable evidence](docs/results/dougie_initial_20261007.json)
 
@@ -311,6 +337,8 @@ research reference; its results and manipulation capabilities do not transfer to
 ```bash
 ./dougie test
 ./dougie terrain-test
+./dougie terrain-qualify --suite matrix --workers 6
+./dougie terrain-qualify --suite repeatability --workers 6
 ./dougie benchmark-gp
 python3 scripts/check_dougie_docs.py
 ```
@@ -326,6 +354,12 @@ Default CI builds the Go2 image and checks policy/model ordering, physical
 standing/walking/turning, scans, watchdogs, frontier planning, detector statistics,
 GP posteriors, dose-return behavior, terrain and ROS interfaces. The active profile
 does not build inherited G1 ROS packages.
+
+`terrain-qualify` records stability, contacts, penetration, joint limits,
+landing/corridor witnesses, settling and repeated outcomes. Its default exit
+status reports successful evidence collection; add `--require-qualified` to
+fail the command when a robot trial fails qualification. `terrain-test` retains
+the original completion-only demonstration.
 
 ### Troubleshooting
 

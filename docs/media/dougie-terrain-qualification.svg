@@ -1,0 +1,317 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="1400" viewBox="0 0 980 1400">
+<rect width="100%" height="100%" fill="#101c29"/>
+<g font-family="sans-serif" fill="#e6edf3"><text x="20" y="30" font-size="21">Dougie terrain screening: completion vs strict qualification</text>
+<text x="20" y="55" font-size="13">Blue: completed traversal. Green: passed contact, stability, corridor and completion checks.</text>
+<text x="20" y="93" font-size="12">flat</text>
+<rect x="335" y="81" width="480" height="7" fill="#263746"/>
+<rect x="335" y="90" width="480" height="7" fill="#263746"/>
+<rect x="335" y="81" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="90" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="93" font-size="12">5/5 / 5/5</text>
+<text x="20" y="118" font-size="12">flat_observed</text>
+<rect x="335" y="106" width="480" height="7" fill="#263746"/>
+<rect x="335" y="115" width="480" height="7" fill="#263746"/>
+<rect x="335" y="106" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="115" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="118" font-size="12">5/5 / 5/5</text>
+<text x="20" y="143" font-size="12">legacy_06</text>
+<rect x="335" y="131" width="480" height="7" fill="#263746"/>
+<rect x="335" y="140" width="480" height="7" fill="#263746"/>
+<rect x="335" y="131" width="288.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="140" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="143" font-size="12">3/5 / 0/5</text>
+<text x="20" y="168" font-size="12">ramp_down_05</text>
+<rect x="335" y="156" width="480" height="7" fill="#263746"/>
+<rect x="335" y="165" width="480" height="7" fill="#263746"/>
+<rect x="335" y="156" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="165" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="168" font-size="12">5/5 / 5/5</text>
+<text x="20" y="193" font-size="12">ramp_down_10</text>
+<rect x="335" y="181" width="480" height="7" fill="#263746"/>
+<rect x="335" y="190" width="480" height="7" fill="#263746"/>
+<rect x="335" y="181" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="190" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="193" font-size="12">5/5 / 5/5</text>
+<text x="20" y="218" font-size="12">ramp_down_15</text>
+<rect x="335" y="206" width="480" height="7" fill="#263746"/>
+<rect x="335" y="215" width="480" height="7" fill="#263746"/>
+<rect x="335" y="206" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="215" width="384.0" height="7" fill="#48c78e"/>
+<text x="830" y="218" font-size="12">4/5 / 4/5</text>
+<text x="20" y="243" font-size="12">ramp_down_20</text>
+<rect x="335" y="231" width="480" height="7" fill="#263746"/>
+<rect x="335" y="240" width="480" height="7" fill="#263746"/>
+<rect x="335" y="231" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="240" width="384.0" height="7" fill="#48c78e"/>
+<text x="830" y="243" font-size="12">4/5 / 4/5</text>
+<text x="20" y="268" font-size="12">ramp_up_05</text>
+<rect x="335" y="256" width="480" height="7" fill="#263746"/>
+<rect x="335" y="265" width="480" height="7" fill="#263746"/>
+<rect x="335" y="256" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="265" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="268" font-size="12">5/5 / 5/5</text>
+<text x="20" y="293" font-size="12">ramp_up_10</text>
+<rect x="335" y="281" width="480" height="7" fill="#263746"/>
+<rect x="335" y="290" width="480" height="7" fill="#263746"/>
+<rect x="335" y="281" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="290" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="293" font-size="12">5/5 / 5/5</text>
+<text x="20" y="318" font-size="12">ramp_up_15</text>
+<rect x="335" y="306" width="480" height="7" fill="#263746"/>
+<rect x="335" y="315" width="480" height="7" fill="#263746"/>
+<rect x="335" y="306" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="315" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="318" font-size="12">5/5 / 5/5</text>
+<text x="20" y="343" font-size="12">ramp_up_20</text>
+<rect x="335" y="331" width="480" height="7" fill="#263746"/>
+<rect x="335" y="340" width="480" height="7" fill="#263746"/>
+<rect x="335" y="331" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="340" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="343" font-size="12">0/5 / 0/5</text>
+<text x="20" y="368" font-size="12">ridges_020</text>
+<rect x="335" y="356" width="480" height="7" fill="#263746"/>
+<rect x="335" y="365" width="480" height="7" fill="#263746"/>
+<rect x="335" y="356" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="365" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="368" font-size="12">5/5 / 5/5</text>
+<text x="20" y="393" font-size="12">ridges_040</text>
+<rect x="335" y="381" width="480" height="7" fill="#263746"/>
+<rect x="335" y="390" width="480" height="7" fill="#263746"/>
+<rect x="335" y="381" width="192.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="390" width="192.0" height="7" fill="#48c78e"/>
+<text x="830" y="393" font-size="12">2/5 / 2/5</text>
+<text x="20" y="418" font-size="12">ridges_060</text>
+<rect x="335" y="406" width="480" height="7" fill="#263746"/>
+<rect x="335" y="415" width="480" height="7" fill="#263746"/>
+<rect x="335" y="406" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="415" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="418" font-size="12">0/5 / 0/5</text>
+<text x="20" y="443" font-size="12">ridges_100</text>
+<rect x="335" y="431" width="480" height="7" fill="#263746"/>
+<rect x="335" y="440" width="480" height="7" fill="#263746"/>
+<rect x="335" y="431" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="440" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="443" font-size="12">0/5 / 0/5</text>
+<text x="20" y="468" font-size="12">stairs_down_030</text>
+<rect x="335" y="456" width="480" height="7" fill="#263746"/>
+<rect x="335" y="465" width="480" height="7" fill="#263746"/>
+<rect x="335" y="456" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="465" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="468" font-size="12">5/5 / 5/5</text>
+<text x="20" y="493" font-size="12">stairs_down_060</text>
+<rect x="335" y="481" width="480" height="7" fill="#263746"/>
+<rect x="335" y="490" width="480" height="7" fill="#263746"/>
+<rect x="335" y="481" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="490" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="493" font-size="12">5/5 / 0/5</text>
+<text x="20" y="518" font-size="12">stairs_down_060_observed</text>
+<rect x="335" y="506" width="480" height="7" fill="#263746"/>
+<rect x="335" y="515" width="480" height="7" fill="#263746"/>
+<rect x="335" y="506" width="192.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="515" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="518" font-size="12">2/5 / 0/5</text>
+<text x="20" y="543" font-size="12">stairs_down_075</text>
+<rect x="335" y="531" width="480" height="7" fill="#263746"/>
+<rect x="335" y="540" width="480" height="7" fill="#263746"/>
+<rect x="335" y="531" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="540" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="543" font-size="12">0/5 / 0/5</text>
+<text x="20" y="568" font-size="12">stairs_down_100</text>
+<rect x="335" y="556" width="480" height="7" fill="#263746"/>
+<rect x="335" y="565" width="480" height="7" fill="#263746"/>
+<rect x="335" y="556" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="565" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="568" font-size="12">0/5 / 0/5</text>
+<text x="20" y="593" font-size="12">stairs_down_120</text>
+<rect x="335" y="581" width="480" height="7" fill="#263746"/>
+<rect x="335" y="590" width="480" height="7" fill="#263746"/>
+<rect x="335" y="581" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="590" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="593" font-size="12">0/5 / 0/5</text>
+<text x="20" y="618" font-size="12">stairs_down_150</text>
+<rect x="335" y="606" width="480" height="7" fill="#263746"/>
+<rect x="335" y="615" width="480" height="7" fill="#263746"/>
+<rect x="335" y="606" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="615" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="618" font-size="12">0/5 / 0/5</text>
+<text x="20" y="643" font-size="12">stairs_down_180</text>
+<rect x="335" y="631" width="480" height="7" fill="#263746"/>
+<rect x="335" y="640" width="480" height="7" fill="#263746"/>
+<rect x="335" y="631" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="640" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="643" font-size="12">0/5 / 0/5</text>
+<text x="20" y="668" font-size="12">stairs_down_200</text>
+<rect x="335" y="656" width="480" height="7" fill="#263746"/>
+<rect x="335" y="665" width="480" height="7" fill="#263746"/>
+<rect x="335" y="656" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="665" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="668" font-size="12">0/5 / 0/5</text>
+<text x="20" y="693" font-size="12">stairs_up_030</text>
+<rect x="335" y="681" width="480" height="7" fill="#263746"/>
+<rect x="335" y="690" width="480" height="7" fill="#263746"/>
+<rect x="335" y="681" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="690" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="693" font-size="12">5/5 / 5/5</text>
+<text x="20" y="718" font-size="12">stairs_up_060</text>
+<rect x="335" y="706" width="480" height="7" fill="#263746"/>
+<rect x="335" y="715" width="480" height="7" fill="#263746"/>
+<rect x="335" y="706" width="192.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="715" width="192.0" height="7" fill="#48c78e"/>
+<text x="830" y="718" font-size="12">2/5 / 2/5</text>
+<text x="20" y="743" font-size="12">stairs_up_060_delay_20</text>
+<rect x="335" y="731" width="480" height="7" fill="#263746"/>
+<rect x="335" y="740" width="480" height="7" fill="#263746"/>
+<rect x="335" y="731" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="740" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="743" font-size="12">0/5 / 0/5</text>
+<text x="20" y="768" font-size="12">stairs_up_060_delay_40</text>
+<rect x="335" y="756" width="480" height="7" fill="#263746"/>
+<rect x="335" y="765" width="480" height="7" fill="#263746"/>
+<rect x="335" y="756" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="765" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="768" font-size="12">0/5 / 0/5</text>
+<text x="20" y="793" font-size="12">stairs_up_060_fast</text>
+<rect x="335" y="781" width="480" height="7" fill="#263746"/>
+<rect x="335" y="790" width="480" height="7" fill="#263746"/>
+<rect x="335" y="781" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="790" width="288.0" height="7" fill="#48c78e"/>
+<text x="830" y="793" font-size="12">4/5 / 3/5</text>
+<text x="20" y="818" font-size="12">stairs_up_060_half_dt</text>
+<rect x="335" y="806" width="480" height="7" fill="#263746"/>
+<rect x="335" y="815" width="480" height="7" fill="#263746"/>
+<rect x="335" y="806" width="288.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="815" width="288.0" height="7" fill="#48c78e"/>
+<text x="830" y="818" font-size="12">3/5 / 3/5</text>
+<text x="20" y="843" font-size="12">stairs_up_060_high_friction</text>
+<rect x="335" y="831" width="480" height="7" fill="#263746"/>
+<rect x="335" y="840" width="480" height="7" fill="#263746"/>
+<rect x="335" y="831" width="96.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="840" width="96.0" height="7" fill="#48c78e"/>
+<text x="830" y="843" font-size="12">1/5 / 1/5</text>
+<text x="20" y="868" font-size="12">stairs_up_060_low_friction</text>
+<rect x="335" y="856" width="480" height="7" fill="#263746"/>
+<rect x="335" y="865" width="480" height="7" fill="#263746"/>
+<rect x="335" y="856" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="865" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="868" font-size="12">5/5 / 5/5</text>
+<text x="20" y="893" font-size="12">stairs_up_060_narrow</text>
+<rect x="335" y="881" width="480" height="7" fill="#263746"/>
+<rect x="335" y="890" width="480" height="7" fill="#263746"/>
+<rect x="335" y="881" width="192.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="890" width="192.0" height="7" fill="#48c78e"/>
+<text x="830" y="893" font-size="12">2/5 / 2/5</text>
+<text x="20" y="918" font-size="12">stairs_up_060_observed</text>
+<rect x="335" y="906" width="480" height="7" fill="#263746"/>
+<rect x="335" y="915" width="480" height="7" fill="#263746"/>
+<rect x="335" y="906" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="915" width="384.0" height="7" fill="#48c78e"/>
+<text x="830" y="918" font-size="12">4/5 / 4/5</text>
+<text x="20" y="943" font-size="12">stairs_up_060_pause</text>
+<rect x="335" y="931" width="480" height="7" fill="#263746"/>
+<rect x="335" y="940" width="480" height="7" fill="#263746"/>
+<rect x="335" y="931" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="940" width="384.0" height="7" fill="#48c78e"/>
+<text x="830" y="943" font-size="12">4/5 / 4/5</text>
+<text x="20" y="968" font-size="12">stairs_up_060_payload_05</text>
+<rect x="335" y="956" width="480" height="7" fill="#263746"/>
+<rect x="335" y="965" width="480" height="7" fill="#263746"/>
+<rect x="335" y="956" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="965" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="968" font-size="12">5/5 / 5/5</text>
+<text x="20" y="993" font-size="12">stairs_up_060_payload_20</text>
+<rect x="335" y="981" width="480" height="7" fill="#263746"/>
+<rect x="335" y="990" width="480" height="7" fill="#263746"/>
+<rect x="335" y="981" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="990" width="384.0" height="7" fill="#48c78e"/>
+<text x="830" y="993" font-size="12">5/5 / 4/5</text>
+<text x="20" y="1018" font-size="12">stairs_up_075</text>
+<rect x="335" y="1006" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1015" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1006" width="96.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1015" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1018" font-size="12">1/5 / 0/5</text>
+<text x="20" y="1043" font-size="12">stairs_up_100</text>
+<rect x="335" y="1031" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1040" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1031" width="384.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1040" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1043" font-size="12">4/5 / 0/5</text>
+<text x="20" y="1068" font-size="12">stairs_up_120</text>
+<rect x="335" y="1056" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1065" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1056" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1065" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1068" font-size="12">0/5 / 0/5</text>
+<text x="20" y="1093" font-size="12">stairs_up_150</text>
+<rect x="335" y="1081" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1090" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1081" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1090" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1093" font-size="12">0/5 / 0/5</text>
+<text x="20" y="1118" font-size="12">stairs_up_180</text>
+<rect x="335" y="1106" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1115" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1106" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1115" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1118" font-size="12">0/5 / 0/5</text>
+<text x="20" y="1143" font-size="12">stairs_up_200</text>
+<rect x="335" y="1131" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1140" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1131" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1140" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1143" font-size="12">0/5 / 0/5</text>
+<text x="20" y="1168" font-size="12">tiles_020</text>
+<rect x="335" y="1156" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1165" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1156" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1165" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1168" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1193" font-size="12">tiles_040</text>
+<rect x="335" y="1181" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1190" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1181" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1190" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1193" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1218" font-size="12">tiles_040_half_dt</text>
+<rect x="335" y="1206" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1215" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1206" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1215" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1218" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1243" font-size="12">tiles_040_low_friction</text>
+<rect x="335" y="1231" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1240" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1231" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1240" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1243" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1268" font-size="12">tiles_040_observed</text>
+<rect x="335" y="1256" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1265" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1256" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1265" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1268" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1293" font-size="12">tiles_040_payload_20</text>
+<rect x="335" y="1281" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1290" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1281" width="480.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1290" width="480.0" height="7" fill="#48c78e"/>
+<text x="830" y="1293" font-size="12">5/5 / 5/5</text>
+<text x="20" y="1318" font-size="12">tiles_060</text>
+<rect x="335" y="1306" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1315" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1306" width="288.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1315" width="288.0" height="7" fill="#48c78e"/>
+<text x="830" y="1318" font-size="12">3/5 / 3/5</text>
+<text x="20" y="1343" font-size="12">tiles_080</text>
+<rect x="335" y="1331" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1340" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1331" width="96.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1340" width="96.0" height="7" fill="#48c78e"/>
+<text x="830" y="1343" font-size="12">1/5 / 1/5</text>
+<text x="20" y="1368" font-size="12">tiles_100</text>
+<rect x="335" y="1356" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1365" width="480" height="7" fill="#263746"/>
+<rect x="335" y="1356" width="0.0" height="7" fill="#4aa8e8"/>
+<rect x="335" y="1365" width="0.0" height="7" fill="#48c78e"/>
+<text x="830" y="1368" font-size="12">0/5 / 0/5</text>
+</g></svg>
