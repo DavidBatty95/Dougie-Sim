@@ -18,6 +18,7 @@ Geoff's G1 humanoid development history.
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |
 | Inspect measured outcomes and limitations | [Validation](DOUGIE_VALIDATION.md) · [Portable report](results/dougie_initial_20261007.json) |
 | Check stair and uneven-ground capability | [680-trial terrain qualification](DOUGIE_TERRAIN_QUALIFICATION.md) · [Per-run data](results/dougie_terrain_qualification_20261007.json) |
+| Plan stair training and multi-floor radiation missions | [Capability assessment and implementation roadmap](DOUGIE_MULTILEVEL_ROADMAP.md) |
 | Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
 | Find implementation files | [Repository map](../README.md#repository-map) |
 | Diagnose setup problems | [Troubleshooting](../README.md#troubleshooting) |
