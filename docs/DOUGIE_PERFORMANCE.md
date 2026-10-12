@@ -24,6 +24,13 @@ RViz displays:
   `/radiation/visualization`, updated when a plan arrives (normally about 0.5 Hz).
   The underlying numeric posterior remains on `/radiation/gp_map`.
 - Optional true hotspot/leak markers with `--show-sources`.
+- A lightweight `/radiation/dashboard` display with measured dose/budget,
+  measured rate/threshold, estimated return reserve, observed surface proxy,
+  simulation time and decision reason. Detector updates refresh it at 2 Hz;
+  plan changes and completion also refresh it, without resending GP markers.
+- A green exploration target and planned route, blue travelled path, and amber
+  estimated return route. The legend identifies the selected GP colour scale.
+  End-of-run inspection distinguishes return, interruption, error and time limit.
 
 Use RViz's mouse controls for the camera. `--map-layer uncertainty` selects GP
 uncertainty colouring; the default is mean dose rate. `--camera` only controls the
@@ -106,3 +113,46 @@ Verification: **68 tests passed**. The DDS integration test checks latched scene
 delivery, articulated robot updates bounded to 20 Hz, GP marker data, fixed frame,
 and absence of MuJoCo viewer calls. A three-second room walking session also
 completed with RViz and no simulation error.
+
+## Sensor hot-path update — 12 October 2026
+
+The static radiation field now precomputes source/shield pairs and evaluates
+segment/box intersections in NumPy batches. The horizontal scanner uses MuJoCo's
+batched ray API instead of 180 Python-to-native calls. Source strengths, shielding,
+scan angles, range filtering, physics timestep and detector integration are unchanged.
+GP visualisation is now strictly bounded to 150 support locations / 450 XYZ samples.
+
+Local reactor microbenchmark, default **six-source hotspots-and-leaks** profile,
+three shields, 1,000 timed calls after 20 warm-up calls per implementation:
+
+| Operation | Scalar median / p95 | Batched median / p95 | Median speedup |
+|---|---:|---:|---:|
+| Radiation rate at one detector position | 102.47 / 110.65 µs | 19.70 / 21.75 µs | **5.20×** |
+| 180-ray horizontal scan | 300.22 / 352.00 µs | 45.36 / 49.04 µs | **6.62×** |
+
+These are same-process sensor comparisons at the initial reactor pose, not
+whole-mission or rendering speedups. Radiation missions use the 3-D scanner;
+the horizontal scan improvement benefits ordinary walking/navigation sessions.
+
+A complete headless fixed-planner-delay smoke mission returned upright with
+**0.24044 µSv actual dose against a 2 µSv budget**, zero recorded non-foot contact
+impulse, 8.82 m travelled, and 111.69 m² observed surface proxy. It ran 71.07
+simulated seconds in 9.99 loop wall seconds (**7.12× real time**); active-loop p95
+was 0.81 ms. Its p99 was 10.93 ms and 358 steps exceeded 5 ms: fixed-delay fast
+mode can wait for planner work, so this is throughput evidence rather than a
+deadline guarantee. No graphical viewer was exercised in this smoke run.
+Local artifacts: `results/dougie/radiation_20261012T121147_531013Z/`.
+
+Reproduce in the existing container:
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_sensors.py
+docker compose run --rm -T dougie-sim python3 -m dougie_sim.radiation_run \
+  --headless --fast --duration 120 --seed 3 --dose-budget 2 --fixed-plan-delay .5
+docker compose run --rm -T dougie-sim python3 -m pytest tests/dougie -q
+```
+
+Verification: **76 tests passed**, including scalar/batched equivalence across
+three worlds and varied ray headings/ranges; radiation tests include empty
+fields, parallel rays, shield boundaries and source-coincident positions.
+Real-DDS tests exercise the dashboard, route/target messages and map point cap.

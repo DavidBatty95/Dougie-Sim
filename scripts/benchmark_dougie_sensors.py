@@ -9,16 +9,18 @@ import mujoco
 import numpy as np
 
 from dougie_sim.radiation import RadiationField, segment_box_length
+from dougie_sim.reactor import radiation_description
 from dougie_sim.simulation import Simulation
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--iterations', type=int, default=1000)
+    parser.add_argument('--source-profile', default='hotspots-and-leaks')
     args = parser.parse_args()
     if args.iterations < 1:
         parser.error('--iterations must be positive')
-    sim = Simulation('reactor', controller='stand')
+    sim = Simulation('reactor', controller='stand', radiation_sources=radiation_description(args.source_profile))
     field = RadiationField.from_mujoco(sim.model, sim.data)
     point = sim.data.qpos[:3]+[0., 0., .12]
     groups = np.array([1, 1, 0, 1, 0, 1], dtype=np.uint8)
@@ -48,7 +50,8 @@ def main():
             times.append((time.perf_counter()-start)*1e6)
         return dict(p50_us=float(np.median(times)), p95_us=float(np.percentile(times, 95)))
 
-    result = dict(iterations=args.iterations, world='reactor', sources=len(field.sources), shields=len(field.shields))
+    result = dict(iterations=args.iterations, world='reactor', source_profile=args.source_profile,
+                  sources=len(field.sources), shields=len(field.shields))
     for name, reference, optimized in (('radiation_field', scalar_field, lambda: field.rate(point)),
                                        ('horizontal_scan', scalar_scan, sim.scan)):
         np.testing.assert_allclose(reference(), optimized(), rtol=1e-12, atol=1e-12)

@@ -132,6 +132,12 @@ physics without a viewer. RViz shows the diagnostic world geometry, articulated
 Go2 collision shapes, learned GP volume, planned/travelled paths and mission
 state. See [rendering performance and measurements](docs/DOUGIE_PERFORMANCE.md).
 
+The live dashboard shows measured dose against budget, rate against threshold,
+estimated return reserve and the planner's decision. **Green** marks the current
+plan and target, **blue** the travelled path, and **amber** the estimated return
+route. A legend explains the GP mean/uncertainty colours; the final view stays
+open for inspection.
+
 1. Go2 settles into stance, then the mission uses observed support surfaces to
    select routes. It does not receive hidden source positions or a facility map.
 2. A counting detector integrates along actual motion and reports every 0.5 s.
