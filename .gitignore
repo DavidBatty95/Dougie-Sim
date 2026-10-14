@@ -41,6 +41,7 @@ frames_*.gv
 ros2_ws/frames*.pdf
 ros2_ws/frames*.gv
 MJMODEL.TXT
+MUJOCO_LOG.TXT
 ros2_ws/MJMODEL.TXT
 
 # MJ Lab / training outputs

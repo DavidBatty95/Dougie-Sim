@@ -13,7 +13,8 @@ from dougie_sim.terrain_qualification import aggregate, observed_target, qualifi
 PROTOCOL = json.loads((ROOT/'config/dougie_terrain_protocol.json').read_text())
 
 
-@pytest.mark.parametrize('name', ['stairs_up_060', 'stairs_down_060', 'legacy_06', 'ramp_up_15', 'ramp_down_15', 'tiles_040'])
+@pytest.mark.parametrize('name', ['stairs_up_060', 'stairs_down_060', 'legacy_06', 'ramp_up_15', 'ramp_down_15',
+                                  'ramp_up_10_long', 'ramp_down_10_pause', 'tiles_040'])
 def test_reference_height_matches_actual_collision_geometry(name):
     course = Course(catalogue()[name], 4)
     sim = Simulation(model_xml=course.xml)

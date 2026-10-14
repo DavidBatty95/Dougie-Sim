@@ -43,6 +43,10 @@ class RadiationField:
             for index in range(model.ngeom):
                 attenuation = float(model.geom_user[index, 0])
                 if attenuation > 0:
+                    import mujoco
+                    if (model.geom_type[index] != mujoco.mjtGeom.mjGEOM_BOX or
+                            not np.allclose(np.abs(data.geom_xmat[index].reshape(3, 3)), np.eye(3), atol=1e-8)):
+                        raise ValueError('radiation attenuation currently requires axis-aligned boxes')
                     centre, half = data.geom_xpos[index], model.geom_size[index]
                     shields.append(dict(lower=(centre-half).tolist(), upper=(centre+half).tolist(), attenuation_per_m=attenuation))
         return cls(dict(background_usv_h=background, sources=sources, shields=shields))

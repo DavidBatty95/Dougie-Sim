@@ -1,0 +1,1101 @@
+{
+  "schema_version": 1,
+  "scope": "development and screening; not independent repeatability qualification",
+  "missions": [
+    {
+      "run": "radiation_20261014T061252_003857Z",
+      "summary_sha256": "497b4d8315c52c4fa5c8fb8f7355d0bf082f73a9af7cde4687908934effb667e",
+      "configuration": {
+        "world": "mezzanine",
+        "layout_seed": 0,
+        "seed": 3,
+        "duration": 300.0,
+        "dose_budget": 2.0,
+        "gp_capacity": 256,
+        "fixed_plan_delay": 0.5,
+        "require_clean": true,
+        "policy": {
+          "name": "go2-robot-lab-baseline",
+          "schema": "go2-proprio-45-v1",
+          "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+          "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+          "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+        },
+        "path_mode": "smooth",
+        "gp_mode": "spatial",
+        "gp_expert_capacity": 32,
+        "gp_max_experts": 128,
+        "gp_cell_size": [
+          4.0,
+          4.0,
+          1.5
+        ],
+        "field_display": "detected",
+        "display_background": null
+      },
+      "simulated_time_s": 261.54499999983466,
+      "end_state": "returned",
+      "error": null,
+      "true_dose_usv": 0.1581765286144743,
+      "budget_usv": 2.0,
+      "clean_return": true,
+      "physical_witness": {
+        "upper_landing_witness_s": 71.63500000000734,
+        "lower_return_witness_s": 126.66999999995728,
+        "vertical_round_trip_witness": true,
+        "scope": "evaluator-only foot poses, 0.2 s dwell; not exploration completeness"
+      },
+      "exploration_complete": false,
+      "path_length_m": 28.090840465649695,
+      "sampled_height_range_m": [
+        0.395994587862987,
+        1.1511147640782462
+      ],
+      "mapped_surface_area_m2": 98.16000000000003,
+      "nonfoot_impulse_ns": 0.0,
+      "nonfoot_peak_force_n": 0.0,
+      "performance": {
+        "planner_execution": "spawned_process",
+        "loop_wall_time_s": 205.43275282799732,
+        "real_time_factor": 1.273141679695148,
+        "physics_steps_per_wall_second": 254.62833593919055,
+        "physics_budget_ms": 5.0,
+        "steps_over_budget": 341,
+        "active_loop": {
+          "count": 52309,
+          "total_s": 204.12971495938837,
+          "p50_ms": 0.9789199975784868,
+          "p95_ms": 2.4298586009535934,
+          "p99_ms": 3.461621026508498
+        },
+        "ros_and_visualization": {
+          "count": 0,
+          "total_s": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0,
+          "p99_ms": 0.0
+        },
+        "mujoco_viewer": {
+          "count": 0,
+          "total_s": 0.0,
+          "p50_ms": 0.0,
+          "p95_ms": 0.0,
+          "p99_ms": 0.0
+        },
+        "lidar3d": {
+          "count": 131,
+          "total_s": 6.5577427438111044,
+          "p50_ms": 43.924688012339175,
+          "p95_ms": 96.652455496951,
+          "p99_ms": 102.05171768902798
+        }
+      },
+      "source_sha256": {
+        "dougie_sim/__init__.py": "301acfaee06290bcd16afeda5df7d1fae36b357006c18753907f89d7c141f22d",
+        "dougie_sim/assets.py": "b03efd9438f01a642dbc6bf97ec5d44cabc88371371dfa7d90c88d166eea2c17",
+        "dougie_sim/clustered_planner.py": "82e8e9fb6a33afaa9df05c030b1be8db447e357e8f8e9a52ff3a741c3d06639d",
+        "dougie_sim/demo_overlay.py": "e7f512625bf7a3369cc19354113c00d69ba4758227ec9e9315a4e48456cd8e5a",
+        "dougie_sim/demo_recording.py": "b1489423f42dd605971fb22f06bc70788f01a2dde11da6ac179ea070d08f1703",
+        "dougie_sim/dose_planner.py": "0ca9db101301f4c8ab3cbf027c037f46b7a5fb96de5a67ca9f1a9b5288f86077",
+        "dougie_sim/explore.py": "f763a6268cac060896578036b8f7fcd8791c3442c03f6b0390c4e9726f60dbbf",
+        "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+        "dougie_sim/frontiers.py": "016decda61d87ff13286bd39b89aa53b4485f7a1a21d7829e6ba123e2cfb4db0",
+        "dougie_sim/gp.py": "e7d2d932007d963bf585dc4c6966db8db487b4a1e31a64e3dba315b86ba0b54d",
+        "dougie_sim/graphics.py": "b00b4afe34ca7fdffee20dd50d8ce2a2b5ed383350b915ab37ffe76f73e6dd54",
+        "dougie_sim/layered_terrain.py": "c3ca6b607e042d07f5d4bf5a871c33724d8c20d1d12a7244029867428f12b4b6",
+        "dougie_sim/mission_evaluation.py": "d88e0f9a1fa198d788ef365bbb4878bb4dad329f61cddeb7f338954a99a1efff",
+        "dougie_sim/multilevel.py": "9e765bf3a17b3facb21effba4a5e875acc4febda0703700ee999703e4d6ff149",
+        "dougie_sim/path_motion.py": "6c102858e0ae2332cefc9035282d2dc8e7acad2899272bab357e4baf0cc993af",
+        "dougie_sim/perception.py": "a7cb00039fd76bb4dd41a3a88710262cd0a4227ef5f140165e598c1b4098d562",
+        "dougie_sim/planning_worker.py": "077af8108c1509c33cc0fbdf1f8d691a6f88ccafa6ce4b9dab05323148b995bd",
+        "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+        "dougie_sim/radiation.py": "8b6ebd08af8b44144c02364ee52a1addbafa07131838781e1db4048dcfe3e1f1",
+        "dougie_sim/radiation_display.py": "19ea43a2e7c7c4c060e178de62133d8092fa9aa050aca774b4859134a3d6680b",
+        "dougie_sim/radiation_run.py": "6fcc7fecd06aaafe6677221e553f49b658515818dc4a92b7729b4011a8ed32a1",
+        "dougie_sim/reactor.py": "dba205f0b5ffc78f9b4e2c3a80f6a70c85653c34929fafa4f46c2a5a0bc63009",
+        "dougie_sim/record.py": "1d2df756e467dda2ede21b03ce1f3a3766ca85d2de91cd2e2b5e6423476683f7",
+        "dougie_sim/reference_terrain.py": "5b3e70e3cfee0484e19dcca8c48f05dd484e14185c4794a5ee21b48abe1fdd87",
+        "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+        "dougie_sim/residual_policy.py": "529325b02c80afff8ddd5c285ba18263ececb9df1495d668ab0f0a03e986232b",
+        "dougie_sim/robot_description.py": "7475d3270f6bf6145947aca9c1b5aa3936d45ab46dc5b271034f9e63694039ae",
+        "dougie_sim/ros_bridge.py": "42e7ebb9605844ddfaf9f5d283b2a24aff995f5529399bbef946365f78a30e30",
+        "dougie_sim/run.py": "28ac494dfa59b2400e79a1b185b4abba31a2efdf402650d8066c970cba7af9f5",
+        "dougie_sim/rviz_visualization.py": "e75f464304e6a72b6f992b14ba5bfb2fedba85258ae337c0e8805890c2b0b9c3",
+        "dougie_sim/sensing.py": "83b2aa9467b0083865749ed68719dec7fd51b2078fc1add7340e254ebd3e158d",
+        "dougie_sim/session.py": "3196347b03bdab2752db406e045c85b76bea3f24119df7c6162461548029c11e",
+        "dougie_sim/simulation.py": "e7960943a6ed73f89563a3c1e3424f7c25e2a0d301f8852cc4cc7a6bcde60984",
+        "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+        "dougie_sim/spatial_gp.py": "12b20aebaa9046b9afbcf7a127ba90e66566dc3827620ba23199eee824fbd093",
+        "dougie_sim/terrain.py": "7b7db8f2b39702d680698b8993a3e39e12cb8824f7452a0f33b991dac540d197",
+        "dougie_sim/terrain_courses.py": "9a0f2633f707a2dda79a526d688e6e22fa4d6f6b253a7c78ee4bc12a98db2cc3",
+        "dougie_sim/terrain_qualification.py": "10c76e14e22128967acdb9356560aa2c5fcbf897186b2c97697541f1f16f9538",
+        "dougie_sim/training.py": "dda90fec82269c9d00806cfd91ffed618c8b18efe1e678ae7da48e3f47437470",
+        "config/dougie_assets.json": "ed5f75bcf7dde8513848590a22f05c55465a55bbeefe59bf3f5278371211f783",
+        "radiation_source_config": "a52062841c3197f42b911b94d95bdb548aa4fedce29e306b9a3014aab39c5515"
+      },
+      "command_total_variation": [
+        20.015066776299324,
+        0.0,
+        74.86792087499775
+      ],
+      "turning_in_place_s": 32.76499999999831,
+      "gp": {
+        "model": "overlapping_spatial_experts",
+        "likelihood": "poisson",
+        "experts": 6,
+        "max_experts": 128,
+        "capacity_per_expert": 32,
+        "capacity": 4096,
+        "inducing_points": 122,
+        "inducing_capacity_total": 4096,
+        "updates": 523,
+        "expert_updates": 1326,
+        "posterior_bytes": 49664,
+        "prediction_cache_bytes": 23856,
+        "cell_size_m": [
+          4.0,
+          4.0,
+          1.5
+        ],
+        "halo_fraction": 0.2,
+        "saturated": false,
+        "unallocated_updates": 0,
+        "update_p50_ms": 0.6930890085641295,
+        "update_p95_ms": 2.5046235125046215,
+        "kernel": "Matern32-ARD",
+        "coordinates": "xyz metres",
+        "uncertainty": "mixture variance plus expert disagreement; maximum active upper envelope"
+      }
+    }
+  ],
+  "qualifications": [
+    {
+      "run": "terrain_20261013T153034_455176Z",
+      "summary_sha256": "7af27af5e07160008de55fdec3f2fec22bb06f8fa70bd6f080624f9650b14108",
+      "policy": {
+        "name": "go2-robot-lab-baseline",
+        "schema": "go2-proprio-45-v1",
+        "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+        "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+        "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+      },
+      "seeds": [
+        21,
+        22,
+        23
+      ],
+      "complete": true,
+      "trials": 27,
+      "cases": [
+        {
+          "case": "flat",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 42.825000000003456,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_delay",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 35.569999999999744,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 85.83499999999442,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 73.86000000000531,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_15",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 43.22500000000366,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_delay",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 80.52999999999925,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 66.25000000001224,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 55.4150000000099,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_15",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 54.73000000000955,
+          "max_nonfoot_impulse_ns": 0.0
+        }
+      ]
+    },
+    {
+      "run": "terrain_20261014T060437_829874Z",
+      "summary_sha256": "3c9159fcf06e64f99cd9ce1ce6fc589b06fbf4471e02234a6a546d15c01385e4",
+      "policy": {
+        "name": "training_20261014T055941_581944Z",
+        "schema": "go2-proprio-lidar-622-v2",
+        "sha256": "c76008c4bef26123c29c1076f1883025d4f60bbf82e1a9602eebef12eb93332d",
+        "manifest_sha256": "18f3e5244de21af624453764421493abbedccdc558365cbe0b2c52babeda160b",
+        "qualification": "UNQUALIFIED training checkpoint; independent native evaluation required"
+      },
+      "seeds": [
+        21,
+        22,
+        23
+      ],
+      "complete": true,
+      "trials": 27,
+      "cases": [
+        {
+          "case": "flat",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 41.43000000000274,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_delay",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 58.82500000001164,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 94.23499999998678,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 78.30000000000128,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_15",
+          "trials": 3,
+          "traversed": 1,
+          "qualified": 1,
+          "qualified_probability_lower_one_sided_95": 0.01695242750844151,
+          "meets_repeatability_target": false,
+          "reasons": {
+            "locomotion_stall": 2
+          },
+          "median_traversal_s": 44.79000000000446,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_delay",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 102.40499999997935,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 63.78000000001418,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 53.50500000000892,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_15",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 49.27000000000675,
+          "max_nonfoot_impulse_ns": 0.0
+        }
+      ]
+    },
+    {
+      "run": "terrain_20261014T060816_609382Z",
+      "summary_sha256": "c6b438c0ad10b2f470d13e5c4b080dd218b8f10454b650bb4e18e6233e0e59e2",
+      "policy": {
+        "name": "training_20261014T060453_260140Z",
+        "schema": "go2-proprio-lidar-622-v2",
+        "sha256": "b6829dde562cb872f1290c2cfebe1c4fcdfa2fb4d40610109b852120df7f8d00",
+        "manifest_sha256": "1937a01d8489250e6200a82f5e00cf98e81180d929cb4b83121a8339f2b9af3d",
+        "qualification": "UNQUALIFIED training checkpoint; independent native evaluation required"
+      },
+      "seeds": [
+        21,
+        22,
+        23
+      ],
+      "complete": true,
+      "trials": 27,
+      "cases": [
+        {
+          "case": "flat",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 42.805000000003446,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_delay",
+          "trials": 3,
+          "traversed": 2,
+          "qualified": 2,
+          "qualified_probability_lower_one_sided_95": 0.13535036217158386,
+          "meets_repeatability_target": false,
+          "reasons": {
+            "left_test_corridor": 1
+          },
+          "median_traversal_s": 46.51000000000534,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 82.65499999999732,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 68.2650000000104,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_down_15",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 44.250000000004185,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_delay",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 77.99500000000155,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_long",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 65.29000000001311,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_10_pause",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 54.50500000000943,
+          "max_nonfoot_impulse_ns": 0.0
+        },
+        {
+          "case": "ramp_up_15",
+          "trials": 3,
+          "traversed": 3,
+          "qualified": 3,
+          "qualified_probability_lower_one_sided_95": 0.36840314986403877,
+          "meets_repeatability_target": false,
+          "reasons": {},
+          "median_traversal_s": 51.33500000000781,
+          "max_nonfoot_impulse_ns": 0.0
+        }
+      ]
+    }
+  ],
+  "training": [
+    {
+      "run": "training_20261014T055941_581944Z",
+      "manifest_sha256": "22819e271f2879ce4ba4c0ebeac0b33ec01505883dec14eecee3d761638c79f1",
+      "arguments": {
+        "num_envs": 128,
+        "iterations": 150,
+        "terrain": "inclines",
+        "perceptive": true,
+        "seed": 44,
+        "smoke": false,
+        "resume": null,
+        "export_only": false,
+        "initialize_baseline": true,
+        "residual_scale": 0.15,
+        "output": null,
+        "quiet": true
+      },
+      "packages": {
+        "mjlab": "1.6.0",
+        "mujoco": "3.11.0",
+        "mujoco-warp": "3.11.0",
+        "warp-lang": "1.18.0",
+        "torch": "2.14.1",
+        "rsl-rl-lib": "5.4.2"
+      },
+      "device": "NVIDIA GeForce RTX 4080 Laptop GPU",
+      "reward_foot_order": [
+        "FL",
+        "FR",
+        "RL",
+        "RR"
+      ],
+      "result": {
+        "mode": "ppo_training",
+        "iterations": 150,
+        "transitions": 460800,
+        "export_parity": true,
+        "wall_time_s": 277.5441095610149,
+        "peak_torch_memory_bytes": 95578112
+      },
+      "source_sha256": {
+        "dougie_sim/frontiers.py": "016decda61d87ff13286bd39b89aa53b4485f7a1a21d7829e6ba123e2cfb4db0",
+        "dougie_sim/graphics.py": "b00b4afe34ca7fdffee20dd50d8ce2a2b5ed383350b915ab37ffe76f73e6dd54",
+        "dougie_sim/multilevel.py": "9e765bf3a17b3facb21effba4a5e875acc4febda0703700ee999703e4d6ff149",
+        "dougie_sim/terrain_courses.py": "9a0f2633f707a2dda79a526d688e6e22fa4d6f6b253a7c78ee4bc12a98db2cc3",
+        "dougie_sim/radiation_display.py": "19ea43a2e7c7c4c060e178de62133d8092fa9aa050aca774b4859134a3d6680b",
+        "dougie_sim/sensing.py": "83b2aa9467b0083865749ed68719dec7fd51b2078fc1add7340e254ebd3e158d",
+        "dougie_sim/reactor.py": "dba205f0b5ffc78f9b4e2c3a80f6a70c85653c34929fafa4f46c2a5a0bc63009",
+        "dougie_sim/demo_recording.py": "b1489423f42dd605971fb22f06bc70788f01a2dde11da6ac179ea070d08f1703",
+        "dougie_sim/mission_evaluation.py": "d88e0f9a1fa198d788ef365bbb4878bb4dad329f61cddeb7f338954a99a1efff",
+        "dougie_sim/run.py": "28ac494dfa59b2400e79a1b185b4abba31a2efdf402650d8066c970cba7af9f5",
+        "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+        "dougie_sim/terrain_qualification.py": "10c76e14e22128967acdb9356560aa2c5fcbf897186b2c97697541f1f16f9538",
+        "dougie_sim/spatial_gp.py": "12b20aebaa9046b9afbcf7a127ba90e66566dc3827620ba23199eee824fbd093",
+        "dougie_sim/explore.py": "f763a6268cac060896578036b8f7fcd8791c3442c03f6b0390c4e9726f60dbbf",
+        "dougie_sim/residual_policy.py": "529325b02c80afff8ddd5c285ba18263ececb9df1495d668ab0f0a03e986232b",
+        "dougie_sim/reference_terrain.py": "5b3e70e3cfee0484e19dcca8c48f05dd484e14185c4794a5ee21b48abe1fdd87",
+        "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+        "dougie_sim/assets.py": "b03efd9438f01a642dbc6bf97ec5d44cabc88371371dfa7d90c88d166eea2c17",
+        "dougie_sim/radiation_run.py": "6fcc7fecd06aaafe6677221e553f49b658515818dc4a92b7729b4011a8ed32a1",
+        "dougie_sim/gp.py": "e7d2d932007d963bf585dc4c6966db8db487b4a1e31a64e3dba315b86ba0b54d",
+        "dougie_sim/robot_description.py": "7475d3270f6bf6145947aca9c1b5aa3936d45ab46dc5b271034f9e63694039ae",
+        "dougie_sim/training.py": "dda90fec82269c9d00806cfd91ffed618c8b18efe1e678ae7da48e3f47437470",
+        "dougie_sim/perception.py": "a7cb00039fd76bb4dd41a3a88710262cd0a4227ef5f140165e598c1b4098d562",
+        "dougie_sim/planning_worker.py": "077af8108c1509c33cc0fbdf1f8d691a6f88ccafa6ce4b9dab05323148b995bd",
+        "dougie_sim/demo_overlay.py": "e7f512625bf7a3369cc19354113c00d69ba4758227ec9e9315a4e48456cd8e5a",
+        "dougie_sim/radiation.py": "8b6ebd08af8b44144c02364ee52a1addbafa07131838781e1db4048dcfe3e1f1",
+        "dougie_sim/ros_bridge.py": "42e7ebb9605844ddfaf9f5d283b2a24aff995f5529399bbef946365f78a30e30",
+        "dougie_sim/dose_planner.py": "0ca9db101301f4c8ab3cbf027c037f46b7a5fb96de5a67ca9f1a9b5288f86077",
+        "dougie_sim/terrain.py": "7b7db8f2b39702d680698b8993a3e39e12cb8824f7452a0f33b991dac540d197",
+        "dougie_sim/path_motion.py": "e3183fcfef83dc8facc5d792d83cb786c0bedd0bdb6f15bbc1b860dc0478cfba",
+        "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+        "dougie_sim/record.py": "1d2df756e467dda2ede21b03ce1f3a3766ca85d2de91cd2e2b5e6423476683f7",
+        "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+        "dougie_sim/session.py": "3196347b03bdab2752db406e045c85b76bea3f24119df7c6162461548029c11e",
+        "dougie_sim/clustered_planner.py": "82e8e9fb6a33afaa9df05c030b1be8db447e357e8f8e9a52ff3a741c3d06639d",
+        "dougie_sim/rviz_visualization.py": "e75f464304e6a72b6f992b14ba5bfb2fedba85258ae337c0e8805890c2b0b9c3",
+        "dougie_sim/layered_terrain.py": "c3ca6b607e042d07f5d4bf5a871c33724d8c20d1d12a7244029867428f12b4b6",
+        "dougie_sim/__init__.py": "301acfaee06290bcd16afeda5df7d1fae36b357006c18753907f89d7c141f22d",
+        "dougie_sim/simulation.py": "e7960943a6ed73f89563a3c1e3424f7c25e2a0d301f8852cc4cc7a6bcde60984"
+      },
+      "status": "completed"
+    },
+    {
+      "run": "training_20261014T060453_260140Z",
+      "manifest_sha256": "5f11c3d5701428290ef050427c35b76f6ede2c33c69f4ab8baa9e46ae8e21fe4",
+      "arguments": {
+        "num_envs": 16,
+        "iterations": 1,
+        "terrain": "inclines",
+        "perceptive": true,
+        "seed": 44,
+        "smoke": false,
+        "resume": "results/dougie/training_20261014T055941_581944Z/model_50.pt",
+        "export_only": true,
+        "initialize_baseline": false,
+        "residual_scale": 0.15,
+        "output": null,
+        "quiet": true
+      },
+      "packages": {
+        "mjlab": "1.6.0",
+        "mujoco": "3.11.0",
+        "mujoco-warp": "3.11.0",
+        "warp-lang": "1.18.0",
+        "torch": "2.14.1",
+        "rsl-rl-lib": "5.4.2"
+      },
+      "device": "NVIDIA GeForce RTX 4080 Laptop GPU",
+      "reward_foot_order": [
+        "FL",
+        "FR",
+        "RL",
+        "RR"
+      ],
+      "result": {
+        "mode": "policy_export",
+        "iterations": 0,
+        "transitions": 0,
+        "export_parity": true,
+        "wall_time_s": 9.859222506027436,
+        "peak_torch_memory_bytes": 30038528
+      },
+      "source_sha256": {
+        "dougie_sim/frontiers.py": "016decda61d87ff13286bd39b89aa53b4485f7a1a21d7829e6ba123e2cfb4db0",
+        "dougie_sim/graphics.py": "b00b4afe34ca7fdffee20dd50d8ce2a2b5ed383350b915ab37ffe76f73e6dd54",
+        "dougie_sim/multilevel.py": "9e765bf3a17b3facb21effba4a5e875acc4febda0703700ee999703e4d6ff149",
+        "dougie_sim/terrain_courses.py": "9a0f2633f707a2dda79a526d688e6e22fa4d6f6b253a7c78ee4bc12a98db2cc3",
+        "dougie_sim/radiation_display.py": "19ea43a2e7c7c4c060e178de62133d8092fa9aa050aca774b4859134a3d6680b",
+        "dougie_sim/sensing.py": "83b2aa9467b0083865749ed68719dec7fd51b2078fc1add7340e254ebd3e158d",
+        "dougie_sim/reactor.py": "dba205f0b5ffc78f9b4e2c3a80f6a70c85653c34929fafa4f46c2a5a0bc63009",
+        "dougie_sim/demo_recording.py": "b1489423f42dd605971fb22f06bc70788f01a2dde11da6ac179ea070d08f1703",
+        "dougie_sim/mission_evaluation.py": "d88e0f9a1fa198d788ef365bbb4878bb4dad329f61cddeb7f338954a99a1efff",
+        "dougie_sim/run.py": "28ac494dfa59b2400e79a1b185b4abba31a2efdf402650d8066c970cba7af9f5",
+        "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+        "dougie_sim/terrain_qualification.py": "10c76e14e22128967acdb9356560aa2c5fcbf897186b2c97697541f1f16f9538",
+        "dougie_sim/spatial_gp.py": "12b20aebaa9046b9afbcf7a127ba90e66566dc3827620ba23199eee824fbd093",
+        "dougie_sim/explore.py": "f763a6268cac060896578036b8f7fcd8791c3442c03f6b0390c4e9726f60dbbf",
+        "dougie_sim/residual_policy.py": "529325b02c80afff8ddd5c285ba18263ececb9df1495d668ab0f0a03e986232b",
+        "dougie_sim/reference_terrain.py": "5b3e70e3cfee0484e19dcca8c48f05dd484e14185c4794a5ee21b48abe1fdd87",
+        "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+        "dougie_sim/assets.py": "b03efd9438f01a642dbc6bf97ec5d44cabc88371371dfa7d90c88d166eea2c17",
+        "dougie_sim/radiation_run.py": "6fcc7fecd06aaafe6677221e553f49b658515818dc4a92b7729b4011a8ed32a1",
+        "dougie_sim/gp.py": "e7d2d932007d963bf585dc4c6966db8db487b4a1e31a64e3dba315b86ba0b54d",
+        "dougie_sim/robot_description.py": "7475d3270f6bf6145947aca9c1b5aa3936d45ab46dc5b271034f9e63694039ae",
+        "dougie_sim/training.py": "dda90fec82269c9d00806cfd91ffed618c8b18efe1e678ae7da48e3f47437470",
+        "dougie_sim/perception.py": "a7cb00039fd76bb4dd41a3a88710262cd0a4227ef5f140165e598c1b4098d562",
+        "dougie_sim/planning_worker.py": "077af8108c1509c33cc0fbdf1f8d691a6f88ccafa6ce4b9dab05323148b995bd",
+        "dougie_sim/demo_overlay.py": "e7f512625bf7a3369cc19354113c00d69ba4758227ec9e9315a4e48456cd8e5a",
+        "dougie_sim/radiation.py": "8b6ebd08af8b44144c02364ee52a1addbafa07131838781e1db4048dcfe3e1f1",
+        "dougie_sim/ros_bridge.py": "42e7ebb9605844ddfaf9f5d283b2a24aff995f5529399bbef946365f78a30e30",
+        "dougie_sim/dose_planner.py": "0ca9db101301f4c8ab3cbf027c037f46b7a5fb96de5a67ca9f1a9b5288f86077",
+        "dougie_sim/terrain.py": "7b7db8f2b39702d680698b8993a3e39e12cb8824f7452a0f33b991dac540d197",
+        "dougie_sim/path_motion.py": "e3183fcfef83dc8facc5d792d83cb786c0bedd0bdb6f15bbc1b860dc0478cfba",
+        "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+        "dougie_sim/record.py": "1d2df756e467dda2ede21b03ce1f3a3766ca85d2de91cd2e2b5e6423476683f7",
+        "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+        "dougie_sim/session.py": "3196347b03bdab2752db406e045c85b76bea3f24119df7c6162461548029c11e",
+        "dougie_sim/clustered_planner.py": "82e8e9fb6a33afaa9df05c030b1be8db447e357e8f8e9a52ff3a741c3d06639d",
+        "dougie_sim/rviz_visualization.py": "e75f464304e6a72b6f992b14ba5bfb2fedba85258ae337c0e8805890c2b0b9c3",
+        "dougie_sim/layered_terrain.py": "c3ca6b607e042d07f5d4bf5a871c33724d8c20d1d12a7244029867428f12b4b6",
+        "dougie_sim/__init__.py": "301acfaee06290bcd16afeda5df7d1fae36b357006c18753907f89d7c141f22d",
+        "dougie_sim/simulation.py": "e7960943a6ed73f89563a3c1e3424f7c25e2a0d301f8852cc4cc7a6bcde60984"
+      },
+      "status": "completed"
+    }
+  ],
+  "benchmarks": {
+    "motion": {
+      "file": "motion_20261014T061323_168767Z.json",
+      "sha256": "8c3798e64ac9d0e102e79fc3c54a39771968ef30c3d41cc6cd479f797d87668b",
+      "report": {
+        "scope": "same observed route/policy/start/goal per scenario; one physical repeat per mode",
+        "source_sha256": {
+          "dougie_sim/path_motion.py": "6c102858e0ae2332cefc9035282d2dc8e7acad2899272bab357e4baf0cc993af",
+          "scripts/benchmark_dougie_motion.py": "86ed56f07cd23ffcc2feb861cacd1a6243b0e9bb557c10da3df7dfac6c4d395f"
+        },
+        "trials": [
+          {
+            "mode": "grid",
+            "scenario": "zigzag",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 16.710000000000672,
+            "distance_m": 3.08392206519654,
+            "yaw_command_total_variation": 15.257637587069107,
+            "turning_in_place_s": 0.3600000000000002,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 2.076932105002925,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.8397806942618677,
+              1.96989470892541,
+              0.29185460629006577
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 60,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 2.870149038703295,
+              "raw_turn_rad": 25.73230240980158,
+              "execution_turn_rad": 0.21602317017598993,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.016125637749754326,
+              "rounded_corners": 1,
+              "geometry_checks": 2,
+              "smoothing_ms": 31.824522011447698
+            },
+            "replans": 0,
+            "replan_rejections": 0,
+            "follower_status": "grid"
+          },
+          {
+            "mode": "smooth",
+            "scenario": "zigzag",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 16.37000000000074,
+            "distance_m": 2.773661530842465,
+            "yaw_command_total_variation": 4.646393156638008,
+            "turning_in_place_s": 0.0,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 4.187345986982109,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.7872566888166412,
+              1.9918387031613207,
+              0.3055523328096261
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 60,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 2.870149038703295,
+              "raw_turn_rad": 25.73230240980158,
+              "execution_turn_rad": 0.21602317017598993,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.016125637749754326,
+              "rounded_corners": 1,
+              "geometry_checks": 2,
+              "smoothing_ms": 28.424364019883797
+            },
+            "replans": 0,
+            "replan_rejections": 0,
+            "follower_status": "tracking"
+          },
+          {
+            "mode": "smooth_replans",
+            "scenario": "zigzag",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 16.37000000000074,
+            "distance_m": 2.773661530842465,
+            "yaw_command_total_variation": 4.6463931566380134,
+            "turning_in_place_s": 0.0,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 4.528599857992958,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.7872566888166412,
+              1.9918387031613207,
+              0.3055523328096261
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 60,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 2.870149038703295,
+              "raw_turn_rad": 25.73230240980158,
+              "execution_turn_rad": 0.21602317017598993,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.016125637749754326,
+              "rounded_corners": 1,
+              "geometry_checks": 2,
+              "smoothing_ms": 46.88105400418863
+            },
+            "replans": 32,
+            "replan_rejections": 0,
+            "follower_status": "tracking"
+          },
+          {
+            "mode": "grid",
+            "scenario": "obstacle",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 24.689999999999085,
+            "distance_m": 3.996787203636604,
+            "yaw_command_total_variation": 8.223638825865999,
+            "turning_in_place_s": 2.0899999999999777,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 5.755487218993949,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.7159547346729445,
+              2.1185020876256337,
+              0.3086531886488293
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 75,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 3.525863636136707,
+              "raw_turn_rad": 2.170357507878132,
+              "execution_turn_rad": 1.3751944558596385,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.01976896155931643,
+              "rounded_corners": 1,
+              "geometry_checks": 3,
+              "smoothing_ms": 39.39033899223432
+            },
+            "replans": 0,
+            "replan_rejections": 0,
+            "follower_status": "grid"
+          },
+          {
+            "mode": "smooth",
+            "scenario": "obstacle",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 22.234999999999573,
+            "distance_m": 3.4045982513176676,
+            "yaw_command_total_variation": 5.946500350704189,
+            "turning_in_place_s": 1.2349999999999957,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 6.168102911004098,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.7158276724842347,
+              2.1173136870610594,
+              0.3110857672747654
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 75,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 3.525863636136707,
+              "raw_turn_rad": 2.170357507878132,
+              "execution_turn_rad": 1.3751944558596385,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.01976896155931643,
+              "rounded_corners": 1,
+              "geometry_checks": 3,
+              "smoothing_ms": 87.66398800071329
+            },
+            "replans": 0,
+            "replan_rejections": 0,
+            "follower_status": "tracking"
+          },
+          {
+            "mode": "smooth_replans",
+            "scenario": "obstacle",
+            "reached": true,
+            "error": null,
+            "elapsed_sim_s": 22.234999999999573,
+            "distance_m": 3.4045982513176676,
+            "yaw_command_total_variation": 5.9465003507041905,
+            "turning_in_place_s": 1.2349999999999957,
+            "nonfoot_impulse_ns": 0.0,
+            "nonfoot_peak_n": 0.0,
+            "wall_s": 4.861760252999375,
+            "target": [
+              1.875,
+              2.125,
+              0.0
+            ],
+            "final_position": [
+              1.7158276724842347,
+              2.1173136870610594,
+              0.3110857672747654
+            ],
+            "route": {
+              "mode": "support_checked",
+              "fallback_reason": null,
+              "raw_waypoints": 18,
+              "execution_waypoints": 75,
+              "raw_length_m": 4.142513765431753,
+              "execution_length_m": 3.525863636136707,
+              "raw_turn_rad": 2.170357507878132,
+              "execution_turn_rad": 1.3751944558596385,
+              "raw_upper_dose_usv": 0.023541794124368083,
+              "execution_upper_dose_usv": 0.01976896155931643,
+              "rounded_corners": 1,
+              "geometry_checks": 3,
+              "smoothing_ms": 35.51179001806304
+            },
+            "replans": 44,
+            "replan_rejections": 0,
+            "follower_status": "tracking"
+          }
+        ]
+      }
+    },
+    "gp": {
+      "file": "gp_replay_20261014T055321_490973Z.json",
+      "sha256": "5b757765313f3d5d07fb71dee43279a89fb4ccee73cfbb64150f8ff56512c5d3",
+      "report": {
+        "archive": "results/dougie/radiation_20261012T175641_497545Z",
+        "split": "first 80% train; final 20% queries, never assimilated",
+        "training_samples": 3233,
+        "query_points": 809,
+        "training_end_s": 1616.5000000120742,
+        "scope": "recorded facility counts, chronologically held-out trajectory; spatially correlated revisits, not unseen-building validation; different model budgets",
+        "source_sha256": {
+          "results/dougie/radiation_20261012T175641_497545Z/measurements.jsonl": "1e1a49cc511bebfad40b68bca648c9dd303280f9cdcb823b4e1653e02dffb8e1",
+          "results/dougie/radiation_20261012T175641_497545Z/evaluator_field.json": "9e754d7f6c766195cf85cfc44c5d5509e93bf96f3399c2244f7d8dea174d0e4c",
+          "scripts/benchmark_dougie_gp_replay.py": "29dfdeb535c4a63aee7478ee985792c7e3ebda7efaa1b18c1ef940a93282c9c8",
+          "dougie_sim/gp.py": "e7d2d932007d963bf585dc4c6966db8db487b4a1e31a64e3dba315b86ba0b54d",
+          "dougie_sim/spatial_gp.py": "12b20aebaa9046b9afbcf7a127ba90e66566dc3827620ba23199eee824fbd093"
+        },
+        "results": [
+          {
+            "name": "global_256",
+            "training_wall_s": 1.0082581759779714,
+            "prediction": {
+              "reference": {
+                "cold_ms": 27.857909008162096,
+                "warm_p50_ms": 24.37402098439634,
+                "warm_p95_ms": 25.235209602396935,
+                "max_absolute_difference": 0.0
+              },
+              "prepared": {
+                "cold_ms": 20.17333300318569,
+                "warm_p50_ms": 16.67714602081105,
+                "warm_p95_ms": 16.99397797929123,
+                "max_absolute_difference": 1.3009593402557584e-12
+              }
+            },
+            "log1p_rate_rmse": 0.6005426777137126,
+            "upper_rate_coverage": 0.9962917181705809,
+            "metrics": {
+              "inducing_points": 256,
+              "capacity": 256,
+              "updates": 3233,
+              "posterior_bytes": 1056768,
+              "prediction_cache_bytes": 526336,
+              "prediction_cache_builds": 1,
+              "update_p50_ms": 0.3342179988976568,
+              "update_p95_ms": 0.6032849894836538,
+              "kernel": "Matern32-ARD",
+              "coordinates": "xyz metres",
+              "target": "log(rate_usv_h)",
+              "likelihood": "Poisson counts",
+              "inference": "streaming sparse Laplace projection"
+            }
+          },
+          {
+            "name": "global_512",
+            "training_wall_s": 0.9555846560106147,
+            "prediction": {
+              "reference": {
+                "cold_ms": 31.865461001871154,
+                "warm_p50_ms": 30.16247900086455,
+                "warm_p95_ms": 31.749536388088018,
+                "max_absolute_difference": 0.0
+              },
+              "prepared": {
+                "cold_ms": 28.63680399605073,
+                "warm_p50_ms": 22.05685101216659,
+                "warm_p95_ms": 22.433602809906006,
+                "max_absolute_difference": 9.379164112033322e-13
+              }
+            },
+            "log1p_rate_rmse": 0.40150011242653594,
+            "upper_rate_coverage": 0.9938195302843016,
+            "metrics": {
+              "inducing_points": 313,
+              "capacity": 512,
+              "updates": 3233,
+              "posterior_bytes": 1577520,
+              "prediction_cache_bytes": 786256,
+              "prediction_cache_builds": 1,
+              "update_p50_ms": 0.3056040150113404,
+              "update_p95_ms": 0.5304452031850813,
+              "kernel": "Matern32-ARD",
+              "coordinates": "xyz metres",
+              "target": "log(rate_usv_h)",
+              "likelihood": "Poisson counts",
+              "inference": "streaming sparse Laplace projection"
+            }
+          },
+          {
+            "name": "spatial_32x128",
+            "training_wall_s": 0.951595822989475,
+            "prediction": {
+              "reference": {
+                "cold_ms": 7.5677980203181505,
+                "warm_p50_ms": 7.325382990529761,
+                "warm_p95_ms": 7.8703631879761815,
+                "max_absolute_difference": 0.0
+              },
+              "prepared": {
+                "cold_ms": 7.211810006992891,
+                "warm_p50_ms": 6.06612500268966,
+                "warm_p95_ms": 6.198912602849305,
+                "max_absolute_difference": 4.5297099404706387e-13
+              }
+            },
+            "log1p_rate_rmse": 0.4691951050633161,
+            "upper_rate_coverage": 0.992583436341162,
+            "metrics": {
+              "model": "overlapping_spatial_experts",
+              "likelihood": "poisson",
+              "experts": 40,
+              "max_experts": 128,
+              "capacity_per_expert": 32,
+              "capacity": 4096,
+              "inducing_points": 781,
+              "inducing_capacity_total": 4096,
+              "updates": 3233,
+              "expert_updates": 8041,
+              "posterior_bytes": 331536,
+              "prediction_cache_bytes": 120848,
+              "cell_size_m": [
+                4.0,
+                4.0,
+                1.5
+              ],
+              "halo_fraction": 0.2,
+              "saturated": false,
+              "unallocated_updates": 0,
+              "update_p50_ms": 0.23497201618738472,
+              "update_p95_ms": 0.5798488040454671,
+              "kernel": "Matern32-ARD",
+              "coordinates": "xyz metres",
+              "uncertainty": "mixture variance plus expert disagreement; maximum active upper envelope"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -82,6 +82,13 @@ class ObservedGain:
         self.offsets = []
         for angle in np.linspace(-math.pi, math.pi, 24, endpoint=False):
             self.offsets.append([(round(distance*math.cos(angle)), round(distance*math.sin(angle))) for distance in range(1, 9)])
+        self.rays = np.asarray(self.offsets, dtype=int)
+        cells = np.asarray([key[:2] for key in terrain.nodes], dtype=int).reshape(-1, 2)
+        self.origin = cells.min(axis=0)-9 if len(cells) else np.zeros(2, dtype=int)
+        self.shape = tuple(cells.max(axis=0)-self.origin+10) if len(cells) else (1, 1)
+        self.use_grid = math.prod(map(int, self.shape)) <= 1000000
+        self.support_cells = np.asarray([key[:2] for key in terrain.surfaces], dtype=int).reshape(-1, 2)
+        self.support_heights = np.asarray(list(terrain.surfaces.values()))
 
     def value(self, key):
         if key in self.cache:
@@ -89,13 +96,31 @@ class ObservedGain:
         layer = round(float(self.terrain.nodes[key][2])/.1)
         if layer not in self.layers:
             z = layer*.1
-            known = {k[:2] for k, height in self.terrain.surfaces.items() if abs(height-z) < .16}
-            blocked = set()
+            known_cells = self.support_cells[np.abs(self.support_heights-z) < .16]
+            blocked_cells = np.empty((0, 2), dtype=int)
             if len(self.hits):
                 mask = (self.hits[:, 2] > z+.12) & (self.hits[:, 2] < z+.7)
-                blocked = set(map(tuple, np.floor(self.hits[mask, :2]/self.terrain.resolution).astype(int)))
+                blocked_cells = np.floor(self.hits[mask, :2]/self.terrain.resolution).astype(int)
+            if self.use_grid:
+                known, blocked = np.zeros(self.shape, dtype=bool), np.zeros(self.shape, dtype=bool)
+                for grid, coordinates in ((known, known_cells), (blocked, blocked_cells)):
+                    indices = coordinates-self.origin
+                    inside = np.all((indices >= 0) & (indices < self.shape), axis=1)
+                    indices = indices[inside]
+                    grid[indices[:, 0], indices[:, 1]] = True
+            else:
+                known, blocked = set(map(tuple, known_cells)), set(map(tuple, blocked_cells))
             self.layers[layer] = known, blocked
         known, blocked = self.layers[layer]
+        if self.use_grid:
+            coordinates = self.rays+np.asarray(key[:2])-self.origin
+            obstacle = blocked[coordinates[..., 0], coordinates[..., 1]]
+            stop = obstacle | ~known[coordinates[..., 0], coordinates[..., 1]]
+            first = stop.argmax(axis=1)
+            visible = stop.any(axis=1) & ~obstacle[np.arange(len(first)), first]
+            frontier = coordinates[np.arange(len(first)), first][visible]
+            self.cache[key] = len(np.unique(frontier, axis=0))
+            return self.cache[key]
         revealed = set()
         for ray in self.offsets:
             for dx, dy in ray:

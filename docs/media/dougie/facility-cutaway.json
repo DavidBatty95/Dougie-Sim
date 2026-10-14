@@ -1,0 +1,11 @@
+{
+  "scope": "actual MuJoCo model render after 1 s settling; diagnostic transparency and all targets, not a mission recording",
+  "world": "facility",
+  "layout_seed": 0,
+  "landmark_count": 8,
+  "landmark_seed": 7,
+  "mujoco": "3.3.6",
+  "source_sha256": "518cb43698ce2cff8244aff0fe8929688fd1a15158cb8590d78b881d488385ee",
+  "scene_sha256": "7432ae13ded9c8e042ba0ec429a63a1a15dca1f441d7c75590453b4b89d32e80",
+  "image_sha256": "d2a45d90c7a5379912b94f938f938ffe3278874ec4f0a74e8942344af96bf450"
+}

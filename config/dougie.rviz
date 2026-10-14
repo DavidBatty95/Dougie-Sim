@@ -26,9 +26,19 @@ Visualization Manager:
         Value: /scan
         Reliability Policy: Best Effort
       Size (m): 0.04
-    - Class: rviz_default_plugins/MarkerArray
-      Name: Go2 physical geometry
+    - Class: rviz_default_plugins/RobotModel
+      Name: Unitree Go2 (verified meshes)
       Enabled: true
+      Visual Enabled: true
+      Collision Enabled: false
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Go2 collision debug
+      Enabled: false
       Topic:
         Value: /dougie/robot
     - Class: rviz_default_plugins/Path

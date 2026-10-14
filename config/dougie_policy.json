@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "go2-robot-lab-baseline",
+  "artifact": "../.dougie/assets/policy/go2.pt",
+  "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+  "model_sha256": "2014a3d76e30f17ab9447d8a67bd015291f74fa4d71ae30d005f1a32bd693d4b",
+  "observation_schema": "go2-proprio-45-v1",
+  "policy_period_s": 0.02,
+  "joint_order": ["FR_hip_joint", "FR_thigh_joint", "FR_calf_joint", "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint", "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint", "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint"],
+  "default_leg_pose": [0.0, 0.8, -1.5],
+  "leg_action_scale": [0.125, 0.25, 0.25],
+  "kp": 20.0,
+  "kd": 0.5,
+  "torque_limit_nm": 23.5,
+  "observation_clip": 100.0,
+  "action_clip": 100.0,
+  "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+}

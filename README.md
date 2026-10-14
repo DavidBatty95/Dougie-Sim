@@ -18,7 +18,13 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Evidence checkpoint — 7 October 2026:** the initial validation records 25 passing
+**Latest checkpoint — 14 October 2026:** **175 tests pass**. Two smooth-tracking /
+spatial-GP facility missions reached the **2.4 m upper floor**, descended and
+returned home with **zero recorded non-foot impacts**, within a 5 µSv budget.
+Optional seeded discovery targets are detected through range/FOV/occlusion checks
+and displayed in RViz after discovery. [Results, retained failures and scope](docs/DOUGIE_FULLHEIGHT_RESULTS.md).
+
+**Initial checkpoint — 7 October 2026:** the initial validation records 25 passing
 tests and three radiation missions that returned within a 0.2 µSv budget in one
 reactor layout. Physical simulation trials also crossed 6 cm stair risers and
 2–4 cm floor plates. This is an initial integration and research baseline;
@@ -39,10 +45,24 @@ they are demonstrations of traversal, not a validated operating envelope.
 | **Radiation mapping** | 2 Hz Poisson detector and bounded XYZ log-rate GP | `./dougie radiation` |
 | **Dose-aware exploration** | Observed multi-height support, route exposure, return reserve and deadline checks | `./dougie radiation` |
 | **Planar comparison** | Horizontal scans, SLAM Toolbox, Nav2 and frontier goals | `./dougie explore` |
-| **Terrain qualification** | 52 profiles, contact-aware scoring and independent repeatability trials | `./dougie terrain-qualify` |
+| **Terrain qualification** | Seeded courses, contact-aware scoring and independent repeatability trials | `./dougie terrain-qualify` |
+| **Discovery targets** | Optional seeded, occlusion-aware landmark detection and inspection | `--landmark-count 8 --landmark-seed 7` |
 | **Reproducible evidence** | Seeded detector noise, source hashes, retained traces and independent exposure scoring | [Validation](docs/DOUGIE_VALIDATION.md) |
 
 ## Recorded demo gallery
+
+![Actual MuJoCo full-height facility with diagnostic cutaway and seeded discovery targets](docs/media/dougie/facility-cutaway.png)
+
+The facility is simulated in **MuJoCo**; **RViz displays the same robot and mission
+state over ROS**. This still is an actual model render with diagnostic transparency
+and all targets shown. Live RViz publishes only discovered target markers.
+[Graphics provenance](docs/DOUGIE_MEDIA.md).
+
+![Measured full-height mission trajectories and detector heights, including a failed vertical mission](docs/media/dougie/facility-results.svg)
+
+Recorded telemetry, not a screen recording. Two development seeds on one layout
+passed the vertical round trip; complete building/landmark coverage and real-time
+performance under load remain open. [Full result table](docs/DOUGIE_FULLHEIGHT_RESULTS.md).
 
 | Go2 walking in MuJoCo | Radiation mission data replay |
 |---|---|
@@ -118,6 +138,10 @@ only the learned GP map. [Source locations, strengths and configuration](docs/DO
 | `--duration` | `600` | Maximum simulated mission time in seconds |
 | `--seed` | `1` | Detector-noise seed; does not randomize facility geometry |
 | `--gp-capacity` | `128` | Maximum inducing dictionary size |
+| `--gp-mode` | `global` | Global GP or bounded overlapping spatial experts |
+| `--path-mode` | `smooth` | Support/risk-checked smooth execution or historical grid following |
+| `--require-round-trip` | Off | Evaluator requires clean upstairs/downstairs/home witnesses |
+| `--landmark-count`, `--landmark-seed` | `0`, `0` | Optional 2–64 seeded facility discovery targets |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
 | `--source-profile` | `hotspots-and-leaks` | Combined emitters, `hotspots`, `leaks`, or the original `baseline` |
 | `--source-config` | Built-in JSON | Alternative source file inside the checkout |
@@ -129,14 +153,26 @@ only the learned GP map. [Source locations, strengths and configuration](docs/DO
 
 The interactive demo now opens **RViz in a separate process**. MuJoCo runs
 physics without a viewer. RViz shows the diagnostic world geometry, articulated
-Go2 collision shapes, learned GP volume, planned/travelled paths and mission
+Go2 visual meshes, learned GP volume, planned/travelled paths and mission
 state. See [rendering performance and measurements](docs/DOUGIE_PERFORMANCE.md).
+
+Interactive launches now select GPU graphics automatically where available.
+Use `./dougie graphics-check --require-hardware` to confirm the actual renderer;
+the NVIDIA facility benchmark measured approximately **30 FPS** with the full Go2
+model. Explicit overrides include `--graphics nvidia` and `--graphics dri`.
 
 The live dashboard shows measured dose against budget, rate against threshold,
 estimated return reserve and the planner's decision. **Green** marks the current
 plan and target, **blue** the travelled path, and **amber** the estimated return
 route. A legend explains the GP mean/uncertainty colours; the final view stays
 open for inspection.
+
+Routes now use support-checked smoothing and slew-limited steering. The radiation
+overlay highlights **above-background count evidence and nearby GP estimates**,
+instead of painting unmeasured space from the prior. Use `--show-sources` for
+labelled diagnostic source beacons, `--gp-mode spatial` for optional local GP
+experts, and `--path-mode grid` for the original follower.
+[Methods, motion benchmarks and incline training results](docs/DOUGIE_SMOOTH_MAPPING.md).
 
 1. Go2 settles into stance, then the mission uses observed support surfaces to
    select routes. It does not receive hidden source positions or a facility map.
@@ -159,6 +195,47 @@ model supplies radiation observations. [Full methods and assumptions](docs/DOUGI
 
 ## Walking, exploration and ROS
 
+### Experimental multi-level milestone
+
+The new **full-height facility** has overlapping rooms separated by 2.4 m,
+switchback service ramps, equipment, shielding and a genuine stair challenge.
+A development mission reached the upper floor and returned without recorded
+non-foot contacts. RViz now renders the verified articulated **Go2 meshes**.
+
+The latest corrected smooth/spatial runs passed the round-trip gate for detector
+seeds 3 and 4: home at **2,365.44 / 2,207.44 s**, actual exposure **1.01076 /
+0.90453 µSv** out of 5 µSv. Seed 4 returned at mapping capacity; these outcomes
+do not certify full coverage. [Latest methods and results](docs/DOUGIE_FULLHEIGHT_RESULTS.md).
+
+```bash
+./dougie radiation --world facility --duration 2400 --dose-budget 5 --gp-capacity 256 --seed 3
+
+# Strict headless full-height evaluation:
+./dougie radiation --world facility --headless --fast --duration 2400 --dose-budget 5 \
+  --gp-mode spatial --seed 3 --fixed-plan-delay .5 --require-round-trip
+
+# Optional visible-only discovery targets, with RViz:
+./dougie radiation --world facility --duration 2400 --dose-budget 5 \
+  --gp-mode spatial --landmark-count 8 --landmark-seed 7
+```
+
+[Facility, controller comparisons and retained failures](docs/DOUGIE_FACILITY.md).
+This is an experimental ramp-access mission; ordinary stairs remain unqualified.
+The smaller, faster vertical fixture is still available:
+
+```bash
+./dougie radiation --world mezzanine --duration 300 --dose-budget 2 --seed 3
+```
+
+The new observed-slope mapper supports a two-ramp raised gallery with explicit
+radiation shielding. Two development seeds reached the gallery and returned
+upright without recorded non-foot impacts. This is a low-mezzanine milestone;
+ordinary stairs and complete unknown-building exploration remain unqualified.
+[Full TXT plan](docs/DOUGIE_MULTIFLOOR_PLAN.txt) ·
+[Implementation, GPU training and measured results](docs/DOUGIE_MULTIFLOOR_PROGRESS.md).
+
+### Ordinary walking and planar exploration
+
 ```bash
 ./dougie worlds
 ./dougie demo --world flat --vx 0.3 --duration 30
@@ -179,6 +256,8 @@ Moving people are simplified kinematic capsules, not validated crowd behavior.
 | `room` | `demo --world room` | 12 × 12 m enclosure, scans and manual commands |
 | `office` | `explore --world office` | Partitions, furniture and planar frontiers |
 | `reactor` | `radiation` | Shielding, vessel, drums, floor plates and inspection deck |
+| `mezzanine` | `radiation --world mezzanine` | Low raised-gallery development fixture |
+| `facility` | `radiation --world facility` | Full-height two-storey rooms, service ramps and an unqualified staircase |
 | `stairs` | `terrain-test` | Legacy small-riser completion demonstration; use `terrain-qualify` for qualification |
 
 `worlds` lists all scenes; `demo` and `explore` accept only `flat`, `room`, or
@@ -220,6 +299,7 @@ ros2 topic echo --once /radiation/measurement
 | `/cmd_vel` | Ordinary-demo velocity input / ordinary-exploration commands |
 | `/radiation/measurement`, `/radiation/status` | JSON in `std_msgs/String` |
 | `/radiation/gp_map` | `sensor_msgs/PointCloud2`: XYZ, mean, upper rate and log-rate uncertainty |
+| `/radiation/landmarks` | Retained discovered/inspected target markers; unseen targets are not published |
 
 DDS defaults to loopback-only domain **43**. `./dougie shell` shares that
 configuration; host tools need matching DDS settings.
@@ -232,8 +312,9 @@ configuration; host tools need matching DDS settings.
   actions; PD control applies joint torques. The free base is integrated by
   MuJoCo with no execution-time teleportation or stabilizing tether.
 - **Observed terrain:** 3-D ray returns and estimated surface normals create a
-  multi-height support graph. Unknown support is not traversable; steps over
-  7.5 cm and known body-height obstacles are rejected.
+  multi-height support graph. Unknown support is not traversable. Conservative
+  reactor mapping uses a 2 cm step limit; layered facility mapping checks local
+  planes, slope connectivity and support footprint. Industrial stairs are unqualified.
 - **Radiation inference:** a positive log-rate field uses a Matérn-3/2 ARD kernel
   and streaming sparse Laplace updates for Poisson counts. The dictionary is
   capped; unobserved heights retain uncertainty.
@@ -259,6 +340,8 @@ For radiation, keep the whole run directory:
 | `measurements.jsonl` | Time, XYZ, counts, integration window, estimated rate and dose |
 | `trace.jsonl` | Mission states, observed coverage and planning timings |
 | `radiation_summary.json` | Outcome, estimated/actual exposure, return and sampled heights |
+| `landmark_observations.json` | Visible semantic target observations and latched inspection state |
+| `landmark_evaluation.json` | Evaluator-only target catalogue and per-floor discovery/inspection counts |
 | `radiation_map_3d.npz` | XYZ queries, mean/upper rates and log-rate uncertainty |
 | `gp_posterior.npz` | Inducing coordinates, posterior and kernel parameters |
 | `observed_geometry.npz` | Range hits and sampled observed-free voxels |
@@ -377,6 +460,7 @@ the original completion-only demonstration.
 | X11 authorization failure | Pass the session's existing `DISPLAY` and valid `XAUTHORITY`; if required, authorize the container user with `xhost +si:localuser:$(id -un)` |
 | No radiation topics | Omit `--fast`; inspect from `./dougie shell` in the matching DDS domain |
 | Robot stands still | Default demo velocity is zero; send `/cmd_vel` or set `--vx`; exploration can also wait for map/planner readiness |
+| RViz runs at a few FPS | Restart through `./dougie`; run `./dougie graphics-check --require-hardware`. `llvmpipe` means CPU rendering. Try `--graphics nvidia` or `--graphics dri`; see the [graphics guide](docs/DOUGIE_PERFORMANCE.md#gpu-graphics-fix-and-measured-rviz-fps--13-october-2026) |
 | `--world reactor` rejected | Use `./dougie radiation`; `demo`/`explore` accept only flat, room and office |
 | Return or budget failure | Inspect summary and trace; an estimated reserve is not a guarantee against falls, blockage or model error |
 

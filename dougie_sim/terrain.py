@@ -99,21 +99,34 @@ class SurfaceMap:
         distance, key = min(eligible)
         return key if distance < .75 else None
 
-    def routes(self, start, rates=None, speed=.1, rate_scale=50.):
+    def edge_time(self, start, end, speed=.1):
+        distance = self._edge_lengths.get((start, end))
+        if distance is None:
+            distance = math.dist(self.nodes[start], self.nodes[end])
+        edge_speed = min(speed, .06) if abs(self.nodes[end][2]-self.nodes[start][2]) > .025 else speed
+        return distance/edge_speed
+
+    def routes(self, start, rates=None, speed=.1, rate_scale=50., *, reverse=False):
+        adjacency = self.graph
+        if reverse:
+            adjacency = {key: [] for key in self.graph}
+            for key, neighbours in self.graph.items():
+                for other in neighbours:
+                    adjacency.setdefault(other, []).append(key)
         costs, dose, length, parent = {start: 0.}, {start: 0.}, {start: 0.}, {start: None}
         queue = [(0., start)]
         while queue:
             cost, key = heapq.heappop(queue)
             if cost > costs[key]+1e-10:
                 continue
-            for other in self.graph.get(key, []):
+            for other in adjacency.get(key, []):
                 distance = self._edge_lengths.get((key, other))
                 if distance is None:
                     distance = math.dist(self.nodes[other], self.nodes[key])
                 rate = 0. if rates is None else max(rates[key], rates[other])
-                edge_speed = min(speed, .06) if abs(self.nodes[other][2]-self.nodes[key][2]) > .025 else speed
-                exposure = rate*distance/edge_speed/3600.
-                candidate = cost+distance/edge_speed*(1.+rate/rate_scale)
+                duration = self.edge_time(other, key, speed) if reverse else self.edge_time(key, other, speed)
+                exposure = rate*duration/3600.
+                candidate = cost+duration*(1.+rate/rate_scale)
                 if candidate < costs.get(other, math.inf):
                     costs[other], dose[other], length[other], parent[other] = candidate, dose[key]+exposure, length[key]+distance, key
                     heapq.heappush(queue, (candidate, other))

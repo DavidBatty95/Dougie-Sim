@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "scope": "Matched synthetic rendering workload; not an exploration or hard-real-time qualification",
+  "world": "facility",
+  "warmup_s": 8.0,
+  "measurement_wall_s": 20.0,
+  "requested_rviz_fps": 30,
+  "viewport_pixels": 613872,
+  "gp_points": 450,
+  "trail_points": 2000,
+  "robot_links": 17,
+  "urdf_sha256": "8b743bac89795ac6310f35c9a8b5482705d0c4c7cafa660aa922e9756845c1d0",
+  "rviz_config_sha256": "867c08aff1b7af1386be34ebc7b3ba7fd61317d33d2996921e509880b9c97dc5",
+  "method": "GLX buffer-swap timestamps from the largest drawable; warmup excluded; robot/scene/map subscriptions verified",
+  "software": {
+    "run": "rviz_benchmark_20261013T075417_790509Z",
+    "renderer": "llvmpipe (LLVM 15.0.7, 256 bits)",
+    "frames": 262,
+    "presented_fps": 13.1,
+    "frame_interval_p50_ms": 75.60678600566462,
+    "frame_interval_p95_ms": 84.2047710029874,
+    "rviz_exit_code": 0
+  },
+  "nvidia": {
+    "run": "rviz_benchmark_20261013T075318_831610Z",
+    "renderer": "NVIDIA GeForce RTX 4080 Laptop GPU/PCIe/SSE2",
+    "driver": "580.178.04",
+    "frames": 625,
+    "presented_fps": 31.25,
+    "frame_interval_p50_ms": 31.979965504433494,
+    "frame_interval_p95_ms": 34.01525245499215,
+    "rviz_exit_code": 0
+  }
+}

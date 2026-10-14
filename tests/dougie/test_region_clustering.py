@@ -1,4 +1,5 @@
 import math
+from types import SimpleNamespace
 
 import mujoco
 import numpy as np
@@ -58,6 +59,28 @@ def test_cached_novelty_is_invalidated_by_new_observations():
     assert terrain.novelty((0, 0, 0)) == 121
     terrain.update(np.empty((0, 3)), np.array([[.1, .1, 0.]]))
     assert terrain.novelty((0, 0, 0)) == 120
+
+
+def test_vectorized_observed_gain_matches_ray_by_ray_visibility():
+    rng = np.random.default_rng(15)
+    terrain = SurfaceMap()
+    terrain.nodes = {(x, y, 0): np.array([x*.25, y*.25, 0.]) for x in range(-4, 5) for y in range(-4, 5)}
+    terrain.surfaces = {key: 0. for key in terrain.nodes if rng.random() < .7}
+    terrain.hits = {i: p for i, p in enumerate(rng.uniform([-2., -2., .1], [2., 2., .8], (25, 3)))}
+    gain = ObservedGain(terrain)
+    known = {key[:2] for key in terrain.surfaces}
+    blocked = {tuple(np.floor(p[:2]/.25).astype(int)) for p in terrain.hits.values() if .12 < p[2] < .7}
+    for key in terrain.nodes:
+        revealed = set()
+        for ray in gain.offsets:
+            for dx, dy in ray:
+                cell = key[0]+dx, key[1]+dy
+                if cell in blocked:
+                    break
+                if cell not in known:
+                    revealed.add(cell)
+                    break
+        assert gain.value(key) == len(revealed)
 
 
 def test_conservative_profile_rejects_floor_hypothesis_beneath_a_low_ledge():
@@ -138,3 +161,31 @@ def test_stalled_edge_is_temporarily_removed_in_both_directions():
     planner.terrain.build_graph = lambda: (planner.terrain.nodes, planner.terrain.graph)
     planner.replan([0., 0., 0.], 11.)
     assert b not in planner.terrain.graph[a] and a not in planner.terrain.graph[b]
+
+
+def test_visited_connector_bonus_does_not_pull_robot_away_from_new_landing(monkeypatch):
+    planner = ClusteredDoseExplorer(budget=5.)
+    terrain = planner.terrain
+    root, ramp, landing, visited = [(i, 0, 0) for i in (0, 4, -4, 5)]
+    terrain.nodes = {root: np.array([0., 0., 0.]), ramp: np.array([.8, 0., 0.]),
+                     landing: np.array([-.8, 0., 0.]), visited: np.array([1., 0., 0.])}
+    terrain.graph = {root: [ramp, landing], ramp: [root, visited], landing: [root], visited: [ramp]}
+    terrain.build_graph = lambda: (terrain.nodes, terrain.graph)
+    terrain.active_viewpoints = True
+    terrain.acquisition_bonus = lambda key, bands: 4. if key in (ramp, visited) else 0.
+    planner.visited = {root, visited}
+    planner.gp = SimpleNamespace(predict=lambda points: (np.ones(len(points)), np.full(len(points), .9), np.ones(len(points))))
+    planner.sample = RadiationSample(1., (0, 0, .44), 5, .5, .72, .1, .001, .002)
+    monkeypatch.setattr('dougie_sim.clustered_planner.ObservedGain', lambda terrain: SimpleNamespace(value=lambda key: 1, cache={}))
+    planner.replan([0., 0., 0.], 1.)
+    np.testing.assert_allclose(planner.target, terrain.nodes[landing])
+    from dougie_sim.landmarks import LandmarkObservation
+    planner.target = None
+    planner.observe_landmarks([LandmarkObservation('seen', (.8, 0., .55), 1., False)])
+    planner.replan([0., 0., 0.], 1.)
+    np.testing.assert_allclose(planner.target, terrain.nodes[ramp])
+    planner.target = None
+    planner.gp = SimpleNamespace(predict=lambda points: (np.ones(len(points)), np.full(len(points), .9), np.full(len(points), 1000.)))
+    planner.replan([0., 0., 0.], 1.)
+    assert planner.returning
+    np.testing.assert_allclose(planner.target, terrain.nodes[root])

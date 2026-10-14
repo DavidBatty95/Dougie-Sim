@@ -193,6 +193,11 @@ def catalogue():
     for angle in (5., 10., 15., 20.):
         for direction in ('up', 'down'):
             cases.append(CourseSpec(f'ramp_{direction}_{int(angle):02d}', kind='ramp', slope_deg=angle, direction=direction, length=3.))
+    for direction in ('up', 'down'):
+        for suffix, changes in (('long', dict(length=8., width=2.4)),
+                                ('pause', dict(length=6., width=2.4, pause_on_course=True)),
+                                ('delay', dict(length=6., width=2.4, observation_delay_ms=20))):
+            cases.append(CourseSpec(f'ramp_{direction}_10_{suffix}', kind='ramp', slope_deg=10., direction=direction, **changes))
     for name in ('flat', 'stairs_up_060', 'stairs_down_060', 'tiles_040'):
         original = next(c for c in cases if c.name == name)
         cases.append(replace(original, name=name+'_observed', guidance='observed'))

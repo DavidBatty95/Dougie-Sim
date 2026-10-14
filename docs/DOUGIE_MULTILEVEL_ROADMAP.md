@@ -5,6 +5,10 @@ policy or a completed multi-floor mission.** The intended extension is 3-D
 radiation inference with navigation on connected floor/stair surfaces, rather
 than unconstrained free-space 3-D motion.
 
+For subsequent implementation and measured full-height ramp missions, see the
+[facility development record](DOUGIE_FACILITY.md). This document preserves the
+original planning assessment.
+
 ## Recommendation
 
 Build the demo around a visible decision: **the shortest route is radiologically

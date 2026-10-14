@@ -14,6 +14,7 @@ from scipy.linalg import cho_solve, solve_triangular
 
 
 class OnlineGP:
+    likelihood = 'gaussian'
     def __init__(self, capacity=128, lengthscales=(1.5, 1.5, .7), variance=2.25, prior_rate=1.):
         self.capacity = int(capacity)
         self.lengthscales = np.asarray(lengthscales, dtype=float)
@@ -28,6 +29,10 @@ class OnlineGP:
         self.cov = np.empty((0, 0))
         self.updates = 0
         self.update_ms = []
+        self.use_prepared_predictions = True
+        self._prediction_cache = None
+        self.prediction_cache_builds = 0
+        self.prediction_chunk_size = 2048
 
     def kernel(self, a, b):
         d = np.linalg.norm((np.asarray(a)[:, None, :]-np.asarray(b)[None, :, :])/self.lengthscales, axis=2)
@@ -73,11 +78,30 @@ class OnlineGP:
         return a, residual
 
     def _finish(self, start):
+        self.invalidate_prediction_cache()
         self.cov = (self.cov+self.cov.T)*.5
         self.updates += 1
         self.update_ms.append((time.perf_counter()-start)*1000.)
         if len(self.update_ms) > 4096:
             self.update_ms = self.update_ms[-2048:]
+
+    def invalidate_prediction_cache(self):
+        """Required after manual posterior edits; normal updates do this automatically."""
+        self._prediction_cache = None
+
+    @property
+    def prediction_cache_bytes(self):
+        return sum(a.nbytes for a in self._prediction_cache) if self._prediction_cache is not None else 0
+
+    def _prepare_prediction(self):
+        if self._prediction_cache is None:
+            inverse = cho_solve((self.L, True), np.eye(len(self.Z)), check_finite=False)
+            alpha = inverse@self.mean
+            correction = inverse@self.cov@inverse-inverse
+            correction = (correction+correction.T)*.5
+            self._prediction_cache = alpha, correction
+            self.prediction_cache_builds += 1
+        return self._prediction_cache
 
     def predict_log(self, points):
         points = np.asarray(points, dtype=float).reshape(-1, 3)
@@ -85,6 +109,17 @@ class OnlineGP:
             raise ValueError('nonfinite query')
         if not len(self.Z):
             return np.full(len(points), self.prior), np.full(len(points), self.variance)
+        if self.use_prepared_predictions:
+            alpha, correction = self._prepare_prediction()
+            mu, var = np.empty(len(points)), np.empty(len(points))
+            # Bound temporary M x N arrays independently of facility/query size.
+            for start in range(0, len(points), self.prediction_chunk_size):
+                end = start+self.prediction_chunk_size
+                K = self.kernel(self.Z, points[start:end])
+                mu[start:end] = self.prior+K.T@alpha
+                var[start:end] = self.variance+np.sum(K*(correction@K), axis=0)
+            return mu, np.maximum(var, 1e-8)
+        # Kept as an independent reference path for equivalence/performance checks.
         K = self.kernel(self.Z, points)
         A = cho_solve((self.L, True), K, check_finite=False)
         mu = self.prior+A.T@self.mean
@@ -102,9 +137,16 @@ class OnlineGP:
     def metrics(self):
         return dict(inducing_points=len(self.Z), capacity=self.capacity, updates=self.updates,
             posterior_bytes=self.Z.nbytes+self.L.nbytes+self.mean.nbytes+self.cov.nbytes,
+            prediction_cache_bytes=self.prediction_cache_bytes, prediction_cache_builds=self.prediction_cache_builds,
             update_p50_ms=float(np.median(self.update_ms)) if self.update_ms else None,
             update_p95_ms=float(np.percentile(self.update_ms, 95)) if self.update_ms else None,
             kernel='Matern32-ARD', coordinates='xyz metres', target='log1p(rate_usv_h)')
+
+    def save(self, path):
+        np.savez_compressed(path, model_kind='global', schema_version=1,
+            Z=self.Z, mean=self.mean, covariance=self.cov, cholesky=self.L,
+            lengthscales=self.lengthscales, variance=self.variance, prior_log_rate=self.prior,
+            likelihood=self.likelihood, capacity=self.capacity, updates=self.updates)
 
 
 class PoissonOnlineGP(OnlineGP):
@@ -114,6 +156,7 @@ class PoissonOnlineGP(OnlineGP):
     new latent marginal is projected into q(u). Each count batch is used once.
     This keeps the physical likelihood while bounding online inference cost.
     """
+    likelihood = 'poisson'
     def __init__(self, capacity=128, lengthscales=(1.5, 1.5, .7), variance=2.25, prior_rate=2.):
         if not math.isfinite(prior_rate) or prior_rate <= 0:
             raise ValueError('Poisson rate prior must be positive')

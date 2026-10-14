@@ -12,31 +12,104 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 
 class Visualization:
-    def __init__(self, bridge, show_sources=False, map_layer='mean'):
+    def __init__(self, bridge, show_sources=False, map_layer='mean', cutaway=False,
+                 highlights=None, field_display='detected'):
+        from .radiation_display import RadiationHighlights
         self.bridge = bridge
+        self.highlights = highlights or RadiationHighlights()
+        self.field_display = field_display
         self.map_layer = map_layer
+        self.status_height = 6. if cutaway else 2.5
         self.next_robot = 0.
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.scene = bridge.node.create_publisher(MarkerArray, '/dougie/scene', qos)
         self.robot = bridge.node.create_publisher(MarkerArray, '/dougie/robot', 1)
         self.mission = bridge.node.create_publisher(MarkerArray, '/radiation/visualization', qos)
         self.dashboard = bridge.node.create_publisher(MarkerArray, '/radiation/dashboard', qos)
+        self.detections = bridge.node.create_publisher(MarkerArray, '/radiation/detections', qos)
+        self.landmarks = bridge.node.create_publisher(MarkerArray, '/radiation/landmarks', qos)
         sim = bridge.sim
         self.robot_ids = [i for i in range(sim.model.ngeom)
                           if sim.model.geom_bodyid[i] != 0 and sim.model.geom_group[i] != 2]
         markers = []
         for i in range(sim.model.ngeom):
             if sim.model.geom_bodyid[i] == 0:
-                markers.extend(self.geom(i, 'scene'))
+                geometry = self.geom(i, 'scene')
+                if cutaway and sim.model.geom(i).name.startswith(('outer_', 'upper_floor_', 'room_partition_1_')):
+                    for marker in geometry:
+                        marker.color.a = .22
+                markers.extend(geometry)
         if show_sources:
             for i in range(sim.model.nsite):
                 if sim.model.site(i).name.startswith('radiation_source_'):
                     m = self.marker('sources', i, Marker.SPHERE)
                     self.position(m, sim.data.site_xpos[i])
-                    m.scale.x = m.scale.y = m.scale.z = .18
+                    m.scale.x = m.scale.y = m.scale.z = .32
                     m.color = ColorRGBA(**dict(zip(('r', 'g', 'b', 'a'), map(float, sim.model.site_rgba[i]))))
                     markers.append(m)
+                    arrow = self.marker('source_arrows', i, Marker.ARROW)
+                    p = sim.data.site_xpos[i]
+                    annotation_z = self.source_annotation_height(p)
+                    beacon = self.marker('source_beacons', i, Marker.SPHERE)
+                    self.position(beacon, (p[0], p[1], annotation_z))
+                    beacon.scale.x = beacon.scale.y = beacon.scale.z = .22
+                    beacon.color = m.color
+                    markers.append(beacon)
+                    arrow.points = [Point(x=float(p[0]), y=float(p[1]), z=annotation_z),
+                                    Point(x=float(p[0]), y=float(p[1]), z=float(p[2]+.2))]
+                    arrow.scale.x, arrow.scale.y, arrow.scale.z = .05, .14, .14
+                    arrow.color = m.color
+                    markers.append(arrow)
+                    label = self.marker('source_labels', i, Marker.TEXT_VIEW_FACING)
+                    self.position(label, (p[0], p[1], annotation_z+.3))
+                    label.scale.z = .18
+                    label.color = ColorRGBA(r=1., g=.9, b=.65, a=1.)
+                    kind = 'LEAK' if sim.model.nuser_site >= 3 and sim.model.site_user[i, 2] == 1 else 'HOTSPOT'
+                    label.text = (kind+': '+sim.model.site(i).name.removeprefix('radiation_source_')+
+                                  f'\nTRUE SOURCE / diagnostic / z={p[2]:.2f}m')
+                    markers.append(label)
         self.scene.publish(MarkerArray(markers=markers))
+
+    def update_landmarks(self, observations):
+        markers = []
+        for index, observation in enumerate(sorted(observations, key=lambda item: item['identifier'])):
+            marker = self.marker('discovered_landmarks', index, Marker.CUBE)
+            self.position(marker, observation['position'])
+            marker.scale.x = marker.scale.y = marker.scale.z = .16
+            marker.color = ColorRGBA(r=.15, g=.9, b=.3 if observation['inspected'] else .95, a=1.)
+            markers.append(marker)
+            label = self.marker('landmark_labels', index, Marker.TEXT_VIEW_FACING)
+            self.position(label, np.asarray(observation['position'])+[0., 0., .25])
+            label.scale.z = .15
+            label.text = 'TARGET '+observation['identifier']+(' / inspected' if observation['inspected'] else ' / discovered')
+            markers.append(label)
+        self.landmarks.publish(MarkerArray(markers=markers))
+
+    def source_annotation_height(self, point):
+        """Lift diagnostic labels above equipment enclosing an emitter.
+
+        The arrow still points to its actual position; the elevated bead is an
+        annotation, not another source or an autonomy input.
+        """
+        sim = self.bridge.sim
+        height = float(point[2]+.75)
+        for index in range(sim.model.ngeom):
+            if sim.model.geom_bodyid[index] != 0 or sim.model.geom_group[index] == 2:
+                continue
+            kind, size = sim.model.geom_type[index], sim.model.geom_size[index]
+            if kind in (mujoco.mjtGeom.mjGEOM_BOX, mujoco.mjtGeom.mjGEOM_ELLIPSOID):
+                half = size.copy()
+            elif kind == mujoco.mjtGeom.mjGEOM_SPHERE:
+                half = np.repeat(size[0], 3)
+            elif kind in (mujoco.mjtGeom.mjGEOM_CYLINDER, mujoco.mjtGeom.mjGEOM_CAPSULE):
+                half = np.array([size[0], size[0], size[1]+(size[0] if kind == mujoco.mjtGeom.mjGEOM_CAPSULE else 0.)])
+            else:
+                continue
+            extent = np.abs(sim.data.geom_xmat[index].reshape(3, 3))@half
+            centre = sim.data.geom_xpos[index]
+            if np.all(np.abs(point-centre) <= extent+.01):
+                height = max(height, float(centre[2]+extent[2]+.35))
+        return height
 
     def marker(self, namespace, index, kind):
         m = Marker()
@@ -101,11 +174,18 @@ class Visualization:
         markers = []
         if volume is not None:
             xyz, mean, std, _ = volume
+            selected = self.highlights.mask(xyz, mean, self.field_display)
+            xyz, mean, std = xyz[selected], mean[selected], std[selected]
             m = self.marker('gp', 0, Marker.SPHERE_LIST)
-            m.scale.x = m.scale.y = m.scale.z = .12
+            m.color = ColorRGBA(r=1., g=1., b=1., a=1.)
+            m.scale.x = m.scale.y = m.scale.z = .22
             values = np.clip(std/2 if self.map_layer == 'uncertainty' else np.log1p(mean)/np.log(101), 0, 1)
             m.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in xyz]
-            m.colors = [ColorRGBA(r=float(v), g=float(1-v), b=.3, a=.65) for v in values]
+            colors = (np.column_stack((values, 1-values, np.ones(len(values)), np.full(len(values), .8)))
+                      if self.map_layer == 'uncertainty' else self.highlights.colors(mean))
+            m.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=float(a)) for r, g, b, a in colors]
+            if not len(xyz):
+                m.action = Marker.DELETE
             markers.append(m)
         for index, (name, points, color) in enumerate((
                 ('planned path', metrics.get('planned_path', []), ColorRGBA(r=.1, g=1., b=.2, a=1.)),
@@ -135,13 +215,25 @@ class Visualization:
     def update_dashboard(self, metrics, sample, budget, rate_limit):
         """Small 2 Hz telemetry message, independent of the expensive map payload."""
         dose = sample.dose_usv if sample is not None else 0.
+        if sample is not None:
+            self.highlights.observe(sample)
+        xyz, measured_rates = self.highlights.confirmed()
+        evidence = self.marker('above_background_counts', 0, Marker.CUBE_LIST)
+        evidence.color = ColorRGBA(r=1., g=1., b=1., a=1.)
+        evidence.scale.x = evidence.scale.y = evidence.scale.z = .14
+        evidence.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in xyz]
+        evidence.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=float(a))
+                           for r, g, b, a in self.highlights.colors(measured_rates, .95)]
+        if not len(xyz):
+            evidence.action = Marker.DELETE
+        self.detections.publish(MarkerArray(markers=[evidence]))
         rate = sample.rate_usv_h if sample is not None else 0.
         fraction = dose/budget if budget > 0 else 0.
         state = metrics.get('state', 'initial_survey')
         warning = fraction >= .8 or rate > rate_limit or state.startswith('return')
         color = ColorRGBA(r=1. if warning else .3, g=.7 if warning else 1., b=.2 if warning else .9, a=1.)
         text = self.marker('status', 0, Marker.TEXT_VIEW_FACING)
-        text.pose.position.z = 2.5
+        text.pose.position.z = self.status_height
         text.scale.z = .18
         text.color = color
         text.text = (f"DOUGIE | {state.replace('_', ' ').upper()} | {self.bridge.sim.data.time:.1f} s\n"
@@ -151,10 +243,12 @@ class Visualization:
                      f"Estimated return reserve {metrics.get('return_reserve_usv', 0.):.3f} uSv\n"
                      f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m^2")
         legend = self.marker('legend', 0, Marker.TEXT_VIEW_FACING)
-        self.position(legend, (0., 0., 1.45))
+        self.position(legend, (0., 0., self.status_height-1.05))
         legend.scale.z = .12
         legend.color = ColorRGBA(r=.8, g=.85, b=.95, a=1.)
-        layer = ('GP uncertainty: green low / red high (std log-rate 0..2)'
-                 if self.map_layer == 'uncertainty' else 'GP mean: green low / red high (log scale 0..100 uSv/h)')
+        layer = ('GP uncertainty (std log-rate 0..2)' if self.map_layer == 'uncertainty' else
+                 'Radiation excess: yellow low / red high | cubes = count evidence, spheres = GP estimate')
+        if self.field_display == 'detected':
+            layer += f'\nAbove background {self.highlights.background:g} uSv/h, near confirmed detections; blank is NOT proof of safety'
         legend.text = layer+'\nGreen: plan + target | Blue: travelled | Amber: estimated return'
         self.dashboard.publish(MarkerArray(markers=[text, legend]))

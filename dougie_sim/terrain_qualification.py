@@ -125,14 +125,16 @@ def velocity_command(sim, spec, stopped=False):
 
 
 def run_trial(job):
-    spec_data, seed, protocol, directory, identity, visualize = job
+    spec_data, seed, protocol, directory, identity, visualize, *extra = job
+    policy_config = extra[0] if extra else None
     spec = CourseSpec(**spec_data)
     output = Path(directory)/f'{spec.name}__seed_{seed:03d}'
     output.mkdir(parents=True, exist_ok=False)
-    (output/'request.json').write_text(json.dumps(dict(spec=spec_data, seed=seed, protocol=protocol, source_sha256=identity), indent=2)+'\n')
+    (output/'request.json').write_text(json.dumps(dict(spec=spec_data, seed=seed, protocol=protocol,
+        policy_config=policy_config, source_sha256=identity), indent=2)+'\n')
     try:
         with threadpool_limits(limits=1):
-            result = _trial(spec, seed, protocol, output, visualize)
+            result = _trial(spec, seed, protocol, output, visualize, policy_config)
     except Exception as exc:
         result = dict(case=spec.name, spec=spec_data, seed=seed, data_valid=False,
                       qualified=False, traversed=False, reasons=['harness_error'], error=str(exc))
@@ -142,11 +144,11 @@ def run_trial(job):
     return result
 
 
-def _trial(spec, seed, protocol, output, visualize):
+def _trial(spec, seed, protocol, output, visualize, policy_config=None):
     start_time = time.perf_counter()
     course = Course(spec, seed)
     (output/'scene.xml').write_text(course.xml)
-    sim = Simulation(model_xml=course.xml)
+    sim = Simulation(model_xml=course.xml, policy_config=policy_config)
     model, data = sim.model, sim.data
     rng = np.random.default_rng(seed)
     initial_y = 0. if seed == 0 else rng.uniform(-protocol['initial_lateral_jitter_m'], protocol['initial_lateral_jitter_m'])
@@ -193,7 +195,7 @@ def _trial(spec, seed, protocol, output, visualize):
             if viewer and not viewer.is_running():
                 metrics['terminal_reason'] = 'viewer_closed'
                 break
-            if spec.pause_on_course and not pause_done and pause_stamp is None and data.qpos[0] > 1.+spec.steps*spec.tread/2:
+            if spec.pause_on_course and not pause_done and pause_stamp is None and data.qpos[0] > (spec.start_x+spec.end_x)/2:
                 pause_stamp = float(data.time)
             paused = pause_stamp is not None and data.time-pause_stamp < 2.
             if pause_stamp is not None and not paused:
@@ -307,13 +309,15 @@ def _trial(spec, seed, protocol, output, visualize):
     metrics['reasons'] = qualification_failures(metrics, protocol)
     metrics['traversed'] = bool(metrics['terminal_reason'] == 'completed' and metrics['upper_landing_witness'] and metrics['data_valid'])
     metrics.update(case=spec.name, spec=asdict(spec), seed=seed, simulation_time_s=float(data.time),
+        policy=sim.policy_contract.identity(),
         wall_time_s=time.perf_counter()-start_time, initial_qpos=initial_qpos.tolist(), final_qpos=data.qpos.tolist(),
         foot_contacts=dict(terrain_contacts), nonfoot_contacts=dict(nonfoot_contacts), first_nonfoot_events=contact_events,
         effective_foot_friction_range=[float(min(friction_values)), float(max(friction_values))] if friction_values else None,
         peak_foot_force_n=max(foot_forces, default=0.), stance_contact_slip_p95_m_s=float(np.percentile(slip_speeds, 95)) if slip_speeds else None,
         scene_sha256=hashlib.sha256(course.xml.encode()).hexdigest(),
         trace_sha256=hashlib.sha256((output/'trace.npz').read_bytes()).hexdigest(),
-        observation_contract='ideal root pose for guidance; policy proprioception only; no terrain height observations in walking policy',
+        observation_contract=('ideal root pose for guidance; policy proprioception and occluded sparse range returns'
+                              if sim.policy_contract.perceptive else 'ideal root pose for guidance; policy proprioception only'),
         guidance_statistics=None if guidance is None else dict(plans=guidance.plans, blocked_plans=guidance.blocked_plans,
             plan_p95_ms=float(np.percentile(guidance.planning_ms, 95)) if guidance.planning_ms else None))
     return metrics
@@ -345,6 +349,7 @@ def main():
     parser.add_argument('--seeds', nargs='+', type=int)
     parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--policy-config', type=Path, help='evaluate a versioned alternative policy without replacing the baseline')
     parser.add_argument('--view', action='store_true')
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--require-qualified', action='store_true', help='nonzero exit for any qualification failure')
@@ -367,13 +372,18 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     protocol = json.loads(PROTOCOL_PATH.read_text())
     identity = source_identity()
+    from .policy import PolicyContract
+    policy_contract = PolicyContract(args.policy_config)
+    policy_contract.load()  # Validate once before dispatching evidence collection.
     header = dict(schema_version=1, created_at=datetime.now(timezone.utc).isoformat(),
+        policy=policy_contract.identity(),
         protocol=protocol, source_sha256=identity,
         environment=dict(python=platform.python_version(), mujoco=mujoco.__version__, torch=torch.__version__, numpy=np.__version__, machine=platform.machine()),
         cases=[asdict(cases[name]) for name in selected], seeds=seeds,
         expected_trials=len(selected)*len(seeds), scope='bounded seeded simulation qualification, not hardware certification')
     (output/'manifest.json').write_text(json.dumps(header, indent=2)+'\n')
-    jobs = [(asdict(cases[name]), seed, protocol, str(output), identity, args.view) for name in selected for seed in seeds]
+    jobs = [(asdict(cases[name]), seed, protocol, str(output), identity, args.view,
+             str(args.policy_config.resolve()) if args.policy_config else None) for name in selected for seed in seeds]
     results = []
     def record(result):
         results.append(result)

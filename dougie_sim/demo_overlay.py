@@ -7,8 +7,11 @@ import numpy as np
 
 class DemoControls:
     def __init__(self, camera='follow', layer='mean', show_sources=False):
+        from .radiation_display import RadiationHighlights
+        self.highlights = RadiationHighlights()
+        self.field_display = 'detected'
         self.camera, self.layer = camera, layer
-        self.regions, self.paths = True, True
+        self.regions, self.paths = False, True
         self.show_sources = show_sources
         self.applied_camera = None
 
@@ -80,14 +83,16 @@ def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=Tr
             sphere(np.asarray(cluster['anchor'])+[0, 0, .12], .07, [*palette[i % len(palette)], .8])
     if map_view:
         query, mean, sigma, _ = map_view
+        selected = controls.highlights.mask(query, mean, controls.field_display)
+        query, mean, sigma = query[selected], mean[selected], sigma[selected]
+        colors = controls.highlights.colors(mean, .8)
         for i in range(0, len(query), max(1, len(query)//350)):
             if controls.layer == 'uncertainty':
                 value = min(1., max(0., float(sigma[i])/1.5))
                 color = [.2+.65*value, .7*(1.-value), 1., .24]
             else:
-                value = min(1., math.log1p(float(mean[i]))/math.log1p(rate_limit))
-                color = [value, 1.-value, .2, .24]
-            sphere(query[i], .04, color)
+                color = colors[i]
+            sphere(query[i], .10, color)
 
 
 def update_viewer(viewer, position, map_view, metrics, trail, controls, sample, stamp, budget, rate_limit):

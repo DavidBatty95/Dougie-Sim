@@ -1,0 +1,7 @@
+services:
+  dougie-sim:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${DOUGIE_DRI_RENDER_GID:?Run through ./dougie to detect the DRM render group}"
+      - "${DOUGIE_DRI_CARD_GID:?Run through ./dougie to detect the DRM video group}"

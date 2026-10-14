@@ -29,6 +29,8 @@ class DoseExplorer:
         self.returning = False
         self.return_reserve = 0.
         self.plan_ms = []
+        self.worker_ms = []
+        self.display_samples = {}
         self.events = []
         self.last_progress = None
         self.progress_stamp = 0.
@@ -36,7 +38,7 @@ class DoseExplorer:
 
     def observe_radiation(self, sample):
         self.sample = sample
-        if isinstance(self.gp, PoissonOnlineGP):
+        if self.gp.likelihood == 'poisson':
             self.gp.update_counts(sample.position, sample.counts, sample.integration_s, sample.counts_per_usv)
         else:
             self.gp.update(sample.position, sample.rate_usv_h, sample.variance_usv_h2)
@@ -68,7 +70,7 @@ class DoseExplorer:
         rates = dict(zip(keys, upper))
         uncertainty = dict(zip(keys, uncertainty))
         costs, dose, length, parent = self.terrain.routes(root, rates)
-        _, home_dose, _, _ = self.terrain.routes(home, rates)
+        _, home_dose, _, _ = self.terrain.routes(home, rates, reverse=True)
         if home not in parent:
             self.path = []
             self.state = 'no_observed_return_route'
@@ -141,10 +143,12 @@ class DoseExplorer:
         return np.array([speed, 0., np.clip(1.4*error, -.5, .5)])
 
     def metrics(self):
+        cells = getattr(self.terrain, 'observed_surface_cells', len(self.terrain.surfaces))
         return dict(state=self.state, budget_usv=self.budget, rate_limit_usv_h=self.rate_limit,
-            return_reserve_usv=self.return_reserve, mapped_surface_cells=len(self.terrain.surfaces),
-            mapped_surface_area_m2=len(self.terrain.surfaces)*self.terrain.resolution**2,
+            return_reserve_usv=self.return_reserve, mapped_surface_cells=cells,
+            mapped_surface_area_m2=cells*self.terrain.resolution**2,
             observed_voxels=len(self.terrain.hits), visited_cells=len(self.visited),
             observed_free_volume_m3=len(self.terrain.free_voxels)*.2**3,
             gp=self.gp.metrics(), planning_p95_ms=float(np.percentile(self.plan_ms, 95)) if self.plan_ms else None,
+            worker_p95_ms=float(np.percentile(self.worker_ms, 95)) if self.worker_ms else None,
             events=self.events)

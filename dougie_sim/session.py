@@ -12,6 +12,7 @@ import time
 import yaml
 
 from .assets import ROOT, ensure_assets
+from .graphics import rviz_command
 
 
 def navigation_config(output):
@@ -97,12 +98,13 @@ def main():
                   'use_sim_time:=true', 'autostart:=true', 'use_composition:=False', 'params_file:='+str(nav_config)])
             start('exploration', [sys.executable, '-m', 'dougie_sim.explore', '--ros-args', '-p', 'use_sim_time:=true'])
         if not args.headless:
-            rviz_config = 'dougie.rviz' if args.explore else 'dougie_radiation.rviz'
-            start('rviz', ['rviz2', '-d', str(ROOT/'config'/rviz_config), '--ros-args', '-p', 'use_sim_time:=true'])
+            rviz_config = 'dougie.rviz' if args.explore else 'dougie_robot.rviz'
+            start('rviz', rviz_command(ROOT/'config'/rviz_config, output/'rviz_graphics.json'))
         print(f'Dougie running; logs and metrics: {output}', flush=True)
         deadline = time.monotonic()+args.duration*2+60.
         while sim.poll() is None:
-            failed = [(name, p.returncode) for name, p in children if name != 'rviz' and p.poll() is not None]
+            failed = [(name, p.returncode) for name, p in children
+                      if p.poll() is not None and (name != 'rviz' or p.returncode)]
             if failed:
                 raise RuntimeError(f'Critical process exited: {failed}; inspect {output}')
             if time.monotonic() > deadline:

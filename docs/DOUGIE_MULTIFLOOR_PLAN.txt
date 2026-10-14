@@ -1,0 +1,276 @@
+DOUGIE: COMPLETE MULTIFLOOR UNKNOWN-ENVIRONMENT EXPLORATION PLAN
+============================================================
+Date: 12 October 2026
+Scope selected by the user: staged localization; closed-riser stairs.
+This is the implementation specification. Measured progress belongs in
+DOUGIE_MULTIFLOOR_PROGRESS.md; proposed capability is not completed capability.
+
+1. OBJECTIVE AND ACCEPTANCE CONTRACT
+-----------------------------------
+Build a terrain-trained Go2 controller beneath hierarchical, radiation-aware
+exploration, using the existing range scanner, IMU, joint measurements and
+counting radiation detector. No supplied building map, floor count, connector
+coordinates or radiation-source locations may enter autonomy.
+
+"Flawless" means completing accessible, observable exploration when resources
+permit, and explicitly reporting limitations otherwise. It cannot mean a
+guarantee for arbitrary impassable terrain or unknown unbounded radiation.
+
+Initial qualification targets (not existing capabilities):
+- Unknown static indoor layouts with 2-3 floors and overlapping XY footprints.
+- Closed risers, progressively qualified up to 18 cm; treads initially 28-40 cm.
+- Stair width initially at least 1.2 m; landing sizes derived from measured turns.
+- Defined ramp distributions through 10 degrees, including entry/exit transitions.
+- Open passages, fixed structures and fixed radiation sources.
+- Unsupported/ambiguous terrain is explicitly rejected or left unresolved.
+
+Distinguish outcomes:
+  survey_complete_and_returned
+  resource_limited_and_returned
+  terrain_or_sensing_limited_and_returned
+  controlled_stop_return_unavailable
+  mission_failure
+Returning home alone does not demonstrate exploration completion.
+
+2. ROBOT, SENSORS AND INFORMATION BOUNDARIES
+------------------------------------------
+Retain the twelve-joint Go2, nominal 200 Hz physics and 50 Hz policy, existing
+PD/torque contract initially, ideal range sensor visibility, IMU, joint state,
+known actuator commands and 2 Hz counting detector. CPU deployment and a separate
+GPU training environment remain distinct. Sampling/processing may change.
+
+No hidden geometry IDs, true surface heights, source coordinates, force-sensor
+truth, base pinning, teleportation or execution-time state resets in autonomy.
+Privileged simulation information is allowed only for training critics/teachers
+and independent evaluation. Deployment actors consume reproducible sensor inputs.
+
+Stage A uses current simulator pose to isolate autonomy and locomotion.
+Stage B estimates pose from the same LiDAR/IMU/leg measurements and repeats the
+end-to-end qualification. Stage A results do not establish Stage B reliability.
+
+3. ARCHITECTURE
+---------------
+Timestamped sensor packets -> pose/uncertainty interface -> two mapping paths:
+  (a) rolling fine local terrain -> terrain-aware locomotion policy;
+  (b) persistent 3-D map -> floors/regions/frontiers -> directed route graph.
+Counting detector -> radiation belief -> mission and return planner.
+Planner -> transition executor -> locomotion commands -> runtime supervisor.
+
+Fast loop: balance, foot clearance, command execution.
+Medium loop: clearance, approach/alignment, stair/landing execution.
+Slow loop: floor selection, exploration objectives, exposure and return budgets.
+Global planning must not micromanage individual footfalls.
+
+4. WORKSTREAM A: CONTRACTS AND OBSERVABILITY
+------------------------------------------
+A1. Replace hard-coded policy loading with a versioned adapter:
+    model/policy hashes, joint ordering, observation/normalization schema,
+    action scales/clipping, period, history/reset semantics, terrain requirements
+    and qualified operating envelope. Preserve the baseline artifact.
+    Gate: training/export/deployment action parity on recorded observations.
+
+A2. Standardize sensor packets:
+    timestamp, sequence, frame/pose, validity, age and uncertainty. Preserve ray
+    origins/directions and valid no-return information as well as surface hits.
+    Gate: detached data and reproducible timestamps; no worker/live-state races.
+
+A3. Instrument sensor/map/plan age, inference latency, deadline misses, transition
+    state, rejection reason, memory and radiation prediction residuals.
+    Gate: each motion is traceable to current support, plan and policy identity.
+
+5. WORKSTREAM B: MULTILEVEL MAPPING
+----------------------------------
+B1. Persistent tiled/submap 3-D occupancy with ray-based free-space evidence:
+    distinguish free/occupied/unknown; never clear behind first hits; handle
+    contradictions; retain overlapping floors and return-route information;
+    prevent first-floor observations exhausting all available capacity.
+
+B2. Fine rolling terrain, initially 4-5 cm near stairs:
+    support height/normal/confidence/age, obstacles, drop-offs, overhead clearance.
+    Reject ceilings and undersides using oriented normals and visibility evidence.
+    Do not interpret missing returns as a level floor.
+
+B3. Classify slopes, isolated steps, flights, landings, drops and ambiguity.
+    Separate body clearance from foothold feasibility. Do not merely increase
+    max_step: this would admit abrupt, unqualified terrain along with ramps.
+
+B4. Discover connected floor regions/landings online, with connector lifecycle:
+    suspected -> observed -> geometrically supported -> capability qualified
+    -> traversed. Unresolved connectors remain exploration objectives.
+
+Gates: ceiling/floor fixtures, stacked corridors, stair openings, missing support,
+ramp beside abrupt ledge, and disconnected floors must produce no fictitious
+support or cross-floor shortcut. Qualification uses unseen geometry.
+
+6. WORKSTREAM C: TERRAIN-AWARE LOCOMOTION
+---------------------------------------
+C1. Separately pinned mjlab/MuJoCo Warp PPO task using the current Go2 model.
+    Match gains, torque limits, joint ordering, collision geometry, effective
+    friction, timing and sensor transforms to deployment. Start small and measure
+    VRAM/rollout throughput on the available 12 GB RTX 4080 Laptop GPU.
+
+C2. Actor inputs: existing proprioception and velocity command, local elevation
+    patch, confidence/validity and history/recurrent state if justified. Train
+    with realistic scanner occlusion, dropout and delays. Privileged critics or
+    teachers must not leak oracle height maps into the deployed actor.
+
+C3. Curriculum, advancing on held-out performance:
+    1 flat walking, turns, start/stop and quiet stance;
+    2 roughness, gentle ramps, 2-6 cm steps;
+    3 6-10 cm ascent AND descent;
+    4 first/last steps, varied approach angles and landing transitions;
+    5 progressively larger closed-riser flights toward 15-18 cm;
+    6 stop/restart, qualified retreat, payload/friction/delay variation;
+    7 longer flights and chained transitions.
+
+Objectives: commanded progress, terrain-relative clearance, controlled touchdown,
+low slip, stable support, smooth actions, limited saturation and non-foot impacts.
+Prevent shortcuts such as jumping across finish lines or standing indefinitely.
+Train descent independently; do not infer descent competence from ascent.
+
+C4. Independent native-MuJoCo contact-aware qualification:
+    long flights, landing turns, gait phase variation, stop/restart, sensing delay,
+    ascent-turn-descent sequences. Freeze checkpoints before held-out testing.
+    If target stairs fail, retain the demonstrated envelope and continue training;
+    do not relax scoring to manufacture success.
+
+7. WORKSTREAM D: TRANSITION EXECUTION
+------------------------------------
+States: APPROACH -> INSPECT -> ALIGN -> VERIFY_ENTRY -> ASCEND/DESCEND
+        -> VERIFY_LANDING -> RESUME.
+Other states: SUPPORTED_HOLD, CONTROLLED_RETREAT, REOBSERVE, REPLAN, RETURN, FAULT.
+
+Entry conditions: observed geometry, qualified policy, fresh clearance/support,
+feasible exit/hold strategy, exposure/time allowance and reverse-direction return
+feasibility. Monitor progress along the connector, not only horizontal distance.
+Verify arrival using height, support, pose and settling. Avoid unqualified turns
+or policy changes mid-flight. Train supported holds for stale sensing.
+
+Radiation alarms must select from supported hold, retreat or landing continuation
+according to observed conditions, rather than triggering an untrained abrupt move.
+Gate: inject sensor/plan delays, blocked landings and stop commands at varied
+flight positions; check the prescribed response and retain failures.
+
+8. WORKSTREAM E: UNKNOWN-SPACE EXPLORATION
+-----------------------------------------
+E1. Hierarchy: global region/connector goals -> informative local viewpoints ->
+    supported executable routes. Seeing an upper floor is not knowing a route.
+
+E2. Frontier lifecycle: available, selected, temporarily blocked, needs observation,
+    terrain inadmissible, resource/radiation inadmissible, resolved. Revisit only
+    when relevant new evidence arrives; avoid endless retries and false completion.
+
+E3. Active perception: stop for detector counts; turn/reposition on supported
+    ground to inspect entrances and landings; revisit contradictory observations.
+    Unobservable footholds stay unresolved rather than being filled with flatness.
+
+E4. Completion: no admissible unresolved frontier, no unexplained connector
+    hypotheses, final map consistency check and explicit accounting of exclusions.
+    No current candidate is NOT proof the building is fully explored. The runtime
+    reports observed frontier exhaustion; only the evaluator measures true coverage.
+
+9. WORKSTREAM F: RADIATION AND DIRECTED RETURN PLANNING
+-----------------------------------------------------
+F1. Retain counting detector and XYZ inference. Evaluate cross-slab smoothing,
+    new-floor uncertainty, inducing capacity exhaustion, hotspot calibration and
+    integration while moving. Investigate trajectory-integrated observations when
+    representing an entire count window by its mean position becomes inaccurate.
+
+F2. Directed edge attributes: traversal time, exposure, locomotion qualification,
+    uncertainty, observation and settling requirements. Candidate-to-home cost
+    requires reverse-graph search when ascent and descent costs differ.
+
+F3. Admission:
+    measured dose upper + outbound dose upper + survey dose upper
+    + return dose upper + contingency <= budget.
+    Account for alignment, additional counting, landing turns, replanning and
+    contingencies. Estimates require calibration; arbitrary unseen sources preclude
+    a universal dose bound. Preserve return feasibility at each admitted extension.
+
+F4. Explicit slab/wall attenuation; visible geometry alone is insufficient.
+    Fixtures: same XY/different floor exposure, short-hot/long-cool connectors,
+    shielded routes, landing hotspots and insufficient resources for another floor.
+    Gate: matched comparisons assess exposure AND useful progress/coverage/return.
+
+10. WORKSTREAM G: SENSOR-ONLY LOCALIZATION
+-----------------------------------------
+G1. Fuse IMU propagation, range scan matching, joint kinematics and estimated stance
+     constraints. No extra force sensor may be assumed.
+G2. Local submaps, loop closure, pose graph, uncertainty and relocalization.
+     Explicitly test repetitive stairs and stacked corridors for false association.
+G3. Store observations with time/submap references so pose correction consistently
+     updates occupancy, terrain, frontiers, radiation sample coordinates and routes.
+G4. Repeat all mission qualification with estimated pose. Ideal-pose results are
+     a separate evidence cohort, not a substitute for sensor-only qualification.
+
+11. WORKSTREAM H: REAL-TIME AND RESOURCE BOUNDS
+----------------------------------------------
+Starting targets: physics 200 Hz; policy 50 Hz; local terrain 10-20 Hz (benchmark);
+local execution 20-50 Hz; global planning 0.5-2 Hz plus events; detector 2 Hz;
+robot visualization bounded 20 Hz; map visualization 0.5-2 Hz.
+
+Use timestamped detached snapshots, bounded queues, obsolete-geometry dropping,
+lossless detector/exposure accounting, incremental graph/map updates and bounded
+floor-aware visualization. Keep local perception independent of the GP worker.
+Measure tail latency and observation age under the full three-floor workload.
+Gate: qualified workload meets timing/freshness targets; induced overload leads
+to tested responses rather than stale motion. Average real-time factor is not
+sufficient evidence of deadline reliability.
+
+12. VALIDATION CAMPAIGN
+-----------------------
+Level 1: deterministic fixtures for ceilings, slopes/steps, drop-offs, disconnected
+floors, directed returns, floor-separated radiation, GP capacity, loop-closure
+correction and interrupted transition states.
+
+Level 2: independent locomotion trials using unchanged contact-aware criteria,
+fresh geometry and perturbations. The existing 60/60 gate corresponds to an
+approximately 95.13% one-sided 95% lower confidence bound for the tested condition.
+
+Level 3: unknown procedural layouts with separate training/development/sealed-test
+families: 2/3 floors, multiple connectors, dead ends, loops, stacked corridors,
+varied qualified stairs, source/shield layouts and resource-limited missions.
+
+Level 4: scan dropout, IMU bias, pose error, inference/planner delay, count noise,
+incorrect connector hypotheses, overload and return-route invalidation.
+
+Final proposed release gate: 300 independent held-out full missions with zero
+failures under a frozen declared distribution, supporting approximately a 99%
+one-sided 95% lower mission-success bound for that distribution. Report complete,
+resource-limited, terrain-limited, controlled-stop and failed outcomes separately.
+Freeze the policy/planner before final testing; preserve every failed run.
+
+13. MILESTONES AND DEPENDENCIES
+------------------------------
+M0: envelope, metrics, baseline recordings, contracts; reproducible frozen baseline.
+M1: adapter, packets, training smoke; export parity, native flat walking, throughput.
+M2: layered map and ramp mezzanine; correct connectivity and autonomous up/down.
+M3: stair policy; held-out ascent/descent/landing/stop qualification.
+M4: directed connectors/executor; asymmetric return and fault-handling validation.
+M5: unknown two-floor radiation mission; useful progress, route choice, return.
+M6: three-floor scale/presentation; bounded resources and ideal-pose qualification.
+M7: LiDAR/IMU/leg localization; estimator and loop-closure verification.
+M8: sensor-only end-to-end qualification; sealed test campaign and evidence package.
+
+Critical path: interface -> stair training -> transition qualification -> missions.
+Mapping, ramps, radiation and evaluation can develop alongside training.
+
+Code areas: simulation.py (policy/sensors), terrain.py (support/graph),
+radiation_run.py (scheduling/lifecycle), clustered_planner.py (goals/returns),
+gp.py (capacity/inference), terrain_qualification.py (evaluation), and focused
+new modules for localization, transitions, capabilities and procedural worlds.
+
+14. DEMO DELIVERABLE
+--------------------
+Robot enters without a map; discovers regions and a staircase; inspects and
+traverses a qualified flight; distinguishes overlapping floors; changes route
+because of measured radiation; preserves a visible return reserve; descends and
+returns; states exactly what was explored and what remains unresolved.
+
+Display floor cutaways, route height, measured dose/reserve timeline, transition
+state and decision reasons. Hidden truth is only a labelled diagnostic/evaluation
+view. Keep accelerated data replay distinct from physical live execution.
+
+First package: M0-M2 foundations plus a runnable stair-training workstream.
+Later gates remain explicit until demonstrated; a successful clip alone is not
+qualification or unknown-environment exploration completeness.

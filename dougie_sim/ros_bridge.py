@@ -8,6 +8,8 @@ from geometry_msgs.msg import TransformStamped, Twist
 from nav_msgs.msg import Odometry
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Imu, JointState, LaserScan
+from std_msgs.msg import String
+from rclpy.qos import QoSProfile, DurabilityPolicy
 from tf2_ros import TransformBroadcaster
 from visualization_msgs.msg import Marker
 
@@ -46,6 +48,11 @@ class Bridge:
         self.pub_scan = self.node.create_publisher(LaserScan, '/scan', 10)
         self.pub_marker = self.node.create_publisher(Marker, '/dougie/body', 10)
         self.tf = TransformBroadcaster(self.node)
+        from .robot_description import Go2Description
+        self.robot_description = Go2Description(sim)
+        self.pub_description = self.node.create_publisher(String, '/robot_description',
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self.pub_description.publish(String(data=self.robot_description.xml))
         self.sub = self.node.create_subscription(Twist, '/cmd_vel', self.receive, 10)
         self.node.get_logger().info(f'Go2 ready: 12 joints; simulator-truth odometry; horizontal scan enabled={publish_scan}')
 
@@ -103,7 +110,14 @@ class Bridge:
         imu_tf.header.stamp, imu_tf.header.frame_id, imu_tf.child_frame_id = stamp, 'odom', 'base_link'
         imu_tf.transform.translation.x, imu_tf.transform.translation.y, imu_tf.transform.translation.z = map(float, p)
         imu_tf.transform.rotation.w, imu_tf.transform.rotation.x, imu_tf.transform.rotation.y, imu_tf.transform.rotation.z = map(float, q)
-        self.tf.sendTransform([transform, scan_tf, imu_tf])
+        transforms = [transform, scan_tf, imu_tf]
+        for parent, child, position, quaternion in self.robot_description.transforms():
+            link = TransformStamped()
+            link.header.stamp, link.header.frame_id, link.child_frame_id = stamp, parent, child
+            link.transform.translation.x, link.transform.translation.y, link.transform.translation.z = map(float, position)
+            link.transform.rotation.w, link.transform.rotation.x, link.transform.rotation.y, link.transform.rotation.z = map(float, quaternion)
+            transforms.append(link)
+        self.tf.sendTransform(transforms)
         joints = JointState()
         joints.header.stamp, joints.name = stamp, list(JOINTS)
         joints.position = sim.data.qpos[sim.qadr].tolist()

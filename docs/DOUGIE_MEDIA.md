@@ -4,6 +4,29 @@
 
 ## Gallery provenance
 
+### Full-height update — 14 October 2026
+
+- [Facility cutaway](media/dougie/facility-cutaway.png): actual MuJoCo facility
+  model after one second of baseline-policy settling. Layout 0, eight targets,
+  landmark seed 7. Transparent walls/slabs and the all-target view are diagnostic,
+  not a robot observation. [Image/scene/source manifest](media/dougie/facility-cutaway.json).
+- [Facility results SVG](media/dougie/facility-results.svg): actual detector-height
+  and XY telemetry from the failed pre-correction seed-3 mission and successful
+  corrected seeds 3/4. Not a video, GP heatmap or coverage certificate. The figure
+  is regenerated from [portable downsampled measurements and hashes](media/dougie/facility-telemetry.json).
+
+```bash
+docker compose run --rm -T -e MUJOCO_GL=egl dougie-sim python3 scripts/render_dougie_facility.py
+python3 scripts/render_dougie_facility_results.py
+```
+
+The SVG needs no ignored archives to regenerate. To deliberately replace its
+portable input, pass `--runs` with the desired three retained mission directories
+and update the captions. See [the full-height report](DOUGIE_FULLHEIGHT_RESULTS.md)
+for measured results and limitations.
+
+### Original gallery — 7 October 2026
+
 Created for the Go2 README on **7 October 2026**. The shared dark-blue, teal and
 amber presentation belongs to Dougie; no G1 footage is used in its gallery.
 
