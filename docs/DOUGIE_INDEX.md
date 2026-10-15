@@ -24,6 +24,7 @@ Geoff's G1 humanoid development history.
 | Check the latest full-height runs or add discovery targets | [Round-trip results, landmark sensing and graphics](DOUGIE_FULLHEIGHT_RESULTS.md) · [Portable evidence](results/dougie_fullheight_20261014.json) |
 | Fix slow RViz rendering or measure real FPS | [GPU graphics setup and frame-delivery benchmark](DOUGIE_PERFORMANCE.md) |
 | Smooth routes, scale the GP, or highlight detected radiation | [Motion, spatial mapping, incline training and display update](DOUGIE_SMOOTH_MAPPING.md) |
+| Inspect the detailed reactor and improved cloud rendering | [Reactor update, prediction replay and physical checks](DOUGIE_REACTOR_UPDATE.md) |
 | Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
 | Find implementation files | [Repository map](../README.md#repository-map) |
 | Diagnose setup problems | [Troubleshooting](../README.md#troubleshooting) |

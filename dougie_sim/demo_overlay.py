@@ -14,6 +14,7 @@ class DemoControls:
         self.regions, self.paths = False, True
         self.show_sources = show_sources
         self.applied_camera = None
+        self.sources = []
 
     def key(self, keycode):
         if keycode == ord('C'):
@@ -67,6 +68,17 @@ def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=Tr
             mujoco.mjv_connector(geom, mujoco.mjtGeom.mjGEOM_LINE, width, start+[0, 0, .10], end+[0, 0, .10])
             scene.ngeom += 1
     # Draw decisions before the optional field so a geometry cap cannot hide them.
+    if controls.show_sources:
+        for name, point, color, height in controls.sources:
+            beacon = np.array([point[0], point[1], height])
+            sphere(point, .25, color)
+            before = scene.ngeom
+            sphere(beacon, .225, color)
+            if scene.ngeom > before:
+                scene.geoms[scene.ngeom-1].label = 'TRUE SOURCE: '+name
+            lines([point, beacon], color, 6.)
+            ring = [beacon+[.6*np.cos(a), .6*np.sin(a), 0.] for a in np.linspace(0., 2*np.pi, 33)]
+            lines(ring, color, 4.)
     if controls.paths:
         for edge in metrics.get('blocked_edges', []):
             lines(edge, [1., .2, .2, .9], 5.)
@@ -82,17 +94,15 @@ def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=Tr
         for i, cluster in enumerate(metrics.get('clusters', [])[:96]):
             sphere(np.asarray(cluster['anchor'])+[0, 0, .12], .07, [*palette[i % len(palette)], .8])
     if map_view:
-        query, mean, sigma, _ = map_view
-        selected = controls.highlights.mask(query, mean, controls.field_display)
-        query, mean, sigma = query[selected], mean[selected], sigma[selected]
-        colors = controls.highlights.colors(mean, .8)
-        for i in range(0, len(query), max(1, len(query)//350)):
-            if controls.layer == 'uncertainty':
-                value = min(1., max(0., float(sigma[i])/1.5))
-                color = [.2+.65*value, .7*(1.-value), 1., .24]
-            else:
-                color = colors[i]
-            sphere(query[i], .10, color)
+        query, colors = controls.highlights.cloud(map_view, controls.field_display, controls.layer)
+        for point, color in zip(query, colors):
+            if scene.ngeom >= scene.maxgeom:
+                break
+            mujoco.mjv_initGeom(scene.geoms[scene.ngeom], mujoco.mjtGeom.mjGEOM_ELLIPSOID,
+                np.array([.34, .34, .22]), point, identity, color.astype(np.float32))
+            scene.geoms[scene.ngeom].specular = 0.
+            scene.geoms[scene.ngeom].shininess = 0.
+            scene.ngeom += 1
 
 
 def update_viewer(viewer, position, map_view, metrics, trail, controls, sample, stamp, budget, rate_limit):

@@ -1,0 +1,15 @@
+{
+  "scope": "archived state and inferred-field replay, not live footage",
+  "run": "results/dougie/radiation_20261015T070542_993410Z",
+  "mujoco": "3.3.6",
+  "source_sha256": "9a6042888ae3ff5e0d2969089d0501d4f09c1dc30f0d9bd36d9df2c0983bb6c9",
+  "scene_sha256": "e990b141bf21b2e0715e3c0982074a679a334eacac314ba834bfd8fcb7804090",
+  "input_sha256": {
+    "scene.xml": "e990b141bf21b2e0715e3c0982074a679a334eacac314ba834bfd8fcb7804090",
+    "motion_trace.npz": "17306caa4f497eee8a1aa73c537b021fa3ae6f095c9f7b75489ca412afa48a5b",
+    "radiation_map_3d.npz": "782e0cfe0cf21c9a6f6307d5cfbb5ba4b0f69e7e934ec9c670c78edb49eef2df",
+    "measurements.jsonl": "412967490b62c808bccce9d5b7b4f1bf995d2b502f0bcdf99ee83eadfc802b22",
+    "evaluator_field.json": "1a16429c83e37b984da1eb614e45371d291b48e04ae1ebc30d08639d39c8ffb1"
+  },
+  "image_sha256": "20048a8db1f07da495587c957e2c13d5c4b7e5b834b7489d8440e2bee07b180f"
+}

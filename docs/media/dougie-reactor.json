@@ -1,0 +1,9 @@
+{
+  "scope": "model render after one second of settling",
+  "run": null,
+  "mujoco": "3.3.6",
+  "source_sha256": "9a6042888ae3ff5e0d2969089d0501d4f09c1dc30f0d9bd36d9df2c0983bb6c9",
+  "scene_sha256": "93de3332a55a7d6491f5205fec4f23f9954a88d9264c48a8c62a6ddcf22da5be",
+  "input_sha256": {},
+  "image_sha256": "ac2df57ac912090c2f8e257643523e490b9772cef436a6c646b6a21610459126"
+}

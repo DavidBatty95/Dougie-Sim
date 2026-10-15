@@ -4,6 +4,15 @@
 
 ## Gallery provenance
 
+### Reactor/prediction refresh — 15 October 2026
+
+The [reactor still](media/dougie-reactor.png) now shows the expanded industrial
+scene. The new [prediction replay](media/dougie/reactor-prediction.png) overlays
+archived GP estimates and detector positions from the updated reactor's seed-3
+mission. It is not a true-field map or live recording. Both were rendered with
+native MuJoCo; their adjacent JSON manifests preserve input/image identities.
+See [regeneration and measured scope](DOUGIE_REACTOR_UPDATE.md).
+
 ### Full-height update — 14 October 2026
 
 - [Facility cutaway](media/dougie/facility-cutaway.png): actual MuJoCo facility

@@ -154,6 +154,24 @@ def main():
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
     controls.highlights, controls.field_display = highlights, args.field_display
+    for i in range(sim.model.nsite):
+        if sim.model.site(i).name.startswith('radiation_source_'):
+            point = sim.data.site_xpos[i].copy()
+            height = float(point[2]+.85)
+            for geom in range(sim.model.ngeom):
+                if sim.model.geom_bodyid[geom] == 0 and sim.model.geom_type[geom] != mujoco.mjtGeom.mjGEOM_PLANE:
+                    size = sim.model.geom_size[geom].copy()
+                    kind = sim.model.geom_type[geom]
+                    if kind == mujoco.mjtGeom.mjGEOM_SPHERE:
+                        size[:] = size[0]
+                    elif kind in (mujoco.mjtGeom.mjGEOM_CYLINDER, mujoco.mjtGeom.mjGEOM_CAPSULE):
+                        size = np.array([size[0], size[0], size[1]+(size[0] if kind == mujoco.mjtGeom.mjGEOM_CAPSULE else 0.)])
+                    extent = np.abs(sim.data.geom_xmat[geom].reshape(3, 3))@size
+                    centre = sim.data.geom_xpos[geom]
+                    if np.all(np.abs(point-centre) <= extent+.01):
+                        height = max(height, float(centre[2]+extent[2]+.5))
+            controls.sources.append((sim.model.site(i).name.removeprefix('radiation_source_'), point,
+                                     sim.model.site_rgba[i].copy(), height))
     # Limit BLAS oversubscription so GP work cannot consume every control core.
     limits = threadpool_limits(limits=1)
     isolated_planning = args.terrain_profile == 'layered' or args.path_mode == 'smooth' or args.gp_mode == 'spatial'

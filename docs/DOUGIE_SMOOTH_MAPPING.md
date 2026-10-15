@@ -225,6 +225,40 @@ docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_spatial_g
 
 ## Above-background visualization
 
+### Continuous-looking cloud update — 15 October 2026
+
+**Subsequent refinement:** the [reactor/prediction update](DOUGIE_REACTOR_UPDATE.md)
+replaces repeated sample offsets with a world-aligned, deduplicated grid and
+bounded local log-rate interpolation, and reduces opacity to 0.09. The description
+and benchmark below retain the first cloud implementation's settings.
+
+RViz and the MuJoCo viewer now use overlapping translucent ellipsoidal splats
+instead of isolated small opaque spheres. Local offsets fill gaps around displayed
+GP samples, with a bounded **1,200-splat** payload, 0.68 × 0.68 × 0.44 m glyphs,
+and 0.16 opacity. Centres are re-filtered against the same above-background
+detector evidence. No interpolation connects distant floors; small display kernels
+can overlap geometric boundaries and are not precise hazard contours. This is a
+continuous-looking display, not a new volumetric inference model or proof of safety.
+
+`--show-sources` now adds 0.5 m source cores, elevated 0.45 m beacons and 1.2 m
+diameter rings. RViz has larger labels and arrows; MuJoCo has labelled beacons
+and connecting lines. Elevated annotations sit above enclosing equipment while
+the core still marks the actual source position. All remain labelled diagnostic
+truth and are excluded from autonomy. Small cubes still represent count evidence.
+
+```bash
+./dougie radiation --world facility --duration 2400 --dose-budget 5 \
+  --gp-mode spatial --show-sources
+# Add --visualizer mujoco for the native viewer.
+```
+
+The underlying GP archive and planner are unchanged by this display transform.
+Verification: **177 full-suite passes**, followed by eight focused passes after
+the final RViz alpha adjustment. The 1,200-splat cloud, source annotations and
+full Go2 model measured **31.25 presented FPS** on NVIDIA at a requested 30 FPS
+in the [synthetic rendering benchmark](results/dougie_cloud_visualization_20261015.json).
+Historical sphere-size and rendering numbers below describe the earlier cohorts.
+
 The default `--field-display detected` no longer paints the whole GP prior volume.
 
 - Detector counts accumulate in bounded **0.4 m XYZ cells**.

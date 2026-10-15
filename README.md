@@ -18,7 +18,7 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Latest checkpoint — 14 October 2026:** **175 tests pass**. Two smooth-tracking /
+**Latest checkpoint — 15 October 2026:** **180 tests pass**. Two smooth-tracking /
 spatial-GP facility missions reached the **2.4 m upper floor**, descended and
 returned home with **zero recorded non-foot impacts**, within a 5 µSv budget.
 Optional seeded discovery targets are detected through range/FOV/occlusion checks
@@ -76,9 +76,22 @@ separate runs. [Media provenance, portable replay data and regeneration](docs/DO
 
 ![Actual MuJoCo reactor scene with vessel, shielding, service structures and inspection deck](docs/media/dougie-reactor.png)
 
+The reactor now has detailed pump assemblies, vessel fittings, valve handles,
+pipe racks, control panels, a cable tray and a shielded storage alcove.
+Two updated-room missions returned cleanly after **265.6 / 261.5 s**, travelling
+**33.80 / 32.69 m** with zero non-foot impacts and **0.796 / 0.840 µSv** exposure
+against a 2 µSv budget. The final cloud-rendering benchmark measured **30.2 FPS**.
+[Updated reactor and prediction-display results](docs/DOUGIE_REACTOR_UPDATE.md).
+
+![Recorded GP prediction in the detailed reactor room](docs/media/dougie/reactor-prediction.png)
+
+The prediction image replays archived GP/count evidence on a stable, locally
+interpolated translucent cloud grid. It is not a true-field map or live recording.
+
 The reactor image is a model render. The animated title and architecture below
 are schematics. Visual previews illustrate the system; scored claims come from
-the [portable evidence report](docs/results/dougie_initial_20261007.json).
+the [latest reactor evidence](docs/results/dougie_reactor_detail_20261015.json)
+and the separate [initial validation cohort](docs/results/dougie_initial_20261007.json).
 
 ## Quick start
 
@@ -119,6 +132,12 @@ speedup. Omit `--fast` for paced runs with ROS topics.
 The default field now contains **point-source hotspots and localized leaks**.
 Use `--show-sources` for red hotspot/amber leak markers, or omit it to display
 only the learned GP map. [Source locations, strengths and configuration](docs/DOUGIE_SOURCES.md).
+
+Radiation is displayed as an overlapping **translucent cloud**, yellow at lower
+estimated excess and red at higher excess. Measured count evidence remains marked
+by small cubes. `--show-sources` adds prominent source cores, elevated beacons,
+rings and labels; these are diagnostic true-source annotations. The cloud changes
+appearance only, not the field used for route planning.
 
 ```bash
 # Interactive reactor mission, default Poisson GP:

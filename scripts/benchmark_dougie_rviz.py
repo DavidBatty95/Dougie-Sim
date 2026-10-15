@@ -63,7 +63,7 @@ def main():
                     '-o', str(library), '-ldl', '-pthread'], check=True)
     sim = Simulation(args.world)
     bridge = Bridge(sim, publish_scan=False)
-    visualization = Visualization(bridge, cutaway=args.world == 'facility', field_display='all')
+    visualization = Visualization(bridge, show_sources=True, cutaway=args.world == 'facility', field_display='all')
     x, y = np.meshgrid(np.linspace(-1., 9., 15), np.linspace(-2., 8., 10))
     xyz = np.concatenate([np.column_stack((x.ravel(), y.ravel(), np.full(x.size, z))) for z in (.4, 1.2, 2.8)])
     mean = np.linspace(.2, 100., len(xyz))
@@ -113,7 +113,9 @@ def main():
         raise RuntimeError('RViz did not subscribe to the Go2 model, scene and map; not a valid rendering benchmark')
     result = dict(world=args.world, graphics=json.loads((output/'graphics.json').read_text()),
                   **frame_statistics(output/'frames.csv', started+args.warmup, deadline),
-                  warmup_s=args.warmup, requested_rviz_fps=30, gp_points=len(xyz), trail_points=len(trail),
+                   warmup_s=args.warmup, requested_rviz_fps=30, gp_points=len(xyz), trail_points=len(trail),
+                   cloud_points=len(visualization.highlights.cloud(volume, mode='all')[0]),
+                   show_sources=True,
                   robot_links=len(bridge.robot_description.links),
                   urdf_sha256=hashlib.sha256(bridge.robot_description.xml.encode()).hexdigest(),
                   rviz_config_sha256=hashlib.sha256(config.read_bytes()).hexdigest(),

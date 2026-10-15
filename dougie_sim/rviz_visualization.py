@@ -9,6 +9,7 @@ from geometry_msgs.msg import Point
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
+from .radiation_display import CLOUD_ALPHA
 
 
 class Visualization:
@@ -44,7 +45,7 @@ class Visualization:
                 if sim.model.site(i).name.startswith('radiation_source_'):
                     m = self.marker('sources', i, Marker.SPHERE)
                     self.position(m, sim.data.site_xpos[i])
-                    m.scale.x = m.scale.y = m.scale.z = .32
+                    m.scale.x = m.scale.y = m.scale.z = .5
                     m.color = ColorRGBA(**dict(zip(('r', 'g', 'b', 'a'), map(float, sim.model.site_rgba[i]))))
                     markers.append(m)
                     arrow = self.marker('source_arrows', i, Marker.ARROW)
@@ -52,22 +53,27 @@ class Visualization:
                     annotation_z = self.source_annotation_height(p)
                     beacon = self.marker('source_beacons', i, Marker.SPHERE)
                     self.position(beacon, (p[0], p[1], annotation_z))
-                    beacon.scale.x = beacon.scale.y = beacon.scale.z = .22
+                    beacon.scale.x = beacon.scale.y = beacon.scale.z = .45
                     beacon.color = m.color
                     markers.append(beacon)
                     arrow.points = [Point(x=float(p[0]), y=float(p[1]), z=annotation_z),
                                     Point(x=float(p[0]), y=float(p[1]), z=float(p[2]+.2))]
-                    arrow.scale.x, arrow.scale.y, arrow.scale.z = .05, .14, .14
+                    arrow.scale.x, arrow.scale.y, arrow.scale.z = .08, .22, .22
                     arrow.color = m.color
                     markers.append(arrow)
                     label = self.marker('source_labels', i, Marker.TEXT_VIEW_FACING)
-                    self.position(label, (p[0], p[1], annotation_z+.3))
-                    label.scale.z = .18
+                    self.position(label, (p[0], p[1], annotation_z+.55))
+                    label.scale.z = .26
                     label.color = ColorRGBA(r=1., g=.9, b=.65, a=1.)
                     kind = 'LEAK' if sim.model.nuser_site >= 3 and sim.model.site_user[i, 2] == 1 else 'HOTSPOT'
                     label.text = (kind+': '+sim.model.site(i).name.removeprefix('radiation_source_')+
                                   f'\nTRUE SOURCE / diagnostic / z={p[2]:.2f}m')
                     markers.append(label)
+                    ring = self.marker('source_rings', i, Marker.LINE_STRIP)
+                    ring.scale.x, ring.color = .055, m.color
+                    ring.points = [Point(x=float(p[0]+.6*np.cos(a)), y=float(p[1]+.6*np.sin(a)), z=annotation_z)
+                                   for a in np.linspace(0., 2*np.pi, 49)]
+                    markers.append(ring)
         self.scene.publish(MarkerArray(markers=markers))
 
     def update_landmarks(self, observations):
@@ -173,17 +179,14 @@ class Visualization:
     def update(self, volume, metrics, trail):
         markers = []
         if volume is not None:
-            xyz, mean, std, _ = volume
-            selected = self.highlights.mask(xyz, mean, self.field_display)
-            xyz, mean, std = xyz[selected], mean[selected], std[selected]
+            xyz, colors = self.highlights.cloud(volume, self.field_display, self.map_layer)
             m = self.marker('gp', 0, Marker.SPHERE_LIST)
-            m.color = ColorRGBA(r=1., g=1., b=1., a=1.)
-            m.scale.x = m.scale.y = m.scale.z = .22
-            values = np.clip(std/2 if self.map_layer == 'uncertainty' else np.log1p(mean)/np.log(101), 0, 1)
+            # RViz list-marker transparency is controlled by the marker alpha;
+            # per-point alpha is not supported consistently across renderers.
+            m.color = ColorRGBA(r=1., g=1., b=1., a=CLOUD_ALPHA)
+            m.scale.x, m.scale.y, m.scale.z = .68, .68, .44
             m.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in xyz]
-            colors = (np.column_stack((values, 1-values, np.ones(len(values)), np.full(len(values), .8)))
-                      if self.map_layer == 'uncertainty' else self.highlights.colors(mean))
-            m.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=float(a)) for r, g, b, a in colors]
+            m.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=1.) for r, g, b, _ in colors]
             if not len(xyz):
                 m.action = Marker.DELETE
             markers.append(m)
@@ -247,7 +250,7 @@ class Visualization:
         legend.scale.z = .12
         legend.color = ColorRGBA(r=.8, g=.85, b=.95, a=1.)
         layer = ('GP uncertainty (std log-rate 0..2)' if self.map_layer == 'uncertainty' else
-                 'Radiation excess: yellow low / red high | cubes = count evidence, spheres = GP estimate')
+                  'Radiation excess: yellow low / red high | translucent cloud = GP display, cubes = count evidence')
         if self.field_display == 'detected':
             layer += f'\nAbove background {self.highlights.background:g} uSv/h, near confirmed detections; blank is NOT proof of safety'
         legend.text = layer+'\nGreen: plan + target | Blue: travelled | Amber: estimated return'

@@ -1,0 +1,20 @@
+{
+  "scope": "Synthetic expanded-reactor rendering benchmark, not an exploration trial",
+  "run": "rviz_benchmark_20261015T071614_221362Z",
+  "renderer": "NVIDIA GeForce RTX 4080 Laptop GPU/PCIe/SSE2",
+  "world": "reactor",
+  "measurement_wall_s": 20.0,
+  "frames": 604,
+  "presented_fps": 30.2,
+  "frame_interval_p50_ms": 32.086495019029826,
+  "frame_interval_p95_ms": 51.63880559266544,
+  "gp_points": 450,
+  "cloud_points": 1200,
+  "cloud_opacity": 0.09,
+  "cloud_grid_m": [0.18, 0.18, 0.12],
+  "show_sources": true,
+  "robot_links": 17,
+  "subscriptions_verified": true,
+  "rviz_exit_code": 0,
+  "full_regression_passes": 180
+}

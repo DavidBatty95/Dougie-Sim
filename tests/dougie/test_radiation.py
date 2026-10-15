@@ -35,7 +35,7 @@ def test_counting_detector_units_seed_and_exposure_integration():
 def test_sources_are_encoded_in_mujoco_scene():
     sim = Simulation('reactor')
     field = RadiationField.from_mujoco(sim.model, sim.data)
-    assert len(field.sources) == 3 and len(field.shields) == 3
+    assert len(field.sources) == 3 and len(field.shields) == 4
     assert field.rate([5.8, 3.8, 1.2]) > field.rate([0, 0, .44])
 
 
