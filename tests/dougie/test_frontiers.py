@@ -36,6 +36,20 @@ def test_invalid_map_is_rejected():
         frontier_goals(message, (0., 0.))
 
 
+def test_frontier_cache_matches_uncached_after_motion_and_map_change():
+    data = np.full((50, 50), -1)
+    data[5:45, 5:40] = 0
+    cache = {}
+    for position in ((1.5, 2.), (2., 2.)):
+        message = grid(data)
+        assert frontier_goals(message, position, cache=cache) == frontier_goals(message, position)
+    old_visibility = cache['visibility']
+    data[:, 30] = 100
+    message = grid(data)
+    assert frontier_goals(message, (2., 2.), cache=cache) == frontier_goals(message, (2., 2.))
+    assert cache['visibility'] is not old_visibility
+
+
 def test_watchdog_stops_stale_nonfinite_and_time_reversed_commands():
     watchdog = CommandWatchdog()
     assert not watchdog.value(0.).any()

@@ -53,3 +53,31 @@ dose improvement. Its timings predate vectorized turn integration.
 explicitly request the historical .1 m/s speed in both implementations (the
 production default intentionally changed). All 12 clustering/reference checks
 then passed. Dedicated heading/search tests check the shared cost assumptions.
+
+## Stage 3: observed-region scheduling and planar exploration
+
+Layered missions now group fine support nodes into bounded connected navigation
+regions, retain observed directed connectors, and count repeated crossings.
+Region selection balances admitted candidate utility, local completion, travel
+time, aging and repeated transitions. A productive distant region can beat local
+work. Explicit known-target inspection retains priority. Regions are spatial
+connected partitions, not semantic room recognition; changing component anchors
+can reset their history. Fine-graph dose/return admission remains authoritative.
+
+Planar frontier scoring caches clearance and visibility by map contents/geometry,
+invalidating on changes. Mission timeout/exclusion timers now use ROS simulation
+time; map-receipt freshness remains a wall-clock watchdog. Actions that make no
+15 cm progress for 15 simulated seconds are cancelled before the 75 s deadline.
+
+Verification: **196 tests passed**. Matrix command:
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_missions.py \
+  --seeds 4 --layout-seeds 0 1 --duration 180
+```
+
+`mission_matrix_20261019T145858_672341Z`: both runs returned cleanly, each inspecting
+2/8 downstairs targets. Layout 0: 115.180 s, 13.5815 m, .019279 uSv; layout 1:
+119.190 s, 14.2056 m, .020480 uSv. The earlier same-seed/layout short inspection
+results were 119.190 / 125.205 s and .02018 / .02120 uSv. These are development
+comparisons, not full-height completion or independent qualification.

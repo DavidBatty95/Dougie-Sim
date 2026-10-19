@@ -31,6 +31,9 @@ class Explorer(Node):
         self.started = 0.
         self.excluded = []
         self.goal_count = 0
+        self.frontier_cache = {}
+        self.progress_position = None
+        self.progress_stamp = 0.
         self.tf = Buffer()
         self.listener = TransformListener(self.tf, self)
         self.client = ActionClient(self, NavigateToPose, '/navigate_to_pose')
@@ -49,7 +52,7 @@ class Explorer(Node):
         self.get_logger().info(json.dumps(record))
 
     def tick(self):
-        now = time.monotonic()
+        now = self.get_clock().now().nanoseconds/1e9
         if self.pending:
             if not self.pending.done():
                 return
@@ -62,18 +65,25 @@ class Explorer(Node):
                 return
             self.result = self.goal_handle.get_result_async()
         if self.result:
+            try:
+                p = self.tf.lookup_transform('map', 'base_footprint', rclpy.time.Time()).transform.translation
+                position = (p.x, p.y)
+                if self.progress_position is None or math.dist(position, self.progress_position) > .15:
+                    self.progress_position, self.progress_stamp = position, now
+            except TransformException:
+                pass
             if self.result.done():
                 status = self.result.result().status
                 self.report('arrived' if status == GoalStatus.STATUS_SUCCEEDED else 'navigation_failed', status=status)
                 self.excluded.append((self.selected, now))
                 self.result = self.goal_handle = self.cancel = None
-            elif now-self.started > 75. and self.cancel is None:
+            elif (now-self.started > 75. or now-self.progress_stamp > 15.) and self.cancel is None:
                 self.cancel = self.goal_handle.cancel_goal_async()
-                self.report('cancelling_timeout')
+                self.report('cancelling_timeout_or_stall')
                 return
             else:
                 return  # No new goal until the prior action has a terminal result.
-        if self.map is None or now-self.received > 10. or not self.client.server_is_ready():
+        if self.map is None or time.monotonic()-self.received > 10. or not self.client.server_is_ready():
             self.report('waiting_for_map_or_navigation')
             return
         try:
@@ -83,7 +93,7 @@ class Explorer(Node):
         robot = transform.translation.x, transform.translation.y
         self.excluded = [(p, stamp) for p, stamp in self.excluded if now-stamp < 60.]
         try:
-            goals = frontier_goals(self.map, robot, [p for p, _ in self.excluded])
+            goals = frontier_goals(self.map, robot, [p for p, _ in self.excluded], cache=self.frontier_cache)
         except ValueError as exc:
             self.report('invalid_map', error=str(exc))
             return
@@ -97,6 +107,7 @@ class Explorer(Node):
         pose.pose.orientation.z, pose.pose.orientation.w = math.sin(yaw/2), math.cos(yaw/2)
         self.pending = self.client.send_goal_async(NavigateToPose.Goal(pose=pose))
         self.selected, self.started = (x, y), now
+        self.progress_position, self.progress_stamp = robot, now
         self.goal_count += 1
         self.report('goal_sent', goal=[x, y, yaw], candidates=len(goals))
 

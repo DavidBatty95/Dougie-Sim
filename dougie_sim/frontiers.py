@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 
-def frontier_goals(message, robot, excluded=(), radius=.38):
+def frontier_goals(message, robot, excluded=(), radius=.38, cache=None):
     info = message.info
     w, h, res = info.width, info.height, info.resolution
     if w <= 0 or h <= 0 or w*h > 500000 or not math.isfinite(res) or res <= 0 or len(message.data) != w*h:
@@ -21,11 +21,20 @@ def frontier_goals(message, robot, excluded=(), radius=.38):
     if not all(math.isfinite(v) for v in (*robot, ox, oy, radius)) or radius < 0:
         raise ValueError('invalid grid geometry')
     cells = np.asarray(message.data).reshape(h, w)
+    if cache is None:
+        cache = {}
+    signature = (w, h, res, radius, ox, oy, yaw, cells.tobytes())
+    if cache.get('signature') != signature:
+        cache.clear()
+        cache['signature'] = signature
+        cache['visibility'] = {}
     free = (cells >= 0) & (cells < 20)
     reserve = math.ceil(radius/res)
     size = 2*reserve+1
-    integral = np.pad(np.pad(free.astype(np.int32), reserve), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
-    clear = integral[size:, size:] - integral[:-size, size:] - integral[size:, :-size] + integral[:-size, :-size] == size*size
+    if 'clear' not in cache:
+        integral = np.pad(np.pad(free.astype(np.int32), reserve), ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+        cache['clear'] = integral[size:, size:] - integral[:-size, size:] - integral[size:, :-size] + integral[:-size, :-size] == size*size
+    clear = cache['clear']
     dx, dy = robot[0]-ox, robot[1]-oy
     start = math.floor((c*dx+s*dy)/res), math.floor((-s*dx+c*dy)/res)
     if not (0 <= start[0] < w and 0 <= start[1] < h and clear[start[1], start[0]]):
@@ -45,7 +54,8 @@ def frontier_goals(message, robot, excluded=(), radius=.38):
             continue
         # Count first-hit unknown cells, excluding rays blocked by furniture.
         unknown = set()
-        for angle in np.linspace(-math.pi, math.pi, 16, endpoint=False):
+        cached_gain = cache['visibility'].get((x, y))
+        for angle in (() if cached_gain is not None else np.linspace(-math.pi, math.pi, 16, endpoint=False)):
             for step in range(1, math.ceil(2./res)+1):
                 nx, ny = round(x+step*math.cos(angle)), round(y+step*math.sin(angle))
                 if not (0 <= nx < w and 0 <= ny < h) or cells[ny, nx] >= 20:
@@ -53,12 +63,14 @@ def frontier_goals(message, robot, excluded=(), radius=.38):
                 if cells[ny, nx] < 0:
                     unknown.add((nx, ny))
                     break
-        if not unknown:
+        gain = len(unknown) if cached_gain is None else cached_gain
+        cache['visibility'][x, y] = gain
+        if not gain:
             continue
         lx, ly = (x+.5)*res, (y+.5)*res
         point = ox+c*lx-s*ly, oy+s*lx+c*ly
         if any(math.dist(point, old) < .7 for old in excluded):
             continue
         heading = math.atan2(point[1]-robot[1], point[0]-robot[0])
-        goals.append((len(unknown)/(1.+steps*res), *point, heading))
+        goals.append((gain/(1.+steps*res), *point, heading))
     return sorted(goals, reverse=True)

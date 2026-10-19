@@ -15,6 +15,7 @@ from .dose_planner import DoseExplorer
 from .region_clustering import connected_clusters, distance_from_visits, ObservedGain
 from .route_forecast import forecast_tree, forecast_polyline
 from .motion_cost import FORECAST_SPEED, FORECAST_YAW_RATE
+from .region_agenda import RegionAgenda
 
 
 class ClusteredDoseExplorer(DoseExplorer):
@@ -42,6 +43,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.wait_allowance = 3.
         self.objective = 'survey'
         self.smooth_execution = False
+        self.region_agenda = RegionAgenda()
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -128,6 +130,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             self.returning, self.last_reason = True, 'no_rate_compliant_return_route'
         inspection = getattr(self.terrain, 'active_viewpoints', False)
         if inspection:
+            self.region_agenda.update(nodes, graph, root, stamp)
             self.sampled_height_bands.add(round(float(position[2])/.2))
             # Mark supported body-footprint neighbours as visited, not just one
             # sparse root sample every two seconds. Never cross disconnected walls.
@@ -299,7 +302,10 @@ class ClusteredDoseExplorer(DoseExplorer):
                 nearby = [item for item in candidates if length[item[1]] <= 6.]
                 inspections = [item for item in candidates if self.landmark_bonus(nodes[item[1]]) > 0]
                 pool = inspections if self.objective == 'inspect' and inspections else nearby or candidates
-                _, selected, _ = max(pool)
+                if inspection and not (self.objective == 'inspect' and inspections):
+                    _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp)
+                else:
+                    _, selected, _ = max(pool)
                 self.state, self.last_reason = 'exploring', 'best_connected_region'
                 if not nearby:
                     self.last_reason = 'reposition_to_distant_frontier'
@@ -344,4 +350,5 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['observed_support_visit_fraction'] = len(self.visited.intersection(self.terrain.nodes))/max(1, len(self.terrain.nodes))
         result['known_landmarks_pending'] = sum(not o.inspected for o in self.landmarks.values())
         result['mission_objective'] = self.objective
+        result['region_agenda'] = self.region_agenda.metrics()
         return result
