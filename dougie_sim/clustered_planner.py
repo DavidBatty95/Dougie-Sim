@@ -44,7 +44,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.objective = 'survey'
         self.smooth_execution = False
         self.region_agenda = RegionAgenda()
-        self.region_scheduling = 'local'
+        self.region_scheduling = 'hierarchical'
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -304,7 +304,8 @@ class ClusteredDoseExplorer(DoseExplorer):
                 inspections = [item for item in candidates if self.landmark_bonus(nodes[item[1]]) > 0]
                 pool = inspections if self.objective == 'inspect' and inspections else nearby or candidates
                 if inspection and self.region_scheduling == 'hierarchical' and not (self.objective == 'inspect' and inspections):
-                    _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp)
+                    _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp,
+                        inspection_keys={item[1] for item in inspections})
                 else:
                     _, selected, _ = max(pool)
                 self.state, self.last_reason = 'exploring', 'best_connected_region'

@@ -22,7 +22,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
-        explorer.region_scheduling = options.get('region_scheduling', 'local')
+        explorer.region_scheduling = options.get('region_scheduling', 'hierarchical')
     if terrain_profile == 'conservative':
         explorer.terrain = SurfaceMap(radius=.4, max_step=.02, max_local_relief=.02)
     elif terrain_profile == 'layered':

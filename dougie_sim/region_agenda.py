@@ -56,7 +56,7 @@ class RegionAgenda:
         self.connectors = {(membership[a], membership[b]) for a, neighbours in graph.items()
                            for b in neighbours if a in membership and b in membership and membership[a] != membership[b]}
 
-    def choose(self, candidates, duration, stamp):
+    def choose(self, candidates, duration, stamp, inspection_keys=()):
         groups = {}
         for item in candidates:
             groups.setdefault(self.membership[item[1]], []).append(item)
@@ -72,7 +72,10 @@ class RegionAgenda:
             # Repeated near-frontier views on a traversed ramp must not dominate
             # the unvisited landing it connects to. Saturate after half the
             # supported centres have been covered by the robot footprint.
-            utility *= max(.2, 1.-1.6*self.visit_fraction.get(region, 0.))
+            # A visited region can still contain a newly observed inspection
+            # target. Do not suppress that new semantic work as a spatial revisit.
+            if not any(item[1] in inspection_keys for item in items):
+                utility *= max(.2, 1.-1.6*self.visit_fraction.get(region, 0.))
             if region == self.current:
                 utility *= 1.15
             return utility/(1.+.15*repeats+.002*min(duration[item[1]] for item in items)), region

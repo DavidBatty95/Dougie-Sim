@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
     parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
-    parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='local')
+    parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
     parser.add_argument('--gp-mode', choices=('global', 'spatial'), default='global')

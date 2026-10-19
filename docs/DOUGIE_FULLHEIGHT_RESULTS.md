@@ -4,7 +4,8 @@
 
 The subsequent [planning-priority update](DOUGIE_PLANNING_PRIORITIES.md) changes
 goal selection and return forecasts. The full-height results on this page retain
-their original source identities; that newer planner needs a fresh full-height cohort.
+their original source identities. The [19 October navigation update](DOUGIE_NAVIGATION_EFFICIENCY.md)
+records a new strict full-height development pass and its retained regressions.
 
 ## MuJoCo executes; RViz displays the same state
 

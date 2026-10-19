@@ -95,8 +95,9 @@ at **237.485 s**, **25.4749 m**, **.345615 uSv**, no non-foot contacts and zero 
 join rejections. The prior planning cohort's corresponding development run was
 259.540 s, 26.73 m and .40788 uSv. This is an 8.5% time / 15.3% dose reduction for
 the vertical round-trip objective, not proof of equal map coverage. Hierarchical
-scheduling is selectable with `--region-scheduling hierarchical`; `local` is the
-default comparator until broader qualification.
+scheduling is selectable with `--region-scheduling hierarchical`; it was promoted
+to the layered-demo default after the full-height check below. `local` retains the
+comparison method.
 
 ```bash
 ./dougie radiation --world mezzanine --headless --fast --duration 300 \
@@ -130,5 +131,75 @@ replays, with considerable excess; this does not justify relaxing runtime bounds
 
 **201 tests passed**, including simulated-time progress cancellation, map-cache
 invalidation, visited-connector scheduling, seeded drift and bound scoring.
-Full-height qualification, geometry-aware GP kernels, integrated moving-window
+Broader full-height qualification, geometry-aware GP kernels, integrated moving-window
 likelihoods and LiDAR/inertial/leg state estimation remain separate research work.
+
+### Retained large-map compute check
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_layered.py \
+  results/dougie/radiation_20261014T152104_956260Z --compare-footprints
+```
+
+On the retained 134,301-return / 6,446-node facility map, three alternating warm
+repeats gave median graph construction times of **1,371 ms incremental versus
+2,105 ms forced-full footprints** (34.9% less). Both produced identical adjacency.
+Incremental mode checked zero unchanged footprints versus 9,113 full checks.
+This isolates unchanged-map reuse with a warm candidate cache; new scans still
+invalidate affected neighborhoods, and global preprocessing remains a cost.
+
+### Additional physical checks
+
+Corrected hierarchical mezzanine seed 4 also passed the strict vertical round-trip
+gate: **229.465 s, 24.0885 m, .326799 uSv**, no non-foot contacts and no route-join
+rejections (`navigation_regional_mezzanine_seed4`). Timing was measured while the
+full-height trial also ran and should not be used as an isolated compute benchmark.
+
+A 90 s live SLAM/Nav2 office run completed without process error and remained
+upright (`20261019T153305_479821Z`). It initially waited for reachable frontiers,
+then cancelled one stalled goal, reached two subsequent goals and sent a fourth
+before the time limit. This exercises recovery and cached scoring through real ROS
+actions; it is not an office-coverage result.
+
+```bash
+docker compose run --rm -T dougie-sim python3 -m dougie_sim.session \
+  --world office --headless --explore --duration 90
+```
+
+## Full-height development gate and recommended demo
+
+`navigation_regional_facility`: facility layout 0, detector seed 4, spatial GP,
+hierarchical regions, 2,400 s limit, 5 uSv budget, .5 s fixed simulated plan delay.
+It passed the strict round-trip gate with **zero non-foot contacts**, **zero
+route-join rejections**, **.837923 uSv**, **268.823 m**, and **515.76 m² observed
+surface proxy**. Upstairs witness: **679.595 s**; lower return witness:
+**1,882.910 s**; home: **2,295.440 s**.
+
+Against the earlier seed-4/layout-0 full-height result, upstairs was reached 44.8%
+sooner, exposure was 7.4% lower and observed surface proxy 4.4% larger. Total time
+was 4.0% longer and distance 4.3% larger. Mission objectives and observed coverage
+matter: this is not a universal shorter-route claim. Landmarks were disabled.
+
+Worker p95 was 4.143 s, wall duration 4,052 s (67.5 min). Some validation workloads
+ran concurrently. Historical 10–11 s worker p95 timings had different host load;
+these are not a controlled speedup comparison. Fixed scheduling still hides wall
+delays. Full-height paced operation and unseen-layout reliability remain open.
+
+Hierarchical scheduling is now the default for layered missions; the reactor's
+conservative terrain planner retains its local selection. Recommended visible demo:
+
+```bash
+./dougie radiation --world mezzanine --duration 300 --dose-budget 2 \
+  --gp-mode spatial --seed 3
+
+# Longer full-height demo (paced performance still experimental):
+./dougie radiation --world facility --duration 2400 --dose-budget 5 \
+  --gp-mode spatial --seed 4
+
+# Reproduce the scored full-height development check:
+./dougie radiation --world facility --headless --fast --duration 2400 \
+  --dose-budget 5 --gp-mode spatial --seed 4 --region-scheduling hierarchical \
+  --fixed-plan-delay .5 --require-round-trip
+```
+
+[Portable results, hashes, failures and return-forecast diagnostics](results/dougie_navigation_20261019.json).

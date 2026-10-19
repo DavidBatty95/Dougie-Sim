@@ -18,12 +18,20 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
+**Navigation update — 19 October 2026:** **201 tests pass**. Added cycle-scoped
+route reuse, incremental support-footprint checks, consistent motion forecasts,
+adaptive tracking and connected-region scheduling. Two mezzanine round trips and
+a full-height seed-4 round trip passed with zero non-foot contacts. The full-height
+run reached upstairs at **679.6 s** and returned at **2,295.4 s**, using **0.838 µSv**.
+[Staged changes, measured tradeoffs and retained failures](docs/DOUGIE_NAVIGATION_EFFICIENCY.md).
+
 **Planning update — 15 October 2026:** **190 tests pass**. Added persistent
 frontier tasks, distant-frontier repositioning, explicit return-route rate checks,
 turn/wait exposure forecasts, an inspection objective, free-space compaction and
 seed-matrix evaluation. [Results and retained regressions](docs/DOUGIE_PLANNING_PRIORITIES.md).
-The new planning revision still needs full-height qualification; the successful
-full-height runs below belong to the earlier planner cohort.
+At that checkpoint the planning revision still needed a fresh full-height trial;
+the 19 October navigation update above now includes one. The full-height results
+in the historical sections below belong to the earlier planner cohort.
 
 **Earlier facility checkpoint:** Two smooth-tracking /
 spatial-GP facility missions reached the **2.4 m upper floor**, descended and
@@ -169,6 +177,7 @@ appearance only, not the field used for route planning.
 | `--require-round-trip` | Off | Evaluator requires clean upstairs/downstairs/home witnesses |
 | `--landmark-count`, `--landmark-seed` | `0`, `0` | Optional 2–64 seeded facility discovery targets |
 | `--mission-objective` | `survey` | `inspect` prioritizes safe approaches to observed, uninspected targets |
+| `--region-scheduling` | `hierarchical` | Connected-region scheduling on layered terrain; `local` retains the local-preference comparator |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
 | `--source-profile` | `hotspots-and-leaks` | Combined emitters, `hotspots`, `leaks`, or the original `baseline` |
 | `--source-config` | Built-in JSON | Alternative source file inside the checkout |

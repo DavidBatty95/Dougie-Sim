@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--landmark-count', type=int, default=8)
     parser.add_argument('--landmark-seed', type=int, default=7)
     parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='inspect')
+    parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     parser.add_argument('--require-round-trip', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
@@ -40,6 +41,7 @@ def main():
                 '--duration', str(args.duration), '--dose-budget', '5', '--gp-mode', 'spatial', '--fixed-plan-delay', '.5',
                 '--seed', str(seed), '--layout-seed', str(layout), '--landmark-count', str(args.landmark_count),
                 '--landmark-seed', str(args.landmark_seed), '--mission-objective', args.mission_objective,
+                '--region-scheduling', args.region_scheduling,
                 '--require-round-trip' if args.require_round_trip else '--require-clean', '--output', str(run)]
             with (output/f'{run.name}.log').open('w') as log:
                 result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
