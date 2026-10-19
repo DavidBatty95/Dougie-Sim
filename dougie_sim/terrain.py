@@ -106,7 +106,9 @@ class SurfaceMap:
         edge_speed = min(speed, .06) if abs(self.nodes[end][2]-self.nodes[start][2]) > .025 else speed
         return distance/edge_speed
 
-    def routes(self, start, rates=None, speed=.1, rate_scale=50., *, reverse=False, max_rate=None):
+    def routes(self, start, rates=None, speed=None, rate_scale=50., *, reverse=False, max_rate=None):
+        from .motion_cost import FORECAST_SPEED
+        speed = FORECAST_SPEED if speed is None else speed
         adjacency = self.graph
         if reverse:
             adjacency = {key: [] for key in self.graph}

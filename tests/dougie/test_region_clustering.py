@@ -142,7 +142,9 @@ def test_optimized_geometry_and_costs_match_frozen_reference():
     assert old.graph == new.graph
     rates = {key: 1.+abs(p[0]) for key, p in old.nodes.items()}
     root = old.nearest([0, 0, 0])
-    for a, b in zip(old.routes(root, rates)[:3], new.routes(root, rates)[:3]):
+    # Compare the algorithm at the same speed; production now uses the shared
+    # conservative forecast speed rather than the historical .1 m/s default.
+    for a, b in zip(old.routes(root, rates, speed=.1)[:3], new.routes(root, rates, speed=.1)[:3]):
         assert a.keys() == b.keys()
         np.testing.assert_allclose([a[k] for k in a], [b[k] for k in a], rtol=1e-10, atol=1e-10)
     assert [old.novelty(k) for k in old.nodes] == [new.novelty(k) for k in old.nodes]

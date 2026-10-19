@@ -46,9 +46,10 @@ def initialize(parameters, planner, terrain_profile, limit_threads=True, options
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
-def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.):
+def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None):
     started = time.perf_counter()
     explorer = _explorer
+    explorer.start_yaw = yaw
     if hasattr(explorer, 'observe_plan_delay'):
         explorer.observe_plan_delay(plan_delay_s)
     if hasattr(explorer, 'observe_landmarks'):

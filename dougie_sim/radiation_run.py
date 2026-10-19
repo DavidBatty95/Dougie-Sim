@@ -333,7 +333,8 @@ def main():
                 if visualization:
                     visualization.update_landmarks(landmark_sensor.packets())
                 future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
-                                     landmark_observations, observed_plan_delay)
+                                     landmark_observations, observed_plan_delay,
+                                     math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]))
                 samples = []
                 last_plan = stamp
                 if stalled:

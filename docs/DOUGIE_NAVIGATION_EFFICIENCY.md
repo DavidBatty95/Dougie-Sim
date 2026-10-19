@@ -33,3 +33,23 @@ docker compose run --rm -T dougie-sim python3 -m dougie_sim.radiation_run \
   --fixed-plan-delay .5 --require-clean
 docker compose run --rm -T dougie-sim python3 -m pytest tests/dougie -q
 ```
+
+## Stage 2: consistent motion costs and tracking
+
+Graph search, checked-polyline forecasts and smoothing exposure now share the
+conservative .06 m/s effective-speed model. Smoothing includes turning exposure;
+smooth return forecasts include the robot's measured starting heading. Command
+limits remain distinct from conservative forecast speeds. Lookahead adapts from
+.2 to .4 m with commanded speed, within certified convex spans. Polyline turn
+integration is vectorized to avoid Python work per densely sampled waypoint.
+
+The matched `navigation_motion_reactor` development run returned cleanly at
+131.220 s, travelled 15.5725 m, observed 127.75 m² surface proxy, and used
+0.358784 uSv. Turning-in-place fell from 31.205 to 28.315 s (9.3%), but exposure
+increased 3.7% with increased observed area. This does not establish matched-area
+dose improvement. Its timings predate vectorized turn integration.
+
+192 tests passed; the remaining frozen-reference cost comparison was updated to
+explicitly request the historical .1 m/s speed in both implementations (the
+production default intentionally changed). All 12 clustering/reference checks
+then passed. Dedicated heading/search tests check the shared cost assumptions.

@@ -14,6 +14,7 @@ import numpy as np
 from .dose_planner import DoseExplorer
 from .region_clustering import connected_clusters, distance_from_visits, ObservedGain
 from .route_forecast import forecast_tree, forecast_polyline
+from .motion_cost import FORECAST_SPEED, FORECAST_YAW_RATE
 
 
 class ClusteredDoseExplorer(DoseExplorer):
@@ -141,11 +142,11 @@ class ClusteredDoseExplorer(DoseExplorer):
         home_time, home_dose, home_peak = forecast_tree(self.terrain, home_parent, rates, reverse=True)
         self.route_forecast = dict(return_duration_s=outbound_time[home], return_upper_dose_usv=dose[home],
             return_peak_rate_usv_h=outbound_peak[home], emergency_rate_override=emergency_return,
-            wait_allowance_s=self.wait_allowance, speed_m_s=.06, yaw_rate_rad_s=.35)
+            wait_allowance_s=self.wait_allowance, speed_m_s=FORECAST_SPEED, yaw_rate_rad_s=FORECAST_YAW_RATE)
         if self.smooth_execution and len(self.return_path) > 1:
             checked = self.smoother([position, *self.return_path], returning=True)
             _, _, return_rates = self.gp.predict(np.asarray(checked.points)+[0., 0., .44])
-            seconds, exposure = forecast_polyline(checked.points, return_rates)
+            seconds, exposure = forecast_polyline(checked.points, return_rates, start_yaw=getattr(self, 'start_yaw', None))
             self.route_forecast.update(return_grid_duration_s=outbound_time[home],
                 return_duration_s=seconds, return_upper_dose_usv=exposure,
                 return_peak_rate_usv_h=float(np.max(return_rates)), return_forecast_geometry='support_checked_smooth')
@@ -193,7 +194,8 @@ class ClusteredDoseExplorer(DoseExplorer):
                     checked = self.smoother(points, returning=returning)
                     query = checked.points or points
                     _, _, prediction = self.gp.predict(np.asarray(query)+[0., 0., .44])
-                    durations[key], doses[key] = forecast_polyline(query, prediction)
+                    durations[key], doses[key] = forecast_polyline(query, prediction,
+                        start_yaw=None if returning else getattr(self, 'start_yaw', None))
                     peaks[key] = float(np.max(prediction))
                 total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
                 deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.

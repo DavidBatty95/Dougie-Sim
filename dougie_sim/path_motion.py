@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy.spatial import cKDTree
+from .route_forecast import forecast_polyline
 
 
 def sample_polyline(points, spacing=.05):
@@ -152,14 +153,8 @@ def route_risk(points, gp, terrain):
     if len(points) < 2:
         return 0., 0.
     _, _, rates = gp.predict(points+[0., 0., .44])
-    delta = np.diff(points, axis=0)
-    distance = np.linalg.norm(delta, axis=1)
-    if hasattr(terrain, 'max_slope'):
-        slope = delta[:, 2]/np.maximum(np.linalg.norm(delta[:, :2], axis=1), 1e-8)
-        speed = np.where(slope < -.05, .08, .1)
-    else:
-        speed = np.where(np.abs(delta[:, 2]) > 1e-6, .06, .1)
-    return float(np.sum(np.maximum(rates[:-1], rates[1:])*distance/speed)/3600.), float(rates.max())
+    _, dose = forecast_polyline(points, rates)
+    return dose, float(rates.max())
 
 
 class RouteSmoother:
@@ -353,7 +348,10 @@ class RouteFollower:
             segment = span[1]
             span = next((s for s in self.spans if s[0] == segment), span)
             self.progress = max(self.progress, self.arc[segment])
-        carrot_arc = min(self.progress+.4, self.arc[span[1]])
+        # Short lookahead while starting/turning; longer at cruise. Never extend
+        # past the certified convex span, even when the next segment is nearby.
+        lookahead = float(np.clip(.2+.9*abs(self.command[0]), .2, .4))
+        carrot_arc = min(self.progress+lookahead, self.arc[span[1]])
         j = min(len(self.points)-2, max(0, int(np.searchsorted(self.arc, carrot_arc, side='right'))-1))
         fraction = (carrot_arc-self.arc[j])/max(self.arc[j+1]-self.arc[j], 1e-9)
         target = self.points[j]+fraction*(self.points[j+1]-self.points[j])

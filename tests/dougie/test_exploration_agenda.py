@@ -101,6 +101,19 @@ def test_checked_polyline_forecast_does_not_charge_for_removed_grid_corners():
     assert smooth_time < grid_time and smooth_dose < grid_dose
 
 
+def test_start_heading_exposure_and_shared_search_speed():
+    points = np.array([[0., 0., 0.], [1., 0., 0.]])
+    direct, dose = forecast_polyline(points, [10., 10.])
+    turned, turn_dose = forecast_polyline(points, [10., 10.], start_yaw=np.pi)
+    assert turned-direct == pytest.approx(np.pi/.35)
+    assert turn_dose-dose == pytest.approx(10.*np.pi/.35/3600.)
+    terrain = SurfaceMap()
+    terrain.nodes = dict(enumerate(points))
+    terrain.graph = {0: [1], 1: []}
+    _, search_dose, _, _ = terrain.routes(0, {0: 10., 1: 10.})
+    assert search_dose[1] == pytest.approx(dose)
+
+
 def test_newly_hot_only_return_route_is_reported_as_emergency_retreat(monkeypatch):
     root, hot, home = (2, 0, 0), (1, 0, 0), (0, 0, 0)
     planner = planner_fixture(monkeypatch, {k: k for k in (root, hot, home)},
