@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--motion-benchmark', type=Path)
     parser.add_argument('--gp-benchmark', type=Path)
+    parser.add_argument('--planning-benchmark', type=Path)
     args = parser.parse_args()
     report = dict(schema_version=1, scope='development and screening; not independent repeatability qualification',
                   missions=[], qualifications=[], training=[])
@@ -34,14 +35,15 @@ def main():
                 'nonfoot_impulse_ns', 'nonfoot_peak_force_n', 'performance', 'source_sha256',
                 'command_total_variation', 'turning_in_place_s', 'gp', 'route_replan_rejections',
                 'planning_p95_ms', 'worker_p95_ms', 'landmarks', 'landmark_mission_completed',
-                'terrain', 'decision_reason', 'information_contract')
+                'terrain', 'decision_reason', 'information_contract', 'route_forecast', 'exploration_agenda',
+                'observed_support_visit_fraction', 'known_landmarks_pending', 'worker_phase_p95_ms')
         failures = round_trip_failures(summary)
         report['missions'].append(dict(run=directory.name, summary_sha256=digest, config_sha256=config_digest,
             round_trip_completed=not failures, round_trip_failures=failures,
             configuration={k: config.get(k) for k in ('world', 'layout_seed', 'seed', 'duration', 'dose_budget',
                 'gp_capacity', 'fixed_plan_delay', 'require_clean', 'require_round_trip', 'policy', 'path_mode', 'gp_mode',
                 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'field_display', 'display_background',
-                'landmark_count', 'landmark_seed')},
+                'landmark_count', 'landmark_seed', 'mission_objective')},
             simulated_time_s=summary['simulation']['simulation_time_s'], **{k: summary.get(k) for k in keys}))
     for directory in args.qualifications:
         summary, digest = load(directory/'summary.json')
@@ -58,7 +60,7 @@ def main():
             source_sha256=manifest['source_sha256'],
             status='completed' if result is not None else 'interrupted; only retained checkpoints are evidence'))
     report['benchmarks'] = {}
-    for name, path in (('motion', args.motion_benchmark), ('gp', args.gp_benchmark)):
+    for name, path in (('motion', args.motion_benchmark), ('gp', args.gp_benchmark), ('planning', args.planning_benchmark)):
         if path:
             data, digest = load(path)
             report['benchmarks'][name] = dict(file=path.name, sha256=digest, report=data)

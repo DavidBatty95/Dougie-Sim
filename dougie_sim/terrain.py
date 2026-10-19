@@ -106,7 +106,7 @@ class SurfaceMap:
         edge_speed = min(speed, .06) if abs(self.nodes[end][2]-self.nodes[start][2]) > .025 else speed
         return distance/edge_speed
 
-    def routes(self, start, rates=None, speed=.1, rate_scale=50., *, reverse=False):
+    def routes(self, start, rates=None, speed=.1, rate_scale=50., *, reverse=False, max_rate=None):
         adjacency = self.graph
         if reverse:
             adjacency = {key: [] for key in self.graph}
@@ -120,6 +120,8 @@ class SurfaceMap:
             if cost > costs[key]+1e-10:
                 continue
             for other in adjacency.get(key, []):
+                if max_rate is not None and rates is not None and max(rates[key], rates[other]) > max_rate:
+                    continue
                 distance = self._edge_lengths.get((key, other))
                 if distance is None:
                     distance = math.dist(self.nodes[other], self.nodes[key])

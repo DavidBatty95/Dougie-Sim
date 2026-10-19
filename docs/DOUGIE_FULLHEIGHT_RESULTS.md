@@ -2,6 +2,10 @@
 
 [Project home](../README.md) · [Facility geometry](DOUGIE_FACILITY.md) · [Motion and GP methods](DOUGIE_SMOOTH_MAPPING.md)
 
+The subsequent [planning-priority update](DOUGIE_PLANNING_PRIORITIES.md) changes
+goal selection and return forecasts. The full-height results on this page retain
+their original source identities; that newer planner needs a fresh full-height cohort.
+
 ## MuJoCo executes; RViz displays the same state
 
 MuJoCo integrates the free-floating Go2, joint torques, ramp motion and contacts.

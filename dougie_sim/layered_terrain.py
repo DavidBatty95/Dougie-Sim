@@ -5,6 +5,7 @@ smooth ramp and an abrupt ledge with the same average gradient are not equivalen
 Industrial stair admission is deliberately absent until a policy is qualified.
 """
 import math
+import itertools
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -16,9 +17,51 @@ class VoxelEvidence:
     def __init__(self, resolution=.2, capacity=200000):
         self.resolution, self.capacity = resolution, capacity
         self.evidence = {}
+        self.coarse_free = {}
+        self.compactions = 0
         self.saturated = False
 
+    @property
+    def storage_cells(self):
+        return len(self.evidence)+len(self.coarse_free)
+
+    def compact_free(self):
+        """Merge only fully observed 2x2x2 free blocks, never occupied/unknown.
+
+        Retain the least confident child value. A later hit expands the block;
+        if expansion cannot fit, discard its free claim before retaining the hit.
+        """
+        groups = {}
+        for key, value in self.evidence.items():
+            if value <= -3:
+                groups.setdefault(tuple(v//2 for v in key), []).append(key)
+        merged = 0
+        for block, keys in groups.items():
+            if len(keys) == 8:
+                self.coarse_free[block] = max(self.evidence.pop(key) for key in keys)
+                merged += 1
+        self.compactions += merged
+        return merged
+
+    def add_evidence(self, key, increment):
+        block = tuple(v//2 for v in key)
+        if block in self.coarse_free:
+            if increment < 0:
+                return
+            value = self.coarse_free.pop(block)
+            if self.storage_cells+8 <= self.capacity:
+                for offset in itertools.product((0, 1), repeat=3):
+                    child = tuple(2*b+d for b, d in zip(block, offset))
+                    self.evidence[child] = value
+            # A positive return must not remain hidden inside a coarse free block.
+        if key not in self.evidence and self.storage_cells >= self.capacity:
+            self.saturated = True
+            return
+        self.evidence[key] = max(-8, min(8, self.evidence.get(key, 0)+increment))
+
     def update(self, packet):
+        if self.storage_cells >= self.capacity*.75:
+            self.compact_free()
         directions = packet.directions.reshape(-1, 3)[::8]
         ranges = packet.distances.reshape(-1)[::8]
         hits = (ranges > .05) & (ranges <= packet.max_range_m)
@@ -31,12 +74,9 @@ class VoxelEvidence:
         points = packet.origin+directions[:, None, :]*steps[None, :, None]
         free = np.unique(np.floor(points[valid]/self.resolution).astype(int), axis=0)
         occupied = np.unique(np.floor((packet.origin+directions[hits]*ranges[hits, None])/self.resolution).astype(int), axis=0)
-        for keys, increment in ((free, -1), (occupied, 3)):
+        for keys, increment in ((occupied, 3), (free, -1)):
             for key in map(tuple, keys):
-                if key not in self.evidence and len(self.evidence) >= self.capacity:
-                    self.saturated = True
-                    continue
-                self.evidence[key] = max(-8, min(8, self.evidence.get(key, 0)+increment))
+                self.add_evidence(key, increment)
 
 
 class LayeredSurfaceMap(SurfaceMap):
@@ -223,7 +263,9 @@ class LayeredSurfaceMap(SurfaceMap):
                     support_capacity=self.support_capacity, fitted_columns=self.fitted_columns, reused_columns=self.reused_columns,
                     support_cache_saturated=self.support_saturated,
                     occupied_voxels=sum(v > 0 for v in self.occupancy.evidence.values()),
-                    free_voxels=sum(v < 0 for v in self.occupancy.evidence.values()),
+                    free_voxels=sum(v < 0 for v in self.occupancy.evidence.values())+8*len(self.occupancy.coarse_free),
+                    occupancy_storage_cells=self.occupancy.storage_cells,
+                    coarse_free_blocks=len(self.occupancy.coarse_free), free_block_compactions=self.occupancy.compactions,
                     occupancy_saturated=self.occupancy.saturated,
                     ramp_edges=sum(k != 'level' for k in self.edge_kind.values()),
                     last_scan_stamp_s=self.last_scan_stamp)

@@ -56,6 +56,7 @@ def main():
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
+    parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
     parser.add_argument('--gp-mode', choices=('global', 'spatial'), default='global')
@@ -86,6 +87,8 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.mission_objective == 'inspect' and (args.landmark_count == 0 or args.planner == 'baseline'):
+        parser.error('--mission-objective inspect requires discovery landmarks and a clustered planner')
     if args.landmark_seed < 0 or (args.landmark_count != 0 and
             (args.world != 'facility' or not 2 <= args.landmark_count <= 64 or args.planner == 'baseline')):
         parser.error('landmarks require facility, a clustered planner, count 2..64 and a nonnegative seed')
@@ -149,7 +152,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
@@ -233,6 +236,7 @@ def main():
     loop_times, bridge_times, viewer_times, lidar_times = [], [], [], []
     last_plan = -10.
     accepted_plan_stamp = -10.
+    observed_plan_delay = 0.
     minimum_sensor_z = math.inf
     maximum_sensor_z = -math.inf
     last_path_position = support_pose(sim)
@@ -286,6 +290,8 @@ def main():
                 else future.done() or (args.fast and stamp-last_plan >= .5))
             if ready:
                 path, state, metrics, map_view = future.result()
+                observed_plan_delay = max(0., stamp-last_plan)
+                metrics['plan_age_sim_s'] = observed_plan_delay
                 if args.path_mode == 'smooth':
                     metrics['route_accepted'] = follower.set_route(path, metrics.get('path_spans', []), position)
                     metrics['route_replan_rejections'] = follower.replan_rejections
@@ -325,7 +331,8 @@ def main():
                 landmark_observations = landmark_sensor.scan(sim)
                 if visualization:
                     visualization.update_landmarks(landmark_sensor.packets())
-                future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled, landmark_observations)
+                future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
+                                     landmark_observations, observed_plan_delay)
                 samples = []
                 last_plan = stamp
                 if stalled:
@@ -409,9 +416,13 @@ def main():
         if hasattr(explorer.terrain, 'occupancy'):
             terrain = explorer.terrain
             np.savez_compressed(output/'layered_geometry.npz',
+                schema_version=2,
                 support_returns=np.asarray(list(terrain.support_returns.values())).reshape(-1, 3),
                 occupancy_keys=np.asarray(list(terrain.occupancy.evidence), dtype=np.int32).reshape(-1, 3),
                 occupancy_evidence=np.asarray(list(terrain.occupancy.evidence.values()), dtype=np.int8),
+                coarse_free_keys=np.asarray(list(terrain.occupancy.coarse_free), dtype=np.int32).reshape(-1, 3),
+                coarse_free_evidence=np.asarray(list(terrain.occupancy.coarse_free.values()), dtype=np.int8),
+                coarse_free_voxel_size_m=2*terrain.occupancy.resolution,
                 voxel_size_m=terrain.occupancy.resolution)
         metrics = dict(**explorer.metrics(), simulation=sim.metrics(), end_state=state, error=error,
             source_profile=args.source_profile, radiation_source_count=len(field.sources),
@@ -439,6 +450,8 @@ def main():
         metrics['round_trip_failures'] = round_trip_failures(metrics)
         metrics['round_trip_completed'] = not metrics['round_trip_failures']
         metrics['route_replan_rejections'] = follower.replan_rejections
+        metrics['worker_phase_p95_ms'] = {name: float(np.percentile(values, 95))
+            for name, values in getattr(explorer, 'worker_phase_history', {}).items()}
         landmark_evaluation = landmark_sensor.evaluation(sim)
         metrics['landmarks'] = {k: v for k, v in landmark_evaluation.items() if k != 'targets'}
         metrics['landmark_mission_completed'] = bool(args.landmark_count and metrics['clean_return'] and
@@ -464,7 +477,10 @@ def main():
         (output/'evaluator_field.json').write_text(json.dumps(dict(background_usv_h=field.background,
             sources=field.sources, shields=field.shields), indent=2)+'\n')
         limits.restore_original_limits()
-        print(json.dumps({k:v for k,v in metrics.items() if k not in ('events', 'source_sha256', 'clusters', 'planned_path', 'return_path')}, indent=2))
+        console_metrics = {k:v for k,v in metrics.items() if k not in ('events', 'source_sha256', 'clusters', 'planned_path', 'return_path')}
+        if 'exploration_agenda' in console_metrics:
+            console_metrics['exploration_agenda'] = {k:v for k,v in console_metrics['exploration_agenda'].items() if k != 'tasks'}
+        print(json.dumps(console_metrics, indent=2))
         if visualization:
             final_state = 'failed: '+error if error else state if state in ('returned', 'interrupted') else 'time limit reached'
             visualization.update(map_view, {**live_metrics, 'planned_path': [], 'selected_target': None}, trail)

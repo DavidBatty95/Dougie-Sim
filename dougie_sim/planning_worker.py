@@ -18,7 +18,10 @@ _options = {}
 def create_explorer(parameters, planner, terrain_profile, options=None):
     options = options or {}
     explorer = (DoseExplorer(*parameters) if planner == 'baseline' else
-                ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
+                 ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
+    if hasattr(explorer, 'objective'):
+        explorer.objective = options.get('mission_objective', 'survey')
+        explorer.smooth_execution = options.get('path_mode') == 'smooth'
     if terrain_profile == 'conservative':
         explorer.terrain = SurfaceMap(radius=.4, max_step=.02, max_local_relief=.02)
     elif terrain_profile == 'layered':
@@ -43,9 +46,11 @@ def initialize(parameters, planner, terrain_profile, limit_threads=True, options
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
-def plan(batch, packet, position, stamp, stalled, landmarks=()):
+def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.):
     started = time.perf_counter()
     explorer = _explorer
+    if hasattr(explorer, 'observe_plan_delay'):
+        explorer.observe_plan_delay(plan_delay_s)
     if hasattr(explorer, 'observe_landmarks'):
         explorer.observe_landmarks(landmarks)
     for sample in batch:
@@ -57,6 +62,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=()):
     if getattr(explorer.gp, 'saturated', False):
         explorer.returning = True
         explorer.last_reason = 'radiation_model_capacity_limit'
+    observed = time.perf_counter()
     if hasattr(explorer.terrain, 'observe_packet'):
         explorer.terrain.observe_packet(packet)
         if explorer.terrain.support_saturated or explorer.terrain.occupancy.saturated:
@@ -69,7 +75,9 @@ def plan(batch, packet, position, stamp, stalled, landmarks=()):
             explorer.report_stall(position, stamp)
         else:
             explorer.failed.append((explorer.target.copy(), stamp))
+    mapped = time.perf_counter()
     explorer.replan(position, stamp)
+    planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
     motion = None
     if _options.get('path_mode') == 'smooth' and execution_path:
@@ -77,6 +85,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=()):
         motion = smooth_route([position, *execution_path], explorer.terrain, explorer.gp,
                               explorer.rate_limit, explorer.state.startswith('return'))
         execution_path = motion.points
+    smoothed = time.perf_counter()
     nodes = np.asarray(list(explorer.terrain.nodes.values())).reshape(-1, 3)
     volume = None
     if len(nodes):
@@ -91,6 +100,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=()):
             queries.append(np.asarray(strongest+spread).reshape(-1, 3))
         query = np.unique(np.concatenate(queries), axis=0)
         volume = (query, *explorer.gp.predict(query))
+    displayed = time.perf_counter()
     metrics = explorer.metrics()
     metrics.update(planner=_planner, selected_target=None if explorer.target is None else explorer.target.tolist(),
                    planned_path=[p.tolist() for p in execution_path])
@@ -106,6 +116,16 @@ def plan(batch, packet, position, stamp, stalled, landmarks=()):
             metrics['return_motion'] = return_motion.metrics
     if hasattr(explorer.terrain, 'metrics'):
         metrics['terrain'] = explorer.terrain.metrics()
+    finished = time.perf_counter()
+    phases = dict(observations=(observed-started)*1000., mapping=(mapped-observed)*1000.,
+        planning=(planned-mapped)*1000., execution_smoothing=(smoothed-planned)*1000.,
+        display_prediction=(displayed-smoothed)*1000., metrics_and_return_overlay=(finished-displayed)*1000.)
+    metrics['worker_phase_ms'] = phases
+    explorer.worker_phase_history = getattr(explorer, 'worker_phase_history', {})
+    for name, value in phases.items():
+        explorer.worker_phase_history[name] = (explorer.worker_phase_history.get(name, [])+[value])[-256:]
+    metrics['worker_phase_p95_ms'] = {name: float(np.percentile(values, 95))
+                                     for name, values in explorer.worker_phase_history.items()}
     explorer.worker_ms.append((time.perf_counter()-started)*1000.)
     if len(explorer.worker_ms) > 4096:
         explorer.worker_ms = explorer.worker_ms[-2048:]

@@ -244,7 +244,15 @@ class Visualization:
                      f"Measured dose {dose:.3f} / {budget:g} uSv ({fraction:.0%})\n"
                      f"Measured rate {rate:.1f} / {rate_limit:g} uSv/h\n"
                      f"Estimated return reserve {metrics.get('return_reserve_usv', 0.):.3f} uSv\n"
-                     f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m^2")
+                      f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m^2")
+        agenda = metrics.get('exploration_agenda', {})
+        forecast = metrics.get('route_forecast', {})
+        text.text += (f"\nAgenda {agenda.get('size', 0)} | known targets pending {metrics.get('known_landmarks_pending', 0)}"
+                      f" | plan age {metrics.get('plan_age_sim_s', 0.):.1f}s"
+                      f"\nReturn forecast {forecast.get('return_duration_s', 0.):.0f}s"
+                      f" | wait allowance {forecast.get('wait_allowance_s', 0.):.1f}s")
+        if forecast.get('emergency_rate_override'):
+            text.text += '\nEMERGENCY RETURN: no rate-compliant observed route'
         legend = self.marker('legend', 0, Marker.TEXT_VIEW_FACING)
         self.position(legend, (0., 0., self.status_height-1.05))
         legend.scale.z = .12

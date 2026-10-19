@@ -37,13 +37,15 @@ def hud_lines(metrics, sample, stamp, budget, layer, sources_visible=False):
     left = '\n'.join(('DOUGIE / RADIATION SURVEY', 'Mission', 'Decision', 'Simulation time',
         'Measured rate', 'Measured dose / budget', 'Estimated return reserve', 'Dose used',
         'Observed surface proxy', 'GP dictionary', 'Region candidates', 'View',
-        'Source markers', 'Controls'))
+        'Source markers', 'Known targets pending', 'Agenda tasks', 'Return forecast', 'Controls'))
     right = '\n'.join((metrics.get('planner', 'baseline'), metrics.get('state', 'initial_survey'),
         metrics.get('decision_reason', 'survey / route / return'), f'{stamp:6.1f} s',
         f'{rate:.2f} uSv/h', f'{dose:.4f} / {budget:g} uSv', f'{reserve:.4f} uSv',
         '['+'#'*used+'.'*(20-used)+']', f"{metrics.get('mapped_surface_area_m2', 0.):.1f} m2",
         str(metrics.get('gp', {}).get('inducing_points', 0)), str(metrics.get('candidate_count', 0)),
         layer, 'TRUTH / DIAGNOSTIC' if sources_visible else 'hidden',
+        str(metrics.get('known_landmarks_pending', 0)), str(metrics.get('exploration_agenda', {}).get('size', 0)),
+        f"{metrics.get('route_forecast', {}).get('return_duration_s', 0.):.0f} s",
         'C camera | M field/uncertainty | G regions | P paths | S sources'))
     return left, right
 

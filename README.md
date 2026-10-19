@@ -18,7 +18,14 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Latest checkpoint — 15 October 2026:** **180 tests pass**. Two smooth-tracking /
+**Planning update — 15 October 2026:** **190 tests pass**. Added persistent
+frontier tasks, distant-frontier repositioning, explicit return-route rate checks,
+turn/wait exposure forecasts, an inspection objective, free-space compaction and
+seed-matrix evaluation. [Results and retained regressions](docs/DOUGIE_PLANNING_PRIORITIES.md).
+The new planning revision still needs full-height qualification; the successful
+full-height runs below belong to the earlier planner cohort.
+
+**Earlier facility checkpoint:** Two smooth-tracking /
 spatial-GP facility missions reached the **2.4 m upper floor**, descended and
 returned home with **zero recorded non-foot impacts**, within a 5 µSv budget.
 Optional seeded discovery targets are detected through range/FOV/occlusion checks
@@ -161,6 +168,7 @@ appearance only, not the field used for route planning.
 | `--path-mode` | `smooth` | Support/risk-checked smooth execution or historical grid following |
 | `--require-round-trip` | Off | Evaluator requires clean upstairs/downstairs/home witnesses |
 | `--landmark-count`, `--landmark-seed` | `0`, `0` | Optional 2–64 seeded facility discovery targets |
+| `--mission-objective` | `survey` | `inspect` prioritizes safe approaches to observed, uninspected targets |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
 | `--source-profile` | `hotspots-and-leaks` | Combined emitters, `hotspots`, `leaks`, or the original `baseline` |
 | `--source-config` | Built-in JSON | Alternative source file inside the checkout |

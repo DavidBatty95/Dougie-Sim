@@ -36,6 +36,9 @@ def test_short_mezzanine_run_archives_resolved_scene_and_observed_geometry(tmp_p
     assert 'missing_ordered_vertical_witness' in summary['round_trip_failures']
     assert 'access_ramp_0' in (output/'scene.xml').read_text()
     with np.load(output/'layered_geometry.npz') as geometry:
+        assert int(geometry['schema_version']) == 2
+        assert geometry['coarse_free_keys'].shape[1] == 3
+        assert len(geometry['coarse_free_keys']) == len(geometry['coarse_free_evidence'])
         assert len(geometry['occupancy_keys']) == len(geometry['occupancy_evidence']) > 0
         assert geometry['support_returns'].shape[1] == 3
     with np.load(output/'motion_trace.npz') as motion:

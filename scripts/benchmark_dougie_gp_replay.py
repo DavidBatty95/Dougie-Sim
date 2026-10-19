@@ -14,6 +14,7 @@ from dougie_sim.assets import ROOT
 from dougie_sim.gp import PoissonOnlineGP
 from dougie_sim.radiation import RadiationField
 from dougie_sim.spatial_gp import SpatialGP
+from dougie_sim.radiation_evaluation import prediction_report
 
 
 def prepared(gp, enabled):
@@ -41,6 +42,9 @@ def main():
     query = np.asarray([r['position'] for r in records[split:]])
     field = RadiationField(json.loads(field_file.read_text()))
     truth = np.asarray([field.rate(p) for p in query])
+    training_positions = np.asarray([r['position'] for r in records[:split]])
+    heldout_counts = np.asarray([r['counts'] for r in records[split:]])
+    exposure = np.asarray([r['integration_s']*r['counts_per_usv']/3600. for r in records[split:]])
     models = [('global_256', PoissonOnlineGP(256)), ('global_512', PoissonOnlineGP(512)),
               ('spatial_32x128', SpatialGP(32, 128))]
     results = []
@@ -66,8 +70,10 @@ def main():
             mean, _, upper = prediction
             results.append(dict(name=name, training_wall_s=training_s, prediction=modes,
                 log1p_rate_rmse=float(np.sqrt(np.mean((np.log1p(mean)-np.log1p(truth))**2))),
-                upper_rate_coverage=float(np.mean(upper >= truth)), metrics=gp.metrics()))
-    files = [measurement_file, field_file, Path(__file__), ROOT/'dougie_sim/gp.py', ROOT/'dougie_sim/spatial_gp.py']
+                upper_rate_coverage=float(np.mean(upper >= truth)), metrics=gp.metrics(),
+                strata=prediction_report(query, truth, mean, upper, training_positions, heldout_counts, exposure, field.shields)))
+    files = [measurement_file, field_file, Path(__file__), ROOT/'dougie_sim/gp.py', ROOT/'dougie_sim/spatial_gp.py',
+             ROOT/'dougie_sim/radiation_evaluation.py']
     report = dict(archive=str(args.archive), split='first 80% train; final 20% queries, never assimilated',
         training_samples=split, query_points=len(query), training_end_s=records[split-1]['stamp_s'],
         scope='recorded facility counts, chronologically held-out trajectory; spatially correlated revisits, not unseen-building validation; different model budgets',
