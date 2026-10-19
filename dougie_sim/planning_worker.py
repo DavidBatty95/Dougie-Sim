@@ -80,15 +80,16 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.)
     planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
     motion = None
+    smoother = getattr(explorer, 'smoother', None)
     if _options.get('path_mode') == 'smooth' and execution_path:
-        from .path_motion import smooth_route
-        motion = smooth_route([position, *execution_path], explorer.terrain, explorer.gp,
-                              explorer.rate_limit, explorer.state.startswith('return'))
+        from .path_motion import RouteSmoother
+        smoother = smoother or RouteSmoother(explorer.terrain, explorer.gp, explorer.rate_limit)
+        motion = smoother([position, *execution_path], explorer.state.startswith('return'))
         execution_path = motion.points
     smoothed = time.perf_counter()
     nodes = np.asarray(list(explorer.terrain.nodes.values())).reshape(-1, 3)
     volume = None
-    if len(nodes):
+    if len(nodes) and _options.get('display_prediction', True):
         nodes = nodes[::max(1, math.ceil(len(nodes)/100))]
         queries = [nodes+[0., 0., z] for z in (.25, .75, 1.5)]
         # Spend part of the display budget at real detector locations, including
@@ -109,13 +110,13 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.)
         if explorer.state.startswith('return'):
             metrics['return_path'] = metrics['planned_path']
         elif metrics.get('return_path') and _options.get('smooth_return_overlay', True):
-            return_motion = smooth_route([position, *metrics['return_path']], explorer.terrain, explorer.gp,
-                                         explorer.rate_limit, returning=True)
+            return_motion = smoother([position, *metrics['return_path']], returning=True)
             metrics['grid_return_path'] = metrics['return_path']
             metrics['return_path'] = [p.tolist() for p in return_motion.points]
             metrics['return_motion'] = return_motion.metrics
     if hasattr(explorer.terrain, 'metrics'):
         metrics['terrain'] = explorer.terrain.metrics()
+    metrics['smoothing_cache_hits'] = smoother.hits if smoother else 0
     finished = time.perf_counter()
     phases = dict(observations=(observed-started)*1000., mapping=(mapped-observed)*1000.,
         planning=(planned-mapped)*1000., execution_smoothing=(smoothed-planned)*1000.,

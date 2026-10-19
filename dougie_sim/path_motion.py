@@ -162,14 +162,38 @@ def route_risk(points, gp, terrain):
     return float(np.sum(np.maximum(rates[:-1], rates[1:])*distance/speed)/3600.), float(rates.max())
 
 
-def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False):
+class RouteSmoother:
+    """Reuse geometry and checked routes only within one immutable planning cycle.
+
+    Construct after graph edits and GP updates. Never carry into the next scan.
+    """
+    def __init__(self, terrain, gp, rate_limit):
+        self.terrain, self.gp, self.rate_limit = terrain, gp, rate_limit
+        self.geometry = RouteGeometry(terrain)
+        self.cache = {}
+        self.hits = 0
+
+    def __call__(self, points, returning=False):
+        raw = np.asarray(points, dtype=float).reshape(-1, 3)
+        if len(raw):
+            raw = raw[np.r_[True, np.linalg.norm(np.diff(raw, axis=0), axis=1) > 1e-7]]
+        key = returning, raw.tobytes()
+        if key not in self.cache:
+            self.cache[key] = smooth_route(raw, self.terrain, self.gp, self.rate_limit,
+                                          returning, geometry=self.geometry)
+        else:
+            self.hits += 1
+        return self.cache[key]
+
+
+def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False, *, geometry=None):
     started = time.perf_counter()
     raw = np.asarray(raw_points, dtype=float).reshape(-1, 3)
     if len(raw):
         raw = raw[np.r_[True, np.linalg.norm(np.diff(raw, axis=0), axis=1) > 1e-7]]
     if len(raw) < 2:
         return MotionRoute([], [], dict(mode='empty', smoothing_ms=0.))
-    geometry = RouteGeometry(terrain)
+    geometry = geometry if geometry is not None else RouteGeometry(terrain)
     raw_dose, raw_peak = route_risk(raw, gp, terrain)
     anchors = [raw[0]]
     certified = []

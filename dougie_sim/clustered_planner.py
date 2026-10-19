@@ -87,6 +87,7 @@ class ClusteredDoseExplorer(DoseExplorer):
 
     def replan(self, position, stamp):
         started = time.perf_counter()
+        self.smoother = None
         nodes, graph = self.terrain.build_graph()
         self.blocked_edges = {edge: t for edge, t in self.blocked_edges.items() if stamp-t < 60.}
         for a, b in self.blocked_edges:
@@ -94,6 +95,9 @@ class ClusteredDoseExplorer(DoseExplorer):
                 graph[a].remove(b)
             if b in graph and a in graph[b]:
                 graph[b].remove(a)
+        if self.smooth_execution:
+            from .path_motion import RouteSmoother
+            self.smoother = RouteSmoother(self.terrain, self.gp, self.rate_limit)
         root = self.terrain.nearest(position)
         self.rejections = dict(distance=0, failed=0, dose=0, rate=0, return_route=0, time=0)
         self.route_forecast = {}
@@ -139,8 +143,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             return_peak_rate_usv_h=outbound_peak[home], emergency_rate_override=emergency_return,
             wait_allowance_s=self.wait_allowance, speed_m_s=.06, yaw_rate_rad_s=.35)
         if self.smooth_execution and len(self.return_path) > 1:
-            from .path_motion import smooth_route
-            checked = smooth_route([position, *self.return_path], self.terrain, self.gp, self.rate_limit, returning=True)
+            checked = self.smoother([position, *self.return_path], returning=True)
             _, _, return_rates = self.gp.predict(np.asarray(checked.points)+[0., 0., .44])
             seconds, exposure = forecast_polyline(checked.points, return_rates)
             self.route_forecast.update(return_grid_duration_s=outbound_time[home],
@@ -181,14 +184,13 @@ class ClusteredDoseExplorer(DoseExplorer):
                 # Grid turns can grossly overestimate a nearby inspection trip.
                 # Recheck a bounded number of promising known-target approaches
                 # on certified execution geometry before rejecting the objective.
-                from .path_motion import smooth_route
                 checked_inspections.add(key)
                 outbound = [position, *[nodes[k] for k in self.terrain.path(parent, key)]]
                 inbound = [nodes[k] for k in reversed(self.terrain.path(home_parent, key))]
                 for points, durations, doses, peaks, returning in (
                     (outbound, outbound_time, dose, outbound_peak, False),
                     (inbound, home_time, home_dose, home_peak, True)):
-                    checked = smooth_route(points, self.terrain, self.gp, self.rate_limit, returning=returning)
+                    checked = self.smoother(points, returning=returning)
                     query = checked.points or points
                     _, _, prediction = self.gp.predict(np.asarray(query)+[0., 0., .44])
                     durations[key], doses[key] = forecast_polyline(query, prediction)

@@ -78,6 +78,26 @@ def cloud(height):
                      for y in np.arange(-1., 1.01, .05)])
 
 
+def test_incremental_footprints_match_fresh_graph_after_obstacle():
+    supports = cloud(lambda x: 0.)
+    terrain = LayeredSurfaceMap()
+    terrain.update(supports, supports)
+    terrain.build_graph()
+    original = set(terrain.nodes)
+    terrain.build_graph()
+    assert terrain.footprints_checked == 0
+    obstacle = np.array([[0., 0., .3]])
+    terrain.update(obstacle, np.empty((0, 3)))
+    terrain.build_graph()
+    fresh = LayeredSurfaceMap()
+    fresh.update(supports, supports)
+    fresh.update(obstacle, np.empty((0, 3)))
+    fresh.build_graph()
+    assert set(terrain.nodes) == set(fresh.nodes) < original
+    assert terrain.graph == fresh.graph
+    assert terrain.edge_kind == fresh.edge_kind
+
+
 def test_layered_map_accepts_slope_but_rejects_equivalent_abrupt_step():
     for height, reachable in ((lambda x: .15*x, True), (lambda x: 0. if x < 0 else .06, False)):
         terrain = LayeredSurfaceMap()

@@ -154,6 +154,7 @@ def main():
     planning_options = {name: getattr(args, name) for name in
                         ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
+    planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
     controls.highlights, controls.field_display = highlights, args.field_display
@@ -404,6 +405,11 @@ def main():
         trace.close()
         measurements.close()
         witness.save(output/'motion_trace.npz')
+        if map_view is None and explorer.terrain.nodes:
+            nodes = np.asarray(list(explorer.terrain.nodes.values()))
+            nodes = nodes[::max(1, math.ceil(len(nodes)/100))]
+            query = np.concatenate([nodes+[0., 0., z] for z in (.25, .75, 1.5)])
+            map_view = (query, *explorer.gp.predict(query))
         if map_view:
             query = map_view[0]
             mean, std, upper = explorer.gp.predict(query)

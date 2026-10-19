@@ -32,6 +32,18 @@ def test_open_floor_grid_staircase_becomes_a_shorter_direct_route():
     assert result.metrics['execution_turn_rad'] < result.metrics['raw_turn_rad']/3
 
 
+def test_cycle_cache_reuses_routes_but_new_cycle_rechecks_obstacles():
+    from dougie_sim.path_motion import RouteSmoother
+    terrain = grid()
+    path = [terrain.nodes[(0, 0, 0)], terrain.nodes[(10, 0, 0)], terrain.nodes[(10, 10, 0)]]
+    smoother = RouteSmoother(terrain, ConstantGP(), 100.)
+    checked = smoother(path)
+    assert smoother(path) is checked and smoother.hits == 1
+    terrain.hits[0] = np.array([1.1, 1.1, .4])
+    refreshed = RouteSmoother(terrain, ConstantGP(), 100.)(path)
+    assert path_length(refreshed.points) > path_length(checked.points)
+
+
 def test_unknown_inside_corner_cannot_be_shortcut_or_rounded():
     terrain = grid(lambda x, y: (y == 0 and 0 <= x <= 10) or (x == 10 and 0 <= y <= 10))
     path = [terrain.nodes[(x, 0, 0)] for x in range(11)]+[terrain.nodes[(10, y, 0)] for y in range(1, 11)]

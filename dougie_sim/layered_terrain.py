@@ -99,6 +99,10 @@ class LayeredSurfaceMap(SurfaceMap):
         self._candidate_cache = {}
         self._dirty_columns = set()
         self.fitted_columns = self.reused_columns = 0
+        self._footprint_candidates = {}
+        self._footprint_planes = {}
+        self._supported_keys = set()
+        self.footprints_checked = 0
 
     def observe_packet(self, packet):
         if self.last_scan_stamp is not None and packet.stamp_s < self.last_scan_stamp:
@@ -217,13 +221,26 @@ class LayeredSurfaceMap(SurfaceMap):
         # diagonals. Four immediate neighbours alone admitted unsafe deck edges.
         reach = math.ceil(self.radius/self.resolution)
         footprint = [(dx, dy) for dx in range(-reach, reach+1) for dy in range(-reach, reach+1)
-                     if math.hypot(dx, dy)*self.resolution <= self.radius]
+                      if math.hypot(dx, dy)*self.resolution <= self.radius]
+        changed = {key[:2] for key in self._footprint_candidates.keys() | candidates.keys()
+                   if key not in candidates or key not in self._footprint_candidates
+                   or not np.array_equal(candidates[key], self._footprint_candidates[key])
+                   or not np.array_equal(planes[key], self._footprint_planes[key])}
+        affected = {(x-dx, y-dy) for x, y in changed for dx, dy in footprint}
+        self.footprints_checked = 0
         nodes = {}
         for key, p in candidates.items():
+            if key[:2] not in affected:
+                if key in self._supported_keys:
+                    nodes[key] = p
+                continue
+            self.footprints_checked += 1
             if all(any(abs(candidates[k][2]-(p[2]+np.dot(planes[key][:2], [dx*self.resolution, dy*self.resolution]))) < .035
                        for k in by_column.get((key[0]+dx, key[1]+dy), []))
                    for dx, dy in footprint):
                 nodes[key] = p
+        self._footprint_candidates, self._footprint_planes = candidates, planes
+        self._supported_keys = set(nodes)
         graph = {key: [] for key in nodes}
         kinds = {}
         for key, p in nodes.items():
@@ -261,6 +278,7 @@ class LayeredSurfaceMap(SurfaceMap):
     def metrics(self):
         return dict(support_nodes=len(self.nodes), support_returns=len(self.support_returns),
                     support_capacity=self.support_capacity, fitted_columns=self.fitted_columns, reused_columns=self.reused_columns,
+                    footprints_checked=self.footprints_checked,
                     support_cache_saturated=self.support_saturated,
                     occupied_voxels=sum(v > 0 for v in self.occupancy.evidence.values()),
                     free_voxels=sum(v < 0 for v in self.occupancy.evidence.values())+8*len(self.occupancy.coarse_free),
