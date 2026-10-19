@@ -194,6 +194,63 @@ class PoissonOnlineGP(OnlineGP):
         upper = np.maximum(mean, np.exp(np.clip(mu+beta*np.sqrt(var), -30., 30.)))
         return mean, np.sqrt(var), upper
 
+    def update_counts_window(self, points, durations, counts, counts_per_usv=50000.):
+        """One Poisson count with intensity sum(dt_i * exp(f_i)) * sensitivity.
+
+        Joint latent-window Laplace approximation projected into q(u). Counts
+        are never split into fictitious independent observations. Quadrature
+        uses <=8 duration-weighted estimated detector positions per window.
+        """
+        from scipy.optimize import minimize
+        from scipy.special import logsumexp
+        started = time.perf_counter()
+        points, durations = np.asarray(points, dtype=float), np.asarray(durations, dtype=float)
+        if (points.shape != (len(durations), 3) or not 1 <= len(durations) <= 8
+                or not np.isfinite(points).all() or not np.isfinite(durations).all() or np.any(durations <= 0)
+                or not math.isfinite(counts) or counts < 0 or int(counts) != counts
+                or not math.isfinite(counts_per_usv) or counts_per_usv <= 0):
+            raise ValueError('invalid moving-window count observation')
+        if len(points) == 1 or np.max(np.linalg.norm(points-points[0], axis=1)) < 1e-9:
+            return PoissonOnlineGP.update_counts(self, points[0], counts, durations.sum(), counts_per_usv)
+        # Finish dictionary admission before constructing all joint projections.
+        for point in points:
+            self._project(point.reshape(1, 3))
+        K = self.kernel(self.Z, points)
+        A = cho_solve((self.L, True), K, check_finite=False)
+        cross = self.cov@A
+        C = self.kernel(points, points)-K.T@A+A.T@cross
+        C = (C+C.T)*.5+np.eye(len(points))*1e-7
+        L = np.linalg.cholesky(C)
+        mu = self.prior+A.T@self.mean
+        log_exposure = np.log(durations*counts_per_usv/3600.)
+
+        def objective(z):
+            f = mu+L@z
+            log_terms = log_exposure+f
+            log_intensity = logsumexp(log_terms)
+            intensity = math.exp(float(np.clip(log_intensity, -50., 50.)))
+            weights = np.exp(log_terms-log_intensity)
+            return .5*float(z@z)+intensity-counts*log_intensity, z+L.T@((intensity-counts)*weights)
+
+        result = minimize(objective, np.zeros(len(points)), jac=True, method='L-BFGS-B',
+                          options=dict(maxiter=80, ftol=1e-11, gtol=1e-7))
+        if not np.isfinite(result.x).all() or (not result.success and np.linalg.norm(objective(result.x)[1]) > 1e-3):
+            raise RuntimeError('moving-window Laplace solver did not converge')
+        mode = mu+L@result.x
+        terms = log_exposure+mode
+        log_intensity = logsumexp(terms)
+        intensity, weights = math.exp(float(log_intensity)), np.exp(terms-log_intensity)
+        likelihood_hessian = (intensity-counts)*np.diag(weights)+counts*np.outer(weights, weights)
+        H = np.eye(len(points))+L.T@likelihood_hessian@L
+        eigenvalues, vectors = np.linalg.eigh((H+H.T)*.5)
+        # Non-concave integrated likelihood: conservative curvature floor keeps
+        # a nearly flat mode from producing a negative posterior covariance.
+        posterior = L@(vectors@np.diag(1./np.maximum(eigenvalues, .05))@vectors.T)@L.T
+        projection = np.linalg.solve(C, cross.T).T
+        self.mean += projection@(mode-mu)
+        self.cov += projection@(posterior-C)@projection.T
+        self._finish(started)
+
     def metrics(self):
         result = super().metrics()
         result.update(target='log(rate_usv_h)', likelihood='Poisson counts', inference='streaming sparse Laplace projection')

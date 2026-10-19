@@ -19,6 +19,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     options = options or {}
     explorer = (DoseExplorer(*parameters) if planner == 'baseline' else
                  ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
+    explorer.detector_likelihood = options.get('detector_likelihood', 'window')
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
@@ -33,6 +34,11 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         explorer.gp = SpatialGP(capacity=options.get('gp_expert_capacity', 32),
             max_experts=options.get('gp_max_experts', 128), cell_size=options.get('gp_cell_size', (4., 4., 1.5)),
             likelihood=parameters[4])
+    elif options.get('gp_mode') == 'geometry':
+        from .geometry_gp import GeometryPoissonGP
+        if parameters[4] != 'poisson':
+            raise ValueError('observed-geometry GP requires Poisson likelihood')
+        explorer.gp = GeometryPoissonGP(capacity=parameters[2])
     return explorer
 
 
@@ -55,6 +61,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         explorer.observe_plan_delay(plan_delay_s)
     if hasattr(explorer, 'observe_landmarks'):
         explorer.observe_landmarks(landmarks)
+    if hasattr(explorer.gp, 'observe_geometry'):
+        explorer.gp.observe_geometry(packet)
     for sample in batch:
         explorer.observe_radiation(sample)
         key = tuple(np.floor(np.asarray(sample.position)/.4).astype(int))

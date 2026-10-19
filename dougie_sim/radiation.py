@@ -110,6 +110,8 @@ class RadiationSample:
     dose_usv: float
     dose_upper_usv: float
     counts_per_usv: float = 50000.
+    window_positions: tuple = ()
+    window_durations_s: tuple = ()
 
 
 class Detector:
@@ -123,6 +125,8 @@ class Detector:
         self.dose = 0.
         self.counts_total = 0
         self.samples = 0
+        self.window_position_sum = np.zeros((8, 3))
+        self.window_duration = np.zeros(8)
         if not math.isfinite(counts_per_usv) or counts_per_usv <= 0 or not math.isfinite(period) or period <= 0:
             raise ValueError('invalid detector calibration')
 
@@ -131,6 +135,9 @@ class Detector:
             raise ValueError('invalid exposure interval')
         self.expected_counts += rate*dt/3600.*self.sensitivity
         self.position_sum += np.asarray(point)*dt
+        slot = min(7, int(self.elapsed/self.period*8))
+        self.window_position_sum[slot] += np.asarray(point)*dt
+        self.window_duration[slot] += dt
         self.elapsed += dt
         if self.elapsed+1e-9 < self.period:
             return None
@@ -142,8 +149,13 @@ class Detector:
         # Approximate counting uncertainty, nonzero even for zero counts.
         variance = (counts+1)*scale**2
         upper = (self.counts_total+3.*math.sqrt(self.counts_total+1)+3.)/self.sensitivity
+        used = self.window_duration > 0
+        positions = self.window_position_sum[used]/self.window_duration[used, None]
         sample = RadiationSample(stamp, tuple(self.position_sum/self.elapsed), counts,
-                                 self.elapsed, counts*scale, variance, self.dose, upper, self.sensitivity)
+                                 self.elapsed, counts*scale, variance, self.dose, upper, self.sensitivity,
+                                 tuple(map(tuple, positions)), tuple(self.window_duration[used]))
         self.expected_counts, self.elapsed = 0., 0.
         self.position_sum[:] = 0.
+        self.window_position_sum[:] = 0.
+        self.window_duration[:] = 0.
         return sample

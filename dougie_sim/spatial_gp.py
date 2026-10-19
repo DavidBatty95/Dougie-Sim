@@ -87,6 +87,30 @@ class SpatialGP:
             raise ValueError('invalid count measurement')
         self._update(point, 'update_counts', (counts, integration_s, counts_per_usv))
 
+    def update_counts_window(self, points, durations, counts, counts_per_usv=50000.):
+        # Each overlapping expert sees the same integrated observation once.
+        # Predictions are still correlated mixtures, not independent products.
+        started = time.perf_counter()
+        points, durations = np.asarray(points), np.asarray(durations)
+        if (self.likelihood != 'poisson' or points.shape != (len(durations), 3) or not 1 <= len(durations) <= 8
+                or not np.isfinite(points).all() or not np.isfinite(durations).all() or np.any(durations <= 0)
+                or not math.isfinite(counts) or counts < 0 or int(counts) != counts
+                or not math.isfinite(counts_per_usv) or counts_per_usv <= 0):
+            raise ValueError('invalid spatial moving-window observation')
+        keys, weights = self.assignments(points)
+        active = sorted(set(map(tuple, keys[weights > 0.])))
+        for key in active:
+            if key not in self.experts:
+                if len(self.experts) >= self.max_experts:
+                    self.saturated = True
+                    self.unallocated_updates += 1
+                    continue
+                self.experts[key] = self._new_expert()
+            self.experts[key].update_counts_window(points, durations, counts, counts_per_usv)
+        self.updates += 1
+        self.update_ms.append((time.perf_counter()-started)*1000.)
+        self.update_ms = self.update_ms[-4096:]
+
     def update(self, point, rate, observation_variance):
         if (self.likelihood != 'gaussian' or not all(math.isfinite(v) for v in (rate, observation_variance))
                 or rate < 0 or observation_variance < 0):
@@ -175,7 +199,7 @@ def load_gp(path):
     with np.load(path, allow_pickle=False) as data:
         likelihood = str(data['likelihood'].item())
         kind = str(data.get('model_kind', 'global'))
-        if likelihood not in ('poisson', 'gaussian') or kind not in ('global', 'spatial'):
+        if likelihood not in ('poisson', 'gaussian') or kind not in ('global', 'spatial', 'geometry'):
             raise ValueError('unsupported GP archive')
         if int(data.get('schema_version', 1)) != 1:
             raise ValueError('unsupported GP archive version')
@@ -193,6 +217,17 @@ def load_gp(path):
                     setattr(expert, attribute, data[f'expert_{i}_{name}'].copy())
                 expert.updates = int(data[f'expert_{i}_updates'])
                 gp.experts[tuple(map(int, key))] = expert
+        elif kind == 'geometry':
+            from .geometry_gp import GeometryPoissonGP
+            gp = GeometryPoissonGP(int(data['capacity']), int(data['max_planes']), int(data['replay_capacity']), float(data['strength']))
+            gp.planes = [plane.copy() for plane in data['planes']]
+            gp.Z, gp.mean, gp.cov, gp.L = (data[name].copy() for name in ('Z', 'mean', 'covariance', 'cholesky'))
+            gp.lengthscales, gp.variance, gp.prior = data['lengthscales'].copy(), float(data['variance']), float(data['prior_log_rate'])
+            gp.updates, gp.saturated = int(data['updates']), bool(data['saturated'])
+            gp.last_geometry_stamp, gp.geometry_rebuilds = float(data['last_geometry_stamp']), int(data['geometry_rebuilds'])
+            for i, (start, end) in enumerate(zip(data['window_offsets'][:-1], data['window_offsets'][1:])):
+                gp.records.append((data['window_positions'][start:end].copy(), data['window_durations'][start:end].copy(),
+                                   int(data['window_counts'][i]), float(data['window_sensitivity'][i])))
         else:
             gp = (PoissonOnlineGP if likelihood == 'poisson' else OnlineGP)(int(data.get('capacity', max(1, len(data['Z'])))),
                 lengthscales=data['lengthscales'], variance=float(data['variance']))

@@ -62,7 +62,8 @@ def main():
     parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
-    parser.add_argument('--gp-mode', choices=('global', 'spatial'), default='global')
+    parser.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry'), default='geometry')
+    parser.add_argument('--detector-likelihood', choices=('window', 'point'), default='window')
     parser.add_argument('--gp-expert-capacity', type=int, default=32, help='inducing points per spatial expert')
     parser.add_argument('--gp-max-experts', type=int, default=128, help='bounded spatial model count')
     parser.add_argument('--gp-cell-size', type=float, nargs=3, default=(4., 4., 1.5), metavar=('X', 'Y', 'Z'))
@@ -90,6 +91,8 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.gp_mode == 'geometry' and args.gp_likelihood != 'poisson':
+        parser.error('--gp-mode geometry requires --gp-likelihood poisson')
     if args.localization == 'fused' and args.landmark_count:
         parser.error('onboard fused missions exclude ideal semantic landmarks; use --localization ground-truth for that diagnostic comparator')
     if args.mission_objective == 'inspect' and (args.landmark_count == 0 or args.planner == 'baseline'):
@@ -169,7 +172,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)

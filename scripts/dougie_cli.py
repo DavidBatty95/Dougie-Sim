@@ -83,7 +83,8 @@ def main():
     radiation.add_argument('--require-clean', action='store_true')
     radiation.add_argument('--require-round-trip', action='store_true')
     radiation.add_argument('--gp-capacity', type=int, default=128)
-    radiation.add_argument('--gp-mode', choices=('global', 'spatial'), default='global')
+    radiation.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry'), default='geometry')
+    radiation.add_argument('--detector-likelihood', choices=('window', 'point'), default='window')
     radiation.add_argument('--gp-expert-capacity', type=int, default=32)
     radiation.add_argument('--gp-max-experts', type=int, default=128)
     radiation.add_argument('--gp-cell-size', nargs=3, type=float, default=(4., 4., 1.5), metavar=('X', 'Y', 'Z'))
@@ -178,6 +179,7 @@ def main():
             '--mission-objective', args.mission_objective,
             '--region-scheduling', args.region_scheduling,
             '--localization', args.localization, '--sensor-seed', str(args.sensor_seed),
+            '--detector-likelihood', args.detector_likelihood,
             '--camera', args.camera, '--map-layer', args.map_layer,
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]

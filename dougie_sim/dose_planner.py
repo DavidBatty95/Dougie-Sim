@@ -35,11 +35,15 @@ class DoseExplorer:
         self.last_progress = None
         self.progress_stamp = 0.
         self.failed = []
+        self.detector_likelihood = 'window'
 
     def observe_radiation(self, sample):
         self.sample = sample
         if self.gp.likelihood == 'poisson':
-            self.gp.update_counts(sample.position, sample.counts, sample.integration_s, sample.counts_per_usv)
+            if self.detector_likelihood == 'window' and sample.window_positions:
+                self.gp.update_counts_window(sample.window_positions, sample.window_durations_s, sample.counts, sample.counts_per_usv)
+            else:
+                self.gp.update_counts(sample.position, sample.counts, sample.integration_s, sample.counts_per_usv)
         else:
             self.gp.update(sample.position, sample.rate_usv_h, sample.variance_usv_h2)
         if sample.dose_upper_usv >= self.budget*.8 or sample.rate_usv_h > self.rate_limit:
