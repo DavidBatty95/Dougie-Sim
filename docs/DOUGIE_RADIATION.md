@@ -4,6 +4,14 @@
 
 Research/implementation checkpoint: **7 October 2026**.
 
+**Current implementation — 19 October:** radiation missions now default to fused
+onboard pose, a positive-definite observed-surface feature kernel and integrated
+moving-window Poisson likelihoods. See [current methods/evidence](DOUGIE_ONBOARD_MISSION.md)
+and [the active qualification plan](DOUGIE_ONBOARD_PLAN.md). This page preserves
+the initial model/research rationale; its point-observation, ideal-pose baseline
+is available explicitly through `--localization ground-truth --gp-mode global
+--detector-likelihood point`.
+
 ## Objective and scope
 
 Maximize useful geometric coverage and radiation information while managing

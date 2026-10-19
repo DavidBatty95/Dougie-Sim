@@ -21,9 +21,14 @@ def main():
     parser.add_argument('--landmark-seed', type=int, default=7)
     parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='inspect')
     parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
+    parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='ground-truth', help='default is the historical ideal-semantic inspection comparator')
+    parser.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry'), default='spatial')
+    parser.add_argument('--detector-likelihood', choices=('window', 'point'), default='point')
     parser.add_argument('--require-round-trip', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.localization == 'fused' and args.landmark_count:
+        parser.error('fused matrices require --landmark-count 0 --mission-objective survey until onboard semantic sensing is available')
     if not math.isfinite(args.duration) or args.duration <= 0:
         parser.error('duration must be positive and finite')
     if any(seed < 0 for seed in args.seeds+args.layout_seeds) or len(set(args.seeds)) != len(args.seeds) or len(set(args.layout_seeds)) != len(args.layout_seeds):
@@ -38,7 +43,8 @@ def main():
         for seed in args.seeds:
             run = output/f'layout_{layout}_seed_{seed}'
             command = [sys.executable, '-m', 'dougie_sim.radiation_run', '--world', 'facility', '--headless', '--fast',
-                '--duration', str(args.duration), '--dose-budget', '5', '--gp-mode', 'spatial', '--fixed-plan-delay', '.5',
+                '--duration', str(args.duration), '--dose-budget', '5', '--gp-mode', args.gp_mode, '--fixed-plan-delay', '.5',
+                '--localization', args.localization, '--detector-likelihood', args.detector_likelihood,
                 '--seed', str(seed), '--layout-seed', str(layout), '--landmark-count', str(args.landmark_count),
                 '--landmark-seed', str(args.landmark_seed), '--mission-objective', args.mission_objective,
                 '--region-scheduling', args.region_scheduling,

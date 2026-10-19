@@ -5,6 +5,14 @@ Scope selected by the user: staged localization; closed-riser stairs.
 This is the implementation specification. Measured progress belongs in
 DOUGIE_MULTIFLOOR_PROGRESS.md; proposed capability is not completed capability.
 
+STATUS ADDENDUM — 19 October 2026:
+Stage B IMU/leg/LiDAR pose estimation, observed-geometry radiation kernels and
+moving-window Poisson count likelihoods are now implemented, with short reactor
+development results and 212 tests. Stage A full-height successes do not qualify
+the new sensor-only runtime. Current acceptance gates and implementation status:
+DOUGIE_ONBOARD_PLAN.md. Methods/evidence: DOUGIE_ONBOARD_MISSION.md.
+The original specification below remains a dated design contract.
+
 1. OBJECTIVE AND ACCEPTANCE CONTRACT
 -----------------------------------
 Build a terrain-trained Go2 controller beneath hierarchical, radiation-aware

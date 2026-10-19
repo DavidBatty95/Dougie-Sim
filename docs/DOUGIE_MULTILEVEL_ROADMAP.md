@@ -9,6 +9,12 @@ For subsequent implementation and measured full-height ramp missions, see the
 [facility development record](DOUGIE_FACILITY.md). This document preserves the
 original planning assessment.
 
+**19 October update:** onboard IMU/leg/LiDAR fusion, observed-geometry kernels and
+moving-window detector likelihoods are implemented. Their short reactor evidence
+does not qualify sensor-only stairs or multi-floor missions. Use the
+[active onboard plan](DOUGIE_ONBOARD_PLAN.md) for current status and next gates;
+the assessment below is preserved as of 12 October.
+
 ## Recommendation
 
 Build the demo around a visible decision: **the shortest route is radiologically

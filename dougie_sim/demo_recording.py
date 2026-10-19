@@ -1,6 +1,7 @@
 """Optional offscreen recording of actual physics plus the live planning overlay."""
 import hashlib
 import json
+import copy
 
 import mujoco
 import numpy as np
@@ -10,11 +11,14 @@ from .demo_overlay import draw_overlay
 
 
 class DemoRecorder:
-    def __init__(self, model, output, duration):
+    def __init__(self, model, output, duration, view='field'):
         self.output = output
+        self.view = view
         self.renderer = mujoco.Renderer(model, height=360, width=640)
         self.camera = mujoco.MjvCamera()
         self.camera.distance, self.camera.elevation, self.camera.azimuth = 6., -45., 115.
+        if view == 'routes':
+            self.camera.distance, self.camera.elevation = 3.2, -30.
         self.options = mujoco.MjvOption()
         self.frames, self.stamps = [], []
         self.interval = max(.5, duration/180.)
@@ -35,7 +39,11 @@ class DemoRecorder:
             self.camera.elevation = -65.
         self.options.sitegroup[5] = int(controls.show_sources)
         self.renderer.update_scene(sim.data, camera=self.camera, scene_option=self.options)
-        draw_overlay(self.renderer.scene, map_view, metrics, trail, controls, rate_limit, reset=False)
+        display_controls = copy.copy(controls)
+        if self.view == 'routes':
+            display_controls.regions = False
+        draw_overlay(self.renderer.scene, map_view if self.view == 'field' else None,
+                     metrics, trail, display_controls, rate_limit, reset=False)
         image = Image.new('RGB', (640, 490), '#0b1724')
         image.paste(Image.fromarray(self.renderer.render()), (0, 42))
         draw = ImageDraw.Draw(image)
@@ -43,7 +51,8 @@ class DemoRecorder:
         dose, rate = (sample.dose_usv, sample.rate_usv_h) if sample is not None else (0., 0.)
         draw.text((14, 410), f't={sim.data.time:.1f}s   measured {rate:.2f} uSv/h   dose {dose:.3f}/{budget:g} uSv', fill='white', font=self.font)
         draw.text((14, 438), f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m2 | cyan route / green return", fill='#a7bdcf', font=self.font)
-        draw.text((14, 464), f"{controls.layer} field | region markers | {self.interval/.1:.1f}x simulated-time playback", fill='#a7bdcf', font=self.font)
+        layer = f'{controls.layer} field | region markers' if self.view == 'field' else 'Route view | field overlay hidden'
+        draw.text((14, 464), f"{layer} | {self.interval/.1:.1f}x simulated-time playback", fill='#a7bdcf', font=self.font)
         self.frames.append(image)
         self.stamps.append(float(sim.data.time))
 
@@ -56,7 +65,8 @@ class DemoRecorder:
         path = self.output/'demo.gif'
         frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0, disposal=2)
         (self.output/'demo_manifest.json').write_text(json.dumps(dict(
-            kind='actual native MuJoCo run with live planner/GP overlay, accelerated playback',
+            kind='actual native MuJoCo run with live '+('planner/GP' if self.view == 'field' else 'route')+' overlay, accelerated playback',
             frame_times_s=self.stamps, frame_duration_ms=100, size=[640, 490],
+            view=self.view,
             sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
             note='Model truth is rendered to the operator; robot planning uses observed geometry and detector samples.'), indent=2)+'\n')

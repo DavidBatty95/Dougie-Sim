@@ -81,6 +81,7 @@ def main():
     parser.add_argument('--require-round-trip', action='store_true', help='require clean upstairs/downstairs/home witnesses; evaluator only')
     parser.add_argument('--exit-on-complete', action='store_true', help='close the viewer immediately rather than inspect the paused final map')
     parser.add_argument('--record-demo', action='store_true', help='headless offscreen GIF of the actual run; use MUJOCO_GL=egl')
+    parser.add_argument('--record-view', choices=('field', 'routes'), default='field', help='recording-only overlay and camera style')
     parser.add_argument('--source-profile', help='defaults to the selected world scenario')
     parser.add_argument('--source-config', type=Path, help='point-source JSON; defaults to config/dougie_radiation_sources.json')
     parser.add_argument('--show-sources', action='store_true', help='diagnostic viewer markers: red hotspots, amber leaks')
@@ -233,7 +234,7 @@ def main():
     recorder = None
     if args.record_demo:
         from .demo_recording import DemoRecorder
-        recorder = DemoRecorder(sim.model, output, args.duration)
+        recorder = DemoRecorder(sim.model, output, args.duration, args.record_view)
     bridge = viewer = radiation_pub = cloud_pub = status_pub = None
     visualization = rviz = rviz_log = None
     if args.ros:

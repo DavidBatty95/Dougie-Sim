@@ -77,6 +77,7 @@ def main():
     radiation.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
     radiation.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     radiation.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
+    radiation.add_argument('--record-view', choices=('field', 'routes'), default='field')
     radiation.add_argument('--sensor-seed', type=int, default=0)
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
     radiation.add_argument('--fixed-plan-delay', type=float, help='headless fast reproducible planning schedule')
@@ -180,6 +181,7 @@ def main():
             '--region-scheduling', args.region_scheduling,
             '--localization', args.localization, '--sensor-seed', str(args.sensor_seed),
             '--detector-likelihood', args.detector_likelihood,
+            '--record-view', args.record_view,
             '--camera', args.camera, '--map-layer', args.map_layer,
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]

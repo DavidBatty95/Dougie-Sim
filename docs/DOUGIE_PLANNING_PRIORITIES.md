@@ -3,6 +3,9 @@
 [Project home](../README.md) · [Full-height history](DOUGIE_FULLHEIGHT_RESULTS.md) · [Portable evidence](results/dougie_priorities_20261015.json)
 
 This implements the first planning/evaluation tranche of the improvement assessment.
+For the subsequent sensor-fusion, geometry-kernel and moving-window implementation,
+see the [onboard methods](DOUGIE_ONBOARD_MISSION.md) and [active plan](DOUGIE_ONBOARD_PLAN.md).
+The results below retain their original ideal-pose configuration and identities.
 The baseline gait and ideal pose remain in use. Full-height results from the
 previous planner are historical evidence, not qualification of this new revision.
 

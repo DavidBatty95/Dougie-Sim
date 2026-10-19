@@ -7,6 +7,11 @@ goal selection and return forecasts. The full-height results on this page retain
 their original source identities. The [19 October navigation update](DOUGIE_NAVIGATION_EFFICIENCY.md)
 records a new strict full-height development pass and its retained regressions.
 
+All these vertical results use ideal pose. The later [onboard runtime](DOUGIE_ONBOARD_MISSION.md)
+is a separate cohort; reproduction with current code requires explicit
+`--localization ground-truth --detector-likelihood point` in addition to the
+spatial-GP settings. Ideal landmark demos also require ground-truth mode.
+
 ## MuJoCo executes; RViz displays the same state
 
 MuJoCo integrates the free-floating Go2, joint torques, ramp motion and contacts.

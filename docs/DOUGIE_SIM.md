@@ -19,11 +19,11 @@ or uncommitted Geoff experiment was copied.
 
 ```text
 MuJoCo free-body Go2 + reactor structures + hidden radiation source sites
-    ├─ ideal pose, joint state, IMU and 3-D range returns
-    ├─ field transport proxy → Poisson detector → count / exposure observations
+    ├─ noisy body-frame IMU, encoders, foot forces and LiDAR → fused pose
+    ├─ field transport proxy → Poisson detector → count + estimated motion window
     └─ independent exposure evaluator (not a planner input)
                   ↓
-observed multi-height surface graph + online XYZ radiation GP
+observed multi-height support + observed-geometry/window radiation GP
                   ↓
 coverage / uncertainty / route-dose scoring + return-dose and time reserves
                   ↓
@@ -49,11 +49,18 @@ real-time guarantee.
   goals. Initial planar runs exposed slow frontier admission. Startup success
   is not completed coverage or evidence of 3-D radiation exploration.
 
-Pose comes from MuJoCo truth, explicitly tagged in results. LiDAR/inertial/leg
-odometry is needed before claiming onboard-only autonomy. The virtual scanner
-is not a calibrated Go2 L1 model. Terrain retains multiple support heights per
-XY cell and cannot connect floors by vertical teleportation. It recognizes
-near-horizontal surfaces and small steps, not arbitrary slopes or large risers.
+Default radiation missions use `odometry.py` and detached observations from
+`onboard_sensors.py`. IMU prediction and stance-leg updates are corrected by
+observed-cloud registration. The policy uses measured joints/gyro and estimated
+gravity. Scans retain capture-time transforms; no true base pose or field metadata
+enters the planner. `--localization ground-truth` retains the historical comparator,
+and the ordinary planar profile still has simulator-truth odometry. RViz/world
+geometry and physics summaries remain diagnostic. The virtual scanner is not a
+calibrated Go2 L1 model; there is no loop closure in the current fusion estimator.
+
+Terrain retains multiple support heights per XY cell and cannot connect floors
+by vertical teleportation. The layered mapper supports observed shallow slopes;
+industrial stairs and noisy sensor-only multi-floor missions remain unqualified.
 Old range hits are cached conservatively; dynamic clearing is not implemented
 in radiation mode.
 
@@ -66,11 +73,12 @@ stalls or strikes stair edges under conditions that pass that geometric test.
 
 | Artifact | Meaning |
 |---|---|
-| `measurements.jsonl` | Noisy counts, integration duration, measured dose, rate and XYZ |
+| `measurements.jsonl` | Noisy counts, integration duration, estimated trajectory bins, measured dose and rate |
+| `localization_evaluation.jsonl` | Estimated pose and explicitly evaluator-only physical pose/error |
 | `trace.jsonl` | Planner state, coverage and timing |
 | `run_config.json` | CLI configuration and source/asset-manifest hashes |
 | `radiation_map_3d.npz` | XYZ queries, mean rate, log-rate uncertainty and upper rate |
-| `gp_posterior.npz` | Inducing coordinates, posterior, kernel factorization and parameters |
+| `gp_posterior.npz` | Inducing posterior/kernel; geometry models also retain observed features and bounded window history |
 | `observed_geometry.npz` | Range hits and sampled observed-free voxels |
 | `radiation_summary.json` | Outcome, estimated/actual dose, return state and height coverage |
 | `evaluator_field.json` | Post-run truth for evaluation; not an autonomy input |

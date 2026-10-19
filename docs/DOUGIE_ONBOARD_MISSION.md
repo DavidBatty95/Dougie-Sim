@@ -74,4 +74,27 @@ The combined sensor-only reactor smoke (`onboard_geometry_window_reactor_v1`)
 returned cleanly at 47.050 s, .126188 uSv, 5.693 m, no non-foot contacts. Its
 position RMSE/p95 was .0739/.1066 m. The earlier sensor-only global/point run had
 less travel and less dose; these unequal survey trajectories do not establish a
-dose reduction. Matched-objective comparisons are required below.
+dose reduction. Matched-objective comparisons remain an acceptance gate in the active plan.
+
+## Latest development evidence and media
+
+| Detector / sensor seed | Return | Actual dose | Distance | Position RMSE / p95 | True home distance |
+|---|---:|---:|---:|---:|---:|
+| 3 / 0 | 47.050 s | .126188 uSv | 5.6934 m | .0739 / .1066 m | .3437 m |
+| 4 / 1 | 37.050 s | .122702 uSv | 4.2206 m | .0586 / .0955 m | .1319 m |
+
+Both passed clean physical return with no non-foot contacts. The recording run
+`onboard_recorded_routes_seed3` reproduced seed 3 exactly; route-only rendering
+does not disable GP inference or alter physics commands. Its current-code GIF
+and the same-run localization/window replay lead the README.
+
+[Portable results with retained failures](results/dougie_onboard_20261019.json) ·
+[Media/provenance](DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026) ·
+[Active qualification plan](DOUGIE_ONBOARD_PLAN.md).
+
+These runs do not establish lower dose at matched completed work. In particular,
+the new model's seed-3 survey has more travel and higher dose than the preceding
+global/point smoke. Full-height results published earlier used ideal pose and
+must not be attributed to this fused runtime. Noisy height observations also
+inflate surface-cell counts, so raw mapped-area proxies cannot establish equal
+coverage across these configurations.

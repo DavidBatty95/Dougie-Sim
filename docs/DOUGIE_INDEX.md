@@ -14,6 +14,8 @@ Geoff's G1 humanoid development history.
 | Configure point-source hotspots and leaks | [Source presets, markers and configuration](DOUGIE_SOURCES.md) |
 | Drive Go2 or inspect ROS | [Walking, exploration and ROS](../README.md#walking-exploration-and-ros) |
 | Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
+| Run current onboard-only radiation missions | [Fusion, geometry kernels, moving windows and evidence](DOUGIE_ONBOARD_MISSION.md) |
+| See implemented work and next acceptance gates | [Active onboard mission plan](DOUGIE_ONBOARD_PLAN.md) |
 | Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |
 | Inspect measured outcomes and limitations | [Validation](DOUGIE_VALIDATION.md) · [Portable report](results/dougie_initial_20261007.json) |
@@ -21,7 +23,7 @@ Geoff's G1 humanoid development history.
 | Plan stair training and multi-floor radiation missions | [Capability assessment and implementation roadmap](DOUGIE_MULTILEVEL_ROADMAP.md) |
 | Implement multi-floor exploration | [Complete TXT plan](DOUGIE_MULTIFLOOR_PLAN.txt) · [Runnable milestone and training results](DOUGIE_MULTIFLOOR_PROGRESS.md) |
 | Run the full-height facility and inspect Go2 in RViz | [Facility, perceptive training, model verification and results](DOUGIE_FACILITY.md) |
-| Check the latest full-height runs or add discovery targets | [Round-trip results, landmark sensing and graphics](DOUGIE_FULLHEIGHT_RESULTS.md) · [Portable evidence](results/dougie_fullheight_20261014.json) |
+| Inspect historical ideal-pose full-height runs or targets | [Round-trip results, landmark sensing and graphics](DOUGIE_FULLHEIGHT_RESULTS.md) · [Portable evidence](results/dougie_fullheight_20261014.json) |
 | Fix slow RViz rendering or measure real FPS | [GPU graphics setup and frame-delivery benchmark](DOUGIE_PERFORMANCE.md) |
 | Smooth routes, scale the GP, or highlight detected radiation | [Motion, spatial mapping, incline training and display update](DOUGIE_SMOOTH_MAPPING.md) |
 | Inspect the detailed reactor and improved cloud rendering | [Reactor update, prediction replay and physical checks](DOUGIE_REACTOR_UPDATE.md) |

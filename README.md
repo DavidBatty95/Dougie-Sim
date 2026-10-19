@@ -2,7 +2,7 @@
 
 ![Dougie-Sim — explore the unknown, measure the field, budget the return](docs/media/dougie/banner.svg)
 
-**Unitree Go2 · MuJoCo · ROS 2 Humble · Dose-constrained radiation mapping**
+**Unitree Go2 · MuJoCo · ROS 2 Humble · Onboard sensor fusion · Dose-aware radiation mapping**
 
 [![Go2 verification](https://github.com/DavidBatty95/Dougie-Sim/actions/workflows/verification.yml/badge.svg)](https://github.com/DavidBatty95/Dougie-Sim/actions/workflows/verification.yml)
 
@@ -10,18 +10,27 @@
 
 **Map an unknown facility while managing radiation exposure and retaining an
 estimated return budget.** Dougie-Sim combines physical quadruped walking,
-three-dimensional range sensing, a counting radiation detector, online Gaussian
-process inference and dose-aware exploration in a reactor-themed environment.
+noisy body-frame LiDAR, IMU/leg/LiDAR pose estimation, a counting detector,
+observed-geometry Gaussian processes and dose-aware exploration in a reactor-themed
+environment. The default radiation mission plans from simulated onboard measurements.
 
 Dougie is the quadruped sibling of [Geoff-Sim](https://github.com/DavidBatty95/Geoff-Sim).
 It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Navigation update — 19 October 2026:** **201 tests pass**. Added cycle-scoped
+**Latest onboard update — 19 October 2026: 212 tests pass.** Radiation missions
+now default to **fused localization, observed-geometry GP kernels and moving-window
+Poisson likelihoods**. Two short reactor trials returned cleanly with zero non-foot
+contacts, using **0.1262 / 0.1227 µSv** against 2 µSv budgets. Position RMSE was
+**7.4 / 5.9 cm**. These are development results; matched-coverage dose reduction,
+long-duration drift and sensor-only multi-floor qualification remain open.
+[Methods and evidence](docs/DOUGIE_ONBOARD_MISSION.md) · [Current plan](docs/DOUGIE_ONBOARD_PLAN.md)
+
+**Earlier navigation update — 19 October 2026:** **201 tests passed**. Added cycle-scoped
 route reuse, incremental support-footprint checks, consistent motion forecasts,
 adaptive tracking and connected-region scheduling. Two mezzanine round trips and
-a full-height seed-4 round trip passed with zero non-foot contacts. The full-height
+a full-height seed-4 round trip passed with zero non-foot contacts using ideal pose. The full-height
 run reached upstairs at **679.6 s** and returned at **2,295.4 s**, using **0.838 µSv**.
 [Staged changes, measured tradeoffs and retained failures](docs/DOUGIE_NAVIGATION_EFFICIENCY.md).
 
@@ -57,14 +66,40 @@ they are demonstrations of traversal, not a validated operating envelope.
 | Capability | What runs today | Entry point |
 |---|---|---|
 | **Quadruped locomotion** | Free-floating Go2, twelve torque-controlled joints, 200 Hz physics / 50 Hz policy | `./dougie demo` |
-| **Radiation mapping** | 2 Hz Poisson detector and bounded XYZ log-rate GP | `./dougie radiation` |
+| **Onboard localization** | Noisy IMU, encoders, foot forces and 5 Hz LiDAR; stance filter + local registration | `--localization fused` (default) |
+| **Radiation mapping** | 2 Hz counts, eight-bin motion windows and observed-surface feature kernel | `--gp-mode geometry --detector-likelihood window` (defaults) |
 | **Dose-aware exploration** | Observed multi-height support, route exposure, return reserve and deadline checks | `./dougie radiation` |
 | **Planar comparison** | Horizontal scans, SLAM Toolbox, Nav2 and frontier goals | `./dougie explore` |
 | **Terrain qualification** | Seeded courses, contact-aware scoring and independent repeatability trials | `./dougie terrain-qualify` |
-| **Discovery targets** | Optional seeded, occlusion-aware landmark detection and inspection | `--landmark-count 8 --landmark-seed 7` |
+| **Discovery targets** | Ideal semantic-sensor comparator; excluded from onboard missions | `--localization ground-truth --landmark-count 8 --landmark-seed 7` |
 | **Reproducible evidence** | Seeded detector noise, source hashes, retained traces and independent exposure scoring | [Validation](docs/DOUGIE_VALIDATION.md) |
 
 ## Recorded demo gallery
+
+### Current onboard build — actual recording and telemetry
+
+| Onboard-only reactor mission | Sensor fusion and detector motion windows |
+|---|---|
+| ![Current MuJoCo Go2 mission with fused localization and live planned routes, approximately five-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded estimated robot pose versus independent physics evaluator, with eight-bin detector motion windows](docs/media/dougie/onboard-fusion.gif) |
+
+**Left:** a fresh, torque-driven MuJoCo mission from the current code, with the
+radiation cloud hidden in the recording so the robot and routes remain visible.
+The geometry-aware GP still runs. **Right:** telemetry from the same mission;
+teal is the estimated pose, white the independent evaluator, and amber the moving
+detector window. It is a log replay, not camera footage. Both animations are accelerated.
+
+Detector seed 3 / sensor seed 0: clean physical return at **47.050 s**, **5.693 m**
+travelled, **0.126188 µSv** actual exposure, **0.3437 m** true home error (within
+the 0.4 m gate), and zero non-foot contacts. Hidden pose and field truth are used
+for sensor generation, diagnostic rendering and scoring—not mission decisions.
+[Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
+[Provenance and regeneration](docs/DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026) ·
+[Portable evidence](docs/results/dougie_onboard_20261019.json)
+
+### Historical multi-floor and initial integration gallery
+
+The following media and full-height results use earlier ideal-pose configurations;
+they do not qualify the new fused-localization mission.
 
 ![Actual MuJoCo full-height facility with diagnostic cutaway and seeded discovery targets](docs/media/dougie/facility-cutaway.png)
 
@@ -83,7 +118,7 @@ performance under load remain open. [Full result table](docs/DOUGIE_FULLHEIGHT_R
 |---|---|
 | ![Six-second torque-driven Go2 walking recording in the room world](docs/media/dougie/walking.gif) | ![Accelerated replay of seed-3 detector positions, measured dose and mission state](docs/media/dougie/radiation-replay.gif) |
 
-**Left:** a new six-second physics run, commanded at 0.3 m/s with a following
+**Left:** the original six-second physics recording, commanded at 0.3 m/s with a following
 camera; the command is not a measured speed. **Right:** an accelerated XY replay
 of the recorded seed-3 mission's detector samples and planner states. The line is
 the sampled path, not a GP field or a screen recording. The two panels show
@@ -105,7 +140,7 @@ interpolated translucent cloud grid. It is not a true-field map or live recordin
 
 The reactor image is a model render. The animated title and architecture below
 are schematics. Visual previews illustrate the system; scored claims come from
-the [latest reactor evidence](docs/results/dougie_reactor_detail_20261015.json)
+the [15 October reactor evidence](docs/results/dougie_reactor_detail_20261015.json)
 and the separate [initial validation cohort](docs/results/dougie_initial_20261007.json).
 
 ## Quick start
@@ -124,7 +159,7 @@ and the separate [initial validation cohort](docs/results/dougie_initial_2026100
 git clone https://github.com/DavidBatty95/Dougie-Sim.git
 cd Dougie-Sim
 ./dougie setup
-./dougie radiation --dose-budget 2 --duration 600
+./dougie radiation --dose-budget 2 --duration 90 --seed 3
 ```
 
 Setup downloads the public Go2 model/meshes and `rl_sar` Go2 `robot_lab` policy
@@ -135,7 +170,8 @@ and [attribution](docs/DOUGIE_SIM.md#attribution).
 For a display-free first mission, replace the last command with:
 
 ```bash
-./dougie radiation --headless --fast --dose-budget 0.2 --duration 180 --seed 3
+./dougie radiation --headless --fast --dose-budget 2 --duration 90 --seed 3 \
+  --sensor-seed 0 --fixed-plan-delay .5 --require-clean
 ```
 
 `--duration` is a simulated-time limit. `--fast` requires `--headless`, removes
@@ -155,14 +191,20 @@ rings and labels; these are diagnostic true-source annotations. The cloud change
 appearance only, not the field used for route planning.
 
 ```bash
-# Interactive reactor mission, default Poisson GP:
+# Interactive reactor mission: onboard fusion, geometry kernel, window likelihood:
 ./dougie radiation --source-profile hotspots-and-leaks --show-sources --dose-budget 2 --rate-limit 100 --duration 600
 
-# Repeatable detector-noise seed, no display or DDS:
-./dougie radiation --headless --fast --dose-budget 0.2 --duration 180 --seed 3
+# Recorded-development configuration, no display or DDS:
+./dougie radiation --headless --fast --dose-budget 2 --duration 90 --seed 3 \
+  --sensor-seed 0 --fixed-plan-delay .5 --require-clean
 
 # Comparison likelihood and smaller GP dictionary:
-./dougie radiation --headless --fast --gp-likelihood gaussian --gp-capacity 64 --duration 180
+./dougie radiation --headless --fast --gp-mode global --gp-likelihood gaussian \
+  --gp-capacity 64 --duration 180
+
+# Controlled inference ablation, retaining onboard localization:
+./dougie radiation --headless --fast --gp-mode global --detector-likelihood point \
+  --dose-budget 2 --duration 90 --seed 3 --sensor-seed 0 --fixed-plan-delay .5
 ```
 
 | Option | Default | Meaning |
@@ -171,11 +213,14 @@ appearance only, not the field used for route planning.
 | `--rate-limit` | `100` | Measured rate threshold in **µSv/h** |
 | `--duration` | `600` | Maximum simulated mission time in seconds |
 | `--seed` | `1` | Detector-noise seed; does not randomize facility geometry |
+| `--localization` | `fused` | IMU/leg/LiDAR estimation; `ground-truth` is an explicit historical comparator |
+| `--sensor-seed` | `0` | Separate seed for IMU biases/noise, encoders, foot forces and LiDAR noise/dropout |
 | `--gp-capacity` | `128` | Maximum inducing dictionary size |
-| `--gp-mode` | `global` | Global GP or bounded overlapping spatial experts |
+| `--gp-mode` | `geometry` | Observed-surface feature kernel, `global` Matérn comparator, or `spatial` experts |
+| `--detector-likelihood` | `window` | One integrated Poisson count over motion bins; `point` uses the window's mean position |
 | `--path-mode` | `smooth` | Support/risk-checked smooth execution or historical grid following |
 | `--require-round-trip` | Off | Evaluator requires clean upstairs/downstairs/home witnesses |
-| `--landmark-count`, `--landmark-seed` | `0`, `0` | Optional 2–64 seeded facility discovery targets |
+| `--landmark-count`, `--landmark-seed` | `0`, `0` | Ideal semantic targets; require explicit `--localization ground-truth` |
 | `--mission-objective` | `survey` | `inspect` prioritizes safe approaches to observed, uninspected targets |
 | `--region-scheduling` | `hierarchical` | Connected-region scheduling on layered terrain; `local` retains the local-preference comparator |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
@@ -184,6 +229,7 @@ appearance only, not the field used for route planning.
 | `--show-sources` | Off | Diagnostic true-source markers; never supplied to autonomy |
 | `--headless` | Off | Suppress the MuJoCo viewer |
 | `--fast` | Off | Headless unpaced physics without ROS |
+| `--record-view` | `field` | With `--record-demo`, `routes` records a closer view without the field cloud |
 
 ### What to expect
 
@@ -212,8 +258,9 @@ experts, and `--path-mode grid` for the original follower.
 
 1. Go2 settles into stance, then the mission uses observed support surfaces to
    select routes. It does not receive hidden source positions or a facility map.
-2. A counting detector integrates along actual motion and reports every 0.5 s.
-   Its samples update a sparse GP at XYZ coordinates.
+2. IMU, joint/foot measurements and body-frame LiDAR update an estimated pose.
+   A counting detector reports every 0.5 s; estimated detector positions and dwell
+   durations form one integrated likelihood per window.
 3. Candidate routes trade coverage and uncertainty against travel and estimated
    dose. Admission includes a known-route return estimate and a budget reserve.
 4. High measured rate, budget use or the return-time allowance can trigger retreat.
@@ -238,21 +285,25 @@ switchback service ramps, equipment, shielding and a genuine stair challenge.
 A development mission reached the upper floor and returned without recorded
 non-foot contacts. RViz now renders the verified articulated **Go2 meshes**.
 
-The latest corrected smooth/spatial runs passed the round-trip gate for detector
+The historical corrected smooth/spatial runs passed the round-trip gate for detector
 seeds 3 and 4: home at **2,365.44 / 2,207.44 s**, actual exposure **1.01076 /
 0.90453 µSv** out of 5 µSv. Seed 4 returned at mapping capacity; these outcomes
 do not certify full coverage. [Latest methods and results](docs/DOUGIE_FULLHEIGHT_RESULTS.md).
 
 ```bash
-./dougie radiation --world facility --duration 2400 --dose-budget 5 --gp-capacity 256 --seed 3
+# Historical ideal-pose comparator; fused full-height qualification is still open:
+./dougie radiation --world facility --duration 2400 --dose-budget 5 --gp-mode spatial \
+  --localization ground-truth --detector-likelihood point --seed 3
 
 # Strict headless full-height evaluation:
 ./dougie radiation --world facility --headless --fast --duration 2400 --dose-budget 5 \
-  --gp-mode spatial --seed 3 --fixed-plan-delay .5 --require-round-trip
+  --gp-mode spatial --localization ground-truth --detector-likelihood point \
+  --seed 3 --fixed-plan-delay .5 --require-round-trip
 
 # Optional visible-only discovery targets, with RViz:
 ./dougie radiation --world facility --duration 2400 --dose-budget 5 \
-  --gp-mode spatial --landmark-count 8 --landmark-seed 7
+  --gp-mode spatial --localization ground-truth --detector-likelihood point \
+  --landmark-count 8 --landmark-seed 7
 ```
 
 [Facility, controller comparisons and retained failures](docs/DOUGIE_FACILITY.md).
@@ -260,7 +311,8 @@ This is an experimental ramp-access mission; ordinary stairs remain unqualified.
 The smaller, faster vertical fixture is still available:
 
 ```bash
-./dougie radiation --world mezzanine --duration 300 --dose-budget 2 --seed 3
+./dougie radiation --world mezzanine --duration 300 --dose-budget 2 --seed 3 \
+  --localization ground-truth --gp-mode spatial --detector-likelihood point
 ```
 
 The new observed-slope mapper supports a two-ramp raised gallery with explicit
@@ -351,18 +403,24 @@ configuration; host tools need matching DDS settings.
   multi-height support graph. Unknown support is not traversable. Conservative
   reactor mapping uses a 2 cm step limit; layered facility mapping checks local
   planes, slope connectivity and support footprint. Industrial stairs are unqualified.
+- **Localization:** body-frame IMU, encoders, foot forces and noisy LiDAR feed a
+  stance-leg filter and local observed-map registration. Capture-time transforms
+  are retained. The walking policy receives estimated gravity and measured joints.
 - **Radiation inference:** a positive log-rate field uses a Matérn-3/2 ARD kernel
-  and streaming sparse Laplace updates for Poisson counts. The dictionary is
-  capped; unobserved heights retain uncertainty.
+  multiplied by a positive-definite observed-surface feature kernel. Joint-window
+  Laplace updates assimilate each integrated count once. New kernel geometry
+  triggers bounded history replay; unknown material attenuation is not supplied.
 - **Planning:** route exposure uses upper GP rates, measured cumulative counts,
   return routes, a 15% budget reserve and a dwell allowance. This is a heuristic,
   not a proof of optimal coverage or probabilistic dose safety.
 - **Concurrency:** a background worker processes detached observations while
   physics continues; the main loop checks sensor and plan freshness.
 
-**Pose is simulator ground truth.** The ideal range scanner is not a reproduction
-of the Go2 L1 LiDAR. This baseline isolates mapping/planning integration; replacing
-ideal pose and sensing is a research milestone. [Architecture and source boundaries](docs/DOUGIE_SIM.md).
+**The default radiation planner uses estimated pose and simulated onboard sensors.**
+The explicit ground-truth comparator, ordinary planar profile, visual scene and
+independent evaluator retain diagnostic simulator state. Sensor noise and local
+odometry are research models, not calibrated Go2 L1 hardware or loop-closing SLAM.
+[Architecture and source boundaries](docs/DOUGIE_SIM.md).
 
 ## Outputs and reproducibility
 
@@ -373,7 +431,8 @@ For radiation, keep the whole run directory:
 |---|---|
 | `run_config.json` | CLI settings, source hashes and asset-manifest identity |
 | `source_scenario.json` | Selected point-source profile and resolved simulator configuration |
-| `measurements.jsonl` | Time, XYZ, counts, integration window, estimated rate and dose |
+| `measurements.jsonl` | Counts, estimated XYZ motion bins, dwell durations, measured rate and dose |
+| `localization_evaluation.jsonl` | Pose estimate versus evaluator-only physics pose; never a planner input |
 | `trace.jsonl` | Mission states, observed coverage and planning timings |
 | `radiation_summary.json` | Outcome, estimated/actual exposure, return and sampled heights |
 | `landmark_observations.json` | Visible semantic target observations and latched inspection state |
@@ -389,6 +448,25 @@ return. Seeds vary counting noise in the same layout; record configuration/sourc
 hashes and retain failed runs. [Report reproduction](docs/DOUGIE_VALIDATION.md#reproduce-the-portable-report).
 
 ## Measured results
+
+### Current onboard development results
+
+Reactor scene, 90 s limit, 2 µSv budget, geometry GP, moving-window likelihood and
+fixed 0.5 s simulated planning delay. Both trials used noisy onboard localization.
+
+| Detector / sensor seed | Return (s) | Actual dose (µSv) | Distance (m) | Position RMSE | Outcome |
+|---|---:|---:|---:|---:|---|
+| 3 / 0 | 47.050 | 0.126188 | 5.693 | 7.4 cm | Clean physical return |
+| 4 / 1 | 37.050 | 0.122702 | 4.221 | 5.9 cm | Clean physical return |
+
+The seed-3 GIF run reproduced the scored trajectory. These short runs returned
+when no further admissible work was selected; they do not establish complete
+coverage or improved dose at matched work. Noisy support heights can inflate
+surface-cell proxies, so these proxies are not directly comparable to ideal-pose
+cohorts. Initial fusion/mapping failures are retained in the
+[portable report](docs/results/dougie_onboard_20261019.json).
+
+### Frozen initial integration cohort
 
 The frozen initial Poisson cohort used a **0.2 µSv budget**, **100 µSv/h rate
 threshold**, **128 inducing points** and **180 s maximum** in one reactor scene.
@@ -440,7 +518,11 @@ The [methods review](docs/DOUGIE_RADIATION.md#research-findings-and-design-choic
 records inspection depth and access limitations. This is a targeted research
 synthesis, not a claim to reproduce or outperform the cited systems.
 
-### Next research milestones
+### Current implementation and next research milestones
+
+Sensor fusion, observed-geometry kernels and moving-window likelihoods are now
+implemented and tested. The [active onboard plan](docs/DOUGIE_ONBOARD_PLAN.md)
+separates implementation from qualification and defines the next acceptance gates.
 
 1. **Matched baselines:** radiation-blind frontiers, mean-only risk and upper-bound
    risk under matched sensing and compute; report dose, coverage and return failures.
@@ -448,12 +530,13 @@ synthesis, not a claim to reproduce or outperform the cited systems.
    uncertainty calibration and alternative kernels.
 3. **Motion-aware reserves:** measured travel-time distributions and larger-riser
    qualification before multi-storey missions.
-4. **Onboard sensing:** LiDAR/inertial/leg odometry and pose-error propagation.
+4. **Onboard qualification:** long-duration drift, degenerate scenes, dropout,
+   timestamp delays, and sensor-only multi-floor return; loop closure remains open.
 5. **Volumetric evidence:** independent sampling at multiple detector heights.
 6. **Radiation fidelity:** transport-generated reference fields and calibrated
    detector response.
 
-These are proposed gates, not completed capabilities. The inherited
+These are proposed qualification gates, not completed research results. The inherited
 [Geoff literature review](docs/literature_review/README.md) remains a humanoid
 research reference; its results and manipulation capabilities do not transfer to Go2.
 
@@ -510,7 +593,9 @@ session credentials rather than disabling X server access control globally.
 |---|---|
 | [`dougie`](dougie), [`scripts/dougie_cli.py`](scripts/dougie_cli.py) | Daily commands and container launch |
 | [`dougie_sim/simulation.py`](dougie_sim/simulation.py) | Model construction, policy adapter, physics and ideal range sensors |
+| [`dougie_sim/onboard_sensors.py`](dougie_sim/onboard_sensors.py), [`dougie_sim/odometry.py`](dougie_sim/odometry.py) | Body-frame noisy sensor boundary and IMU/leg/LiDAR pose estimation |
 | [`dougie_sim/radiation.py`](dougie_sim/radiation.py), [`dougie_sim/gp.py`](dougie_sim/gp.py) | Field/detector model and bounded inference |
+| [`dougie_sim/geometry_gp.py`](dougie_sim/geometry_gp.py) | Observed-surface feature kernel and bounded count-window replay |
 | [`dougie_sim/terrain.py`](dougie_sim/terrain.py), [`dougie_sim/dose_planner.py`](dougie_sim/dose_planner.py) | Observed support and dose-aware decisions |
 | [`dougie_sim/radiation_run.py`](dougie_sim/radiation_run.py) | Radiation mission lifecycle, viewer and artifacts |
 | [`dougie_sim/ros_bridge.py`](dougie_sim/ros_bridge.py), [`dougie_sim/explore.py`](dougie_sim/explore.py) | ROS interfaces and planar comparison |
