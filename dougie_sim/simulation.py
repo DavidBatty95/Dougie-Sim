@@ -41,6 +41,11 @@ def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, lan
                   rgb1='.12 .2 .25', rgb2='.2 .3 .35', width='256', height='256')
     ET.SubElement(asset, 'material', name='floor_mat', texture='floor_tex', texrepeat='12 12', texuniform='true')
     body = root.find('worldbody')
+    sensors = root.find('sensor')
+    for leg in ('FR', 'FL', 'RR', 'RL'):
+        foot = body.find(f".//body[@name='{leg}_calf']")
+        ET.SubElement(foot, 'site', name=leg+'_contact_site', pos='0 0 -.213', type='sphere', size='.03', rgba='0 0 0 0')
+        ET.SubElement(sensors, 'touch', name=leg+'_contact', site=leg+'_contact_site')
     ET.SubElement(body, 'light', pos='0 0 6', dir='0 0 -1', directional='true')
     ET.SubElement(body, 'geom', name='floor', type='plane', size='0 0 .1',
                   material='floor_mat', friction='.8 .02 .01')
@@ -134,10 +139,14 @@ class Simulation:
 
     def observation(self, command):
         R = rotation(self.data.qpos[3:7])
-        proprio = np.clip(np.concatenate((self.data.qvel[3:6] * .25,
+        gyro, joints, velocity = self.data.qvel[3:6], self.data.qpos[self.qadr], self.data.qvel[self.vadr]
+        if getattr(self, 'onboard_proprioception', None) is not None:
+            measured, R = self.onboard_proprioception
+            gyro, joints, velocity = measured.gyro, measured.joints, measured.joint_velocity
+        proprio = np.clip(np.concatenate((gyro * .25,
                       R.T @ np.array([0., 0., -1.]), command,
-                       self.data.qpos[self.qadr] - self.default,
-                       self.data.qvel[self.vadr] * .05, self.action)),
+                        joints - self.default,
+                        velocity * .05, self.action)),
                        -self.policy_contract.config['observation_clip'],
                        self.policy_contract.config['observation_clip']).astype(np.float32)
         if not self.policy_contract.perceptive:
@@ -167,7 +176,10 @@ class Simulation:
             else:
                 self.target = self.default.copy()
         c = self.policy_contract.config
-        torque = c['kp'] * (self.target - self.data.qpos[self.qadr]) - c['kd'] * self.data.qvel[self.vadr]
+        measured = getattr(self, 'onboard_proprioception', None)
+        joint_position = self.data.qpos[self.qadr] if measured is None else measured[0].joints
+        joint_velocity = self.data.qvel[self.vadr] if measured is None else measured[0].joint_velocity
+        torque = c['kp'] * (self.target - joint_position) - c['kd'] * joint_velocity
         self.data.ctrl[self.actuators] = np.clip(torque, -c['torque_limit_nm'], c['torque_limit_nm'])
         for i in range(self.people):
             self.data.mocap_pos[i] = [2. + i * .5, 2. * math.sin(.35 * self.data.time + i), .85]
@@ -195,7 +207,7 @@ class Simulation:
         packet = self.lidar_packet(max_range)
         return packet.points, packet.supports
 
-    def lidar_packet(self, max_range=6., *, sparse=False):
+    def lidar_packet(self, max_range=6., *, sparse=False, body_frame=False):
         """Organized ideal 3-D returns and normals estimated from adjacent rays.
 
         The simulator returns no object IDs, layout, or radiation-source metadata.
@@ -211,6 +223,12 @@ class Simulation:
         directions = np.stack((np.cos(e)*np.cos(a), np.cos(e)*np.sin(a), np.sin(e)), axis=-1)
         start = self.data.qpos[:3].copy()
         start[2] += .12
+        if body_frame:
+            a, e = np.meshgrid(azimuth, elevation)
+            local_directions = np.stack((np.cos(e)*np.cos(a), np.cos(e)*np.sin(a), np.sin(e)), axis=-1)
+            R = rotation(self.data.qpos[3:7])
+            directions = local_directions@R.T
+            start = self.data.qpos[:3]+R@np.array([0., 0., .12])
         n = a.size
         distances = np.empty(n)
         ids = np.empty(n, dtype=np.int32)
@@ -222,6 +240,9 @@ class Simulation:
         distances[distances > max_range] = -1.
         distances = distances.reshape(a.shape)
         from .sensing import RangePacket, support_mask
+        if body_frame:
+            return RangePacket(float(self.data.time), self.counter, np.array([0., 0., .12]),
+                               local_directions, distances, max_range, np.zeros(distances.shape, dtype=bool))
         return RangePacket(float(self.data.time), self.counter, start, directions, distances,
                            max_range, support_mask(start, directions, distances, max_range))
 
@@ -229,5 +250,7 @@ class Simulation:
         return dict(simulation_time_s=float(self.data.time), base_position=self.data.qpos[:3].tolist(),
                     upright=float(rotation(self.data.qpos[3:7])[2, 2]), controller=self.controller,
                     command=self.last_command.tolist(), joints=len(JOINTS),
-                    odometry_source='mujoco_ground_truth', scan_source='ideal_mujoco_raycast',
+                    odometry_source='imu_leg_lidar_fusion' if getattr(self, 'onboard_proprioception', None) else 'mujoco_ground_truth',
+                    scan_source='noisy_body_frame_raycast' if getattr(self, 'onboard_proprioception', None) else 'ideal_mujoco_raycast',
+                    base_position_scope='evaluator-only physics state',
                     policy=self.policy_contract.identity())

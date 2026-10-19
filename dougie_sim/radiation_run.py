@@ -52,6 +52,8 @@ def main():
     parser.add_argument('--dose-budget', type=float, default=2., help='mission budget in micro-sieverts')
     parser.add_argument('--rate-limit', type=float, default=100., help='planning threshold in micro-sieverts/hour')
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
+    parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
@@ -88,6 +90,8 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.localization == 'fused' and args.landmark_count:
+        parser.error('onboard fused missions exclude ideal semantic landmarks; use --localization ground-truth for that diagnostic comparator')
     if args.mission_objective == 'inspect' and (args.landmark_count == 0 or args.planner == 'baseline'):
         parser.error('--mission-objective inspect requires discovery landmarks and a clustered planner')
     if args.landmark_seed < 0 or (args.landmark_count != 0 and
@@ -131,6 +135,18 @@ def main():
     ensure_assets()
     sim = Simulation(args.world, radiation_sources=description, policy_config=args.policy_config, layout_seed=args.layout_seed,
                      landmark_count=args.landmark_count, landmark_seed=args.landmark_seed)
+    odometry = sensors = None
+    if args.localization == 'fused':
+        if sim.policy_contract.perceptive:
+            parser.error('fused missions currently require the proprioceptive policy contract')
+        from .odometry import FusedOdometry
+        from .onboard_sensors import OnboardSensors
+        odometry, sensors = FusedOdometry(), OnboardSensors(args.sensor_seed)
+    true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
+    pose_errors = []
+    local_packet = None
+    mapped_packet = None
+    last_onboard_scan = -1.
     from .landmarks import LandmarkSensor
     landmark_sensor = LandmarkSensor(sim)
     field = RadiationField.from_mujoco(sim.model, sim.data)
@@ -241,11 +257,13 @@ def main():
     observed_plan_delay = 0.
     minimum_sensor_z = math.inf
     maximum_sensor_z = -math.inf
-    last_path_position = support_pose(sim)
+    last_path_position = np.zeros(3) if odometry else support_pose(sim)
     last_progress_stamp = 0.
     next_report = 30.
     trace = (output/'trace.jsonl').open('w')
     measurements = (output/'measurements.jsonl').open('w')
+    localization_log = (output/'localization_evaluation.jsonl').open('w')
+    last_pose_log = -1.
 
     print(f'Dougie radiation mission: {output}\nSource profile: {args.source_profile} ({len(field.sources)} point sources)', flush=True)
     try:
@@ -264,7 +282,25 @@ def main():
             stamp = float(sim.data.time)
             distance_travelled += float(np.linalg.norm(sim.data.qpos[:2]-previous_position[:2]))
             previous_position = sim.data.qpos[:3].copy()
-            position = support_pose(sim)
+            if odometry is not None:
+                proprioception = sensors.proprioception(sim)
+                odometry.update(proprioception)
+                if stamp-last_onboard_scan >= .2-1e-9:
+                    lidar_started = time.perf_counter()
+                    local_packet = sensors.scan(sim)
+                    odometry.observe_scan(local_packet)
+                    mapped_packet = odometry.world_packet(local_packet)
+                    last_onboard_scan = stamp
+                    lidar_times.append(time.perf_counter()-lidar_started)
+                sim.onboard_proprioception = proprioception, odometry.rotation.copy()
+                position = odometry.support_position
+                if stamp-last_pose_log >= .1 and odometry.initialized:
+                    pose_errors.append(float(np.linalg.norm(odometry.position-sim.data.qpos[:3])))
+                    localization_log.write(json.dumps(dict(stamp_s=stamp, **odometry.metrics(),
+                        evaluator_true_position=sim.data.qpos[:3].tolist(), evaluator_error_m=pose_errors[-1]))+'\n')
+                    last_pose_log = stamp
+            else:
+                position = support_pose(sim)
             if stamp >= next_report:
                 print(f't={stamp:.1f}s {state}: support_z={position[2]:.2f}m '
                       f'measured_dose={detector.dose:.3f}/{args.dose_budget:g}uSv', flush=True)
@@ -273,12 +309,13 @@ def main():
                 trail.append(position.tolist())
                 if len(trail) > 2000:
                     trail = trail[::2]
-            sensor = sim.data.qpos[:3]+[0., 0., .12]
+            sensor = sim.data.qpos[:3]+(rotation(sim.data.qpos[3:7])@np.array([0., 0., .12]) if odometry else [0., 0., .12])
             minimum_sensor_z = min(minimum_sensor_z, float(sensor[2]))
             maximum_sensor_z = max(maximum_sensor_z, float(sensor[2]))
             rate = field.rate(sensor)
             true_dose += rate*sim.model.opt.timestep/3600.
-            sample = detector.integrate(sensor, rate, sim.model.opt.timestep, stamp+sim.model.opt.timestep)
+            sample = detector.integrate(odometry.sensor_position if odometry else sensor,
+                                        rate, sim.model.opt.timestep, stamp+sim.model.opt.timestep)
             if sample is not None:
                 latest_sample = sample
                 highlights.observe(sample)
@@ -294,6 +331,8 @@ def main():
                 path, state, metrics, map_view = future.result()
                 observed_plan_delay = max(0., stamp-last_plan)
                 metrics['plan_age_sim_s'] = observed_plan_delay
+                if odometry:
+                    metrics['localization'] = odometry.metrics()
                 if args.path_mode == 'smooth':
                     metrics['route_accepted'] = follower.set_route(path, metrics.get('path_spans', []), position)
                     metrics['route_replan_rejections'] = follower.replan_rejections
@@ -326,25 +365,29 @@ def main():
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
             stalled = stamp-last_progress_stamp > 15.
-            if future is None and samples and stamp-last_plan >= 2.:
+            if future is None and samples and stamp-last_plan >= 2. and (odometry is None or odometry.initialized):
                 lidar_started = time.perf_counter()
-                packet = sim.lidar_packet()
+                packet = mapped_packet if odometry else sim.lidar_packet()
                 lidar_times.append(time.perf_counter()-lidar_started)
-                landmark_observations = landmark_sensor.scan(sim)
+                landmark_observations = () if odometry else landmark_sensor.scan(sim)
                 if visualization:
                     visualization.update_landmarks(landmark_sensor.packets())
                 future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
                                      landmark_observations, observed_plan_delay,
-                                     math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]))
+                                     odometry.yaw if odometry else math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]))
                 samples = []
                 last_plan = stamp
                 if stalled:
                     last_progress_stamp = stamp
             R = rotation(sim.data.qpos[3:7])
-            yaw = math.atan2(R[1, 0], R[0, 0])
+            yaw = odometry.yaw if odometry else math.atan2(R[1, 0], R[0, 0])
             command = (follower.tick(position, yaw, sim.model.opt.timestep) if args.path_mode == 'smooth' else
                        follow(path, position, yaw, .14 if args.terrain_profile == 'layered' else .22))
             if latest_sample is None or stamp-latest_sample.stamp_s > 1.5 or stamp-accepted_plan_stamp > 4.:
+                command[:] = 0.
+                follower.stop()
+            if odometry and (not odometry.initialized or stamp-last_onboard_scan > .6
+                    or np.sqrt(np.diag(odometry.covariance)[:3]+odometry.drift_variance).max() > .3):
                 command[:] = 0.
                 follower.stop()
             if latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
@@ -406,6 +449,7 @@ def main():
             recorder.close()
         trace.close()
         measurements.close()
+        localization_log.close()
         witness.save(output/'motion_trace.npz')
         if map_view is None and explorer.terrain.nodes:
             nodes = np.asarray(list(explorer.terrain.nodes.values()))
@@ -440,8 +484,12 @@ def main():
             mission_completed=bool(state == 'returned'),
             actual_budget_exceeded=bool(true_dose > args.dose_budget),
             wall_time_s=time.monotonic()-started, seed=args.seed,
-            information_contract=('planner receives range returns, ideal pose, counting-detector samples'
+            information_contract=('planner receives body-frame noisy LiDAR transformed by IMU/leg/LiDAR estimated pose and counting-detector observations only' if odometry else 'planner receives range returns, ideal pose, counting-detector samples'
                                   +(', and visible landmark observations only' if args.landmark_count else ' only')))
+        metrics['localization'] = odometry.metrics() if odometry else dict(source='mujoco_ground_truth')
+        metrics['localization_evaluation'] = dict(position_rmse_m=float(np.sqrt(np.mean(np.square(pose_errors)))) if pose_errors else None,
+            position_p95_m=float(np.percentile(pose_errors, 95)) if pose_errors else None,
+            true_home_distance_m=float(np.linalg.norm(sim.data.qpos[:3]-true_home)))
         metrics.update(planner=args.planner, path_length_m=distance_travelled, target_switches=target_switches,
                        world=args.world, exploration_complete=False,
                        gp_mode=args.gp_mode, path_mode=args.path_mode,
@@ -450,8 +498,9 @@ def main():
                        completion_scope='return outcome only; complete unknown-space coverage is not established',
                        terrain_profile=args.terrain_profile, nonfoot_contacts=dict(nonfoot_contacts),
                        nonfoot_impulse_ns=nonfoot_impulse, nonfoot_peak_force_n=nonfoot_peak,
-                       clean_return=bool(state == 'returned' and error is None and true_dose <= args.dose_budget
-                                          and nonfoot_impulse <= .1 and nonfoot_peak <= 25.))
+                        clean_return=bool(state == 'returned' and error is None and true_dose <= args.dose_budget
+                                           and nonfoot_impulse <= .1 and nonfoot_peak <= 25.
+                                           and metrics['localization_evaluation']['true_home_distance_m'] <= .4))
         if hasattr(explorer.terrain, 'metrics'):
             metrics['terrain'] = explorer.terrain.metrics()
         from .mission_evaluation import round_trip_failures

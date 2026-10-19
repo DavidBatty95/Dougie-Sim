@@ -63,6 +63,7 @@ def test_round_trip_cli_implies_clean_and_rejects_missing_witnesses(tmp_path):
 def test_landmark_mission_archives_observations_separately_from_truth(tmp_path):
     output = tmp_path/'landmarks'
     run = subprocess.run([sys.executable, '-m', 'dougie_sim.radiation_run', '--world', 'facility',
+        '--localization', 'ground-truth',  # ideal semantic-sensor comparator only
         '--headless', '--fast', '--duration', '1', '--fixed-plan-delay', '.5',
         '--landmark-count', '8', '--landmark-seed', '7', '--output', str(output)],
         capture_output=True, text=True, timeout=45)
