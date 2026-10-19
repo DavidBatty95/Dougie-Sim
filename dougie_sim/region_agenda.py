@@ -15,8 +15,9 @@ class RegionAgenda:
         self.last_served = {}
         self.pending = {}
         self.connectors = set()
+        self.visit_fraction = {}
 
-    def update(self, nodes, graph, root, stamp):
+    def update(self, nodes, graph, root, stamp, visited=()):
         tags = {k: (math.floor(p[0]/3.), math.floor(p[1]/3.), math.floor((p[2]+.1)/.4))
                 for k, p in nodes.items()}
         # Weak connectivity for region grouping; fine directed route admission
@@ -40,6 +41,9 @@ class RegionAgenda:
                         membership[b] = region
                         queue.append(b)
         self.membership = membership
+        sizes = Counter(membership.values())
+        visits = Counter(membership[k] for k in visited if k in membership)
+        self.visit_fraction = {region: visits[region]/size for region, size in sizes.items()}
         regions = set(membership.values())
         self.transitions = Counter({k: v for k, v in self.transitions.items() if k[0] in regions and k[1] in regions})
         self.last_served = {k: v for k, v in self.last_served.items() if k in regions}
@@ -65,6 +69,10 @@ class RegionAgenda:
             age = min(1., max(0., stamp-self.last_served.get(region, 0.))/120.)
             repeats = self.transitions[self.current, region]
             utility = best[0]*(1.+.25*age)
+            # Repeated near-frontier views on a traversed ramp must not dominate
+            # the unvisited landing it connects to. Saturate after half the
+            # supported centres have been covered by the robot footprint.
+            utility *= max(.2, 1.-1.6*self.visit_fraction.get(region, 0.))
             if region == self.current:
                 utility *= 1.15
             return utility/(1.+.15*repeats+.002*min(duration[item[1]] for item in items)), region

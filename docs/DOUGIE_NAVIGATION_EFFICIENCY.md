@@ -81,3 +81,54 @@ docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_missions.
 119.190 s, 14.2056 m, .020480 uSv. The earlier same-seed/layout short inspection
 results were 119.190 / 125.205 s and .02018 / .02120 uSv. These are development
 comparisons, not full-height completion or independent qualification.
+
+## Stage 4: vertical regression checks and prediction sensitivity
+
+The first hierarchical mezzanine trial returned at 193.375 s but **failed** the
+upper-landing witness. A local-scheduling ablation also failed (235.480 s). These
+are retained as `navigation_final_mezzanine` and `navigation_local_mezzanine`.
+The trace showed repeated ramp viewpoints winning over an observed fresh landing.
+Region utility now decreases with the fraction of support centres already visited.
+
+The corrected `navigation_regional_mezzanine` run passed upstairs/downstairs/home
+at **237.485 s**, **25.4749 m**, **.345615 uSv**, no non-foot contacts and zero route
+join rejections. The prior planning cohort's corresponding development run was
+259.540 s, 26.73 m and .40788 uSv. This is an 8.5% time / 15.3% dose reduction for
+the vertical round-trip objective, not proof of equal map coverage. Hierarchical
+scheduling is selectable with `--region-scheduling hierarchical`; `local` is the
+default comparator until broader qualification.
+
+```bash
+./dougie radiation --world mezzanine --headless --fast --duration 300 \
+  --dose-budget 2 --seed 3 --gp-mode spatial --region-scheduling hierarchical \
+  --fixed-plan-delay .5 --require-round-trip
+```
+
+The paced asynchronous ROS-enabled reactor trial (`navigation_paced_reactor`)
+returned cleanly at 139.415 simulated / 140.248 wall seconds, .327253 uSv and no
+non-foot contacts. Worker p95 was 472.37 ms; active-loop p95 was 5.175 ms, above
+the 5 ms physics budget. This establishes a successful paced development run,
+not hard-real-time qualification.
+
+GP replay now sweeps upper-bound multipliers, reporting both shortfall and excess,
+and optionally injects seeded position jitter plus chronological random-walk drift
+into training/query coordinates. Evaluator truth remains at the actual positions.
+This is offline localization-error sensitivity, **not** onboard localization.
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_gp_replay.py \
+  results/dougie/navigation_baseline_reactor
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_gp_replay.py \
+  results/dougie/navigation_baseline_reactor --position-sigma .05 --position-drift .005
+```
+
+On this small reactor replay (209 training / 53 held-out samples), position RMSE
+was .10274 m in the perturbed case. Global log1p-rate RMSE changed .14983 → .15573;
+spatial .19591 → .16127. Noise improving one model on one trace is not evidence
+that localization error helps. Beta-2 bounds covered all 53 queries in both
+replays, with considerable excess; this does not justify relaxing runtime bounds.
+
+**201 tests passed**, including simulated-time progress cancellation, map-cache
+invalidation, visited-connector scheduling, seeded drift and bound scoring.
+Full-height qualification, geometry-aware GP kernels, integrated moving-window
+likelihoods and LiDAR/inertial/leg state estimation remain separate research work.

@@ -57,6 +57,7 @@ def main():
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
     parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
+    parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='local')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
     parser.add_argument('--gp-mode', choices=('global', 'spatial'), default='global')
@@ -152,7 +153,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)

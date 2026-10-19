@@ -26,6 +26,7 @@ Geoff's G1 humanoid development history.
 | Smooth routes, scale the GP, or highlight detected radiation | [Motion, spatial mapping, incline training and display update](DOUGIE_SMOOTH_MAPPING.md) |
 | Inspect the detailed reactor and improved cloud rendering | [Reactor update, prediction replay and physical checks](DOUGIE_REACTOR_UPDATE.md) |
 | Improve mission completion, return prediction and map capacity | [Planning priorities, inspection mode and measured tradeoffs](DOUGIE_PLANNING_PRIORITIES.md) |
+| Review staged navigation optimizations and their tests | [Navigation efficiency and retained regressions](DOUGIE_NAVIGATION_EFFICIENCY.md) |
 | Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
 | Find implementation files | [Repository map](../README.md#repository-map) |
 | Diagnose setup problems | [Troubleshooting](../README.md#troubleshooting) |

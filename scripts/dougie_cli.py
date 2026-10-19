@@ -75,6 +75,7 @@ def main():
     radiation.add_argument('--landmark-count', type=int, default=0)
     radiation.add_argument('--landmark-seed', type=int, default=0)
     radiation.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
+    radiation.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='local')
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
     radiation.add_argument('--fixed-plan-delay', type=float, help='headless fast reproducible planning schedule')
     radiation.add_argument('--require-clean', action='store_true')
@@ -173,6 +174,7 @@ def main():
             '--world', args.world, '--layout-seed', str(args.layout_seed), '--planner', args.planner,
             '--landmark-count', str(args.landmark_count), '--landmark-seed', str(args.landmark_seed),
             '--mission-objective', args.mission_objective,
+            '--region-scheduling', args.region_scheduling,
             '--camera', args.camera, '--map-layer', args.map_layer,
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]

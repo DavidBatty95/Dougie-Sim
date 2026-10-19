@@ -44,6 +44,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.objective = 'survey'
         self.smooth_execution = False
         self.region_agenda = RegionAgenda()
+        self.region_scheduling = 'local'
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -130,11 +131,11 @@ class ClusteredDoseExplorer(DoseExplorer):
             self.returning, self.last_reason = True, 'no_rate_compliant_return_route'
         inspection = getattr(self.terrain, 'active_viewpoints', False)
         if inspection:
-            self.region_agenda.update(nodes, graph, root, stamp)
             self.sampled_height_bands.add(round(float(position[2])/.2))
             # Mark supported body-footprint neighbours as visited, not just one
             # sparse root sample every two seconds. Never cross disconnected walls.
             self.visited.update(key for key, distance in length.items() if distance <= .3)
+            self.region_agenda.update(nodes, graph, root, stamp, self.visited)
         _, _, home_length, home_parent = self.terrain.routes(home, rates, reverse=True, max_rate=self.rate_limit)
         if home not in parent:
             self.path = []
@@ -302,7 +303,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                 nearby = [item for item in candidates if length[item[1]] <= 6.]
                 inspections = [item for item in candidates if self.landmark_bonus(nodes[item[1]]) > 0]
                 pool = inspections if self.objective == 'inspect' and inspections else nearby or candidates
-                if inspection and not (self.objective == 'inspect' and inspections):
+                if inspection and self.region_scheduling == 'hierarchical' and not (self.objective == 'inspect' and inspections):
                     _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp)
                 else:
                     _, selected, _ = max(pool)

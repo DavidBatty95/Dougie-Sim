@@ -3,6 +3,32 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 
+def perturb_positions(positions, stamps, *, sigma_m=0., drift_m_sqrt_s=0., seed=0):
+    """Offline sensitivity model, not an odometry estimator or sensor simulator.
+
+    Independent XYZ measurement jitter plus a time-scaled random walk. Perturb
+    training and query positions in one chronological stream to preserve drift.
+    """
+    positions, stamps = np.asarray(positions, dtype=float), np.asarray(stamps, dtype=float)
+    if (positions.shape != (len(stamps), 3) or not np.isfinite(positions).all()
+            or not np.isfinite(stamps).all() or np.any(np.diff(stamps) < 0)
+            or not np.isfinite([sigma_m, drift_m_sqrt_s]).all() or min(sigma_m, drift_m_sqrt_s) < 0):
+        raise ValueError('invalid position sensitivity inputs')
+    rng = np.random.default_rng(seed)
+    dt = np.diff(stamps, prepend=stamps[0]) if len(stamps) else stamps
+    drift = np.cumsum(rng.normal(size=positions.shape)*np.sqrt(dt[:, None])*drift_m_sqrt_s, axis=0)
+    return positions+drift+rng.normal(size=positions.shape)*sigma_m
+
+
+def upper_bound_report(truth, upper):
+    truth, upper = np.asarray(truth), np.asarray(upper)
+    shortfall = np.maximum(truth-upper, 0.)
+    return dict(coverage=float(np.mean(upper >= truth)),
+                mean_shortfall_usv_h=float(shortfall.mean()),
+                worst_shortfall_usv_h=float(shortfall.max()),
+                mean_excess_usv_h=float(np.maximum(upper-truth, 0.).mean()))
+
+
 def prediction_report(query, truth, mean, upper, training_positions, counts, exposure, shields=()):
     query, training_positions = np.asarray(query), np.asarray(training_positions)
     truth, mean, upper, counts, exposure = map(np.asarray, (truth, mean, upper, counts, exposure))
