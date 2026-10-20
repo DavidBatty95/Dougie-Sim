@@ -21,6 +21,16 @@ real-robot readiness. Evaluator/renderer truth must stay outside mission decisio
 
 ## Next stages and acceptance gates
 
+### Longer-mission evidence update
+
+The [paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) now covers four onboard
+reactor missions with a 600 s cap. Both 2 µSv runs returned; one of two 10 µSv runs
+returned. The successful high-budget pair improved physical visitation per dose
+by 24.6%, but the other stalled in a support/sensing wait state and did not return.
+Position p95 errors reached .644 m. This advances long-duration screening, not
+the matched-work dose-reduction or localization-robustness gates below. Prioritize
+support recovery, covariance consistency and exposure while stalled next.
+
 ### 1. Matched-work dose comparison — highest priority
 
 - Compare geometry/window against global/point using identical initial observed

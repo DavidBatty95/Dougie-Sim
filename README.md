@@ -205,7 +205,14 @@ appearance only, not the field used for route planning.
 # Controlled inference ablation, retaining onboard localization:
 ./dougie radiation --headless --fast --gp-mode global --detector-likelihood point \
   --dose-budget 2 --duration 90 --seed 3 --sensor-seed 0 --fixed-plan-delay .5
+
+# Longer-mission experiment: five times the dose allowance, 600 s time cap:
+./dougie radiation --headless --fast --dose-budget 10 --duration 600 \
+  --seed 3 --sensor-seed 0 --fixed-plan-delay .5 --require-clean
 ```
+
+[Paired 2/10 µSv longer-mission protocol and results](docs/DOUGIE_LONG_MISSIONS.md)
+compare physical visitation, dose, return success and localization error.
 
 | Option | Default | Meaning |
 |---|---:|---|
@@ -450,6 +457,12 @@ hashes and retain failed runs. [Report reproduction](docs/DOUGIE_VALIDATION.md#r
 ## Measured results
 
 ### Current onboard development results
+
+**Longer-mission follow-up:** a paired **2 versus 10 µSv** experiment with a
+**600 s cap** produced three clean returns out of four trials. One higher-budget
+run improved physical visitation per dose by **24.6%**; the other failed to return
+after a support/sensing wait. Higher allowance alone did not resolve longer-term
+localization and mapping limits. [Full efficiency table and retained failure](docs/DOUGIE_LONG_MISSIONS.md).
 
 Reactor scene, 90 s limit, 2 µSv budget, geometry GP, moving-window likelihood and
 fixed 0.5 s simulated planning delay. Both trials used noisy onboard localization.

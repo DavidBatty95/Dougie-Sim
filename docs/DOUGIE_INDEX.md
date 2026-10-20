@@ -16,6 +16,7 @@ Geoff's G1 humanoid development history.
 | Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
 | Run current onboard-only radiation missions | [Fusion, geometry kernels, moving windows and evidence](DOUGIE_ONBOARD_MISSION.md) |
 | See implemented work and next acceptance gates | [Active onboard mission plan](DOUGIE_ONBOARD_PLAN.md) |
+| Test five times the dose allowance on longer missions | [Paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) |
 | Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |
 | Inspect measured outcomes and limitations | [Validation](DOUGIE_VALIDATION.md) · [Portable report](results/dougie_initial_20261007.json) |
