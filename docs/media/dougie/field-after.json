@@ -1,0 +1,21 @@
+{
+  "scope": "archived state and inferred-field replay, not live footage",
+  "run": "results/dougie/onboard_recorded_routes_seed3",
+  "mujoco": "3.3.6",
+  "source_sha256": "9e50fff565b33ea7b83d1570553d90ecc12038a735937340951d6dcc02983b9d",
+  "overlay_source_sha256": {
+    "radiation_display.py": "9e80ed0a0a38b04384097b71cd92dec8f14b2016dbb8f6874fc63b96cf466d24",
+    "demo_overlay.py": "248fed1893ec27e5dc64ecf6be916b2a5a72660cb2123da80d44f8f7ae524ef0"
+  },
+  "camera_distance": 4.0,
+  "follow": true,
+  "scene_sha256": "f77243bc930f117602c18ce34898dc8911400fce02a6c7722bae780944f53bd5",
+  "input_sha256": {
+    "scene.xml": "f77243bc930f117602c18ce34898dc8911400fce02a6c7722bae780944f53bd5",
+    "motion_trace.npz": "1d99ccbc894460735a48bbd0efefb55773d0efc637e22b16b92456a2bf05c7c7",
+    "radiation_map_3d.npz": "0ff1dd36e5fe5d5ff130374d861987beb564d115d1f687ea86fcdf79354eccb7",
+    "measurements.jsonl": "eb1ca888dc8d5e9f3f59a1b224823b8c10890c1ce677eb16ab80334be088e29e",
+    "evaluator_field.json": "1a16429c83e37b984da1eb614e45371d291b48e04ae1ebc30d08639d39c8ffb1"
+  },
+  "image_sha256": "b9d1401c528c1a50db5bb0a3bcbe0f5a4d5b3e4c149566e6616b14db26049c84"
+}

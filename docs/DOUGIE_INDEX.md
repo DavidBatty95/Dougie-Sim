@@ -12,6 +12,7 @@ Geoff's G1 humanoid development history.
 | See the robot and recorded mission | [Animated gallery](../README.md#recorded-demo-gallery) |
 | Set budgets, likelihood and mission duration | [Radiation runbook](../README.md#run-a-radiation-mission) |
 | Configure point-source hotspots and leaks | [Source presets, markers and configuration](DOUGIE_SOURCES.md) |
+| Keep the robot visible through the radiation estimate | [Low-opacity haze, smooth fading and before/after views](DOUGIE_RADIATION_DISPLAY.md) |
 | Drive Go2 or inspect ROS | [Walking, exploration and ROS](../README.md#walking-exploration-and-ros) |
 | Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
 | Run current onboard-only radiation missions | [Fusion, geometry kernels, moving windows and evidence](DOUGIE_ONBOARD_MISSION.md) |

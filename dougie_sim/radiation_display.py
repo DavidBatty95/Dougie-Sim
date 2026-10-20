@@ -5,7 +5,28 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.stats import chi2
 
-CLOUD_ALPHA = .09
+CLOUD_ALPHA = .018
+CLOUD_RADII = np.array([.24, .24, .16])
+CLOUD_ALPHA_LEVELS = 8
+
+
+def fade_near_robot(points, colors, robot_position):
+    """Display-only smooth clearance around the rendered robot, not a safe zone."""
+    faded = np.asarray(colors).copy()
+    if robot_position is None or not len(points):
+        return faded
+    distance = np.linalg.norm((np.asarray(points)-np.asarray(robot_position))/[.75, .75, .65], axis=1)
+    blend = np.clip((distance-1.)/.7, 0., 1.)
+    faded[:, 3] *= blend*blend*(3.-2.*blend)
+    return faded
+
+
+def opacity_groups(colors):
+    """RViz list markers need shared alpha; quantize downward into stable batches."""
+    levels = np.clip(np.floor(np.asarray(colors)[:, 3]/CLOUD_ALPHA*CLOUD_ALPHA_LEVELS+1e-9),
+                     0, CLOUD_ALPHA_LEVELS).astype(int)
+    return [(CLOUD_ALPHA*level/CLOUD_ALPHA_LEVELS, np.flatnonzero(levels == level))
+            for level in range(1, CLOUD_ALPHA_LEVELS+1)]
 
 
 class RadiationHighlights:
@@ -87,18 +108,22 @@ class RadiationHighlights:
             return np.empty((0, 3)), np.empty((0, 4))
         xyz, unique = np.unique(xyz, axis=0, return_index=True)
         mean, std = mean[unique], std[unique]
-        offsets = np.array([[0., 0., 0.], [.22, 0., 0.], [-.22, 0., 0.],
-                            [0., .22, 0.], [0., -.22, 0.], [0., 0., .12], [0., 0., -.12]])
         spacing = np.array([.18, .18, .12])
+        # Fill the diagonal cells too: a seven-point cross leaves visible lobes
+        # even after interpolation. A shared lattice still deduplicates overlap.
+        offsets = np.array([[x, y, z] for x in (-1, 0, 1) for y in (-1, 0, 1)
+                            for z in (-1, 0, 1)])*spacing
         cells = np.unique(np.rint((xyz[:, None, :]+offsets)/spacing).reshape(-1, 3).astype(int), axis=0)
         points = cells*spacing
         scale = np.array([.48, .48, .26])
-        distances, indices = cKDTree(xyz/scale).query(points/scale, k=min(4, len(xyz)))
+        distances, indices = cKDTree(xyz/scale).query(points/scale, k=min(8, len(xyz)))
         distances, indices = distances.reshape(len(points), -1), indices.reshape(len(points), -1)
         weights = np.exp(-4.*distances**2)*(distances <= 1.)
         total = weights.sum(axis=1)
         supported = total > 0
+        edge_alpha = np.clip(1.-distances.min(axis=1)**2, 0., 1.)**2
         points, weights, indices, total = points[supported], weights[supported], indices[supported], total[supported]
+        edge_alpha = edge_alpha[supported]
         weights /= total[:, None]
         # Interpolate log rates to reduce bright discontinuities between samples.
         latent = np.log1p(mean[indices])
@@ -107,10 +132,13 @@ class RadiationHighlights:
         sigma = np.sqrt(np.sum(weights*(std[indices]**2+(latent-blended[:, None])**2), axis=1))
         keep = self.mask(points, rates, mode)
         points, rates, sigma = points[keep], rates[keep], sigma[keep]
+        edge_alpha = edge_alpha[keep]
         if len(points) > capacity:
             indices = np.linspace(0, len(points)-1, capacity).astype(int)
             points, rates, sigma = points[indices], rates[indices], sigma[indices]
+            edge_alpha = edge_alpha[indices]
         colors = self.colors(rates, CLOUD_ALPHA)
+        colors[:, 3] *= edge_alpha
         if layer == 'uncertainty':
             value = np.clip(sigma/2., 0., 1.)
             colors[:, :3] = np.column_stack((value, 1.-value, np.ones(len(value))))

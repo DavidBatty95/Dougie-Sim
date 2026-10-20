@@ -14,6 +14,8 @@ from dougie_sim.simulation import Simulation
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--run', type=Path, help='replay the archived final GP prediction and detector evidence')
 parser.add_argument('--output', type=Path, default=Path('docs/media/dougie-reactor.png'))
+parser.add_argument('--camera-distance', type=float, default=18.)
+parser.add_argument('--follow', action='store_true', help='centre the diagnostic camera on the archived robot')
 args = parser.parse_args()
 sim = Simulation('reactor', model_xml=(args.run/'scene.xml').read_text() if args.run else None)
 if args.run:
@@ -27,7 +29,9 @@ sim.model.vis.global_.offwidth = 1280
 sim.model.vis.global_.offheight = 800
 camera = mujoco.MjvCamera()
 camera.lookat[:] = [1., .0, .6]
-camera.distance, camera.elevation, camera.azimuth = 18., -48., 115.
+camera.distance, camera.elevation, camera.azimuth = args.camera_distance, -48., 115.
+if args.follow:
+    camera.lookat[:] = sim.data.qpos[:3]
 with mujoco.Renderer(sim.model, height=800, width=1280) as renderer:
     options = mujoco.MjvOption()
     options.sitegroup[5] = 0
@@ -42,7 +46,8 @@ with mujoco.Renderer(sim.model, height=800, width=1280) as renderer:
             controls.highlights.observe(RadiationSample(**sample))
         with np.load(args.run/'radiation_map_3d.npz') as archive:
             volume = tuple(archive[key] for key in ('xyz', 'mean_usv_h', 'std_log_rate', 'upper_usv_h'))
-        draw_overlay(renderer.scene, volume, {}, [s['position'] for s in samples], controls, 100., reset=False)
+        draw_overlay(renderer.scene, volume, {}, [s['position'] for s in samples], controls, 100.,
+                     reset=False, robot_position=sim.data.qpos[:3])
     image = renderer.render()
     image = Image.fromarray(image)
     draw = ImageDraw.Draw(image)
@@ -56,6 +61,9 @@ with mujoco.Renderer(sim.model, height=800, width=1280) as renderer:
         scope='archived state and inferred-field replay, not live footage' if args.run else 'model render after one second of settling',
         run=str(args.run) if args.run else None, mujoco=mujoco.__version__,
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        overlay_source_sha256={name: hashlib.sha256((Path(__file__).resolve().parents[1]/'dougie_sim'/name).read_bytes()).hexdigest()
+                               for name in ('radiation_display.py', 'demo_overlay.py')},
+        camera_distance=args.camera_distance, follow=args.follow,
         scene_sha256=hashlib.sha256(sim.scene_xml.encode()).hexdigest(),
         input_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs},
         image_sha256=hashlib.sha256(args.output.read_bytes()).hexdigest()), indent=2)+'\n')

@@ -43,14 +43,14 @@ def hud_lines(metrics, sample, stamp, budget, layer, sources_visible=False):
         f'{rate:.2f} uSv/h', f'{dose:.4f} / {budget:g} uSv', f'{reserve:.4f} uSv',
         '['+'#'*used+'.'*(20-used)+']', f"{metrics.get('mapped_surface_area_m2', 0.):.1f} m2",
         str(metrics.get('gp', {}).get('inducing_points', 0)), str(metrics.get('candidate_count', 0)),
-        layer, 'TRUTH / DIAGNOSTIC' if sources_visible else 'hidden',
+        layer+' (robot visibility fade)', 'TRUTH / DIAGNOSTIC' if sources_visible else 'hidden',
         str(metrics.get('known_landmarks_pending', 0)), str(metrics.get('exploration_agenda', {}).get('size', 0)),
         f"{metrics.get('route_forecast', {}).get('return_duration_s', 0.):.0f} s",
         'C camera | M field/uncertainty | G regions | P paths | S sources'))
     return left, right
 
 
-def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=True):
+def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=True, robot_position=None):
     if reset:
         scene.ngeom = 0
     identity = np.eye(3).reshape(-1)
@@ -96,14 +96,20 @@ def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=Tr
         for i, cluster in enumerate(metrics.get('clusters', [])[:96]):
             sphere(np.asarray(cluster['anchor'])+[0, 0, .12], .07, [*palette[i % len(palette)], .8])
     if map_view:
+        from .radiation_display import CLOUD_RADII, fade_near_robot
         query, colors = controls.highlights.cloud(map_view, controls.field_display, controls.layer)
+        colors = fade_near_robot(query, colors, robot_position)
         for point, color in zip(query, colors):
+            if color[3] < .001:
+                continue
             if scene.ngeom >= scene.maxgeom:
                 break
             mujoco.mjv_initGeom(scene.geoms[scene.ngeom], mujoco.mjtGeom.mjGEOM_ELLIPSOID,
-                np.array([.34, .34, .22]), point, identity, color.astype(np.float32))
+                CLOUD_RADII, point, identity, color.astype(np.float32))
             scene.geoms[scene.ngeom].specular = 0.
             scene.geoms[scene.ngeom].shininess = 0.
+            scene.geoms[scene.ngeom].category = mujoco.mjtCatBit.mjCAT_DECOR
+            scene.geoms[scene.ngeom].emission = .4
             scene.ngeom += 1
 
 
@@ -121,6 +127,6 @@ def update_viewer(viewer, position, map_view, metrics, trail, controls, sample, 
                 viewer.cam.distance = max(9., float(np.max(np.ptp(points[:, :2], axis=0)))*1.35)
                 viewer.cam.elevation = -65.
         controls.applied_camera = controls.camera
-        draw_overlay(viewer.user_scn, map_view, metrics, trail, controls, rate_limit)
+        draw_overlay(viewer.user_scn, map_view, metrics, trail, controls, rate_limit, robot_position=position)
     left, right = hud_lines(metrics, sample, stamp, budget, controls.layer, controls.show_sources)
     viewer.set_texts((None, mujoco.mjtGridPos.mjGRID_TOPLEFT, left, right))

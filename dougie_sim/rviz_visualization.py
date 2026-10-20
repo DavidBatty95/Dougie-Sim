@@ -9,7 +9,7 @@ from geometry_msgs.msg import Point
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
-from .radiation_display import CLOUD_ALPHA
+from .radiation_display import CLOUD_RADII, fade_near_robot, opacity_groups
 
 
 class Visualization:
@@ -22,6 +22,10 @@ class Visualization:
         self.map_layer = map_layer
         self.status_height = 6. if cutaway else 2.5
         self.next_robot = 0.
+        self.next_cloud = 0.
+        self.cloud_points = np.empty((0, 3))
+        self.cloud_colors = np.empty((0, 4))
+        self.other_mission_markers = []
         qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.scene = bridge.node.create_publisher(MarkerArray, '/dougie/scene', qos)
         self.robot = bridge.node.create_publisher(MarkerArray, '/dougie/robot', 1)
@@ -175,21 +179,34 @@ class Visualization:
         self.next_robot = stamp+.05
         if self.robot.get_subscription_count():
             self.robot.publish(MarkerArray(markers=[m for i in self.robot_ids for m in self.geom(i, 'robot')]))
+        if stamp >= self.next_cloud and self.mission.get_subscription_count() and len(self.cloud_points):
+            self.next_cloud = stamp+.2
+            # Follow the displayed robot without repeating GP interpolation.
+            # Publish the full marker set so transient-local readers retain paths.
+            self.mission.publish(MarkerArray(markers=self.cloud_markers()+self.other_mission_markers))
+
+    def cloud_markers(self):
+        colors = fade_near_robot(self.cloud_points, self.cloud_colors, self.bridge.sim.data.qpos[:3])
+        markers = []
+        for index, (alpha, indices) in enumerate(opacity_groups(colors)):
+            m = self.marker('gp', index, Marker.SPHERE_LIST)
+            # Per-point alpha is not reliable for RViz lists. Each batch has its
+            # own marker alpha; empty batches explicitly delete previous points.
+            m.color = ColorRGBA(r=1., g=1., b=1., a=alpha)
+            m.scale.x, m.scale.y, m.scale.z = map(float, 2*CLOUD_RADII)
+            m.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in self.cloud_points[indices]]
+            m.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=1.) for r, g, b, _ in colors[indices]]
+            if not len(indices):
+                m.action = Marker.DELETE
+            markers.append(m)
+        return markers
 
     def update(self, volume, metrics, trail):
         markers = []
         if volume is not None:
-            xyz, colors = self.highlights.cloud(volume, self.field_display, self.map_layer)
-            m = self.marker('gp', 0, Marker.SPHERE_LIST)
-            # RViz list-marker transparency is controlled by the marker alpha;
-            # per-point alpha is not supported consistently across renderers.
-            m.color = ColorRGBA(r=1., g=1., b=1., a=CLOUD_ALPHA)
-            m.scale.x, m.scale.y, m.scale.z = .68, .68, .44
-            m.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in xyz]
-            m.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=1.) for r, g, b, _ in colors]
-            if not len(xyz):
-                m.action = Marker.DELETE
-            markers.append(m)
+            self.cloud_points, self.cloud_colors = self.highlights.cloud(volume, self.field_display, self.map_layer)
+        else:
+            self.cloud_points, self.cloud_colors = np.empty((0, 3)), np.empty((0, 4))
         for index, (name, points, color) in enumerate((
                 ('planned path', metrics.get('planned_path', []), ColorRGBA(r=.1, g=1., b=.2, a=1.)),
                 ('travelled path', trail, ColorRGBA(r=.2, g=.6, b=1., a=1.)),
@@ -209,11 +226,8 @@ class Visualization:
         else:
             self.position(target, (xyz[0], xyz[1], xyz[2]+.15))
         markers.append(target)
-        if volume is None:
-            m = self.marker('gp', 0, Marker.SPHERE_LIST)
-            m.action = Marker.DELETE
-            markers.append(m)
-        self.mission.publish(MarkerArray(markers=markers))
+        self.other_mission_markers = markers
+        self.mission.publish(MarkerArray(markers=self.cloud_markers()+markers))
 
     def update_dashboard(self, metrics, sample, budget, rate_limit):
         """Small 2 Hz telemetry message, independent of the expensive map payload."""
@@ -222,11 +236,11 @@ class Visualization:
             self.highlights.observe(sample)
         xyz, measured_rates = self.highlights.confirmed()
         evidence = self.marker('above_background_counts', 0, Marker.CUBE_LIST)
-        evidence.color = ColorRGBA(r=1., g=1., b=1., a=1.)
-        evidence.scale.x = evidence.scale.y = evidence.scale.z = .14
+        evidence.color = ColorRGBA(r=1., g=1., b=1., a=.65)
+        evidence.scale.x = evidence.scale.y = evidence.scale.z = .08
         evidence.points = [Point(x=float(x), y=float(y), z=float(z)) for x, y, z in xyz]
         evidence.colors = [ColorRGBA(r=float(r), g=float(g), b=float(b), a=float(a))
-                           for r, g, b, a in self.highlights.colors(measured_rates, .95)]
+                            for r, g, b, a in self.highlights.colors(measured_rates, 1.)]
         if not len(xyz):
             evidence.action = Marker.DELETE
         self.detections.publish(MarkerArray(markers=[evidence]))
@@ -258,7 +272,8 @@ class Visualization:
         legend.scale.z = .12
         legend.color = ColorRGBA(r=.8, g=.85, b=.95, a=1.)
         layer = ('GP uncertainty (std log-rate 0..2)' if self.map_layer == 'uncertainty' else
-                  'Radiation excess: yellow low / red high | translucent cloud = GP display, cubes = count evidence')
+                   'Radiation excess: yellow low / red high | GP haze fades near robot; small cubes = counts')
+        layer += '\nRobot visibility fade is display-only, NOT a low-radiation zone'
         if self.field_display == 'detected':
             layer += f'\nAbove background {self.highlights.background:g} uSv/h, near confirmed detections; blank is NOT proof of safety'
         legend.text = layer+'\nGreen: plan + target | Blue: travelled | Amber: estimated return'

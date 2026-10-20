@@ -184,9 +184,12 @@ The default field now contains **point-source hotspots and localized leaks**.
 Use `--show-sources` for red hotspot/amber leak markers, or omit it to display
 only the learned GP map. [Source locations, strengths and configuration](docs/DOUGIE_SOURCES.md).
 
-Radiation is displayed as an overlapping **translucent cloud**, yellow at lower
-estimated excess and red at higher excess. Measured count evidence remains marked
-by small cubes. `--show-sources` adds prominent source cores, elevated beacons,
+Radiation is displayed as a **continuous, low-opacity haze**, yellow at lower
+estimated excess and red at higher excess. It fades smoothly near Go2 to keep the
+robot visible; that display fade does **not** indicate a low-radiation zone.
+Measured count evidence remains marked by small cubes.
+[Before/after views and rendering details](docs/DOUGIE_RADIATION_DISPLAY.md).
+`--show-sources` adds prominent source cores, elevated beacons,
 rings and labels; these are diagnostic true-source annotations. The cloud changes
 appearance only, not the field used for route planning.
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from dougie_sim.radiation import RadiationSample
-from dougie_sim.radiation_display import RadiationHighlights
+from dougie_sim.radiation_display import RadiationHighlights, CLOUD_ALPHA, fade_near_robot, opacity_groups
 
 
 def sample(stamp, counts, position=(0., 0., .44)):
@@ -56,9 +56,11 @@ def test_cloud_is_local_translucent_and_does_not_modify_posterior():
     assert len(display.cloud(volume)[0]) == 0
     display.observe(sample(.5, 100))
     points, colors = display.cloud(volume)
-    assert len(points) == 7
-    assert np.all(np.linalg.norm(points-query[0], axis=1) <= .3)
-    assert np.all((colors[:, 3] > 0) & (colors[:, 3] < .3))
+    assert len(points) == 27
+    assert np.all(np.linalg.norm(points-query[0], axis=1) <= .32)
+    assert np.all((colors[:, 3] > 0) & (colors[:, 3] <= CLOUD_ALPHA))
+    # Diagonals are populated instead of leaving seven disconnected star lobes.
+    assert np.any((np.abs(points[:, 0]) > .1) & (np.abs(points[:, 1]) > .1))
     for actual, expected in zip(volume, original):
         np.testing.assert_array_equal(actual, expected)
 
@@ -83,6 +85,10 @@ def test_cloud_payload_and_mujoco_geometry_are_bounded():
     draw_overlay(scene, volume, {}, [], controls, 100.)
     assert scene.ngeom <= scene.maxgeom
     assert any('TRUE SOURCE' in scene.geoms[i].label for i in range(scene.ngeom))
+    controls.show_sources = False
+    draw_overlay(scene, volume, {}, [], controls, 100.)
+    assert scene.ngeom > 0
+    assert all(scene.geoms[i].category == mujoco.mjtCatBit.mjCAT_DECOR for i in range(scene.ngeom))
 
 
 def test_cloud_interpolates_local_gradient_without_connecting_floors():
@@ -94,3 +100,38 @@ def test_cloud_interpolates_local_gradient_without_connecting_floors():
     green = colors[row, 1][np.argsort(points[row, 0])]
     assert np.all(np.diff(green) <= 1e-12) and green[0] > green[-1]
     assert not np.any((points[:, 2] > .8) & (points[:, 2] < 2.5))
+
+
+def test_robot_fade_is_smooth_local_and_does_not_modify_radiation_colors():
+    points = np.array([[x, 0., .3] for x in (0., .75, .9, 1.1, 1.5)])
+    colors = RadiationHighlights().colors(np.full(5, 10.), CLOUD_ALPHA)
+    original = colors.copy()
+    faded = fade_near_robot(points, colors, [0., 0., .3])
+    np.testing.assert_array_equal(colors, original)
+    np.testing.assert_array_equal(faded[:, :3], colors[:, :3])
+    assert np.all(faded[:2, 3] == 0.)
+    assert np.all(np.diff(faded[1:, 3]) > 0.)
+    assert faded[-1, 3] == CLOUD_ALPHA
+    assert fade_near_robot(np.array([[0., 0., 2.7]]), colors[:1], [0., 0., .3])[0, 3] == CLOUD_ALPHA
+    for alpha, indices in opacity_groups(faded):
+        assert np.all(alpha <= faded[indices, 3]+1e-12)
+
+
+def test_rviz_alpha_batches_follow_robot_and_delete_stale_clouds():
+    from types import SimpleNamespace as S
+    from builtin_interfaces.msg import Time
+    from visualization_msgs.msg import Marker
+    from dougie_sim.rviz_visualization import Visualization
+    visual = Visualization.__new__(Visualization)
+    visual.bridge = S(sim=S(data=S(qpos=np.array([0., 0., .3]))), stamp=lambda: Time())
+    visual.cloud_points = np.array([[0., 0., .3], [3., 0., .3]])
+    visual.cloud_colors = RadiationHighlights().colors([10., 10.], CLOUD_ALPHA)
+    markers = visual.cloud_markers()
+    assert len(markers) == 8
+    assert sum(len(m.points) for m in markers) == 1
+    assert markers[-1].points[0].x == 3.
+    visual.bridge.sim.data.qpos[0] = 3.
+    moved = visual.cloud_markers()
+    assert sum(len(m.points) for m in moved) == 1 and moved[-1].points[0].x == 0.
+    visual.cloud_points, visual.cloud_colors = np.empty((0, 3)), np.empty((0, 4))
+    assert all(m.action == Marker.DELETE for m in visual.cloud_markers())

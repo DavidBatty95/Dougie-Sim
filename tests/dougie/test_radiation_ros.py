@@ -75,9 +75,15 @@ def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path,
         else:
             assert all(m.ns != 'sources' for m in scenes[-1].markers)
         assert detections and any(m.points for batch in detections for m in batch.markers)
-        assert any(m.ns == 'gp' and len(m.points) == len(m.colors) > 0 for m in maps[-1].markers)
-        assert all(len(m.points) <= 1200 for batch in maps for m in batch.markers if m.ns == 'gp')
-        assert all(m.scale.x == .68 and 0 < m.color.a < .3
+        # A short mission can have every detected cell inside the robot fade.
+        # Its posterior topic above must remain populated; display batches may
+        # legitimately delete all local haze rather than obscure the robot.
+        gp_markers = [m for m in maps[-1].markers if m.ns == 'gp']
+        assert {m.id for m in gp_markers} == set(range(8))
+        assert all(len(m.points) == len(m.colors) for m in gp_markers)
+        assert all(m.action == m.DELETE for m in gp_markers if not m.points)
+        assert all(sum(len(m.points) for m in batch.markers if m.ns == 'gp') <= 1200 for batch in maps)
+        assert all(m.scale.x == .48 and 0 < m.color.a <= .018001
                    for batch in maps for m in batch.markers if m.ns == 'gp')
         assert any(m.ns == 'return route' for m in maps[-1].markers)
         assert any(m.ns == 'exploration target' for m in maps[-1].markers)

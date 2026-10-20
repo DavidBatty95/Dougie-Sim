@@ -43,7 +43,7 @@ class DemoRecorder:
         if self.view == 'routes':
             display_controls.regions = False
         draw_overlay(self.renderer.scene, map_view if self.view == 'field' else None,
-                     metrics, trail, display_controls, rate_limit, reset=False)
+                     metrics, trail, display_controls, rate_limit, reset=False, robot_position=sim.data.qpos[:3])
         image = Image.new('RGB', (640, 490), '#0b1724')
         image.paste(Image.fromarray(self.renderer.render()), (0, 42))
         draw = ImageDraw.Draw(image)
@@ -51,7 +51,7 @@ class DemoRecorder:
         dose, rate = (sample.dose_usv, sample.rate_usv_h) if sample is not None else (0., 0.)
         draw.text((14, 410), f't={sim.data.time:.1f}s   measured {rate:.2f} uSv/h   dose {dose:.3f}/{budget:g} uSv', fill='white', font=self.font)
         draw.text((14, 438), f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m2 | cyan route / green return", fill='#a7bdcf', font=self.font)
-        layer = f'{controls.layer} field | region markers' if self.view == 'field' else 'Route view | field overlay hidden'
+        layer = f'{controls.layer} haze | robot visibility fade' if self.view == 'field' else 'Route view | field overlay hidden'
         draw.text((14, 464), f"{layer} | {self.interval/.1:.1f}x simulated-time playback", fill='#a7bdcf', font=self.font)
         self.frames.append(image)
         self.stamps.append(float(sim.data.time))
