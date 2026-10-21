@@ -133,3 +133,34 @@ docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_circuit.p
   --mission-objective circuit --require-circuit --utility-mode information \
   --seed 3 --sensor-seed 0 --fixed-plan-delay .5
 ```
+
+## Validation-driven corrections
+
+The first 600 s robust matrix is retained in
+[the v1 report](results/dougie_robust_budget_600_v1.json). Both 2 uSv runs returned,
+but both 10 uSv runs reached an explicit localization-related terminal stop. No
+loop correction was accepted. The expanded 2 m / 10 uSv observed-circuit matrix
+also completed all four tasks under both utility modes with identical paired
+trajectories ([expanded v1 evidence](results/dougie_robust_circuit_expanded_v1.json)).
+These findings prompted corrections rather than a claim of general improvement:
+
+1. **Observation availability:** detector integration completes at `t + dt`.
+   Robust planning now waits until that timestamp before submitting a window.
+   Previously a window could be labelled stale because it was 5 ms in the future,
+   unnecessarily triggering recovery. Deferred counts remain queued and are
+   assimilated once; the legacy profile preserves its original comparator timing.
+2. **Distant-wall observability:** normal extraction now accounts for actual beam
+   angular spacing and measured range, with one-sided-plane agreement rejecting
+   discontinuities. A fixed .6 m neighbour cutoff had discarded distant wall
+   structure. Registration columns are normalized before testing rank so a large
+   floor's rotational leverage does not suppress smaller wall constraints.
+3. **Localization return reserve:** the worker requests return at a .18 m
+   heuristic position-standard-deviation allowance, before the .3 m motion-stop
+   threshold. Full six-direction observability is required before accepting a
+   loop correction that resets the scalar drift allowance.
+
+Verification after these changes: **239 tests passed**, including future-window
+deferral without loss, sparse-elevation wall normals, small wall constraints beside
+a large floor, and proactive return before the localization stop threshold.
+These are heuristic safeguards; they do not establish calibrated covariance or
+independently qualified loop-closing SLAM. Fresh mission results follow separately.

@@ -110,7 +110,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         root = self.terrain.nearest(position)
         self.rejections = dict(distance=0, failed=0, dose=0, rate=0, return_route=0, time=0)
         self.route_forecast = {}
-        if self.sample is None or not 0. <= stamp-self.sample.stamp_s <= 1.5:
+        if self.sample is None or not -1e-9 <= stamp-self.sample.stamp_s <= 1.5:
             self.path = []
             self.state, self.last_reason = 'waiting_for_radiation', 'stale_radiation_sample'
             return

@@ -81,7 +81,7 @@ def failure_reason(explorer, packet, stamp, localization, stalled, execution_sta
         if (not localization.get('initialized', False) or localization.get('rejection_streak', 0) >= 5
                 or max(localization.get('position_std_m', [0.])) > .3):
             return 'localization_unreliable'
-    if explorer.sample is None or not 0. <= stamp-explorer.sample.stamp_s <= 1.5:
+    if explorer.sample is None or not -1e-9 <= stamp-explorer.sample.stamp_s <= 1.5:
         return 'stale_radiation'
     if not 0. <= stamp-packet.stamp_s <= .75:
         return 'stale_range'

@@ -78,3 +78,16 @@ def test_lidar_fault_is_missing_measurements_not_fake_clear_space():
     occupancy = VoxelEvidence()
     occupancy.update(packet)
     assert not occupancy.evidence
+
+
+def test_detector_windows_are_deferred_until_available_not_misclassified_as_stale():
+    from dougie_sim.radiation import Detector, available_samples
+    detector = Detector(3)
+    for i in range(100):
+        sample = detector.integrate([0., 0., .4], 10., .005, (i+1)*.005)
+    ready, pending = available_samples([sample], .495)
+    assert not ready and pending == [sample]
+    ready, pending = available_samples(pending, .5)
+    assert ready == [sample] and not pending
+    explorer = S(sample=ready[0], state='exploring', path=[np.zeros(3)])
+    assert failure_reason(explorer, S(stamp_s=.4), .5, {}, False, 'tracking') is None

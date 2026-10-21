@@ -130,3 +130,39 @@ def test_same_graph_cell_still_executes_checked_final_home_approach():
     planner.replan(np.array([.24, .24, 0.]), 1.)
     assert planner.state == 'returning' and planner.path
     np.testing.assert_allclose(planner.path[-1], planner.home)
+
+
+def test_sparse_elevation_wall_normals_are_not_discarded_by_fixed_distance_cutoff():
+    from dougie_sim.scan_geometry import registration_cloud
+    a, e = np.meshgrid(np.linspace(-.4, .4, 41), np.array([-.15, 0., .15, .35, .6]))
+    directions = np.stack((np.cos(e)*np.cos(a), np.cos(e)*np.sin(a), np.sin(e)), axis=-1)
+    distances = 3./directions[:, :, 0]
+    packet = RangePacket(1., 0, np.zeros(3), directions, distances, 6., np.zeros(a.shape, bool))
+    points, normals = registration_cloud(packet)
+    assert len(points) >= 100
+    np.testing.assert_allclose(points[:, 0], 3., atol=1e-9)
+    assert np.all(np.abs(normals[:, 0]) > .99)
+
+
+def test_registration_keeps_small_wall_constraints_beside_a_large_floor():
+    points, normals = corner_cloud()
+    # A large floor's rotational lever arm used to dominate the unscaled rank
+    # cutoff, losing valid horizontal wall constraints.
+    floor = points[-441:]*5.
+    points = np.concatenate((points[:882:12], floor))
+    normals = np.concatenate((normals[:882:12], normals[-441:]))
+    result = register(points, normals, points, normals, np.array([.04, .03, .02]), np.eye(3))
+    assert result.accepted and result.observable_rank == 6
+    np.testing.assert_allclose(result.position, np.zeros(3), atol=.005)
+
+
+def test_pose_allowance_requests_return_before_motion_stop_threshold():
+    from dougie_sim import planning_worker as worker
+    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'conservative',
+                      options=dict(consistent_mapping=True, display_prediction=False))
+    sample = RadiationSample(.5, (0., 0., .4), 5, .5, .72, .1, .001, .002)
+    worker.plan([sample], floor_packet(), np.zeros(3), .5, False)
+    _, state, metrics, _ = worker.plan([replace(sample, stamp_s=1.5)], floor_packet(1.5), np.array([.5, 0., 0.]),
+        1.5, False, localization=dict(initialized=True, position_std_m=[.19]*3, conditional_position_std_m=[.003]*3))
+    assert state.startswith('return')
+    assert metrics['decision_reason'] == 'localization_return_reserve'

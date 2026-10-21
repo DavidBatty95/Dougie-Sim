@@ -173,16 +173,20 @@ class FusedOdometry:
         self.last_scan_stamp = local.stamp_s
         if not self.initialized:
             return
-        points = local.origin+local.directions*local.distances[..., None]
-        a = np.roll(points, 1, axis=1)-np.roll(points, -1, axis=1)
-        b = np.roll(points, 1, axis=0)-np.roll(points, -1, axis=0)
-        normals = np.cross(a, b)
-        lengths = np.linalg.norm(normals, axis=2)
-        valid = local.valid & np.roll(local.valid, 1, axis=0) & np.roll(local.valid, -1, axis=0)
-        valid &= np.roll(local.valid, 1, axis=1) & np.roll(local.valid, -1, axis=1)
-        valid &= (lengths > 1e-5) & (np.linalg.norm(a, axis=2) < .6) & (np.linalg.norm(b, axis=2) < .6)
-        valid[[0, -1]] = False
-        points, normals = points[valid], normals[valid]/lengths[valid, None]
+        if self.robust:
+            from .scan_geometry import registration_cloud
+            points, normals = registration_cloud(local)
+        else:
+            points = local.origin+local.directions*local.distances[..., None]
+            a = np.roll(points, 1, axis=1)-np.roll(points, -1, axis=1)
+            b = np.roll(points, 1, axis=0)-np.roll(points, -1, axis=0)
+            normals = np.cross(a, b)
+            lengths = np.linalg.norm(normals, axis=2)
+            valid = local.valid & np.roll(local.valid, 1, axis=0) & np.roll(local.valid, -1, axis=0)
+            valid &= np.roll(local.valid, 1, axis=1) & np.roll(local.valid, -1, axis=1)
+            valid &= (lengths > 1e-5) & (np.linalg.norm(a, axis=2) < .6) & (np.linalg.norm(b, axis=2) < .6)
+            valid[[0, -1]] = False
+            points, normals = points[valid], normals[valid]/lengths[valid, None]
         if len(points) < 40:
             self.scan_rejections += 1
             self.rejection_streak += 1
@@ -294,7 +298,7 @@ class FusedOdometry:
         anchor = min(candidates, key=lambda frame: frame.stamp)
         target, target_normals = anchor.world()
         fit = register(points, normals, target, target_normals, self.position, self.rotation, .4, .15)
-        if not fit.accepted or fit.observable_rank < 5 or fit.inlier_fraction < .55 or fit.rmse > .025:
+        if not fit.accepted or fit.observable_rank < 6 or fit.inlier_fraction < .55 or fit.rmse > .025:
             self.loop_candidate = None
             return
         R = fit.rotation@self.rotation.T

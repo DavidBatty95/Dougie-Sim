@@ -42,13 +42,24 @@ def register(points, normals, target, target_normals, position, rotation, max_tr
             robust = np.minimum(1., .025/np.maximum(np.abs(residual), 1e-8))
             A = np.column_stack((n, np.cross(rotated[keep], n)))
             H = A.T@(robust[:, None]*A)
-            eigenvalues, vectors = np.linalg.eigh(H)
-            observable = eigenvalues > max(2., eigenvalues[-1]*.01)
+            # Translation and rotation columns have different lever-arm scales.
+            # Normalize before testing rank so a large floor does not erase a
+            # smaller but informative wall direction. Truly unsupported columns
+            # and correlated/degenerate directions still remain unobservable.
+            supported = np.diag(H) > 2.
+            scale = np.sqrt(np.maximum(np.diag(H), 1.))
+            normalized = H/np.outer(scale, scale)
+            normalized[~supported, :] = 0.
+            normalized[:, ~supported] = 0.
+            eigenvalues, vectors = np.linalg.eigh(normalized)
+            observable = eigenvalues > .015
             rank = int(observable.sum())
             if rank < 3:
                 reason = 'degenerate_registration'
                 break
-            delta = vectors@(np.where(observable, 1./np.maximum(eigenvalues, 1e-8), 0.)*(vectors.T@(A.T@(robust*residual))))
+            gradient = A.T@(robust*residual)/scale
+            gradient[~supported] = 0.
+            delta = (vectors@(np.where(observable, 1./np.maximum(eigenvalues, 1e-8), 0.)*(vectors.T@gradient)))/scale
             p += delta[:3]
             R = Rotation.from_rotvec(delta[3:]).as_matrix()@R
             if np.linalg.norm(p-original_p) > max_translation or Rotation.from_matrix(R@original_R.T).magnitude() > max_rotation:
@@ -57,7 +68,7 @@ def register(points, normals, target, target_normals, position, rotation, max_tr
             if rmse > .08:
                 reason = 'registration_residual_limit'
                 break
-            reason = 'registered' if rank >= 5 else 'weak_geometry'
+            reason = 'registered' if rank == 6 else 'weak_geometry'
             if np.linalg.norm(delta) < 1e-4:
                 break
         # Score the final pose rather than the pre-update residual.

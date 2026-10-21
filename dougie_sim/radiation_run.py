@@ -19,7 +19,7 @@ from threadpoolctl import threadpool_limits
 from .assets import ROOT, ensure_assets
 from . import planning_worker
 from .demo_overlay import DemoControls, update_viewer
-from .radiation import Detector, RadiationField
+from .radiation import Detector, RadiationField, available_samples
 from .reactor import radiation_description
 from .source_config import DEFAULT_SOURCE_CONFIG
 from .simulation import Simulation, rotation
@@ -443,7 +443,10 @@ def main():
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
             stalled = stamp-last_progress_stamp > 15.
-            if terminal_stop is None and future is None and samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
+            ready_samples, future_samples = [], samples
+            if terminal_stop is None and future is None and stamp-last_plan >= 2.:
+                ready_samples, future_samples = available_samples(samples, stamp) if args.navigation_profile == 'robust' else (samples, [])
+            if terminal_stop is None and future is None and ready_samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
                 lidar_started = time.perf_counter()
                 packet = mapped_packet if odometry else sim.lidar_packet()
                 if args.mission_objective == 'circuit' and odometry is None:
@@ -454,12 +457,12 @@ def main():
                 landmark_observations = () if odometry else landmark_sensor.scan(sim)
                 if visualization:
                     visualization.update_landmarks(landmark_sensor.packets())
-                future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
+                future = pool.submit(planning_worker.plan, ready_samples, packet, position.copy(), stamp, stalled,
                                      landmark_observations, observed_plan_delay,
                                      odometry.yaw if odometry else math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]),
                                      tuple(odometry.corrections) if odometry else (), odometry.metrics() if odometry else None,
                                      follower.status if args.path_mode == 'smooth' else None)
-                samples = []
+                samples = future_samples
                 last_plan = stamp
                 if stalled:
                     last_progress_stamp = stamp

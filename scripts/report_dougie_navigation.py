@@ -33,12 +33,13 @@ def main():
                 'landmarks', 'error', 'true_dose_usv', 'path_length_m', 'mapped_surface_area_m2',
                 'turning_in_place_s', 'target_switches', 'nonfoot_contacts', 'worker_p95_ms',
                 'worker_phase_p95_ms', 'wall_time_s', 'physical_witness', 'region_agenda', 'source_sha256',
-                'localization', 'localization_evaluation', 'gp', 'information_contract')
+                'localization', 'localization_evaluation', 'gp', 'information_contract', 'map_consistency',
+                'recovery', 'terminal_stop', 'post_stop_true_dose_usv', 'count_calibration', 'circuit_mission_completed')
         report['missions'].append(dict(run=run.name, summary_sha256=summary_hash,
             config_sha256=config_hash, configuration={k: config.get(k) for k in
                 ('world', 'seed', 'layout_seed', 'duration', 'dose_budget', 'gp_mode', 'path_mode',
                  'mission_objective', 'region_scheduling', 'fixed_plan_delay', 'ros', 'fast',
-                 'localization', 'sensor_seed', 'detector_likelihood')},
+                 'localization', 'sensor_seed', 'detector_likelihood', 'navigation_profile', 'utility_mode')},
             simulated_time_s=summary['simulation']['simulation_time_s'], return_forecast=forecast,
             **{k: summary.get(k) for k in keys}))
     for path in args.gp_replays:

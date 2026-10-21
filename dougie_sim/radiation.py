@@ -116,6 +116,18 @@ class RadiationSample:
     position_valid: bool = True
 
 
+def available_samples(samples, stamp):
+    """Separate completed windows from measurements not available at this tick.
+
+    Detector integration finishes at t+dt; planning at t must wait until that
+    timestamp instead of submitting a future sample or declaring it stale.
+    """
+    if not math.isfinite(stamp):
+        raise ValueError('invalid observation availability timestamp')
+    return ([s for s in samples if s.stamp_s <= stamp+1e-9],
+            [s for s in samples if s.stamp_s > stamp+1e-9])
+
+
 class Detector:
     def __init__(self, seed=1, counts_per_usv=50000., period=.5):
         self.rng = np.random.default_rng(seed)
