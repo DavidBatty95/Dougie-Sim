@@ -83,6 +83,7 @@ def main():
     radiation.add_argument('--record-view', choices=('field', 'routes'), default='field')
     radiation.add_argument('--sensor-seed', type=int, default=0)
     radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
+    radiation.add_argument('--slam-backend', choices=('distributed', 'pose-graph'))
     radiation.add_argument('--lidar-dropout-after', type=float)
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
     radiation.add_argument('--fixed-plan-delay', type=float, help='headless fast reproducible planning schedule')
@@ -196,6 +197,8 @@ def main():
             command += ['--lidar-dropout-after', str(args.lidar_dropout_after)]
         if args.utility_mode:
             command += ['--utility-mode', args.utility_mode]
+        if args.slam_backend:
+            command += ['--slam-backend', args.slam_backend]
         if args.require_circuit:
             command.append('--require-circuit')
         command += ['--gp-mode', args.gp_mode, '--gp-expert-capacity', str(args.gp_expert_capacity),

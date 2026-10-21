@@ -136,6 +136,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     explorer = _explorer
     explorer.map_consistency = _journal.metrics() if _journal else dict(map_revision=0)
     explorer.localization = localization or {}
+    if ((localization or {}).get('pose_graph') or {}).get('saturated', False):
+        explorer.returning, explorer.last_reason = True, 'pose_graph_capacity'
     if _options.get('consistent_mapping') and max((localization or {}).get('position_std_m', [0.])) >= .18:
         explorer.returning, explorer.last_reason = True, 'localization_return_reserve'
     if _journal and _journal.saturated:

@@ -50,7 +50,9 @@ def leg_kinematics(joints, velocities):
 
 
 class FusedOdometry:
-    def __init__(self, map_capacity=20000, robust=True):
+    def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed'):
+        if slam_backend not in ('distributed', 'pose-graph') or (not robust and slam_backend != 'distributed'):
+            raise ValueError('pose-graph localization requires the robust navigation profile')
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -81,6 +83,9 @@ class FusedOdometry:
         self.loop_candidate = None
         self.loop_closure_enabled = True
         self.anchor_revalidations = 0
+        self.slam_backend = slam_backend
+        from .pose_graph import PoseGraph
+        self.pose_graph = PoseGraph() if slam_backend == 'pose-graph' else None
 
     def update(self, observation):
         t = observation.stamp_s
@@ -279,6 +284,8 @@ class FusedOdometry:
         if (last is None or np.linalg.norm(self.position-last.position) > .6
                 or Rotation.from_matrix(self.rotation@last.rotation.T).magnitude() > .35 or stamp-last.stamp > 12.):
             self.keyframes.append(Keyframe(stamp, self.position.copy(), self.rotation.copy(), points.copy(), normals.copy(), self.drift_variance))
+            if self.pose_graph is not None:
+                self.pose_graph.add_pose(stamp, self.position, self.rotation)
             if len(self.keyframes) > 64:
                 del self.keyframes[8]  # Retain initial anchors plus recent submaps.
         # Compatibility/diagnostics only; registration uses immutable keyframes.
@@ -311,7 +318,7 @@ class FusedOdometry:
         if (previous is None or previous[0] != anchor.stamp or stamp-previous[3] > 5.
                 or np.linalg.norm(previous[1]-rv) > .03 or np.linalg.norm(previous[2]-t) > .08):
             return
-        if small:
+        if small and self.pose_graph is None:
             # A confirmed near-zero loop match is still useful evidence against
             # accumulated drift. Do not force a pointless pose/map correction,
             # but do not ignore the old anchor merely because pose already agrees.
@@ -319,8 +326,20 @@ class FusedOdometry:
             self.last_loop_stamp, self.loop_candidate = stamp, None
             self.anchor_revalidations += 1
             return
-        event = MapCorrection(self.map_revision+1, max(anchor.stamp, self.last_loop_stamp), stamp, tuple(rv), tuple(t))
-        self.position, self.rotation = fit.position, fit.rotation
+        if self.pose_graph is not None:
+            event = self.pose_graph.close_loop(anchor.stamp, stamp, self.position, self.rotation,
+                fit.position, fit.rotation, self.map_revision+1)
+            if event is None:
+                self.loop_candidate = None
+                return
+            self.position = self.pose_graph.poses[-1].position.copy()
+            self.rotation = self.pose_graph.poses[-1].rotation.copy()
+            R, _ = event.transform(stamp)
+            if small:
+                self.anchor_revalidations += 1
+        else:
+            event = MapCorrection(self.map_revision+1, max(anchor.stamp, self.last_loop_stamp), stamp, tuple(rv), tuple(t))
+            self.position, self.rotation = fit.position, fit.rotation
         self.velocity = R@self.velocity
         transform = np.zeros((6, 6))
         transform[:3, :3] = transform[3:, 3:] = R
@@ -349,6 +368,7 @@ class FusedOdometry:
             scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map),
             robust=self.robust, map_revision=self.map_revision, keyframes=len(self.keyframes),
             anchor_revalidations=self.anchor_revalidations,
+            slam_backend=self.slam_backend, pose_graph=self.pose_graph.metrics() if self.pose_graph is not None else None,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,
             last_good_scan_s=self.last_good_scan,

@@ -55,6 +55,7 @@ def main():
     parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
+    parser.add_argument('--slam-backend', choices=('distributed', 'pose-graph'), help='pose-graph for robust fusion; distributed retains the previous correction model')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
@@ -97,6 +98,9 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    args.slam_backend = args.slam_backend or ('pose-graph' if args.navigation_profile == 'robust' else 'distributed')
+    if args.slam_backend == 'pose-graph' and args.navigation_profile != 'robust':
+        parser.error('--slam-backend pose-graph requires --navigation-profile robust')
     args.utility_mode = args.utility_mode or 'legacy'
     if not math.isfinite(args.circuit_radius) or not 1. <= args.circuit_radius <= 3.:
         parser.error('--circuit-radius must be between 1 and 3 metres')
@@ -161,7 +165,7 @@ def main():
             parser.error('fused missions currently require the proprioceptive policy contract')
         from .odometry import FusedOdometry
         from .onboard_sensors import OnboardSensors
-        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust'), OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
+        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust', slam_backend=args.slam_backend), OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
     local_packet = None
@@ -570,6 +574,8 @@ def main():
         measurements.close()
         localization_log.close()
         correction_log.close()
+        if odometry and odometry.pose_graph is not None:
+            (output/'pose_graph.json').write_text(json.dumps(odometry.pose_graph.archive(), indent=2, allow_nan=False)+'\n')
         witness.save(output/'motion_trace.npz')
         if map_view is None and explorer.terrain.nodes:
             nodes = np.asarray(list(explorer.terrain.nodes.values()))

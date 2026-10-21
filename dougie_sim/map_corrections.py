@@ -1,10 +1,12 @@
-"""Versioned, time-distributed SE(3) corrections for onboard observation history.
+"""Versioned SE(3) corrections for onboard observation history.
 
 Loop registration supplies the endpoint transform. Distributing it between an
-unchanged anchor and the current scan is an approximation, not pose-graph SLAM.
+unchanged anchor and the current scan is the historical approximation. Optional
+optimized keyframe knots carry pose-graph corrections instead of that linear warp.
 Every consumer uses the same transform and revision; counts/durations never change.
 """
 from dataclasses import dataclass, replace
+from functools import cached_property
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -19,13 +21,41 @@ class MapCorrection:
     end_s: float
     rotation_vector: tuple
     translation: tuple
+    knots: tuple = ()
 
     def __post_init__(self):
         if (self.revision < 1 or not np.isfinite([self.start_s, self.end_s, *self.rotation_vector, *self.translation]).all()
                 or self.end_s <= self.start_s or len(self.rotation_vector) != 3 or len(self.translation) != 3):
             raise ValueError('invalid map correction')
+        object.__setattr__(self, 'rotation_vector', tuple(map(float, self.rotation_vector)))
+        object.__setattr__(self, 'translation', tuple(map(float, self.translation)))
+        if self.knots:
+            knots = np.asarray(self.knots, dtype=float)
+            if (knots.ndim != 2 or knots.shape[1] != 7 or len(knots) < 2 or not np.isfinite(knots).all()
+                    or np.any(np.diff(knots[:, 0]) <= 0) or abs(knots[0, 0]-self.start_s) > 1e-9
+                    or abs(knots[-1, 0]-self.end_s) > 1e-9 or np.linalg.norm(knots[0, 1:]) > 1e-8
+                    or not np.allclose(knots[-1, 1:], [*self.rotation_vector, *self.translation], atol=1e-9)):
+                raise ValueError('invalid pose-graph correction knots')
+            object.__setattr__(self, 'knots', tuple(tuple(map(float, row)) for row in knots))
+
+    @cached_property
+    def _knot_data(self):
+        values = np.asarray(self.knots, dtype=float)
+        rotations = Rotation.from_rotvec(values[:, 1:4]).as_matrix()
+        relative = Rotation.from_matrix(rotations[1:]@np.swapaxes(rotations[:-1], 1, 2)).as_rotvec()
+        return values, rotations, relative
 
     def transform(self, stamp):
+        if self.knots:
+            values, rotations, relative = self._knot_data
+            if stamp <= values[0, 0]:
+                return rotations[0].copy(), values[0, 4:].copy()
+            if stamp >= values[-1, 0]:
+                return rotations[-1].copy(), values[-1, 4:].copy()
+            index = int(np.searchsorted(values[:, 0], stamp, side='right'))-1
+            fraction = (stamp-values[index, 0])/(values[index+1, 0]-values[index, 0])
+            R = Rotation.from_rotvec(relative[index]*fraction).as_matrix()@rotations[index]
+            return R, (1.-fraction)*values[index, 4:]+fraction*values[index+1, 4:]
         fraction = float(np.clip((stamp-self.start_s)/(self.end_s-self.start_s), 0., 1.))
         return Rotation.from_rotvec(np.asarray(self.rotation_vector)*fraction).as_matrix(), np.asarray(self.translation)*fraction
 
