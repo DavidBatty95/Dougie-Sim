@@ -6,6 +6,7 @@ Industrial stair admission is deliberately absent until a policy is qualified.
 """
 import math
 import itertools
+from collections import Counter
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -103,6 +104,7 @@ class LayeredSurfaceMap(SurfaceMap):
         self._footprint_planes = {}
         self._supported_keys = set()
         self.footprints_checked = 0
+        self.fit_rejections = {}
 
     def observe_packet(self, packet):
         if self.last_scan_stamp is not None and packet.stamp_s < self.last_scan_stamp:
@@ -156,6 +158,8 @@ class LayeredSurfaceMap(SurfaceMap):
         horizontal = np.linalg.norm(delta[:, :, :2], axis=2)
         discontinuous = np.any((np.linalg.norm(delta, axis=2) < .15) &
             (np.abs(delta[:, :, 2]) > self.max_slope*horizontal+.008), axis=1)
+        jump_excess = np.where(np.linalg.norm(delta, axis=2) < .15,
+                               np.abs(delta[:, :, 2])-self.max_slope*horizontal, 0.)
         cells = np.floor(points[:, :2]/self.resolution).astype(int)
         columns, first, inverse, counts = np.unique(cells, axis=0, return_index=True,
                                                      return_inverse=True, return_counts=True)
@@ -192,21 +196,33 @@ class LayeredSurfaceMap(SurfaceMap):
             self.observed_surface_cells += len(layers)
             entries = []
             self._candidate_cache[column] = len(layers), entries
+            rejected = self.fit_rejections[column] = []
             xy = centres[column_index]
             indices = support_neighbours[column_index]
             nearby = points[indices]
             for layer in layers:
                 z = float(np.median(layer[:, 2]))
                 if np.any(discontinuous[indices] & (np.abs(nearby[:, 2]-z) < .16)):
+                    bad = np.asarray(indices)[discontinuous[indices] & (np.abs(nearby[:, 2]-z) < .16)]
+                    offender = bad[np.argmax(np.max(jump_excess[bad], axis=1))]
+                    neighbour = neighbours[offender, np.argmax(jump_excess[offender])]
+                    rejected.append(dict(height_m=z, reason='local_discontinuity',
+                        excess_m=float(np.max(jump_excess[offender])),
+                        observed_pair=[points[offender].tolist(), points[neighbour].tolist()]))
                     continue
                 local = nearby[np.abs(nearby[:, 2]-z) < .16]
                 if len(local) < 6:
+                    rejected.append(dict(height_m=z, reason='insufficient_returns', returns=len(local)))
                     continue
                 design = np.column_stack((local[:, :2]-xy, np.ones(len(local))))
                 plane, _, rank, _ = np.linalg.lstsq(design, local[:, 2], rcond=None)
                 if rank < 3 or np.linalg.norm(plane[:2]) > self.max_slope+1e-4:
+                    rejected.append(dict(height_m=z, reason='rank_or_slope', rank=int(rank),
+                                         slope=float(np.linalg.norm(plane[:2]))))
                     continue
                 if np.max(np.abs(design@plane-local[:, 2])) > self.residual_limit:
+                    rejected.append(dict(height_m=z, reason='plane_residual',
+                                         residual_m=float(np.max(np.abs(design@plane-local[:, 2])))))
                     continue
                 blocked = False
                 if hit_tree is not None:
@@ -302,8 +318,23 @@ class LayeredSurfaceMap(SurfaceMap):
         connector = 4. if plane is not None and np.linalg.norm(plane[:2]) > .05 else 0.
         return new_height+connector
 
+    def support_diagnosis(self, position, limit=16):
+        """Bounded, capture-time observed-map diagnostics; never simulator geometry."""
+        xy = np.asarray(position)[:2]
+        columns = sorted(self._candidate_cache, key=lambda key: (math.dist((np.asarray(key)+.5)*self.resolution, xy), key))
+        result = []
+        for column in columns[:limit]:
+            count, entries = self._candidate_cache[column]
+            result.append(dict(xy=((np.asarray(column)+.5)*self.resolution).tolist(), observed_layers=count,
+                rejections=self.fit_rejections.get(column, []),
+                candidates=[dict(height_m=float(point[2]), admission='body_blocked' if blocked else
+                    'admitted' if key in self.nodes else 'footprint_rejected') for key, point, plane, blocked in entries]))
+        return dict(position=np.asarray(position).tolist(), columns=result)
+
     def metrics(self):
         return dict(support_nodes=len(self.nodes), support_returns=len(self.support_returns),
+                    fit_rejections=dict(Counter(item['reason'] for column in self._candidate_cache
+                        for item in self.fit_rejections.get(column, []))),
                     support_capacity=self.support_capacity, fitted_columns=self.fitted_columns, reused_columns=self.reused_columns,
                     footprints_checked=self.footprints_checked,
                     support_cache_saturated=self.support_saturated,

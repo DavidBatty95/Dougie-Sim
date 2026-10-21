@@ -1,0 +1,1406 @@
+{
+  "scope": "development comparisons; varying objectives and observed area; not reliability qualification",
+  "missions": [
+    {
+      "run": "pose_graph_mezz8_recorded",
+      "summary_sha256": "6ed2baea066bfe509aeb3b7c7ed21a9535792f94ee6048bb916131bad25c3618",
+      "trace_sha256": "5a9efd8481791f9cfcca2da359dff82bde0380da838c06d9e27de000b6b5216c",
+      "config_sha256": "2a7909f4c1da6b7f44f2149215253df7403884acbe10072945c8b63d746bdc8d",
+      "configuration": {
+        "world": "mezzanine",
+        "seed": 3,
+        "layout_seed": 0,
+        "duration": 600.0,
+        "dose_budget": 10.0,
+        "gp_mode": "geometry",
+        "path_mode": "smooth",
+        "mission_objective": "survey",
+        "region_scheduling": "hierarchical",
+        "fixed_plan_delay": 0.5,
+        "ros": false,
+        "fast": true,
+        "localization": "fused",
+        "sensor_seed": 0,
+        "detector_likelihood": "window",
+        "navigation_profile": "robust",
+        "utility_mode": "legacy",
+        "lidar_dropout_after": null,
+        "circuit_radius": 1.5,
+        "require_circuit": false,
+        "slam_backend": "pose-graph",
+        "mezzanine_angle": 8.0,
+        "uncertainty_profile": null,
+        "require_round_trip": true
+      },
+      "simulated_time_s": 237.4899999998565,
+      "return_forecast": {
+        "first_return_plan_s": 177.3399999999112,
+        "forecast_s": 111.89528009870884,
+        "actual_remaining_s": 60.149999999945294
+      },
+      "navigation_transitions": [
+        {
+          "time_s": 1.0000000000000007,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            -0.06992654485710707,
+            0.0076236203870907815,
+            0.33692941509132823
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.03314725620873061,
+            0.03314725620873061,
+            0.03314725620873061
+          ],
+          "scan_rmse_m": 0.0072642078322416054,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 374,
+          "planned_path_points": 45,
+          "return_path_points": 4
+        },
+        {
+          "time_s": 3.009999999999958,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            0.24129367755616202,
+            -0.014288563567489811,
+            0.32206972156284336
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.03890244071106638,
+            0.03890244071106638,
+            0.03890244071106638
+          ],
+          "scan_rmse_m": 0.005479323261833798,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 383,
+          "planned_path_points": 40,
+          "return_path_points": 7
+        },
+        {
+          "time_s": 23.0349999999997,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            1.9907099849161627,
+            -0.09306613942104074,
+            0.48098923807158156
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.0634255630009592,
+            0.0634255630009592,
+            0.0634255630009592
+          ],
+          "scan_rmse_m": 0.002057060460559707,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 476,
+          "planned_path_points": 24,
+          "return_path_points": 43
+        },
+        {
+          "time_s": 25.039999999999303,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.186116582680564,
+            -0.0887996417899472,
+            0.48901798560072346
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.06551703439876294,
+            0.06551703439876294,
+            0.06551703439876294
+          ],
+          "scan_rmse_m": 0.0033484601092783894,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 508,
+          "planned_path_points": 22,
+          "return_path_points": 46
+        },
+        {
+          "time_s": 37.055000000000504,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.9347430245898334,
+            -0.10079254736473409,
+            0.6029702606245398
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.0732582698589579,
+            0.0732582698589579,
+            0.0732582698589579
+          ],
+          "scan_rmse_m": 0.0015904591712020623,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 525,
+          "planned_path_points": 22,
+          "return_path_points": 63
+        },
+        {
+          "time_s": 39.05500000000153,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            3.1763610548457057,
+            -0.0462446977609486,
+            0.6288508490469757
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.07569432953126179,
+            0.07569432953126179,
+            0.07569432953126179
+          ],
+          "scan_rmse_m": 0.0038711768708835402,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 569,
+          "planned_path_points": 18,
+          "return_path_points": 67
+        },
+        {
+          "time_s": 45.0550000000046,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            3.794694163206106,
+            0.07955211386831199,
+            0.7323351329965578
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.08122027937246093,
+            0.08122027937246093,
+            0.08122027937246093
+          ],
+          "scan_rmse_m": 0.0019658587311672257,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 592,
+          "planned_path_points": 16,
+          "return_path_points": 81
+        },
+        {
+          "time_s": 47.05500000000562,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            3.982809480606855,
+            0.018537308149779167,
+            0.7460509514396372
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.08316196196735472,
+            0.08316196196735472,
+            0.08316196196735472
+          ],
+          "scan_rmse_m": 0.00223755987602746,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 615,
+          "planned_path_points": 13,
+          "return_path_points": 84
+        },
+        {
+          "time_s": 51.05500000000767,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.403865140992472,
+            -0.07587757733197999,
+            0.8152552422731271
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.08668661121075746,
+            0.08668661121075746,
+            0.08668661121075746
+          ],
+          "scan_rmse_m": 0.0017979659195603366,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 720,
+          "planned_path_points": 20,
+          "return_path_points": 92
+        },
+        {
+          "time_s": 53.05500000000869,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.542181556994534,
+            -0.07601863849494804,
+            0.8201424057922654
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.08812087744095753,
+            0.08812087744095753,
+            0.08812087744095753
+          ],
+          "scan_rmse_m": 0.0023212533729324966,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 766,
+          "planned_path_points": 18,
+          "return_path_points": 94
+        },
+        {
+          "time_s": 67.0650000000115,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            5.193040578967268,
+            -0.09296598882470312,
+            0.928603163216126
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.09377953479891231,
+            0.09377953479891231,
+            0.09377953479891231
+          ],
+          "scan_rmse_m": 0.001774293076390361,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 879,
+          "planned_path_points": 20,
+          "return_path_points": 110
+        },
+        {
+          "time_s": 69.07000000000967,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            5.328551199458351,
+            -0.09753626168350558,
+            0.9284977044709032
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.09499312081888264,
+            0.09499312081888264,
+            0.09499312081888264
+          ],
+          "scan_rmse_m": 0.0015725835274278614,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 898,
+          "planned_path_points": 18,
+          "return_path_points": 111
+        },
+        {
+          "time_s": 77.09000000000238,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            5.993668063978953,
+            -0.09027484348225491,
+            1.026823463882867
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.10000927320065377,
+            0.10000927320065377,
+            0.10000927320065377
+          ],
+          "scan_rmse_m": 0.0020245156677662596,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1018,
+          "planned_path_points": 15,
+          "return_path_points": 126
+        },
+        {
+          "time_s": 79.09500000000055,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            6.066456201581535,
+            0.05634342775661195,
+            1.0051307279927448
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.10196297722997931,
+            0.10196297722997931,
+            0.10196297722997931
+          ],
+          "scan_rmse_m": 0.002495201897429402,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1030,
+          "planned_path_points": 13,
+          "return_path_points": 127
+        },
+        {
+          "time_s": 83.1049999999969,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            6.225340107118436,
+            0.42160448211928486,
+            1.0403604325695524
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.1048752391741937,
+            0.1048752391741937,
+            0.1048752391741937
+          ],
+          "scan_rmse_m": 0.0022203220719115902,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1034,
+          "planned_path_points": 90,
+          "return_path_points": 132
+        },
+        {
+          "time_s": 85.10999999999508,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            6.344036092696314,
+            0.4539945098194729,
+            1.0119751565222763
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.10651904681920299,
+            0.10651904681920299,
+            0.10651904681920299
+          ],
+          "scan_rmse_m": 0.008222648734754534,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1037,
+          "planned_path_points": 89,
+          "return_path_points": 133
+        },
+        {
+          "time_s": 125.20999999995861,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            5.799747059262349,
+            3.8826024325826927,
+            1.006656586019936
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.13683844682354696,
+            0.13683844682354696,
+            0.13683844682354696
+          ],
+          "scan_rmse_m": 0.023772099982212518,
+          "localization_margin_m": 0.06,
+          "supported_graph_nodes": 1007,
+          "planned_path_points": 20,
+          "return_path_points": 279
+        },
+        {
+          "time_s": 127.21499999995679,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            5.623272907050054,
+            3.916537036784384,
+            0.972616033433868
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.13803409238767292,
+            0.13803409238767292,
+            0.13803409238767292
+          ],
+          "scan_rmse_m": 0.022724819831208186,
+          "localization_margin_m": 0.06,
+          "supported_graph_nodes": 1008,
+          "planned_path_points": 18,
+          "return_path_points": 281
+        },
+        {
+          "time_s": 133.22999999995133,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.988303927048994,
+            4.074940247498069,
+            0.8948625968636449
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.14211126608990332,
+            0.14211126608990332,
+            0.14211126608990332
+          ],
+          "scan_rmse_m": 0.006875477179529324,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1039,
+          "planned_path_points": 15,
+          "return_path_points": 239
+        },
+        {
+          "time_s": 135.2349999999495,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.819778250526813,
+            3.939249016472305,
+            0.8505149646655158
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.14354777463415588,
+            0.14354777463415588,
+            0.14354777463415588
+          ],
+          "scan_rmse_m": 0.0038563534867898227,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1043,
+          "planned_path_points": 11,
+          "return_path_points": 241
+        },
+        {
+          "time_s": 139.24499999994586,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.577261327859834,
+            3.7724764905123056,
+            0.8371817169488665
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.14545351907626541,
+            0.14545351907626541,
+            0.14545351907626541
+          ],
+          "scan_rmse_m": 0.0043357022112246865,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1060,
+          "planned_path_points": 36,
+          "return_path_points": 163
+        },
+        {
+          "time_s": 141.24999999994404,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            4.403078895264788,
+            3.7938074518497484,
+            0.7845074845897169
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.1468407735279548,
+            0.1468407735279548,
+            0.1468407735279548
+          ],
+          "scan_rmse_m": 0.001511666443301489,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1066,
+          "planned_path_points": 33,
+          "return_path_points": 160
+        },
+        {
+          "time_s": 157.28999999992945,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            3.0036636207691143,
+            3.898849461650311,
+            0.6158057153813025
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.15500870806443126,
+            0.15500870806443126,
+            0.15500870806443126
+          ],
+          "scan_rmse_m": 0.0026299026088114443,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1091,
+          "planned_path_points": 20,
+          "return_path_points": 131
+        },
+        {
+          "time_s": 159.29499999992763,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.802592914197373,
+            3.947925051909453,
+            0.5666184946795904
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.156116924913777,
+            0.156116924913777,
+            0.156116924913777
+          ],
+          "scan_rmse_m": 0.0039580322891659084,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1092,
+          "planned_path_points": 17,
+          "return_path_points": 130
+        },
+        {
+          "time_s": 165.30999999992216,
+          "state": "exploring",
+          "decision_reason": "near_frontier_inspection",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.1936705784163393,
+            4.078176739139291,
+            0.5024872448521209
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.15953087481614767,
+            0.15953087481614767,
+            0.15953087481614767
+          ],
+          "scan_rmse_m": 0.0024171422227762195,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1097,
+          "planned_path_points": 9,
+          "return_path_points": 115
+        },
+        {
+          "time_s": 167.31499999992033,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.1328357636568693,
+            3.992482160590091,
+            0.4631682396407386
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.16056552051883285,
+            0.16056552051883285,
+            0.16056552051883285
+          ],
+          "scan_rmse_m": 0.0019215260488575768,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1096,
+          "planned_path_points": 8,
+          "return_path_points": 115
+        },
+        {
+          "time_s": 169.3199999999185,
+          "state": "exploring",
+          "decision_reason": "near_frontier_inspection",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.093410765849467,
+            3.7990105922124444,
+            0.49073021439984227
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.16197062304472876,
+            0.16197062304472876,
+            0.16197062304472876
+          ],
+          "scan_rmse_m": 0.0023822491502780278,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1117,
+          "planned_path_points": 11,
+          "return_path_points": 114
+        },
+        {
+          "time_s": 171.32499999991668,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.1936909882323787,
+            3.755241142626886,
+            0.4590640314390109
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.16300091950123533,
+            0.16300091950123533,
+            0.16300091950123533
+          ],
+          "scan_rmse_m": 0.0020804417886486275,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1122,
+          "planned_path_points": 10,
+          "return_path_points": 115
+        },
+        {
+          "time_s": 175.33499999991304,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "map_revision": 0,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.2601582860747347,
+            3.5822057230908544,
+            0.5116808520820628
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.1649655333309053,
+            0.1649655333309053,
+            0.1649655333309053
+          ],
+          "scan_rmse_m": 0.0025710222861685416,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1122,
+          "planned_path_points": 20,
+          "return_path_points": 124
+        },
+        {
+          "time_s": 177.3399999999112,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "map_revision": 1,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            2.2746652431475125,
+            3.6010714514559155,
+            0.5122894669525402
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.37825150620562886,
+            0.37825150620562886,
+            0.37825150620562886
+          ],
+          "scan_rmse_m": 0.002668528481313436,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1121,
+          "planned_path_points": 115,
+          "return_path_points": 115
+        },
+        {
+          "time_s": 219.44499999987292,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "map_revision": 2,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            0.3127698944766487,
+            3.1120861798429296,
+            0.3320331134792035
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.5094097326064426,
+            0.5094097326064426,
+            0.5094097326064426
+          ],
+          "scan_rmse_m": 0.010600208898869866,
+          "localization_margin_m": 0.04,
+          "supported_graph_nodes": 1092,
+          "planned_path_points": 64,
+          "return_path_points": 64
+        },
+        {
+          "time_s": 237.4899999998565,
+          "state": "returned",
+          "decision_reason": "localization_return_reserve",
+          "map_revision": 2,
+          "recovery": {
+            "phase": "idle",
+            "reason": null,
+            "terminal": false,
+            "episodes": 0,
+            "episode_start_s": null,
+            "retreat_attempts": 0,
+            "measured_recovery_dose_usv": 0.0,
+            "next_wait_upper_dose_usv": 0.0,
+            "max_wait_s": 12.0,
+            "max_episode_s": 30.0
+          },
+          "estimated_position": [
+            -0.06724728223384704,
+            0.07285264357789402,
+            0.31648252958560547
+          ],
+          "support_diagnosis": null,
+          "position_std_m": [
+            0.5132700566078777,
+            0.5132700566078777,
+            0.5132700566078777
+          ],
+          "scan_rmse_m": 0.0031101048353618303,
+          "localization_margin_m": 0.02,
+          "supported_graph_nodes": 1126,
+          "planned_path_points": 0,
+          "return_path_points": 2
+        }
+      ],
+      "clean_return": true,
+      "round_trip_completed": true,
+      "round_trip_failures": [],
+      "landmark_mission_completed": false,
+      "landmarks": {
+        "scope": "evaluator-only target catalogue; ideal occluded semantic detections",
+        "total": 0,
+        "discovered": 0,
+        "inspected": 0,
+        "per_floor": {
+          "lower": {
+            "total": 0,
+            "discovered": 0,
+            "inspected": 0
+          },
+          "upper": {
+            "total": 0,
+            "discovered": 0,
+            "inspected": 0
+          }
+        }
+      },
+      "error": null,
+      "true_dose_usv": 0.16456305131825072,
+      "path_length_m": 23.1659816315693,
+      "mapped_surface_area_m2": 105.32000000000002,
+      "turning_in_place_s": 27.35999999999884,
+      "target_switches": 15,
+      "nonfoot_contacts": {},
+      "nonfoot_impulse_ns": 0.0,
+      "nonfoot_peak_force_n": 0.0,
+      "worker_p95_ms": 6034.040937467943,
+      "worker_phase_p95_ms": {
+        "observations": 404.9829027615485,
+        "mapping": 808.3991413703187,
+        "planning": 4984.73336546449,
+        "execution_smoothing": 25.24916203692555,
+        "display_prediction": 8.888625667896122,
+        "metrics_and_return_overlay": 19.718227849807587
+      },
+      "wall_time_s": 436.24174329300877,
+      "physical_witness": {
+        "upper_landing_witness_s": 85.16999999999503,
+        "lower_return_witness_s": 192.82499999989713,
+        "vertical_round_trip_witness": true,
+        "scope": "evaluator-only foot poses, 0.2 s dwell; not exploration completeness"
+      },
+      "region_agenda": {
+        "regions": 20,
+        "connectors": 46,
+        "pending_regions": 0,
+        "connector_crossings": 11,
+        "repeated_connector_crossings": 0
+      },
+      "source_sha256": {
+        "dougie_sim/__init__.py": "301acfaee06290bcd16afeda5df7d1fae36b357006c18753907f89d7c141f22d",
+        "dougie_sim/assets.py": "b03efd9438f01a642dbc6bf97ec5d44cabc88371371dfa7d90c88d166eea2c17",
+        "dougie_sim/circuit_evaluation.py": "4d314cca55ee4082feae8b69fe059c891f2832da71bc3f2ceb80d90fabd81f6f",
+        "dougie_sim/clustered_planner.py": "0b45c3c2eb27303a2a2de501214c457f94845983a239dd6d0ef3436b7c45993e",
+        "dougie_sim/demo_overlay.py": "248fed1893ec27e5dc64ecf6be916b2a5a72660cb2123da80d44f8f7ae524ef0",
+        "dougie_sim/demo_recording.py": "a4a41650fe063ee7166318a3f795de1b84d165a7b8d4aaab69a0d2ecd151a8ac",
+        "dougie_sim/dose_planner.py": "6c287e0425483c6493f10f580e2d1b118caabe188f88f3017a124765619271c9",
+        "dougie_sim/explore.py": "6c62b52b12d4bc4b62d8200859e30e017a0452cc9c3ebbdf8756a03d8a8fc40b",
+        "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+        "dougie_sim/frontiers.py": "0815d99aaeb3013d05c4d356cbd372e9832294dc27d491d9a47ca7e6bf452230",
+        "dougie_sim/geometry_gp.py": "28309663c2da9198b647f15b5ed02cd92e2bc0b58b6ece75f9f414f47b9bcc6a",
+        "dougie_sim/gp.py": "ce779f0c9695a77b4381e680e41f0489badea2ea74a836b357b5984e96e848c7",
+        "dougie_sim/graphics.py": "b00b4afe34ca7fdffee20dd50d8ce2a2b5ed383350b915ab37ffe76f73e6dd54",
+        "dougie_sim/landmarks.py": "f28bfa54d5e1d0e58c8325f8f309dd74dd6469890183d533800116938341ce0e",
+        "dougie_sim/layered_terrain.py": "20822ea34b77e340b4d739786c2fbf84ebb9aa32117df17470f31f29dae5a9a0",
+        "dougie_sim/map_corrections.py": "0c81755cc875af2d9eca859cd02a63c167f0c092a93f628f94dfdc319d8b940b",
+        "dougie_sim/mission_evaluation.py": "58c983d13845dde3cf2bde6b6718fe25b3ebd446a36f3318719f1a357187ac90",
+        "dougie_sim/mission_utility.py": "0bf4692ce14a8e9cef5a06a9a8c57cbc954e26e9874ddb59ffbc84403a7cde34",
+        "dougie_sim/motion_cost.py": "ec159b52ae930bc0d34dcbf3b52345ebcc6402bb4447d149b3e19c54a29dfadf",
+        "dougie_sim/multilevel.py": "cb6bf40ca9fbc19afb67c53bc3c484f18a253af119c3bf2c3db57b9df0414a3f",
+        "dougie_sim/observed_circuit.py": "6cfc10f2b8e4a42918adc317f5773c4b02e9bb5d874d9b36bafb395087bf0006",
+        "dougie_sim/odometry.py": "1d8267c7b8cd42376f0e20f8f3f500b9e9fd3fb56f48a41b875f47faec98cf29",
+        "dougie_sim/onboard_sensors.py": "822589318d6877e24f0dc84b544bac3ccebf6fbde485d0df3e9adcb63e810b58",
+        "dougie_sim/path_motion.py": "bd9e38a19e2893afa0a734f77e9b374da0b4a7b81948c340fe215e663580122b",
+        "dougie_sim/perception.py": "a7cb00039fd76bb4dd41a3a88710262cd0a4227ef5f140165e598c1b4098d562",
+        "dougie_sim/planning_worker.py": "28aad42c02336c4343ce831fa2026b93241ee29ae071e3b5cd12c8cac58a0785",
+        "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+        "dougie_sim/pose_graph.py": "801ac8de81279e10841e55104d0e56c97cb52c54d41da2b44995d4abc423a0d2",
+        "dougie_sim/pose_uncertainty.py": "5298bee12eedac44482df37edee8d1488cc69e9d39e9bb04531819b791e163d0",
+        "dougie_sim/radiation.py": "2c4771061e06dbfd0874c70a373206f7c118c11ef93864ca51c9a15c352bb63d",
+        "dougie_sim/radiation_display.py": "09049186425a8a855ddaafda1510109f63cd9a019091add56cc920e75d94327d",
+        "dougie_sim/radiation_evaluation.py": "0e9863c6f0a29d2ff7d39b1789723d62f2efb2b3283fdab16ea1c69f17e06f58",
+        "dougie_sim/radiation_run.py": "bbf810ed62bb0a42558c8fc51fb75b1c08196e1cc9729ac99a467f1ad848241b",
+        "dougie_sim/reactor.py": "7566cd65e0c11ecdb2dcd268d7ac7090c59e5b8929d92be5bfbc6cbb88e9a2bf",
+        "dougie_sim/record.py": "1d2df756e467dda2ede21b03ce1f3a3766ca85d2de91cd2e2b5e6423476683f7",
+        "dougie_sim/recovery.py": "1919752c02207e3a50bd52280c756548be6e314b6511b627c100f513c27ce5d6",
+        "dougie_sim/reference_terrain.py": "5b3e70e3cfee0484e19dcca8c48f05dd484e14185c4794a5ee21b48abe1fdd87",
+        "dougie_sim/region_agenda.py": "ffb8ad0ecd3ca16e138adacef5d19000dfe33fe7616c660139a4773af96ebc78",
+        "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+        "dougie_sim/registration.py": "4d5fc96b8970053e5330d43511ec1a7374d737a8fea7941982d521de5c19def2",
+        "dougie_sim/residual_policy.py": "529325b02c80afff8ddd5c285ba18263ececb9df1495d668ab0f0a03e986232b",
+        "dougie_sim/robot_description.py": "7475d3270f6bf6145947aca9c1b5aa3936d45ab46dc5b271034f9e63694039ae",
+        "dougie_sim/ros_bridge.py": "42e7ebb9605844ddfaf9f5d283b2a24aff995f5529399bbef946365f78a30e30",
+        "dougie_sim/route_forecast.py": "8fbe20b2b2a20f55fe92d1f1034cf4678f5697cf14bbedd3b0a553bf5966eed6",
+        "dougie_sim/run.py": "28ac494dfa59b2400e79a1b185b4abba31a2efdf402650d8066c970cba7af9f5",
+        "dougie_sim/rviz_visualization.py": "369b708735fefd108a5fa6a8811a8a866e985e5c72ffe9ddb32caa1b45e7ac56",
+        "dougie_sim/scan_geometry.py": "580e32b26310535968fc12bf40e555088e88e6d2dd392520ffbf7b16d677a23b",
+        "dougie_sim/sensing.py": "2da904954194364bdeee1e3533f3b5ec1cfe4f7a01770977be479dd2648804b6",
+        "dougie_sim/session.py": "3196347b03bdab2752db406e045c85b76bea3f24119df7c6162461548029c11e",
+        "dougie_sim/simulation.py": "e633d0e420ae75bc4f4661df25cca965d6ecec7ffba8c0a6ff4db2e087b1e435",
+        "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+        "dougie_sim/spatial_gp.py": "1d42421d1605d627871cb88cb09ddefd841630e27247c4aa2dc8709ade11c793",
+        "dougie_sim/terrain.py": "6a78a8641e92406beaa84d3db24a53a292f7a9ce59599a4d14ce9be54551473a",
+        "dougie_sim/terrain_courses.py": "9a0f2633f707a2dda79a526d688e6e22fa4d6f6b253a7c78ee4bc12a98db2cc3",
+        "dougie_sim/terrain_qualification.py": "10c76e14e22128967acdb9356560aa2c5fcbf897186b2c97697541f1f16f9538",
+        "dougie_sim/training.py": "dda90fec82269c9d00806cfd91ffed618c8b18efe1e678ae7da48e3f47437470",
+        "config/dougie_assets.json": "ed5f75bcf7dde8513848590a22f05c55465a55bbeefe59bf3f5278371211f783",
+        "radiation_source_config": "a52062841c3197f42b911b94d95bdb548aa4fedce29e306b9a3014aab39c5515"
+      },
+      "localization": {
+        "source": "imu_leg_lidar_fusion",
+        "initialized": true,
+        "position": [
+          -0.06724728223384704,
+          0.07285264357789402,
+          0.31648252958560547
+        ],
+        "velocity": [
+          0.017595875385627225,
+          -0.15663164725547987,
+          -0.08565424235864255
+        ],
+        "yaw": -1.720521206202372,
+        "position_std_m": [
+          0.5132700566078777,
+          0.5132700566078777,
+          0.5132700566078777
+        ],
+        "uncalibrated_position_std_m": [
+          0.5132700566078777,
+          0.5132700566078777,
+          0.5132700566078777
+        ],
+        "uncertainty_calibration": {
+          "profile_sha256": null,
+          "sigma_multiplier": 1.0,
+          "reference_episode_miscoverage": null,
+          "scope": "reference-policy episode bound under exchangeability; control feedback/domain shift require fresh validation"
+        },
+        "conditional_position_std_m": [
+          0.0026661899922855357,
+          0.0026661899922855357,
+          0.0026661899922855357
+        ],
+        "gyro_bias": [
+          1.6897583953379376e-06,
+          -6.746893823338546e-07,
+          2.112140332030603e-06
+        ],
+        "scan_updates": 1187,
+        "scan_rejections": 0,
+        "scan_rmse_m": 0.0031101048353618303,
+        "local_map_cells": 1371,
+        "robust": true,
+        "map_revision": 2,
+        "keyframes": 64,
+        "anchor_revalidations": 2,
+        "slam_backend": "pose-graph",
+        "pose_graph": {
+          "nodes": 82,
+          "factor_count": 83,
+          "capacity": 512,
+          "saturated": false,
+          "accepted_loops": 2,
+          "rejected_loops": 0,
+          "last_optimization": {
+            "accepted": true,
+            "reason": "optimized",
+            "initial_cost": 0.0023437738451690393,
+            "final_cost": 0.0004485781373837483,
+            "evaluations": 5,
+            "max_translation_m": 0.0007699055438023475,
+            "max_rotation_rad": 0.0006103765400028485,
+            "loop_residual_norm": 0.007610233447777589,
+            "wall_ms": 138.4260579943657,
+            "position_marginal_covariance": [
+              [
+                0.058897588495355264,
+                0.03794765017523485,
+                -0.02263260022755926
+              ],
+              [
+                0.03794765017523485,
+                0.23139916875132166,
+                0.004339569576568853
+              ],
+              [
+                -0.02263260022755926,
+                0.004339569576568853,
+                0.259440299252879
+              ]
+            ]
+          },
+          "method": "root-anchored SE3 graph, robust sparse least squares"
+        },
+        "registration_status": "registered",
+        "observable_rank": 6,
+        "inlier_fraction": 0.97953216374269,
+        "rejection_streak": 0,
+        "slipping_legs": 0,
+        "last_good_scan_s": 237.3999999998566,
+        "uncertainty_scope": "conditional filter plus path/innovation drift allowance; not a calibrated probability guarantee"
+      },
+      "localization_evaluation": {
+        "position_rmse_m": 0.011374094888406894,
+        "position_p95_m": 0.013090026632554989,
+        "true_home_distance_m": 0.09575852814765831,
+        "episode_max_three_sigma_ratio": 0.16016376439604255,
+        "episode_control_tick_samples": 47499,
+        "envelope_scope": "initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only"
+      },
+      "gp": {
+        "inducing_points": 52,
+        "capacity": 128,
+        "updates": 353,
+        "posterior_bytes": 44928,
+        "prediction_cache_bytes": 22048,
+        "prediction_cache_builds": 1,
+        "update_p50_ms": 2.065936103463173,
+        "update_p95_ms": 2.503906190395355,
+        "kernel": "Matern32-ARD x RBF(observed localized plane-side features)",
+        "coordinates": "xyz metres",
+        "target": "log(rate_usv_h)",
+        "likelihood": "Poisson counts",
+        "inference": "streaming sparse Laplace projection",
+        "model": "observed_geometry_gp",
+        "observed_planes": 16,
+        "geometry_rebuilds": 0,
+        "last_rebuild_ms": 0.0,
+        "retained_count_windows": 353,
+        "replay_capacity": 8192,
+        "saturated": false,
+        "information_contract": "estimated onboard range surfaces and count windows; no material/source metadata"
+      },
+      "information_contract": "planner receives body-frame noisy LiDAR transformed by IMU/leg/LiDAR estimated pose and counting-detector observations only",
+      "map_consistency": {
+        "map_revision": 2,
+        "map_rebuilds": 2,
+        "retained_scans": 119,
+        "retained_count_windows": 474,
+        "observation_journal_saturated": false
+      },
+      "recovery": {
+        "phase": "idle",
+        "reason": null,
+        "terminal": false,
+        "episodes": 0,
+        "episode_start_s": null,
+        "retreat_attempts": 0,
+        "measured_recovery_dose_usv": 0.0,
+        "next_wait_upper_dose_usv": 0.0,
+        "max_wait_s": 12.0,
+        "max_episode_s": 30.0
+      },
+      "terminal_stop": null,
+      "post_stop_true_dose_usv": 0.0,
+      "count_calibration": {
+        "windows": 353,
+        "upper_count_exceedances": 0,
+        "upper_count_coverage": 1.0,
+        "mean_poisson_deviance_at_predicted_mean": 1.534062753675531,
+        "worst_observed_to_bound_ratio": 0.8571428571428571,
+        "scope": "pre-assimilation count diagnostics; upper latent-rate envelope plus Poisson 99% quantile, not a calibrated joint predictive distribution"
+      },
+      "circuit_mission_completed": null,
+      "tracking_clearance_margin_m": 0.12,
+      "localization_margin_m": 0.02
+    }
+  ],
+  "gp_replays": []
+}

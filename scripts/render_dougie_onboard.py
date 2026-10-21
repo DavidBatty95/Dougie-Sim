@@ -47,7 +47,8 @@ def replay(data):
         sample = next((s for s in reversed(samples) if s['stamp_s'] <= stamp), None)
         image = Image.new('RGB', (640, 490), BG)
         draw = ImageDraw.Draw(image)
-        draw_text(draw, (18, 12), 'DOUGIE / ONBOARD FUSION', 21, TEAL)
+        title = 'DOUGIE / POSE-GRAPH FUSION' if data['config'].get('slam_backend') == 'pose-graph' else 'DOUGIE / ONBOARD FUSION'
+        draw_text(draw, (18, 12), title, 21, TEAL)
         draw_text(draw, (18, 43), 'Recorded telemetry / estimated pose vs independent evaluator', 13, MUTED)
         draw.rounded_rectangle((18, 78, 398, 425), radius=12, fill='#122638', outline='#31566a')
         for x in np.arange(np.ceil(lo[0]*2)/2, hi[0], .5):
@@ -70,7 +71,8 @@ def replay(data):
         draw_text(draw, (415, 87), f't = {stamp:.1f} s', 21)
         draw_text(draw, (415, 128), 'IMU + leg + LiDAR', 14, TEAL)
         draw_text(draw, (415, 159), f"Pose error {pose['evaluator_error_m']*100:.1f} cm", 15)
-        draw_text(draw, (415, 191), f"Scan updates {pose['scan_updates']}", 14, MUTED)
+        draw_text(draw, (415, 187), f"z: {pose['position'][2]:.2f} / {pose['evaluator_true_position'][2]:.2f} m", 14, MUTED)
+        draw_text(draw, (415, 210), f"Scan updates {pose['scan_updates']}", 14, MUTED)
         draw_text(draw, (415, 237), 'ONE moving count window', 13, AMBER)
         if sample:
             draw_text(draw, (415, 266), f"{sample['counts']} counts / {sample['integration_s']:.2f} s", 14)
@@ -110,7 +112,8 @@ def main():
         data = dict(origin=str(args.run), input_sha256={name: digest(args.run/name) for name in names},
             config=config, capture=capture, summary={key: summary.get(key) for key in
                 ('clean_return', 'true_dose_usv', 'measured_dose_usv', 'path_length_m', 'localization_evaluation',
-                 'simulation', 'gp', 'nonfoot_contacts', 'information_contract', 'source_sha256')},
+                  'simulation', 'gp', 'nonfoot_contacts', 'information_contract', 'source_sha256',
+                  'round_trip_completed', 'round_trip_failures', 'physical_witness')},
             poses=[poses[i] for i in indices], measurements=records(args.run/'measurements.jsonl'))
         portable.write_text(json.dumps(data, separators=(',', ':'), allow_nan=False)+'\n')
         shutil.copyfile(args.run/'demo.gif', native)

@@ -1,14 +1,14 @@
 # Onboard mission plan — 21 October 2026
 
 [Project home](../README.md) · [Implemented methods](DOUGIE_ONBOARD_MISSION.md) ·
-[Portable evidence](results/dougie_onboard_20261019.json) · [Current GIF provenance](DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026)
+[Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#pose-graph-mission-refresh--21-october-2026)
 
 ## Current implementation
 
 | Workstream | Implemented | Evidence / boundary |
 |---|---|---|
 | Onboard observation boundary | Body-frame noisy LiDAR; gyro/acceleration, joint encoders and foot-touch channels | No simulator base pose, frame velocity, object IDs or hidden field metadata passed to autonomy |
-| Sensor fusion | Quality-gated keyframes, stance-slip checks, confirmed full-rank loop/anchor matches | Bounded time-distributed corrections; full pose-graph optimization and hardware calibration remain open |
+| Sensor fusion | Quality-gated keyframes, stance-slip checks, confirmed loops and root-fixed six-DoF pose graph | Bounded 512-node optimization with coherent correction knots; hardware calibration remains open |
 | Map consistency | Versioned scan/count journal and coherent support/GP replay | Old-frame routes withheld; counts and durations conserved; archive corrections retained |
 | Walking inputs | Measured proprioception and estimated gravity | Invariance test against changed hidden base pose/velocity |
 | Geometry-aware radiation | PSD Matérn × observed-plane-feature kernel; at most 16 patches | PSD, wall-separation and replay/archive tests; no inferred material attenuation |
@@ -16,7 +16,7 @@
 | Mission planning | Full-cost information scorer and bounded observed-task sequencing, alongside prior utility | Mixed measured dose results; legacy utility remains default, with robust sensing/recovery |
 | Recovery | Bounded resensing, checked retreats and terminal-stop accounting | Missing sensors do not authorize blind motion; stranded exposure is still scored |
 | Clearance | Localization residual and follower tracking-error reserves | Wall-contact regression retained; thresholds not weakened |
-| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 243 tests; [staged robust results](DOUGIE_ROBUST_MISSIONS.md); historical ideal-pose full-height runs remain separate |
+| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 263 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
 
 Defaults: `--localization fused --gp-mode geometry --detector-likelihood window`.
 Navigation uses `--navigation-profile robust --utility-mode legacy`. Selecting
@@ -64,8 +64,8 @@ has not been met across held-out layouts and fields.
 - Exercise longer trajectories, feature-poor corridors, slopes, slip, IMU bias,
   dropouts, timestamp delay and rejected registration updates.
 - Qualify the implemented loop/anchor checks and coherent map replay against false
-  matches, long map histories and different layouts. A full pose-graph optimizer
-  remains a future extension to the current time-distributed correction.
+  matches, long map histories and different layouts. The pose-graph optimizer is
+  implemented; the time-distributed backend remains a comparator.
 - Measure absolute/relative pose error, yaw error, covariance consistency and
   actual home error. Distinguish arbitrary initial-frame offset from drift.
 - Keep capture-time scan transforms immutable; late packets require pose-history
@@ -73,7 +73,11 @@ has not been met across held-out layouts and fields.
 
 **Gate:** predeclared error/freshness limits, reproducible stopping on invalid
 sensing, and physical return success across the matrix. Current covariance and
-drift allowance are heuristics, not calibrated confidence guarantees.
+drift allowance do not provide unconditional confidence guarantees. The pinned
+`7d035f8` 8° cohort completed 19 calibration, five validation and one application
+episode, with 5/5 held-out envelope coverage and multiplier 1.0. New diagnostic
+runtime hashes deliberately invalidate that historical profile; recalibration and
+broader domains remain open.
 
 ### 3. Radiation accuracy and bounded compute
 
@@ -90,6 +94,14 @@ drift allowance are heuristics, not calibrated confidence guarantees.
 load, without assimilating held-out counts or later geometry into earlier tests.
 
 ### 4. Repeat sensor-only vertical qualification
+
+The 8° variant passed all 25 cohort episodes and a fresh recorded round trip with
+the diagnostic runtime. The original 10° variant and full-height facility remain
+unqualified. Capture-time diagnostics now identify support-fit/footprint rejection
+at facility disconnection. Static commanded-target hold reduced ramp drift in six
+screening cases, but moving-to-stop transitions and end-to-end recovery are still
+required before enabling it in missions. Encoder-angle hold caused sustained body
+contact and was rejected. See the retained evidence in the qualification report.
 
 - Start with the mezzanine, then full-height ramps, using fused pose throughout.
 - Require ordered upper/lower/home witnesses, clean contacts, budget compliance,

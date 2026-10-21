@@ -210,6 +210,11 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             explorer.failed.append((explorer.target.copy(), stamp))
     mapped = time.perf_counter()
     explorer.replan(position, stamp)
+    support_diagnosis = None
+    if explorer.state in ('no_observed_return_route', 'waiting_for_home_support', 'waiting_for_support') and hasattr(explorer.terrain, 'support_diagnosis'):
+        support_diagnosis = dict(state=explorer.state, reason=explorer.last_reason,
+            current=explorer.terrain.support_diagnosis(position),
+            home=None if explorer.home is None else explorer.terrain.support_diagnosis(explorer.home))
     if _journal is not None and stamp-packet.stamp_s > .75:
         explorer.path, explorer.state, explorer.last_reason = [], 'waiting_for_range', 'stale_range_packet'
     if _recovery is not None and explorer.state != 'returned':
@@ -240,6 +245,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         volume = (query, *explorer.gp.predict(query))
     displayed = time.perf_counter()
     metrics = explorer.metrics()
+    if support_diagnosis is not None:
+        metrics['support_diagnosis'] = support_diagnosis
     metrics.update(planner=_planner, selected_target=None if explorer.target is None else explorer.target.tolist(),
                    planned_path=[p.tolist() for p in execution_path], map_revision=_journal.revision if _journal else 0)
     if motion is not None:

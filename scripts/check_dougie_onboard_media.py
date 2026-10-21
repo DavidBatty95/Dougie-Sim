@@ -26,6 +26,12 @@ def main():
     assert data['config']['detector_likelihood'] == 'window'
     assert data['summary']['clean_return'] is True
     assert data['summary']['localization_evaluation']['true_home_distance_m'] <= .4
+    if data['config'].get('require_round_trip'):
+        assert data['summary']['round_trip_completed'] is True
+        assert not data['summary']['round_trip_failures']
+        witness = data['summary']['physical_witness']
+        assert witness['vertical_round_trip_witness']
+        assert 0 < witness['upper_landing_witness_s'] < witness['lower_return_witness_s']
     for filename, key in (('onboard-mission.gif', 'native_recording'), ('onboard-fusion.gif', 'fusion_replay')):
         path, metadata = MEDIA/filename, manifest[key]
         assert digest(path) == metadata['sha256']

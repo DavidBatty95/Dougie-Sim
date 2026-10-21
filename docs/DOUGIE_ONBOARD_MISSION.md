@@ -81,7 +81,7 @@ position RMSE/p95 was .0739/.1066 m. The earlier sensor-only global/point run ha
 less travel and less dose; these unequal survey trajectories do not establish a
 dose reduction. Matched-objective comparisons remain an acceptance gate in the active plan.
 
-## Latest development evidence and media
+## Historical 19 October development evidence and media
 
 | Detector / sensor seed | Return | Actual dose | Distance | Position RMSE / p95 | True home distance |
 |---|---:|---:|---:|---:|---:|
@@ -90,11 +90,11 @@ dose reduction. Matched-objective comparisons remain an acceptance gate in the a
 
 Both passed clean physical return with no non-foot contacts. The recording run
 `onboard_recorded_routes_seed3` reproduced seed 3 exactly; route-only rendering
-does not disable GP inference or alter physics commands. Its current-code GIF
-and the same-run localization/window replay lead the README.
+does not disable GP inference or alter physics commands. Its GIF pair has since
+been replaced by the 21 October pose-graph mezzanine recording in the README.
 
 [Portable results with retained failures](results/dougie_onboard_20261019.json) ·
-[Media/provenance](DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026) ·
+[Historical media/provenance](DOUGIE_MEDIA.md#historical-onboard-checkpoint--19-october-2026) ·
 [Active qualification plan](DOUGIE_ONBOARD_PLAN.md).
 
 These runs do not establish lower dose at matched completed work. In particular,

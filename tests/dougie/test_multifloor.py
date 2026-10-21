@@ -99,6 +99,22 @@ def test_support_footprint_does_not_apply_body_clearance_twice():
     assert all(abs(p[0]) >= .45 for p in terrain.nodes.values())
 
 
+def test_support_diagnostics_retain_step_rejection_across_cached_builds():
+    terrain = LayeredSurfaceMap()
+    supports = cloud(lambda x: .06 if x > 0 else 0.)
+    terrain.update(supports, supports)
+    terrain.build_graph()
+    before = terrain.support_diagnosis([0., 0., 0.], limit=8)
+    assert len(before['columns']) == 8
+    assert any(rejection['reason'] == 'local_discontinuity'
+               for column in before['columns'] for rejection in column['rejections'])
+    nodes = set(terrain.nodes)
+    terrain.build_graph()
+    assert terrain.support_diagnosis([0., 0., 0.], limit=8) == before
+    assert set(terrain.nodes) == nodes
+    assert terrain.metrics()['fit_rejections']['local_discontinuity'] > 0
+
+
 def test_gentler_fixture_preserves_height_and_local_source_challenge():
     from dougie_sim.multilevel import source_description
     original = Simulation('mezzanine')

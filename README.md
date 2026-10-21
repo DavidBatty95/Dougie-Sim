@@ -19,7 +19,19 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Robust-mission update — 21 October 2026: 243 tests pass.** Added quality-gated
+**Pose-graph qualification update — 21 October 2026: 263 tests pass.** The explicit
+8° mezzanine variant passed all **25 sensor-only round trips** in a predeclared
+19-calibration / 5-held-out / 1-application cohort. Held-out pose-envelope coverage
+was 5/5; the source-pinned profile retained the existing allowance (multiplier 1.0).
+This is scenario-specific evidence: the original 10° mezzanine and full-height
+facility remain unqualified. The facility failure and observed-support diagnosis
+are retained alongside the successful cohort. New capture-time rejection diagnostics
+and stationary-slope controller comparisons narrow the remaining facility issues.
+The calibration profile belongs to runtime `7d035f8`; newer source fingerprints
+deliberately reject it until recalibrated.
+[Pose graph, calibration scope and vertical results](docs/DOUGIE_SLAM_QUALIFICATION.md).
+
+**Earlier robust-mission update — 21 October 2026: 243 tests passed.** Added quality-gated
 keyframe localization, confirmed loop/anchor checks, frame-consistent terrain and
 count-window replay, exposure-bounded recovery, and tracking-error clearance.
 Information-per-cost scoring and whole-task lookahead are available for comparison;
@@ -84,27 +96,31 @@ they are demonstrations of traversal, not a validated operating envelope.
 
 ## Recorded demo gallery
 
-### Onboard measurement checkpoint — actual recording and telemetry
+### Pose-graph mezzanine round trip — actual recording and telemetry
 
-| Onboard-only reactor mission | Sensor fusion and detector motion windows |
+| Onboard-only 8° mezzanine mission | Pose-graph fusion and detector motion windows |
 |---|---|
-| ![Recorded onboard MuJoCo Go2 mission with fused localization and live planned routes, approximately five-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded estimated robot pose versus independent physics evaluator, with eight-bin detector motion windows](docs/media/dougie/onboard-fusion.gif) |
+| ![Recorded sensor-only Go2 upstairs and downstairs mission on the 8-degree mezzanine, approximately 33-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded pose-graph estimate versus independent evaluator, with estimated and true height and moving detector windows](docs/media/dougie/onboard-fusion.gif) |
 
-**Left:** a torque-driven MuJoCo recording from the 19 October onboard checkpoint, with the
+**Left:** a fresh torque-driven MuJoCo recording from 21 October, with the
 radiation cloud hidden in the recording so the robot and routes remain visible.
 The geometry-aware GP still runs. **Right:** telemetry from the same mission;
 teal is the estimated pose, white the independent evaluator, and amber the moving
 detector window. It is a log replay, not camera footage. Both animations are accelerated.
-The new robust-navigation stages have separate measured results linked above;
-these GIFs retain their original runtime identities.
+The native recording has 73 frames at approximately 33× simulated-time playback;
+the telemetry replay has 100 frames at approximately 24× playback.
 
-Detector seed 3 / sensor seed 0: clean physical return at **47.050 s**, **5.693 m**
-travelled, **0.126188 µSv** actual exposure, **0.3437 m** true home error (within
-the 0.4 m gate), and zero non-foot contacts. Hidden pose and field truth are used
+Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
+**237.490 s**, **23.166 m** travelled, **0.164563 µSv** actual exposure,
+**0.0958 m** true home error, and zero non-foot contacts. Upper/lower witnesses
+occurred at **85.170 / 192.825 s**. This is the explicit 8° variant, not a pass for
+the original 10° mezzanine or the full-height facility. The recording uses the
+current diagnostic runtime without the historical calibration profile.
+Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
-[Provenance and regeneration](docs/DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026) ·
-[Portable evidence](docs/results/dougie_onboard_20261019.json)
+[Provenance and regeneration](docs/DOUGIE_MEDIA.md#pose-graph-mission-refresh--21-october-2026) ·
+[Portable evidence](docs/results/dougie_pose_graph_recorded_20261021.json)
 
 ### Historical multi-floor and initial integration gallery
 

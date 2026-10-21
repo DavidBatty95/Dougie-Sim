@@ -4,38 +4,42 @@
 
 ## Gallery provenance
 
-### Onboard mission refresh — 19 October 2026
+### Pose-graph mission refresh — 21 October 2026
 
-The README now leads with **current-code** fused-localization / geometry-GP /
-moving-window recordings, rather than the original ideal-pose cohort.
+The README leads with a fresh **pose-graph / fused-localization / geometry-GP /
+moving-window** recording of the explicit **8° mezzanine** variant. The original
+10° fixture and full-height facility remain unqualified.
 
 | Asset | Provenance and interpretation |
 |---|---|
-| [Onboard mission GIF](media/dougie/onboard-mission.gif) | Actual native MuJoCo run `onboard_recorded_routes_seed3`, 95 frames, 640 × 490, 100 ms/frame. Approximately 5× simulated-time playback. Close route-only recording view keeps Go2 visible; geometry-aware inference still runs. The full rendered world is diagnostic, not robot perception. |
-| [Fusion/window GIF](media/dougie/onboard-fusion.gif) | Same run's downsampled pose/count telemetry, 100 frames, 640 × 490, 100 ms/frame. Approximately 4.7× playback. Teal estimated pose, white independent evaluator pose, amber motion-window quadrature positions. Not video, a coverage map, or a GP field. |
+| [Onboard mission GIF](media/dougie/onboard-mission.gif) | Actual native MuJoCo run `pose_graph_mezz8_recorded`, 73 frames, 640 × 490, 100 ms/frame. Approximately 33× simulated-time playback. Close route-only recording view keeps Go2 visible; geometry-aware inference still runs. The full rendered world is diagnostic, not robot perception. |
+| [Fusion/window GIF](media/dougie/onboard-fusion.gif) | Same run's downsampled pose/count telemetry, 100 frames, 640 × 490, 100 ms/frame. Approximately 24× playback. Teal estimated pose, white independent evaluator pose, amber motion-window quadrature positions; the height readout is estimate/evaluator. Not video, a coverage map, or a GP field. |
 | [Mission poster](media/dougie/onboard-mission.png) / [telemetry poster](media/dougie/onboard-fusion.png) | Static alternatives extracted/rendered at approximately two-thirds of the respective animation. |
 | [Portable telemetry](media/dougie/onboard-replay.json) | Estimated/evaluator poses, counts and motion windows, run settings, selected outcomes, capture metadata and source/input hashes. |
 | [Manifest](media/dougie/onboard-manifest.json) | GIF hashes, exact frame times, dimensions, byte sizes, renderer/Pillow identity and runtime source identities. |
 
-The current code's seeded recording reproduced the unrecorded run's 47.050 s
-return, 5.6934 m travel and .126188 uSv actual dose exactly. It passed the clean
-physical-return gate with .3437 m home error and no non-foot contacts. Measured
-count-derived dose on the HUD is .12672 uSv. Sensor seed 0, detector seed 3, reactor,
-2 uSv budget and 90 s limit. This is one short development mission, not proof of
-complete coverage, real-time performance or lower dose at matched work.
+The recording reproduced the development probe's **237.490 s** return,
+**23.166 m** travel and **.164563 uSv** actual dose. It passed the strict ordered
+upper/lower/home witness gate, with .0958 m home error and no non-foot contacts.
+The upper witness occurred at 85.170 s; lower return at 192.825 s. Measured dose
+on the HUD is .16582 uSv. Sensor seed 0, detector seed 3, 8° mezzanine,
+10 uSv budget and 600 s limit. This recording uses the diagnostic runtime without
+the historical source-pinned calibration profile. It is not proof of complete
+coverage, real-time performance or lower dose at matched work.
 
 The two GIFs loop; the transition back to the beginning resets displayed time.
 The native recording is copied unchanged from its checksum-verified capture.
 No hidden pose is supplied to the estimator; evaluator truth in the replay is
-only a visual comparison. [Methods, failures and evidence](DOUGIE_ONBOARD_MISSION.md).
+only a visual comparison. [Methods, failures and evidence](DOUGIE_SLAM_QUALIFICATION.md).
 
 Generate a fresh recording and publish both animations:
 
 ```bash
 docker compose run --rm -T -e MUJOCO_GL=egl dougie-sim \
-  python3 -m dougie_sim.radiation_run --world reactor --headless --fast \
-  --duration 90 --dose-budget 2 --seed 3 --sensor-seed 0 --fixed-plan-delay .5 \
-  --record-demo --record-view routes --require-clean --output results/dougie/NEW_RUN
+  python3 -m dougie_sim.radiation_run --world mezzanine --mezzanine-angle 8 --headless --fast \
+  --duration 600 --dose-budget 10 --seed 3 --sensor-seed 0 --fixed-plan-delay .5 \
+  --slam-backend pose-graph --record-demo --record-view routes --require-round-trip \
+  --output results/dougie/NEW_RUN
 docker compose run --rm -T dougie-sim python3 scripts/render_dougie_onboard.py \
   --run results/dougie/NEW_RUN
 ```
@@ -49,6 +53,14 @@ Verify every GIF frame, checksum and portable detector window:
 ```bash
 docker compose run --rm -T dougie-sim python3 scripts/check_dougie_onboard_media.py
 ```
+
+### Historical onboard checkpoint — 19 October 2026
+
+The previous GIF pair showed `onboard_recorded_routes_seed3`: a reactor mission
+returning at 47.050 s / .126188 uSv. Its files were superseded by the 21 October
+refresh above. The earlier [portable results](results/dougie_onboard_20261019.json)
+and repository history retain that checkpoint; it is distinct from the new
+vertical recording and pose-graph calibration cohort.
 
 ### Reactor/prediction refresh — 15 October 2026
 
