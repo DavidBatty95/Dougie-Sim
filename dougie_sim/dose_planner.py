@@ -23,6 +23,7 @@ class DoseExplorer:
         self.home = None
         self.home_stamp = 0.
         self.home_tolerance = .4
+        self.recovery_reserve_s = 0.
         self.sample = None
         self.path = []
         self.target = None
@@ -162,4 +163,5 @@ class DoseExplorer:
             gp=self.gp.metrics(), planning_p95_ms=float(np.percentile(self.plan_ms, 95)) if self.plan_ms else None,
             worker_p95_ms=float(np.percentile(self.worker_ms, 95)) if self.worker_ms else None,
             events=self.events, map_consistency=getattr(self, 'map_consistency', {}),
-            localization_margin_m=self.terrain.localization_margin, invalid_position_windows=self.invalid_position_windows)
+            localization_margin_m=self.terrain.localization_margin, invalid_position_windows=self.invalid_position_windows,
+            recovery=getattr(self, 'recovery', {}))

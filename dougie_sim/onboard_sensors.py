@@ -12,10 +12,13 @@ from .sensing import RangePacket
 
 
 class OnboardSensors:
-    def __init__(self, seed=0):
+    def __init__(self, seed=0, lidar_dropout_after=None):
         self.rng = np.random.default_rng(seed)
         self.gyro_bias = self.rng.normal(0., .0005, 3)
         self.accel_bias = self.rng.normal(0., .015, 3)
+        if lidar_dropout_after is not None and (not np.isfinite(lidar_dropout_after) or lidar_dropout_after < 0):
+            raise ValueError('invalid LiDAR fault time')
+        self.lidar_dropout_after = lidar_dropout_after
 
     def proprioception(self, sim):
         def read(name):
@@ -32,6 +35,10 @@ class OnboardSensors:
         distance = packet.distances.copy()
         hit = packet.valid
         distance[hit] += self.rng.normal(0., .002, hit.sum())
-        distance[self.rng.random(distance.shape) < .005] = -1.
+        # Zero means missing/invalid. -1 is a valid max-range no-hit beam in the
+        # occupancy mapper; using it for dropout would invent clear space.
+        distance[self.rng.random(distance.shape) < .005] = 0.
+        if self.lidar_dropout_after is not None and packet.stamp_s >= self.lidar_dropout_after:
+            distance[:] = 0.
         return RangePacket(packet.stamp_s, packet.sequence, packet.origin, packet.directions,
                            distance, packet.max_range_m, np.zeros(distance.shape, dtype=bool))

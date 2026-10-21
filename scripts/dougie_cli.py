@@ -80,6 +80,7 @@ def main():
     radiation.add_argument('--record-view', choices=('field', 'routes'), default='field')
     radiation.add_argument('--sensor-seed', type=int, default=0)
     radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
+    radiation.add_argument('--lidar-dropout-after', type=float)
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
     radiation.add_argument('--fixed-plan-delay', type=float, help='headless fast reproducible planning schedule')
     radiation.add_argument('--require-clean', action='store_true')
@@ -187,6 +188,8 @@ def main():
             '--camera', args.camera, '--map-layer', args.map_layer,
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]
+        if args.lidar_dropout_after is not None:
+            command += ['--lidar-dropout-after', str(args.lidar_dropout_after)]
         command += ['--gp-mode', args.gp_mode, '--gp-expert-capacity', str(args.gp_expert_capacity),
                     '--gp-max-experts', str(args.gp_max_experts), '--gp-cell-size', *map(str, args.gp_cell_size),
                     '--path-mode', args.path_mode]

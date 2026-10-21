@@ -55,6 +55,7 @@ def main():
     parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
+    parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
@@ -93,6 +94,8 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.lidar_dropout_after is not None and (args.localization != 'fused' or not math.isfinite(args.lidar_dropout_after) or args.lidar_dropout_after < 0):
+        parser.error('--lidar-dropout-after requires fused localization and a nonnegative finite time')
     if args.gp_mode == 'geometry' and args.gp_likelihood != 'poisson':
         parser.error('--gp-mode geometry requires --gp-likelihood poisson')
     if args.localization == 'fused' and args.landmark_count:
@@ -146,7 +149,7 @@ def main():
             parser.error('fused missions currently require the proprioceptive policy contract')
         from .odometry import FusedOdometry
         from .onboard_sensors import OnboardSensors
-        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust'), OnboardSensors(args.sensor_seed)
+        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust'), OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
     local_packet = None
@@ -178,6 +181,7 @@ def main():
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
+    planning_options['recovery_enabled'] = args.navigation_profile == 'robust'
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
     controls.highlights, controls.field_display = highlights, args.field_display
@@ -274,6 +278,10 @@ def main():
     localization_log = (output/'localization_evaluation.jsonl').open('w')
     correction_log = (output/'map_corrections.jsonl').open('w')
     last_pose_log = -1.
+    terminal_stop = None
+    terminal_reported = False
+    control_wait_start = None
+    control_wait_dose = 0.
 
     print(f'Dougie radiation mission: {output}\nSource profile: {args.source_profile} ({len(field.sources)} point sources)', flush=True)
     try:
@@ -367,6 +375,12 @@ def main():
                 if odometry and accepted_map_revision != odometry.map_revision:
                     path, map_view, state = [], None, 'waiting_for_map_revision'
                     metrics.update(state=state, planned_path=[], path_spans=[])
+                if metrics.get('recovery', {}).get('terminal') and terminal_stop is None:
+                    terminal_stop = dict(time_s=stamp, reason=metrics['recovery'].get('reason'),
+                        measured_dose_usv=detector.dose, evaluator_true_dose_usv=true_dose)
+                if terminal_stop is not None:
+                    path, state = [], 'stopped_unrecoverable'
+                    metrics.update(state=state, planned_path=[], path_spans=[])
                 observed_plan_delay = max(0., stamp-last_plan)
                 metrics['plan_age_sim_s'] = observed_plan_delay
                 if odometry:
@@ -405,7 +419,7 @@ def main():
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
             stalled = stamp-last_progress_stamp > 15.
-            if future is None and samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
+            if terminal_stop is None and future is None and samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
                 lidar_started = time.perf_counter()
                 packet = mapped_packet if odometry else sim.lidar_packet()
                 lidar_times.append(time.perf_counter()-lidar_started)
@@ -415,7 +429,8 @@ def main():
                 future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
                                      landmark_observations, observed_plan_delay,
                                      odometry.yaw if odometry else math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]),
-                                     tuple(odometry.corrections) if odometry else (), odometry.metrics() if odometry else None)
+                                     tuple(odometry.corrections) if odometry else (), odometry.metrics() if odometry else None,
+                                     follower.status if args.path_mode == 'smooth' else None)
                 samples = []
                 last_plan = stamp
                 if stalled:
@@ -424,17 +439,46 @@ def main():
             yaw = odometry.yaw if odometry else math.atan2(R[1, 0], R[0, 0])
             command = (follower.tick(position, yaw, sim.model.opt.timestep) if args.path_mode == 'smooth' else
                        follow(path, position, yaw, .14 if args.terrain_profile == 'layered' else .22))
+            control_reason = None
             if latest_sample is None or stamp-latest_sample.stamp_s > 1.5 or stamp-accepted_plan_stamp > 4.:
                 command[:] = 0.
                 follower.stop()
+                control_reason = 'stale_radiation' if latest_sample is None or stamp-latest_sample.stamp_s > 1.5 else 'stale_plan'
             if odometry and (not odometry.initialized or stamp-last_onboard_scan > .6
                     or odometry.position_std.max() > .3 or accepted_map_revision != odometry.map_revision
                     or (odometry.robust and odometry.rejection_streak >= 5)):
                 command[:] = 0.
                 follower.stop()
+                control_reason = 'map_revision_wait' if accepted_map_revision != odometry.map_revision else 'localization_unreliable'
             if latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
                 command[:] = 0.
                 follower.stop()
+                control_reason = 'measured_radiation_requires_retreat'
+            if args.navigation_profile == 'robust' and stamp > 3. and terminal_stop is None:
+                if control_reason:
+                    if control_wait_start is None:
+                        control_wait_start, control_wait_dose = stamp, detector.dose
+                    if stamp-control_wait_start >= 12. or detector.dose-control_wait_dose >= .02*args.dose_budget:
+                        terminal_stop = dict(time_s=stamp, reason=control_reason,
+                            measured_dose_usv=detector.dose, evaluator_true_dose_usv=true_dose)
+                else:
+                    control_wait_start = None
+            if terminal_stop is not None:
+                state, path = 'stopped_unrecoverable', []
+                command[:] = 0.
+                follower.stop()
+                terminal_status = {k: v for k, v in terminal_stop.items() if not k.startswith('evaluator_')}
+                live_metrics.update(state=state, terminal_stop=terminal_status, planned_path=[], selected_target=None)
+                if not terminal_reported:
+                    record = dict(time_s=stamp, **{k: v for k, v in live_metrics.items() if k != 'events'})
+                    trace.write(json.dumps(record)+'\n')
+                    trace.flush()
+                    if status_pub:
+                        status_pub.publish(String(data=json.dumps(record)))
+                    terminal_reported = True
+                # Keep integrating physics/detector exposure to the original
+                # deadline. Ending planning must not manufacture a dose saving.
+            live_metrics['control_inhibit_reason'] = control_reason
             command_variation += np.abs(command-previous_command)
             previous_command = command.copy()
             turning_time += float(abs(command[2]) > .1 and abs(command[0]) < .03)*sim.model.opt.timestep
@@ -530,6 +574,14 @@ def main():
             information_contract=('planner receives body-frame noisy LiDAR transformed by IMU/leg/LiDAR estimated pose and counting-detector observations only' if odometry else 'planner receives range returns, ideal pose, counting-detector samples'
                                   +(', and visible landmark observations only' if args.landmark_count else ' only')))
         metrics['localization'] = odometry.metrics() if odometry else dict(source='mujoco_ground_truth')
+        metrics['state'] = state
+        metrics['terminal_stop'] = terminal_stop
+        if terminal_stop:
+            recovery_metrics = metrics.setdefault('recovery', {})
+            source = 'planning_recovery' if recovery_metrics.get('terminal') else 'execution_watchdog'
+            recovery_metrics.update(last_worker_phase=recovery_metrics.get('phase'), phase='stopped_unrecoverable',
+                terminal=True, reason=terminal_stop['reason'], termination_source=source)
+        metrics['post_stop_true_dose_usv'] = max(0., true_dose-terminal_stop['evaluator_true_dose_usv']) if terminal_stop else 0.
         metrics['localization_evaluation'] = dict(position_rmse_m=float(np.sqrt(np.mean(np.square(pose_errors)))) if pose_errors else None,
             position_p95_m=float(np.percentile(pose_errors, 95)) if pose_errors else None,
             true_home_distance_m=float(np.linalg.norm(sim.data.qpos[:3]-true_home)))

@@ -92,6 +92,7 @@ class ClusteredDoseExplorer(DoseExplorer):
     def replan(self, position, stamp):
         started = time.perf_counter()
         self.smoother = None
+        self.return_path = []
         nodes, graph = self.terrain.build_graph()
         self.blocked_edges = {edge: t for edge, t in self.blocked_edges.items() if stamp-t < 60.}
         for a, b in self.blocked_edges:
@@ -105,9 +106,13 @@ class ClusteredDoseExplorer(DoseExplorer):
         root = self.terrain.nearest(position)
         self.rejections = dict(distance=0, failed=0, dose=0, rate=0, return_route=0, time=0)
         self.route_forecast = {}
-        if root is None or self.sample is None or not 0. <= stamp-self.sample.stamp_s <= 1.5:
+        if self.sample is None or not 0. <= stamp-self.sample.stamp_s <= 1.5:
             self.path = []
-            self.state = 'waiting_for_fresh_sensors_or_support'
+            self.state, self.last_reason = 'waiting_for_radiation', 'stale_radiation_sample'
+            return
+        if root is None:
+            self.path = []
+            self.state, self.last_reason = 'waiting_for_support', 'missing_local_support'
             return
         if self.home is None:
             self.home = np.asarray(position).copy()
@@ -115,7 +120,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         home = self.terrain.nearest(self.home)
         if home is None:
             self.path = []
-            self.state = 'no_observed_return_route'
+            self.state, self.last_reason = 'no_observed_return_route', 'home_support_unavailable'
             return
         self.visited.add(root)
         keys = list(nodes)
@@ -140,7 +145,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         _, _, home_length, home_parent = self.terrain.routes(home, rates, reverse=True, max_rate=self.rate_limit)
         if home not in parent:
             self.path = []
-            self.state = 'no_observed_return_route'
+            self.state, self.last_reason = 'no_observed_return_route', 'return_graph_disconnected'
             return
         self.return_path = [nodes[key].copy() for key in self.terrain.path(parent, home)]
         outbound_time, dose, outbound_peak = forecast_tree(self.terrain, parent, rates)
@@ -156,7 +161,8 @@ class ClusteredDoseExplorer(DoseExplorer):
                 return_duration_s=seconds, return_upper_dose_usv=exposure,
                 return_peak_rate_usv_h=float(np.max(return_rates)), return_forecast_geometry='support_checked_smooth')
             outbound_time[home], dose[home] = seconds, exposure
-        self.return_reserve = dose[home]+self.budget*.15+rates[root]*self.wait_allowance/3600.
+        self.return_reserve = dose[home]+self.budget*.15+rates[root]*(self.wait_allowance+self.recovery_reserve_s)/3600.
+        self.route_forecast['recovery_reserve_s'] = self.recovery_reserve_s
         if self.sample.dose_upper_usv+self.return_reserve >= self.budget:
             self.returning, self.last_reason = True, 'dose_return_reserve'
         if stamp+outbound_time[home]+self.wait_allowance+15. >= self.mission_duration:
@@ -182,9 +188,9 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self.rejections['failed'] += 1
                 self._remember(key, 'temporarily_blocked', stamp)
                 return False
-            dwell_dose = (rates[root]*self.wait_allowance+rates[key]*(5.+self.wait_allowance))/3600.
+            dwell_dose = (rates[root]*self.wait_allowance+rates[key]*(5.+self.wait_allowance+self.recovery_reserve_s))/3600.
             total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
-            deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.
+            deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
             if (self.smooth_execution and self.landmark_bonus(nodes[key]) > 0 and key not in checked_inspections
                     and len(checked_inspections) < 4 and (total > self.budget or deadline > self.mission_duration)):
                 # Grid turns can grossly overestimate a nearby inspection trip.
@@ -203,7 +209,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                         start_yaw=None if returning else getattr(self, 'start_yaw', None))
                     peaks[key] = float(np.max(prediction))
                 total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
-                deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.
+                deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
             if total > self.budget:
                 self.rejections['dose'] += 1
                 self._remember(key, 'dose_limited', stamp)

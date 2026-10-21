@@ -15,6 +15,8 @@ _limits = None
 _options = {}
 _journal = None
 _parameters = _terrain_profile = None
+_recovery = None
+_breadcrumbs = []
 
 
 def create_explorer(parameters, planner, terrain_profile, options=None):
@@ -23,6 +25,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
                  ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
     explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
+    explorer.recovery_reserve_s = 3. if options.get('recovery_enabled') else 0.
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
@@ -46,7 +49,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
 
 
 def initialize(parameters, planner, terrain_profile, limit_threads=True, options=None):
-    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile
+    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile, _recovery, _breadcrumbs
     # Never reconfigure native thread pools in a Python worker thread while the
     # main thread is executing Torch. The parent already limits the thread mode.
     if limit_threads:
@@ -56,6 +59,9 @@ def initialize(parameters, planner, terrain_profile, limit_threads=True, options
     _parameters, _terrain_profile = parameters, terrain_profile
     from .map_corrections import ObservationJournal
     _journal = ObservationJournal() if _options.get('consistent_mapping') else None
+    from .recovery import BudgetedRecovery
+    _recovery = BudgetedRecovery() if _options.get('recovery_enabled') else None
+    _breadcrumbs = []
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
@@ -97,13 +103,16 @@ def rebuild_explorer(old, new_events):
     return fresh
 
 
-def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None, corrections=(), localization=None):
-    global _explorer
+def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None, corrections=(), localization=None, execution_status=None):
+    global _explorer, _breadcrumbs
     started = time.perf_counter()
     if _journal is not None:
         previous = _journal.revision
         if _journal.correct(corrections):
-            _explorer = rebuild_explorer(_explorer, [e for e in corrections if e.revision > previous])
+            new_events = [e for e in corrections if e.revision > previous]
+            _explorer = rebuild_explorer(_explorer, new_events)
+            for event in new_events:
+                _breadcrumbs = [(t, event.point(p, t)) for t, p in _breadcrumbs]
         packet = _journal.align_packet(packet)
         batch = [_journal.align_sample(sample) for sample in batch]
         _journal.append(batch, packet, position, stamp)
@@ -146,7 +155,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         residual = (localization or {}).get('scan_rmse_m') or 0.
         margin = min(.1, math.ceil(2.*math.hypot(local_std, residual)/.02)*.02)
         explorer.terrain.set_localization_margin(margin)
-    if stalled and explorer.target is not None:
+    if stalled and explorer.target is not None and explorer.path and execution_status != 'waiting_for_route_reacquisition':
         if hasattr(explorer, 'report_stall'):
             explorer.report_stall(position, stamp)
         else:
@@ -155,6 +164,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     explorer.replan(position, stamp)
     if _journal is not None and stamp-packet.stamp_s > .75:
         explorer.path, explorer.state, explorer.last_reason = [], 'waiting_for_range', 'stale_range_packet'
+    if _recovery is not None and explorer.state != 'returned':
+        apply_recovery(explorer, packet, position, stamp, stalled, execution_status, localization or {})
     planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
     motion = None
@@ -210,6 +221,57 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         explorer.worker_ms = explorer.worker_ms[-2048:]
     metrics['worker_p95_ms'] = float(np.percentile(explorer.worker_ms, 95))
     return execution_path, explorer.state, metrics, volume
+
+
+def apply_recovery(explorer, packet, position, stamp, stalled, execution_status, localization):
+    from .recovery import failure_reason
+    from .path_motion import RouteGeometry
+    from .route_forecast import forecast_polyline
+    reason = failure_reason(explorer, packet, stamp, localization, stalled, execution_status)
+    sample = explorer.sample
+    measured, upper = (sample.dose_usv, sample.dose_upper_usv) if sample else (0., 0.)
+    rate = sample.rate_usv_h+3.*math.sqrt(sample.variance_usv_h2) if sample else explorer.rate_limit
+    permitted_sensing = reason not in ('localization_unreliable', 'stale_range', 'stale_radiation')
+    valid_route = bool(explorer.path) and permitted_sensing
+    forecast = getattr(explorer, 'route_forecast', {})
+    decision = _recovery.step(reason, stamp, measured, upper, rate, explorer.budget,
+        explorer.return_reserve, explorer.mission_duration, forecast.get('return_duration_s', 0.), valid_route)
+    if decision.terminal:
+        explorer.path, explorer.state, explorer.last_reason = [], 'stopped_unrecoverable', _recovery.reason
+    elif decision.phase == 'resensing':
+        explorer.path, explorer.state, explorer.last_reason = [], 'recovery_resensing', reason or _recovery.reason
+    elif decision.force_return:
+        known_return = explorer.path if explorer.state.startswith('return') and explorer.path else getattr(explorer, 'return_path', [])
+        explorer.returning = True
+        if permitted_sensing and known_return:
+            explorer.path = [p.copy() for p in known_return]
+            explorer.state, explorer.last_reason = 'returning_recovery', 'recovery_known_return_route'
+        elif permitted_sensing and _recovery.allow_attempt(stamp):
+            geometry = RouteGeometry(explorer.terrain)
+            explorer.path = []
+            for observed_at, point in reversed(_breadcrumbs):
+                if not 3. <= stamp-observed_at <= 60. or not .2 <= np.linalg.norm(point-position) <= .8:
+                    continue
+                checked = geometry.line(np.asarray(position), point)
+                if checked is None:
+                    continue
+                _, _, rates = explorer.gp.predict(checked+[0., 0., .44])
+                seconds, dose = forecast_polyline(checked, rates, start_yaw=getattr(explorer, 'start_yaw', None))
+                if (float(np.max(rates)) > explorer.rate_limit or upper+dose+explorer.return_reserve >= explorer.budget
+                        or stamp+seconds+15. >= explorer.mission_duration):
+                    continue
+                explorer.path, explorer.state = list(checked), 'returning_recovery'
+                explorer.last_reason = 'checked_breadcrumb_retreat'
+                break
+            if not explorer.path:
+                explorer.state, explorer.last_reason = 'recovery_resensing', 'no_checked_recovery_motion'
+        else:
+            explorer.path, explorer.state, explorer.last_reason = [], 'recovery_resensing', reason or 'recovery_attempt_limit'
+    if decision.phase in ('idle', 'recovered') and explorer.terrain.nearest(position) is not None:
+        if not _breadcrumbs or np.linalg.norm(np.asarray(position)-_breadcrumbs[-1][1]) > .2:
+            _breadcrumbs.append((stamp, np.asarray(position).copy()))
+            del _breadcrumbs[:-128]
+    explorer.recovery = _recovery.metrics()
 
 
 def finalize(pending_samples, corrections=()):
