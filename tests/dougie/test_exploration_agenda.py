@@ -101,6 +101,26 @@ def test_checked_polyline_forecast_does_not_charge_for_removed_grid_corners():
     assert smooth_time < grid_time and smooth_dose < grid_dose
 
 
+def test_committed_supported_goal_is_refined_before_grid_turn_deadline_rejection():
+    planner = ClusteredDoseExplorer(budget=10., mission_duration=80.)
+    terrain = planner.terrain
+    terrain.resolution = .2
+    terrain.nodes = {(x, y, 0): np.array([(x+.5)*.2, (y+.5)*.2, 0.])
+                     for x in range(-4, 12) for y in range(-4, 12)}
+    terrain.graph = {key: [other for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                          if (other := (key[0]+dx, key[1]+dy, 0)) in terrain.nodes] for key in terrain.nodes}
+    terrain.build_graph = lambda: (terrain.nodes, terrain.graph)
+    planner.gp = SimpleNamespace(predict=lambda p: (np.ones(len(p)), np.ones(len(p))*.1, np.ones(len(p))))
+    planner.sample = RadiationSample(1., (.1, .1, .44), 5, .5, .72, .1, .001, .002)
+    planner.home = np.array([.1, .1, 0.])
+    planner.target = np.array([1.1, 1.1, 0.])
+    planner.smooth_execution = planner.execution_admission_refinement = True
+    planner.replan(planner.home.copy(), 1.)
+    np.testing.assert_allclose(planner.target, [1.1, 1.1, 0.])
+    assert planner.last_reason == 'continue_revalidated_goal'
+    assert planner.route_forecast['checked_execution_candidates'] == 1
+
+
 def test_start_heading_exposure_and_shared_search_speed():
     points = np.array([[0., 0., 0.], [1., 0., 0.]])
     direct, dose = forecast_polyline(points, [10., 10.])

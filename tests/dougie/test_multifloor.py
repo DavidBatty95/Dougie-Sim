@@ -78,6 +78,45 @@ def cloud(height):
                      for y in np.arange(-1., 1.01, .05)])
 
 
+def test_piecewise_ramp_join_keeps_full_footprint_without_extrapolating_one_plane():
+    terrain = LayeredSurfaceMap(radius=.59)
+    slope = math.tan(math.radians(10.))
+    supports = cloud(lambda x: slope*max(0., x))
+    terrain.update(supports, supports)
+    terrain.build_graph()
+    start, end = terrain.nearest([-.7, 0., 0.]), terrain.nearest([.7, 0., slope*.7])
+    assert start is not None and end is not None
+    assert end in terrain.routes(start)[3]
+
+
+def test_support_footprint_does_not_apply_body_clearance_twice():
+    terrain = LayeredSurfaceMap(radius=.45)
+    supports = cloud(lambda x: 0.)
+    wall = np.array([[0., y, .4] for y in np.arange(-1., 1.01, .025)])
+    terrain.update(np.vstack((supports, wall)), supports)
+    terrain.build_graph()
+    assert any(.49 < p[0] < .51 for p in terrain.nodes.values())
+    assert all(abs(p[0]) >= .45 for p in terrain.nodes.values())
+
+
+def test_gentler_fixture_preserves_height_and_local_source_challenge():
+    from dougie_sim.multilevel import source_description
+    original = Simulation('mezzanine')
+    gentle = Simulation('mezzanine', mezzanine_angle=8.)
+    a, b = original.model.geom('mezzanine_slab').id, gentle.model.geom('mezzanine_slab').id
+    height_a = original.data.geom_xpos[a, 2]+original.model.geom_size[a, 2]
+    height_b = gentle.data.geom_xpos[b, 2]+gentle.model.geom_size[b, 2]
+    assert height_b == pytest.approx(height_a)
+    ramp = gentle.model.geom('access_ramp_0').id
+    R = gentle.data.geom_xmat[ramp].reshape(3, 3)
+    assert math.atan2(R[2, 0], R[0, 0]) == pytest.approx(math.radians(8.))
+    assert gentle.model.geom_size[ramp, 0] > original.model.geom_size[original.model.geom('access_ramp_0').id, 0]
+    for sim, angle in ((original, 10.), (gentle, 8.)):
+        slab = sim.model.geom('mezzanine_slab').id
+        assert source_description(angle)['sources'][0]['position'][0]-sim.data.geom_xpos[slab, 0] == pytest.approx(.5)
+    assert LayeredSurfaceMap().max_slope == pytest.approx(math.tan(math.radians(10.)))
+
+
 def test_incremental_footprints_match_fresh_graph_after_obstacle():
     supports = cloud(lambda x: 0.)
     terrain = LayeredSurfaceMap()

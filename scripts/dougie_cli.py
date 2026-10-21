@@ -84,6 +84,7 @@ def main():
     radiation.add_argument('--sensor-seed', type=int, default=0)
     radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
     radiation.add_argument('--slam-backend', choices=('distributed', 'pose-graph'))
+    radiation.add_argument('--mezzanine-angle', type=float)
     radiation.add_argument('--uncertainty-profile')
     radiation.add_argument('--lidar-dropout-after', type=float)
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
@@ -200,6 +201,8 @@ def main():
             command += ['--utility-mode', args.utility_mode]
         if args.slam_backend:
             command += ['--slam-backend', args.slam_backend]
+        if args.mezzanine_angle is not None:
+            command += ['--mezzanine-angle', str(args.mezzanine_angle)]
         if args.uncertainty_profile:
             command += ['--uncertainty-profile', checkout_file(parser, args.uncertainty_profile)]
         if args.require_circuit:

@@ -76,10 +76,27 @@ class BudgetedRecovery:
             max_wait_s=self.max_wait_s, max_episode_s=self.max_episode_s)
 
 
+def healthy_local_return(localization, stamp):
+    """Global map uncertainty need not invalidate fresh robot-relative geometry.
+
+    This permits only a revalidated return, never further exploration. It is not
+    an assertion that the global home pose is accurate; physical return is scored
+    independently.
+    """
+    age = stamp-localization.get('last_good_scan_s', -math.inf) if localization.get('last_good_scan_s') is not None else math.inf
+    residual = localization.get('scan_rmse_m')
+    local_std = localization.get('conditional_position_std_m', [math.inf])
+    return bool(localization.get('initialized') and localization.get('rejection_streak', 0) == 0
+        and localization.get('observable_rank', 0) == 6 and 0. <= age <= .6
+        and residual is not None and math.isfinite(residual) and residual <= .025
+        and all(math.isfinite(v) and 0 <= v <= .05 for v in local_std))
+
+
 def failure_reason(explorer, packet, stamp, localization, stalled, execution_status):
     if localization:
         if (not localization.get('initialized', False) or localization.get('rejection_streak', 0) >= 5
-                or max(localization.get('position_std_m', [0.])) > .3):
+                or (max(localization.get('position_std_m', [0.])) > .3
+                    and not (explorer.returning and healthy_local_return(localization, stamp)))):
             return 'localization_unreliable'
     if explorer.sample is None or not -1e-9 <= stamp-explorer.sample.stamp_s <= 1.5:
         return 'stale_radiation'

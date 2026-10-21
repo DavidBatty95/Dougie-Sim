@@ -50,6 +50,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         from .observed_circuit import ObservedCircuit
         self.circuit = ObservedCircuit()
         self.circuit_tour = {}
+        self.execution_admission_refinement = False
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -175,6 +176,19 @@ class ClusteredDoseExplorer(DoseExplorer):
             self.returning, self.last_reason = True, 'time_return_reserve'
         self.failed = [(p, t) for p, t in self.failed if stamp-t < 60.]
         checked_inspections = set()
+        visit_distance = None
+        refinement_keys = set()
+        if self.execution_admission_refinement and self.smooth_execution:
+            previous_key = self.terrain.nearest(self.target) if self.target is not None else None
+            if previous_key is not None:
+                refinement_keys.add(previous_key)
+            if inspection and not self.returning:
+                visit_distance = distance_from_visits(nodes, graph, self.visited)
+                promising = [key for key in parent if key in home_parent and length[key] >= .25
+                    and self.terrain.acquisition_bonus(key, self.sampled_height_bands) > 0]
+                promising.sort(key=lambda key: (
+                    -min(1., visit_distance[key]/.8)*self.terrain.acquisition_bonus(key, self.sampled_height_bands)/(1.+.35*length[key]), key))
+                refinement_keys.update(promising[:max(0, 4-len(refinement_keys))])
         for key, task in self.agenda.items():
             if task['status'] == 'active':
                 task['status'] = 'pending'
@@ -197,13 +211,13 @@ class ClusteredDoseExplorer(DoseExplorer):
             dwell_dose = (rates[root]*self.wait_allowance+rates[key]*(5.+self.wait_allowance+self.recovery_reserve_s))/3600.
             total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
             deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
-            if (self.smooth_execution and (self.landmark_bonus(nodes[key]) > 0 or self.objective == 'circuit') and key not in checked_inspections
+            if (self.smooth_execution and (self.landmark_bonus(nodes[key]) > 0 or self.objective == 'circuit' or key in refinement_keys) and key not in checked_inspections
                     and len(checked_inspections) < 4 and (total > self.budget or deadline > self.mission_duration)):
                 # Grid turns can grossly overestimate a nearby inspection trip.
                 # Recheck a bounded number of promising known-target approaches
                 # on certified execution geometry before rejecting the objective.
                 checked_inspections.add(key)
-                outbound = [position, *[nodes[k] for k in self.terrain.path(parent, key)]]
+                outbound = [position, *[nodes[k] for k in self.terrain.path(parent, key)[1:]]]
                 inbound = [nodes[k] for k in reversed(self.terrain.path(home_parent, key))]
                 for points, durations, doses, peaks, returning in (
                     (outbound, outbound_time, dose, outbound_peak, False),
@@ -301,7 +315,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             gain = ObservedGain(self.terrain)
             reachable = {key: nodes[key] for key in parent}
             groups = connected_clusters(reachable, graph, rates, uncertainty, self.rate_limit)
-            visit_distance = distance_from_visits(nodes, graph, self.visited)
+            visit_distance = visit_distance or distance_from_visits(nodes, graph, self.visited)
             summaries, candidates = [], []
             for group in groups:
                 # One representative per homogeneous connected group, plus a
@@ -316,7 +330,8 @@ class ClusteredDoseExplorer(DoseExplorer):
                 local = sorted(local)
                 target_local = sorted((key for key in local if self.landmark_bonus(nodes[key]) > 0), key=lambda key: length[key])[:8]
                 remembered = [key for key in local if key in self.agenda and self.agenda[key]['status'] != 'visited'][:8]
-                local = sorted(set(local[::max(1, math.ceil(len(local)/8))]+target_local+remembered))
+                refined = [key for key in local if key in refinement_keys]
+                local = sorted(set(local[::max(1, math.ceil(len(local)/8))]+target_local+remembered+refined))
                 scored = []
                 for key in local:
                     novelty = gain.value(key)
@@ -385,6 +400,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self.goal_started = stamp
         goal = nodes[selected].copy()
         self.route_forecast['checked_inspection_candidates'] = len(checked_inspections)
+        self.route_forecast['checked_execution_candidates'] = len(checked_inspections)
         if self.target is None or math.dist(goal, self.target) > .35:
             self.goal_switches += 1
         self.target = goal

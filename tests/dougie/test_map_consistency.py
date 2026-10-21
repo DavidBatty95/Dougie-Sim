@@ -194,3 +194,19 @@ def test_planned_clearance_reserves_the_followers_tracking_error():
     assert explorer.terrain.base_radius == pytest.approx(.4+TRACKING_ERROR_LIMIT)
     explorer.terrain.set_localization_margin(.02)
     assert explorer.terrain.radius == pytest.approx(.4+TRACKING_ERROR_LIMIT+.02)
+
+
+def test_rebuild_preserves_observed_height_bands_and_body_visit_neighbours():
+    from dougie_sim import planning_worker as worker
+    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'layered',
+                      options=dict(consistent_mapping=True, path_mode='grid', display_prediction=False))
+    sample = RadiationSample(.5, (0., 0., .44), 5, .5, .72, .1, .001, .002)
+    worker.plan([sample], floor_packet(), np.zeros(3), .5, False)
+    upper = floor_packet(1.5)
+    upper = replace(upper, origin=upper.origin+[3., 0., .4])
+    worker.plan([replace(sample, stamp_s=1.5, position=(3., 0., .84))], upper, np.array([3., 0., .4]), 1.5, False)
+    event = MapCorrection(1, 0., 3., (0., 0., 0.), (.1, 0., 0.))
+    _, _, metrics, _ = worker.plan([replace(sample, stamp_s=3.5, position=(.1, 0., .44), map_revision=1)],
+        event.packet(floor_packet(3.5)), np.array([.1, 0., 0.]), 3.5, False, corrections=(event,))
+    assert .4 in metrics['sampled_support_height_bands_m']
+    assert metrics['visited_cells'] >= 8

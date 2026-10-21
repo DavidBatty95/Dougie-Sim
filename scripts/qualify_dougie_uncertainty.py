@@ -25,6 +25,7 @@ from scripts.calibrate_dougie_uncertainty import episode, calibrate
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='mezzanine')
+    parser.add_argument('--mezzanine-angle', type=float, default=10.)
     parser.add_argument('--duration', type=float, default=300.)
     parser.add_argument('--dose-budget', type=float, default=10.)
     parser.add_argument('--calibration-episodes', type=int, default=9)
@@ -68,6 +69,8 @@ def main():
             '--fixed-plan-delay', '.5', '--require-clean', '--output', str(run)]
         if args.require_round_trip:
             command.append('--require-round-trip')
+        if args.world == 'mezzanine':
+            command += ['--mezzanine-angle', str(args.mezzanine_angle)]
         if role == 'application':
             command += ['--uncertainty-profile', str(args.profile)]
         cases.append(dict(index=i, role=role, run=str(run), detector_seed=int(detector), sensor_seed=int(sensor), command=command))

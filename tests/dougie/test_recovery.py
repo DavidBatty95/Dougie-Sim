@@ -3,7 +3,7 @@ from types import SimpleNamespace as S
 
 import numpy as np
 
-from dougie_sim.recovery import BudgetedRecovery, failure_reason
+from dougie_sim.recovery import BudgetedRecovery, failure_reason, healthy_local_return
 from dougie_sim.radiation import RadiationSample
 from dougie_sim.sensing import RangePacket
 
@@ -91,3 +91,17 @@ def test_detector_windows_are_deferred_until_available_not_misclassified_as_stal
     assert ready == [sample] and not pending
     explorer = S(sample=ready[0], state='exploring', path=[np.zeros(3)])
     assert failure_reason(explorer, S(stamp_s=.4), .5, {}, False, 'tracking') is None
+
+
+def test_large_global_uncertainty_allows_only_fresh_locally_validated_return():
+    local = dict(initialized=True, position_std_m=[.4]*3, conditional_position_std_m=[.005]*3,
+                 observable_rank=6, rejection_streak=0, scan_rmse_m=.005, last_good_scan_s=1.)
+    sample = RadiationSample(1., (0., 0., .4), 5, .5, .72, .1, .001, .002)
+    explorer = S(sample=sample, state='returning', returning=True, path=[np.zeros(3)])
+    assert healthy_local_return(local, 1.1)
+    assert failure_reason(explorer, S(stamp_s=1.), 1.1, local, False, 'tracking') is None
+    explorer.returning = False
+    assert failure_reason(explorer, S(stamp_s=1.), 1.1, local, False, 'tracking') == 'localization_unreliable'
+    assert not healthy_local_return({**local, 'observable_rank': 5}, 1.1)
+    assert not healthy_local_return({**local, 'rejection_streak': 1}, 1.1)
+    assert not healthy_local_return(local, 2.)

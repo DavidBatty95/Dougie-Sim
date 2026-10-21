@@ -24,6 +24,7 @@ from .reactor import radiation_description
 from .source_config import DEFAULT_SOURCE_CONFIG
 from .simulation import Simulation, rotation
 from .graphics import rviz_command
+from .recovery import healthy_local_return
 
 
 def support_pose(sim):
@@ -59,6 +60,7 @@ def main():
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
+    parser.add_argument('--mezzanine-angle', type=float, help='simulator-only access slope, 6..10 degrees; original fixture defaults to 10')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
@@ -99,6 +101,10 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    if args.mezzanine_angle is not None and (args.world != 'mezzanine' or not math.isfinite(args.mezzanine_angle) or not 6. <= args.mezzanine_angle <= 10.):
+        parser.error('--mezzanine-angle requires the mezzanine world and 6..10 degrees')
+    if args.world == 'mezzanine' and args.mezzanine_angle is None:
+        args.mezzanine_angle = 10.
     args.slam_backend = args.slam_backend or ('pose-graph' if args.navigation_profile == 'robust' else 'distributed')
     if args.slam_backend == 'pose-graph' and args.navigation_profile != 'robust':
         parser.error('--slam-backend pose-graph requires --navigation-profile robust')
@@ -154,14 +160,14 @@ def main():
                 from .facility import source_description
             else:
                 from .multilevel import source_description
-            description = source_description()
+            description = source_description(args.mezzanine_angle or 10.) if args.source_profile == 'mezzanine' else source_description()
         else:
             description = radiation_description(args.source_profile, config_path)
     except (OSError, ValueError, TypeError) as exc:
         parser.error(str(exc))
     ensure_assets()
     sim = Simulation(args.world, radiation_sources=description, policy_config=args.policy_config, layout_seed=args.layout_seed,
-                     landmark_count=args.landmark_count, landmark_seed=args.landmark_seed)
+                     landmark_count=args.landmark_count, landmark_seed=args.landmark_seed, mezzanine_angle=args.mezzanine_angle or 10.)
     odometry = sensors = None
     if args.localization == 'fused':
         if sim.policy_contract.perceptive:
@@ -508,7 +514,9 @@ def main():
                 follower.stop()
                 control_reason = 'stale_radiation' if latest_sample is None or stamp-latest_sample.stamp_s > 1.5 else 'stale_plan'
             if odometry and (not odometry.initialized or stamp-last_onboard_scan > .6
-                    or odometry.position_std.max() > .3 or accepted_map_revision != odometry.map_revision
+                    or (odometry.position_std.max() > .3 and not (state.startswith('return') and
+                        healthy_local_return(odometry.metrics(), stamp)))
+                    or accepted_map_revision != odometry.map_revision
                     or (odometry.robust and odometry.rejection_streak >= 5)):
                 command[:] = 0.
                 follower.stop()

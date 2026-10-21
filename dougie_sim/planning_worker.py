@@ -32,6 +32,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
         explorer.region_scheduling = options.get('region_scheduling', 'hierarchical')
         explorer.utility_mode = options.get('utility_mode', 'legacy')
+        explorer.execution_admission_refinement = options.get('navigation_profile') == 'robust'
         from .observed_circuit import ObservedCircuit
         explorer.circuit = ObservedCircuit(options.get('circuit_radius', 1.5))
     if terrain_profile == 'conservative':
@@ -86,6 +87,7 @@ def observe_packet(explorer, packet):
 def rebuild_explorer(old, new_events):
     """Reconstruct support and radiation in one revision before any route is used."""
     fresh = create_explorer(_parameters, _planner, _terrain_profile, _options)
+    fresh.terrain.set_localization_margin(old.terrain.localization_margin)
     fresh.home = None if old.home is None else old.home.copy()
     fresh.home_stamp = getattr(old, 'home_stamp', 0.)
     for event in new_events:
@@ -100,7 +102,31 @@ def rebuild_explorer(old, new_events):
         fresh.display_samples[tuple(np.floor(np.asarray(sample.position)/.4).astype(int))] = (np.asarray(sample.position), sample.rate_usv_h)
     fresh.display_samples = dict(list(fresh.display_samples.items())[-2048:])
     fresh.terrain.build_graph()
-    fresh.visited = {key for _, point in _journal.visits if (key := fresh.terrain.nearest(point)) is not None}
+    valid_visits = [(stamp, point, key) for stamp, point in _journal.visits
+                    if (key := fresh.terrain.nearest(point)) is not None]
+    fresh.visited = {key for _, _, key in valid_visits}
+    if getattr(fresh.terrain, 'active_viewpoints', False):
+        # Restore the same observed body-neighbour visit proxy used online,
+        # rather than turning old ramp footprints into novel tasks after a loop.
+        roots = list(fresh.visited)
+        for key in roots:
+            fresh.visited.update(other for other in fresh.terrain.graph.get(key, [])
+                                 if np.linalg.norm(fresh.terrain.nodes[other]-fresh.terrain.nodes[key]) <= .3)
+        fresh.sampled_height_bands = {round(float(point[2])/.2) for _, point, _ in valid_visits}
+        if _journal.visits:
+            last_stamp, last_point = _journal.visits[-1]
+            fresh.region_agenda.update(fresh.terrain.nodes, fresh.terrain.graph, fresh.terrain.nearest(last_point), last_stamp, fresh.visited)
+            fresh.region_agenda.current = None
+            fresh.region_agenda.last_served.clear()
+            for visited_at, point, key in valid_visits:
+                region = fresh.region_agenda.membership.get(key)
+                if region is not None:
+                    if fresh.region_agenda.current is not None and fresh.region_agenda.current != region:
+                        fresh.region_agenda.transitions[fresh.region_agenda.current, region] += 1
+                    fresh.region_agenda.current = region
+                    fresh.region_agenda.last_served[region] = visited_at
+    if hasattr(old, 'goal_switches'):
+        fresh.goal_switches = old.goal_switches
     fresh.returning |= old.returning
     fresh.events = old.events
     fresh.worker_ms = old.worker_ms
@@ -116,7 +142,7 @@ def rebuild_explorer(old, new_events):
         fresh.failed = [(event.point(point, stamp), stamp) for point, stamp in fresh.failed]
         if hasattr(fresh, 'circuit'):
             fresh.circuit.correct(event)
-    fresh.last_reason = 'map_revision_revalidated'
+    fresh.last_reason = old.last_reason if old.returning else 'map_revision_revalidated'
     return fresh
 
 

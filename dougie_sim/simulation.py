@@ -24,7 +24,7 @@ def rotation(quaternion):
     return matrix.reshape(3, 3)
 
 
-def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, landmark_count=0, landmark_seed=0):
+def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.):
     if world not in WORLDS or not 0 <= people <= 8:
         raise ValueError('invalid world or people count')
     root = ET.parse(ASSETS / 'go2/go2.xml').getroot()
@@ -66,11 +66,12 @@ def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, lan
                 add_facility(body, layout_seed)
             elif world == 'mezzanine':
                 from .multilevel import add_mezzanine, source_description
-                add_mezzanine(body)
+                add_mezzanine(body, mezzanine_angle)
             else:
                 add_reactor(body)
             from .reactor import radiation_description
-            description = (source_description() if world in ('mezzanine', 'facility') else radiation_description()) if radiation_sources is None else radiation_sources
+            description = (source_description(mezzanine_angle) if world == 'mezzanine' else
+                           source_description() if world == 'facility' else radiation_description()) if radiation_sources is None else radiation_sources
             ET.SubElement(root, 'size', nuser_site='3', nuser_geom='1')
             custom = ET.SubElement(root, 'custom')
             ET.SubElement(custom, 'numeric', name='radiation_background_usv_h', data=str(description['background_usv_h']))
@@ -98,12 +99,12 @@ def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, lan
 
 
 class Simulation:
-    def __init__(self, world='flat', people=0, controller='policy', *, model_xml=None, radiation_sources=None, policy_config=None, layout_seed=0, landmark_count=0, landmark_seed=0):
+    def __init__(self, world='flat', people=0, controller='policy', *, model_xml=None, radiation_sources=None, policy_config=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.):
         if controller not in ('policy', 'stand'):
             raise ValueError('unknown controller')
         self.policy_contract = PolicyContract(policy_config)
         self.default = self.policy_contract.default
-        self.scene_xml = model_xml if model_xml is not None else scene_xml(world, people, radiation_sources, layout_seed, landmark_count, landmark_seed)
+        self.scene_xml = model_xml if model_xml is not None else scene_xml(world, people, radiation_sources, layout_seed, landmark_count, landmark_seed, mezzanine_angle)
         self.model = mujoco.MjModel.from_xml_string(self.scene_xml)
         self.control_decimation = round(.02 / self.model.opt.timestep)
         if self.control_decimation < 1 or not math.isclose(self.control_decimation*self.model.opt.timestep, .02):

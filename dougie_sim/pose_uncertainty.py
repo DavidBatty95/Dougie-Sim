@@ -19,7 +19,7 @@ CORE = ('odometry.py', 'registration.py', 'pose_graph.py', 'scan_geometry.py', '
         'motion_cost.py', 'mission_utility.py', 'region_clustering.py', 'region_agenda.py',
         'geometry_gp.py', 'gp.py', 'spatial_gp.py', 'recovery.py', 'reactor.py', 'multilevel.py', 'facility.py',
         'source_config.py', 'observed_circuit.py', 'mission_evaluation.py', 'circuit_evaluation.py')
-DOMAIN_KEYS = ('world', 'layout_seed', 'source_profile', 'duration', 'dose_budget', 'rate_limit',
+DOMAIN_KEYS = ('world', 'layout_seed', 'mezzanine_angle', 'source_profile', 'duration', 'dose_budget', 'rate_limit',
                'localization', 'navigation_profile', 'slam_backend', 'gp_mode', 'gp_likelihood',
                'gp_capacity', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'detector_likelihood',
                'path_mode', 'terrain_profile', 'mission_objective', 'utility_mode', 'region_scheduling',

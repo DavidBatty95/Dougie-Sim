@@ -164,6 +164,7 @@ class LayeredSurfaceMap(SurfaceMap):
         centres = (columns+.5)*self.resolution
         support_neighbours = tree.query_ball_point(centres, self.plane_radius, return_sorted=False)
         candidates, planes = {}, {}
+        body_blocked = set()
         self.observed_surface_cells = 0
         self.fitted_columns = self.reused_columns = 0
         hits = np.asarray(list(self.hits.values())).reshape(-1, 3)
@@ -175,8 +176,10 @@ class LayeredSurfaceMap(SurfaceMap):
             if column in self._candidate_cache and column not in self._dirty_columns:
                 count, cached = self._candidate_cache[column]
                 self.observed_surface_cells += count
-                for key, point, plane in cached:
+                for key, point, plane, blocked in cached:
                     candidates[key], planes[key] = point, plane
+                    if blocked:
+                        body_blocked.add(key)
                 self.reused_columns += 1
                 continue
             self.fitted_columns += 1
@@ -205,15 +208,17 @@ class LayeredSurfaceMap(SurfaceMap):
                     continue
                 if np.max(np.abs(design@plane-local[:, 2])) > self.residual_limit:
                     continue
+                blocked = False
                 if hit_tree is not None:
                     near_hits = hits[hit_neighbours[column_index]]
                     relative = near_hits[:, 2]-(near_hits[:, :2]-xy)@plane[:2]-plane[2]
-                    if np.any((relative > .10) & (relative < .7)):
-                        continue
+                    blocked = bool(np.any((relative > .10) & (relative < .7)))
                 key = (*column, round(float(plane[2])/.02))
                 candidates[key] = np.r_[xy, plane[2]]
                 planes[key] = plane
-                entries.append((key, candidates[key], plane))
+                if blocked:
+                    body_blocked.add(key)
+                entries.append((key, candidates[key], plane, blocked))
         by_column = {}
         for key in candidates:
             by_column.setdefault(key[:2], []).append(key)
@@ -229,15 +234,37 @@ class LayeredSurfaceMap(SurfaceMap):
         affected = {(x-dx, y-dy) for x, y in changed for dx, dy in footprint}
         self.footprints_checked = 0
         nodes = {}
+        def compatible(a, b):
+            delta = candidates[b]-candidates[a]
+            return (abs(delta[2]) <= self.max_slope*np.linalg.norm(delta[:2])+.003
+                    and max(abs(delta[2]-planes[a][:2]@delta[:2]),
+                            abs(delta[2]-planes[b][:2]@delta[:2])) <= .015)
         for key, p in candidates.items():
+            # Body clearance is tested once at the robot centre. Neighbouring
+            # footprint cells need observed support, not another whole robot's
+            # clearance; applying both erodes narrow connectors twice.
+            if key in body_blocked:
+                continue
             if key[:2] not in affected:
                 if key in self._supported_keys:
                     nodes[key] = p
                 continue
             self.footprints_checked += 1
-            if all(any(abs(candidates[k][2]-(p[2]+np.dot(planes[key][:2], [dx*self.resolution, dy*self.resolution]))) < .035
-                       for k in by_column.get((key[0]+dx, key[1]+dy), []))
-                   for dx, dy in footprint):
+            selected = {}
+            for dx, dy in footprint:
+                xy = (key[0]+dx, key[1]+dy)
+                choices = [k for k in by_column.get(xy, [])
+                           if abs(candidates[k][2]-p[2]) <= self.max_slope*math.hypot(dx, dy)*self.resolution+.015]
+                if not choices:
+                    break
+                predicted = p[2]+planes[key][:2]@np.array([dx, dy])*self.resolution
+                selected[dx, dy] = key if (dx, dy) == (0, 0) else min(choices, key=lambda k: abs(candidates[k][2]-predicted))
+            # Piecewise-continuous support permits a measured floor/ramp join.
+            # Every adjacent pair must agree, so an abrupt ledge cannot become
+            # admissible merely because its two sides connect elsewhere.
+            if len(selected) == len(footprint) and all(
+                    compatible(k, selected[other]) for (dx, dy), k in selected.items()
+                    for other in ((dx+1, dy), (dx, dy+1)) if other in selected):
                 nodes[key] = p
         self._footprint_candidates, self._footprint_planes = candidates, planes
         self._supported_keys = set(nodes)
