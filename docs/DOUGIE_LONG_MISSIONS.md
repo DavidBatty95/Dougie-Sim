@@ -1,5 +1,12 @@
 # Five-times dose-allowance experiment
 
+This page retains the earlier navigation cohort. The subsequent
+[robust-navigation stages and revised default checks](DOUGIE_ROBUST_MISSIONS.md)
+add quality-gated localization, consistent map corrections, bounded recovery and
+tracking clearance. Use `--navigation-profile legacy --utility-mode legacy` to
+select the earlier comparator with current code; source identities remain in the
+original report.
+
 [Project home](../README.md) · [Onboard methods](DOUGIE_ONBOARD_MISSION.md) ·
 [Portable paired report](results/dougie_budget_5x_600.json)
 

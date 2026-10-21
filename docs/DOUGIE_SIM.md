@@ -56,7 +56,17 @@ gravity. Scans retain capture-time transforms; no true base pose or field metada
 enters the planner. `--localization ground-truth` retains the historical comparator,
 and the ordinary planar profile still has simulator-truth odometry. RViz/world
 geometry and physics summaries remain diagnostic. The virtual scanner is not a
-calibrated Go2 L1 model; there is no loop closure in the current fusion estimator.
+calibrated Go2 L1 model. Robust navigation uses quality-gated keyframes and
+confirmed loop/anchor matches. Accepted corrections are distributed in time and
+replayed consistently through support and count histories; this is bounded loop
+correction, not a fully qualified pose-graph SLAM system.
+
+Recovery has explicit sensing/support/tracking reasons, bounded waits, checked
+retreats and exposure accounting. Unrecoverable stops retain dose integration to
+the original mission deadline. Robust smooth routing also reserves the follower's
+tracking-error allowance in its planned clearance. The information/cost scorer is
+available as an experimental alternative; legacy utility remains the default
+after mixed matched-task dose results. [Implementation and evidence](DOUGIE_ROBUST_MISSIONS.md).
 
 Terrain retains multiple support heights per XY cell and cannot connect floors
 by vertical teleportation. The layered mapper supports observed shallow slopes;
@@ -73,7 +83,8 @@ stalls or strikes stair edges under conditions that pass that geometric test.
 
 | Artifact | Meaning |
 |---|---|
-| `measurements.jsonl` | Noisy counts, integration duration, estimated trajectory bins, measured dose and rate |
+| `measurements.jsonl` | Noisy counts, integration duration, estimated trajectory bins, measured dose/rate and observation map revision |
+| `map_corrections.jsonl` | Onboard-derived transforms and revision intervals; apply to older observation epochs before combining them with the final map |
 | `localization_evaluation.jsonl` | Estimated pose and explicitly evaluator-only physical pose/error |
 | `trace.jsonl` | Planner state, coverage and timing |
 | `run_config.json` | CLI configuration and source/asset-manifest hashes |
@@ -82,9 +93,13 @@ stalls or strikes stair edges under conditions that pass that geometric test.
 | `observed_geometry.npz` | Range hits and sampled observed-free voxels |
 | `radiation_summary.json` | Outcome, estimated/actual dose, return state and height coverage |
 | `evaluator_field.json` | Post-run truth for evaluation; not an autonomy input |
+| `circuit_evaluation.json` | Evaluator-only frozen physical targets and dwell witnesses for matched-work circuit experiments |
 
 A volumetric plot is not evidence that every height was measured. Inspect
 `sampled_height_range_m` and uncertainty before interpreting reconstruction.
+The final GP/terrain archives use `radiation_summary.json`'s
+`map_consistency.map_revision`. Raw measurement and localization logs preserve
+their capture-time estimates; they are not silently rewritten after a loop correction.
 
 ## Attribution
 

@@ -9,7 +9,7 @@ records a new strict full-height development pass and its retained regressions.
 
 All these vertical results use ideal pose. The later [onboard runtime](DOUGIE_ONBOARD_MISSION.md)
 is a separate cohort; reproduction with current code requires explicit
-`--localization ground-truth --detector-likelihood point` in addition to the
+`--localization ground-truth --navigation-profile legacy --detector-likelihood point` in addition to the
 spatial-GP settings. Ideal landmark demos also require ground-truth mode.
 
 ## MuJoCo executes; RViz displays the same state

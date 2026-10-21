@@ -204,3 +204,76 @@ allowed .12 m execution error. Robust smooth navigation now adds that same
 tracking-error limit to its base clearance, in addition to the existing local
 localization margin. The contact thresholds were not relaxed. Revised default
 and affected-case checks are reported separately below.
+
+## Final clearance/default validation
+
+Final source uses robust sensing, consistent maps, bounded recovery and the
+explicit tracking-clearance reserve. Legacy utility is the default; the
+information strategy remains an opt-in experiment.
+
+| Trial | Utility / budget | Return (s) | Actual dose (uSv) | Travel (m) | Physical home error (m) | Pose p95 (m) |
+|---|---|---:|---:|---:|---:|---:|
+| Default, seed 4 / sensor 1 | legacy / 2 | 389.870 | 1.267477 | 40.568 | .1483 | .0171 |
+| Default, seed 4 / sensor 1 | legacy / 10 | 427.965 | .775721 | 51.244 | .1358 | .1236 |
+| Previously contacting case, rechecked | information / 2 | 371.825 | 1.097797 | 39.602 | .2634 | .0308 |
+
+All three passed clean physical return with **zero non-foot contacts**. The two
+default trials each visited 67 physical .5 m XY cells; the larger allowance used
+38.8% less dose, but visited different locations, so this is not a matched-coverage
+claim. Their raw position RMSEs were .0140/.0437 m; translation-aligned RMSEs were
+.0076/.0421 m. All sampled component errors fell inside the reported three-sigma
+heuristic envelopes in these two trials, which does not establish probabilistic
+calibration on other layouts or failure modes.
+
+The 10 uSv default run accepted one loop correction and consistently rebuilt its
+map/GP history. The affected-case information recheck accepted two corrections;
+its successful result does not erase the retained earlier wall-contact failure.
+Confirmed near-zero anchor checks were also exercised (11/7 in the default pair).
+
+The post-clearance seed-5/sensor-2 circuit recheck again completed all four physical
+goals under both utilities: **.361857 uSv / 115.185 s** for legacy and
+**.339942 uSv / 109.170 s** for information. That 6.1% saving on one pair does not
+override the two adverse comparisons in the broader development matrix.
+
+Evidence:
+- [Final default 2/10 uSv checks](results/dougie_robust_default_checks.json)
+- [Post-clearance matched circuit](results/dougie_robust_clearance_circuit.json)
+- [Stage checks, including deliberate faults and retained failures](results/dougie_robust_stage_checks.json)
+
+**243 regression tests passed.** These are development seeds on one reactor
+layout, with fixed simulated planning delay. Wall timings include concurrent host
+workloads and are not hard-real-time evidence. Full pose-graph optimization,
+statistically calibrated uncertainty, unseen-layout dose superiority and renewed
+sensor-only multi-floor/terrain qualification remain open.
+
+### Run the revised defaults
+
+```bash
+./dougie radiation --headless --fast --duration 600 --dose-budget 10 \
+  --seed 4 --sensor-seed 1 --fixed-plan-delay .5 --require-clean
+
+# Compare utilities on the same initially observed task, with physical gates:
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_circuit.py \
+  --duration 300 --dose-budget 10 --radius 2 --seed-pairs 5:2
+
+# Controlled loss-of-LiDAR experiment; failed return is the expected outcome:
+./dougie radiation --headless --fast --duration 60 --dose-budget 10 \
+  --seed 3 --sensor-seed 0 --fixed-plan-delay .5 --lidar-dropout-after 8 --require-clean
+```
+
+`--navigation-profile legacy` selects the earlier navigation comparator.
+`--utility-mode information` changes scoring while retaining robust localization
+and recovery. Neither option selects simulator pose; that remains the separate,
+explicit `--localization ground-truth` diagnostic mode.
+
+## Archive frame contract
+
+`measurements.jsonl` retains each sample's capture-time `map_revision` and
+`position_valid` flag. `map_corrections.jsonl` contains the onboard-derived
+corrections; consumers reconstruct the final frame by applying only revisions
+newer than an observation's revision. Window positions use their duration-weighted
+bin times. Counts and dwell durations are unchanged. The final support/GP archives
+use the revision in `radiation_summary.json` → `map_consistency.map_revision`.
+Do not combine uncorrected historical sample coordinates with a corrected final
+map. Localization-error logs intentionally preserve the online estimate at each
+time, rather than retrospectively improving the reported error.

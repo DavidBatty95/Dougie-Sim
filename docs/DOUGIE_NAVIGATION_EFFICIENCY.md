@@ -2,7 +2,7 @@
 
 **Historical ideal-pose cohort:** the [onboard update](DOUGIE_ONBOARD_MISSION.md)
 subsequently changed radiation defaults. To run this page's comparison settings
-with current code, explicitly add `--localization ground-truth --gp-mode global
+with current code, explicitly add `--localization ground-truth --navigation-profile legacy --gp-mode global
 --detector-likelihood point` (use `--gp-mode spatial` where specified below).
 The new fused runtime needs its own vertical qualification; see the
 [active onboard plan](DOUGIE_ONBOARD_PLAN.md).

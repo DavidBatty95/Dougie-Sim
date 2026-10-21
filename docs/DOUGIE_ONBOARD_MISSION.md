@@ -1,5 +1,10 @@
 # Onboard-only radiation mission development
 
+**21 October update:** the subsequent [robust mission stages](DOUGIE_ROBUST_MISSIONS.md)
+add quality-gated keyframes, confirmed loop/anchor checks, coherent map replay,
+bounded recovery and matched-work planning. The initial 19 October results below
+retain their original source identities and do not cover those later changes.
+
 ## Sensor-fusion stage
 
 Radiation missions now default to `--localization fused`. The explicit

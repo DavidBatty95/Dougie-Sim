@@ -19,7 +19,15 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Latest onboard update — 19 October 2026: 212 tests pass.** Radiation missions
+**Robust-mission update — 21 October 2026: 243 tests pass.** Added quality-gated
+keyframe localization, confirmed loop/anchor checks, frame-consistent terrain and
+count-window replay, exposure-bounded recovery, and tracking-error clearance.
+Information-per-cost scoring and whole-task lookahead are available for comparison;
+**legacy utility remains the default because matched dose results were mixed**.
+Both utility modes still use onboard fusion and the new recovery system.
+[Staged implementation, tests and retained regressions](docs/DOUGIE_ROBUST_MISSIONS.md).
+
+**Onboard measurement checkpoint — 19 October 2026: 212 tests passed.** Radiation missions
 now default to **fused localization, observed-geometry GP kernels and moving-window
 Poisson likelihoods**. Two short reactor trials returned cleanly with zero non-foot
 contacts, using **0.1262 / 0.1227 µSv** against 2 µSv budgets. Position RMSE was
@@ -76,17 +84,19 @@ they are demonstrations of traversal, not a validated operating envelope.
 
 ## Recorded demo gallery
 
-### Current onboard build — actual recording and telemetry
+### Onboard measurement checkpoint — actual recording and telemetry
 
 | Onboard-only reactor mission | Sensor fusion and detector motion windows |
 |---|---|
-| ![Current MuJoCo Go2 mission with fused localization and live planned routes, approximately five-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded estimated robot pose versus independent physics evaluator, with eight-bin detector motion windows](docs/media/dougie/onboard-fusion.gif) |
+| ![Recorded onboard MuJoCo Go2 mission with fused localization and live planned routes, approximately five-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded estimated robot pose versus independent physics evaluator, with eight-bin detector motion windows](docs/media/dougie/onboard-fusion.gif) |
 
-**Left:** a fresh, torque-driven MuJoCo mission from the current code, with the
+**Left:** a torque-driven MuJoCo recording from the 19 October onboard checkpoint, with the
 radiation cloud hidden in the recording so the robot and routes remain visible.
 The geometry-aware GP still runs. **Right:** telemetry from the same mission;
 teal is the estimated pose, white the independent evaluator, and amber the moving
 detector window. It is a log replay, not camera footage. Both animations are accelerated.
+The new robust-navigation stages have separate measured results linked above;
+these GIFs retain their original runtime identities.
 
 Detector seed 3 / sensor seed 0: clean physical return at **47.050 s**, **5.693 m**
 travelled, **0.126188 µSv** actual exposure, **0.3437 m** true home error (within
@@ -225,13 +235,16 @@ compare physical visitation, dose, return success and localization error.
 | `--seed` | `1` | Detector-noise seed; does not randomize facility geometry |
 | `--localization` | `fused` | IMU/leg/LiDAR estimation; `ground-truth` is an explicit historical comparator |
 | `--sensor-seed` | `0` | Separate seed for IMU biases/noise, encoders, foot forces and LiDAR noise/dropout |
+| `--navigation-profile` | `robust` | Quality-gated submaps, consistent map revisions and bounded recovery; `legacy` retains the earlier navigation comparator |
+| `--utility-mode` | `legacy` | Prior candidate utility; `information` enables experimental information/cost scoring and observed-circuit lookahead |
 | `--gp-capacity` | `128` | Maximum inducing dictionary size |
 | `--gp-mode` | `geometry` | Observed-surface feature kernel, `global` Matérn comparator, or `spatial` experts |
 | `--detector-likelihood` | `window` | One integrated Poisson count over motion bins; `point` uses the window's mean position |
 | `--path-mode` | `smooth` | Support/risk-checked smooth execution or historical grid following |
 | `--require-round-trip` | Off | Evaluator requires clean upstairs/downstairs/home witnesses |
 | `--landmark-count`, `--landmark-seed` | `0`, `0` | Ideal semantic targets; require explicit `--localization ground-truth` |
-| `--mission-objective` | `survey` | `inspect` prioritizes safe approaches to observed, uninspected targets |
+| `--mission-objective` | `survey` | `inspect` prioritizes observed semantic targets in the ideal-sensor comparator; `circuit` freezes four initially observed support goals |
+| `--require-circuit` | Off | Require all four independent physical goal witnesses and a clean home return |
 | `--region-scheduling` | `hierarchical` | Connected-region scheduling on layered terrain; `local` retains the local-preference comparator |
 | `--gp-likelihood` | `poisson` | Poisson/Laplace inference or `gaussian` log-Gaussian approximation |
 | `--source-profile` | `hotspots-and-leaks` | Combined emitters, `hotspots`, `leaks`, or the original `baseline` |
@@ -303,17 +316,17 @@ do not certify full coverage. [Latest methods and results](docs/DOUGIE_FULLHEIGH
 ```bash
 # Historical ideal-pose comparator; fused full-height qualification is still open:
 ./dougie radiation --world facility --duration 2400 --dose-budget 5 --gp-mode spatial \
-  --localization ground-truth --detector-likelihood point --seed 3
+  --localization ground-truth --navigation-profile legacy --detector-likelihood point --seed 3
 
 # Strict headless full-height evaluation:
 ./dougie radiation --world facility --headless --fast --duration 2400 --dose-budget 5 \
   --gp-mode spatial --localization ground-truth --detector-likelihood point \
-  --seed 3 --fixed-plan-delay .5 --require-round-trip
+  --navigation-profile legacy --seed 3 --fixed-plan-delay .5 --require-round-trip
 
 # Optional visible-only discovery targets, with RViz:
 ./dougie radiation --world facility --duration 2400 --dose-budget 5 \
   --gp-mode spatial --localization ground-truth --detector-likelihood point \
-  --landmark-count 8 --landmark-seed 7
+  --navigation-profile legacy --landmark-count 8 --landmark-seed 7
 ```
 
 [Facility, controller comparisons and retained failures](docs/DOUGIE_FACILITY.md).
@@ -322,7 +335,7 @@ The smaller, faster vertical fixture is still available:
 
 ```bash
 ./dougie radiation --world mezzanine --duration 300 --dose-budget 2 --seed 3 \
-  --localization ground-truth --gp-mode spatial --detector-likelihood point
+  --localization ground-truth --navigation-profile legacy --gp-mode spatial --detector-likelihood point
 ```
 
 The new observed-slope mapper supports a two-ramp raised gallery with explicit
@@ -414,8 +427,9 @@ configuration; host tools need matching DDS settings.
   reactor mapping uses a 2 cm step limit; layered facility mapping checks local
   planes, slope connectivity and support footprint. Industrial stairs are unqualified.
 - **Localization:** body-frame IMU, encoders, foot forces and noisy LiDAR feed a
-  stance-leg filter and local observed-map registration. Capture-time transforms
-  are retained. The walking policy receives estimated gravity and measured joints.
+  stance-leg filter and quality-gated keyframe registration. Confirmed loop
+  corrections reproject retained terrain and count windows together. Old-revision
+  routes are withheld. The walking policy receives estimated gravity and measured joints.
 - **Radiation inference:** a positive log-rate field uses a Matérn-3/2 ARD kernel
   multiplied by a positive-definite observed-surface feature kernel. Joint-window
   Laplace updates assimilate each integrated count once. New kernel geometry
@@ -425,11 +439,14 @@ configuration; host tools need matching DDS settings.
   not a proof of optimal coverage or probabilistic dose safety.
 - **Concurrency:** a background worker processes detached observations while
   physics continues; the main loop checks sensor and plan freshness.
+- **Recovery:** fresh-observation holds and checked retreats are bounded by time
+  and exposure. An unrecoverable stop remains a failed mission; dose accounting
+  continues to the original deadline rather than claiming an artificial saving.
 
 **The default radiation planner uses estimated pose and simulated onboard sensors.**
 The explicit ground-truth comparator, ordinary planar profile, visual scene and
 independent evaluator retain diagnostic simulator state. Sensor noise and local
-odometry are research models, not calibrated Go2 L1 hardware or loop-closing SLAM.
+odometry are research models, not calibrated Go2 L1 hardware or fully qualified pose-graph SLAM.
 [Architecture and source boundaries](docs/DOUGIE_SIM.md).
 
 ## Outputs and reproducibility
@@ -443,6 +460,7 @@ For radiation, keep the whole run directory:
 | `source_scenario.json` | Selected point-source profile and resolved simulator configuration |
 | `measurements.jsonl` | Counts, estimated XYZ motion bins, dwell durations, measured rate and dose |
 | `localization_evaluation.jsonl` | Pose estimate versus evaluator-only physics pose; never a planner input |
+| `map_corrections.jsonl` | Onboard-derived, versioned corrections; use with measurement `map_revision` when reconstructing a common map frame |
 | `trace.jsonl` | Mission states, observed coverage and planning timings |
 | `radiation_summary.json` | Outcome, estimated/actual exposure, return and sampled heights |
 | `landmark_observations.json` | Visible semantic target observations and latched inspection state |
@@ -459,7 +477,21 @@ hashes and retain failed runs. [Report reproduction](docs/DOUGIE_VALIDATION.md#r
 
 ## Measured results
 
-### Current onboard development results
+### Robust-navigation validation — 21 October
+
+The revised defaults returned cleanly on detector/sensor seed 4/1 at both budgets:
+**389.870 s / 1.267477 µSv** with 2 µSv allowed, and **427.965 s / 0.775721 µSv**
+with 10 µSv allowed. Both recorded zero non-foot contacts. Position-error p95 was
+**1.7 / 12.4 cm**. The larger-budget run exercised loop correction and coherent
+map replay. Different trajectories prevent a matched-coverage dose claim.
+
+The new information/whole-task scorer completed the matched observed-goal tests,
+but dose changes across three seed pairs were mixed: **+3.3%, +5.2%, −6.1%**.
+It remains selectable; legacy utility stays the default. A later tracking-clearance
+recheck passed the previously contacting case without weakening its gate.
+[Full staged evidence and limits](docs/DOUGIE_ROBUST_MISSIONS.md).
+
+### Earlier onboard measurement results — 19 October
 
 **Longer-mission follow-up:** a paired **2 versus 10 µSv** experiment with a
 **600 s cap** produced three clean returns out of four trials. One higher-budget

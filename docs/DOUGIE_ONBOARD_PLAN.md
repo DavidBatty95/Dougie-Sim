@@ -1,4 +1,4 @@
-# Onboard mission plan — 19 October 2026
+# Onboard mission plan — 21 October 2026
 
 [Project home](../README.md) · [Implemented methods](DOUGIE_ONBOARD_MISSION.md) ·
 [Portable evidence](results/dougie_onboard_20261019.json) · [Current GIF provenance](DOUGIE_MEDIA.md#onboard-mission-refresh--19-october-2026)
@@ -8,14 +8,19 @@
 | Workstream | Implemented | Evidence / boundary |
 |---|---|---|
 | Onboard observation boundary | Body-frame noisy LiDAR; gyro/acceleration, joint encoders and foot-touch channels | No simulator base pose, frame velocity, object IDs or hidden field metadata passed to autonomy |
-| Sensor fusion | IMU prediction, stance kinematics/anchors, bounded point-to-plane local registration | Physical walking and two short clean reactor missions; no loop closure or hardware calibration |
+| Sensor fusion | Quality-gated keyframes, stance-slip checks, confirmed full-rank loop/anchor matches | Bounded time-distributed corrections; full pose-graph optimization and hardware calibration remain open |
+| Map consistency | Versioned scan/count journal and coherent support/GP replay | Old-frame routes withheld; counts and durations conserved; archive corrections retained |
 | Walking inputs | Measured proprioception and estimated gravity | Invariance test against changed hidden base pose/velocity |
 | Geometry-aware radiation | PSD Matérn × observed-plane-feature kernel; at most 16 patches | PSD, wall-separation and replay/archive tests; no inferred material attenuation |
 | Moving-window counts | One integrated Poisson likelihood, up to eight duration-weighted positions | Scalar-limit, midpoint-bias and correlated-expert tests; approximate joint Laplace inference |
-| Mission planning | Observed support, upper-rate routing, return/deadline reserves, persistent regions | Existing heuristic admission remains; no proof of dose safety or optimal coverage |
-| Reproducibility | Explicit ideal-pose/global/point comparators, source hashes, retained failures and portable GIF inputs | 212 tests at this checkpoint; historical full-height results remain a separate cohort |
+| Mission planning | Full-cost information scorer and bounded observed-task sequencing, alongside prior utility | Mixed measured dose results; legacy utility remains default, with robust sensing/recovery |
+| Recovery | Bounded resensing, checked retreats and terminal-stop accounting | Missing sensors do not authorize blind motion; stranded exposure is still scored |
+| Clearance | Localization residual and follower tracking-error reserves | Wall-contact regression retained; thresholds not weakened |
+| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 243 tests; [staged robust results](DOUGIE_ROBUST_MISSIONS.md); historical ideal-pose full-height runs remain separate |
 
 Defaults: `--localization fused --gp-mode geometry --detector-likelihood window`.
+Navigation uses `--navigation-profile robust --utility-mode legacy`. Selecting
+legacy **utility** does not select simulator pose or disable recovery.
 The synthetic sensor front-end emulates onboard channels; it does not establish
 real-robot readiness. Evaluator/renderer truth must stay outside mission decisions.
 
@@ -23,15 +28,22 @@ real-robot readiness. Evaluator/renderer truth must stay outside mission decisio
 
 ### Longer-mission evidence update
 
-The [paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) now covers four onboard
+The earlier [paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) covers four onboard
 reactor missions with a 600 s cap. Both 2 µSv runs returned; one of two 10 µSv runs
 returned. The successful high-budget pair improved physical visitation per dose
 by 24.6%, but the other stalled in a support/sensing wait state and did not return.
 Position p95 errors reached .644 m. This advances long-duration screening, not
 the matched-work dose-reduction or localization-robustness gates below. Prioritize
-support recovery, covariance consistency and exposure while stalled next.
+support recovery, covariance consistency and exposure while stalled. Those
+implementation stages are now present; their subsequent screening, retained
+regressions and clearance correction are in [the robust mission report](DOUGIE_ROBUST_MISSIONS.md).
 
-### 1. Matched-work dose comparison — highest priority
+### 1. Broaden matched-work dose comparisons
+
+The observed-circuit harness now freezes goals from onboard support and requires
+independent physical visits plus return. Three seed pairs completed under both
+utilities, but information mode's dose changes were mixed (+3.3%, +5.2%, −6.1%).
+It remains experimental rather than replacing the default utility.
 
 - Compare geometry/window against global/point using identical initial observed
   goals, detector/sensor seeds, sensing cadence, compute schedule and dose budget.
@@ -43,15 +55,17 @@ support recovery, covariance consistency and exposure while stalled next.
 - Report paired dose differences only for comparable completed work, and report
   incomplete trials separately. Follow with an independently selected cohort.
 
-**Gate:** lower actual dose at matched completed work without worsening return or
-contact outcomes. This gate has not been met by the short survey GIF runs.
+**Gate:** repeatable lower actual dose at matched completed work without worsening
+return or contact outcomes. One successful noise seed is insufficient; the gate
+has not been met across held-out layouts and fields.
 
 ### 2. Localization robustness and calibrated uncertainty
 
 - Exercise longer trajectories, feature-poor corridors, slopes, slip, IMU bias,
   dropouts, timestamp delay and rejected registration updates.
-- Add loop closure/relocalization with consistent correction of support maps,
-  detector trajectories and GP observations, rather than shifting only the robot.
+- Qualify the implemented loop/anchor checks and coherent map replay against false
+  matches, long map histories and different layouts. A full pose-graph optimizer
+  remains a future extension to the current time-distributed correction.
 - Measure absolute/relative pose error, yaw error, covariance consistency and
   actual home error. Distinguish arbitrary initial-frame offset from drift.
 - Keep capture-time scan transforms immutable; late packets require pose-history
