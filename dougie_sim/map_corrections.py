@@ -64,11 +64,15 @@ class ObservationJournal:
         self.corrections = []
 
     def align_packet(self, packet):
+        if packet.map_revision > self.revision:
+            raise ValueError('scan references an unknown map revision')
         for event in self.corrections:
             packet = event.packet(packet)
         return packet
 
     def align_sample(self, sample):
+        if sample.map_revision > self.revision:
+            raise ValueError('count window references an unknown map revision')
         for event in self.corrections:
             sample = event.sample(sample)
         return sample

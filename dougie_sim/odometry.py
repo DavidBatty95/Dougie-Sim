@@ -80,6 +80,7 @@ class FusedOdometry:
         self.last_loop_stamp = 0.
         self.loop_candidate = None
         self.loop_closure_enabled = True
+        self.anchor_revalidations = 0
 
     def update(self, observation):
         t = observation.stamp_s
@@ -304,13 +305,19 @@ class FusedOdometry:
         R = fit.rotation@self.rotation.T
         t = fit.position-R@self.position
         rv = Rotation.from_matrix(R).as_rotvec()
-        if fit.translation_m < .025 and np.linalg.norm(rv) < .015:
-            self.loop_candidate = None
-            return
+        small = fit.translation_m < .025 and np.linalg.norm(rv) < .015
         previous = self.loop_candidate
         self.loop_candidate = anchor.stamp, rv.copy(), t.copy(), stamp
         if (previous is None or previous[0] != anchor.stamp or stamp-previous[3] > 5.
                 or np.linalg.norm(previous[1]-rv) > .03 or np.linalg.norm(previous[2]-t) > .08):
+            return
+        if small:
+            # A confirmed near-zero loop match is still useful evidence against
+            # accumulated drift. Do not force a pointless pose/map correction,
+            # but do not ignore the old anchor merely because pose already agrees.
+            self.drift_variance = min(self.drift_variance, max(.03**2, anchor.variance+fit.rmse**2))
+            self.last_loop_stamp, self.loop_candidate = stamp, None
+            self.anchor_revalidations += 1
             return
         event = MapCorrection(self.map_revision+1, max(anchor.stamp, self.last_loop_stamp), stamp, tuple(rv), tuple(t))
         self.position, self.rotation = fit.position, fit.rotation
@@ -341,6 +348,7 @@ class FusedOdometry:
             gyro_bias=self.gyro_bias.tolist(), scan_updates=self.scan_updates,
             scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map),
             robust=self.robust, map_revision=self.map_revision, keyframes=len(self.keyframes),
+            anchor_revalidations=self.anchor_revalidations,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,
             last_good_scan_s=self.last_good_scan,

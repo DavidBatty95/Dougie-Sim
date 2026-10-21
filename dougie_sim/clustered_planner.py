@@ -49,6 +49,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.selected_utility = {}
         from .observed_circuit import ObservedCircuit
         self.circuit = ObservedCircuit()
+        self.circuit_tour = {}
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -271,10 +272,26 @@ class ClusteredDoseExplorer(DoseExplorer):
                 selected, self.state, self.last_reason = home, 'returning_incomplete_circuit', 'circuit_goals_not_admissible'
             else:
                 viable = {key for _, key in candidates}
-                selected = previous if previous in viable and stamp-self.goal_started < 45. else max(candidates)[1]
+                if previous in viable and stamp-self.goal_started < 45.:
+                    selected = previous
+                else:
+                    selected = max(candidates)[1]
+                    self.circuit_tour = {}
+                    if self.utility_mode == 'information':
+                        tour = self.circuit.best_tour(self.terrain, root, home, position, self.home, rates, self.gp,
+                            self.rate_limit, viable, self.mission_duration-stamp,
+                            self.budget-self.sample.dose_upper_usv-self.budget*.15, self.smoother,
+                            yaw=getattr(self, 'start_yaw', None), wait_s=self.wait_allowance, recovery_s=self.recovery_reserve_s)
+                        if tour is not None:
+                            selected = tour['first']
+                            self.circuit_tour = dict(planned_s=stamp, duration_s=tour['duration_s'], upper_dose_usv=tour['upper_dose_usv'],
+                                length_m=tour['length_m'], normalized_cost=tour['normalized_cost'],
+                                remaining_goals=[nodes[k].tolist() for k in tour['order']],
+                                scope='support/risk-checked remaining-task lookahead; only first leg dispatched')
                 if selected != previous:
                     self.goal_started = stamp
-                self.state, self.last_reason = 'exploring', 'observed_circuit_goal'
+                self.state = 'exploring'
+                self.last_reason = 'observed_circuit_tour' if self.circuit_tour else 'observed_circuit_goal'
         elif (self.commitment and previous is not None and math.dist(nodes[previous], self.target) < .25
               and math.dist(position, self.target) > reached_tolerance and stamp-self.goal_started < 45. and admitted(previous)):
             selected, self.state, self.last_reason = previous, 'exploring', 'continue_revalidated_goal'
@@ -420,4 +437,5 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['selected_utility'] = self.selected_utility
         if self.objective == 'circuit':
             result['circuit'] = self.circuit.metrics()
+            result['circuit_tour'] = self.circuit_tour
         return result

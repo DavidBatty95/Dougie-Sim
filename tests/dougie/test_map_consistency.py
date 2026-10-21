@@ -85,6 +85,10 @@ def test_count_window_and_scan_share_the_same_revision_without_duplicate_counts(
     np.testing.assert_allclose(journal.scans[0].points, packet.points@R.T+t, atol=1e-12)
     np.testing.assert_allclose(corrected.position, np.average(corrected.window_positions, weights=corrected.window_durations_s, axis=0))
     assert len(journal.samples) == 1
+    with pytest.raises(ValueError, match='unknown map revision'):
+        journal.align_packet(replace(packet, map_revision=2))
+    with pytest.raises(ValueError, match='unknown map revision'):
+        journal.align_sample(replace(sample, map_revision=2))
 
 
 def test_partial_detector_window_correction_preserves_physical_counts():
@@ -166,3 +170,17 @@ def test_pose_allowance_requests_return_before_motion_stop_threshold():
         1.5, False, localization=dict(initialized=True, position_std_m=[.19]*3, conditional_position_std_m=[.003]*3))
     assert state.startswith('return')
     assert metrics['decision_reason'] == 'localization_return_reserve'
+
+
+def test_confirmed_small_loop_revalidates_uncertainty_without_moving_maps():
+    points, normals = corner_cloud()
+    odometry = FusedOdometry()
+    odometry.keyframes = [Keyframe(i*5., np.array([.008*i/5., 0., 0.]), np.eye(3), points, normals, .001) for i in range(6)]
+    odometry.position, odometry.drift_variance = np.array([.008, 0., 0.]), .04
+    before = odometry.position.copy()
+    odometry._try_loop(points, normals, 60.)
+    assert odometry.drift_variance == .04
+    odometry._try_loop(points, normals, 62.)
+    assert odometry.anchor_revalidations == 1 and odometry.map_revision == 0
+    assert odometry.drift_variance < .002
+    np.testing.assert_array_equal(odometry.position, before)

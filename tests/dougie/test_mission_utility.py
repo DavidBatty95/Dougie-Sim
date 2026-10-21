@@ -95,3 +95,17 @@ def test_physical_circuit_witness_is_independent_and_requires_dwell():
         witness.tick(goal, 3., .1)
         witness.tick(goal, 3.1, .1)
     assert witness.metrics()['all_goals_reached']
+
+
+def test_whole_task_lookahead_uses_checked_diagonals_instead_of_crossing_home():
+    terrain, circuit = grid(), ObservedCircuit()
+    root = (0, 0, 0)
+    circuit.prepare(terrain, root, np.zeros(3), 1., 7)
+    rates = {key: 1. for key in terrain.nodes}
+    gp = S(predict=lambda p: (np.ones(len(p)), np.ones(len(p))*.1, np.ones(len(p))))
+    pending = circuit.pending(terrain)
+    tour = circuit.best_tour(terrain, root, root, np.zeros(3), np.zeros(3), rates, gp, 100.,
+                            set(pending), 300., 2., None)
+    assert tour is not None and len(tour['order']) == 4
+    assert tour['length_m'] < 10.  # Four cardinal goals: crossed grid tour is 12 m.
+    assert tour['first'] in pending

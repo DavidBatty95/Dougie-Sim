@@ -49,7 +49,8 @@ def main():
             path = run/'radiation_summary.json'
             summary = json.loads(path.read_text()) if path.exists() else {}
             fields = ('clean_return', 'circuit_mission_completed', 'circuit', 'circuit_evaluation', 'true_dose_usv',
-                'path_length_m', 'localization_evaluation', 'recovery', 'terminal_stop', 'count_calibration', 'source_sha256')
+                'path_length_m', 'localization_evaluation', 'recovery', 'terminal_stop', 'count_calibration', 'source_sha256',
+                'circuit_tour', 'map_consistency', 'localization', 'worker_p95_ms', 'worker_phase_p95_ms', 'wall_time_s')
             record = dict(run=run.name, seed=seed, sensor_seed=sensor, utility_mode=mode, command=command,
                 returncode=result.returncode, simulated_time_s=summary.get('simulation', {}).get('simulation_time_s'),
                 summary_sha256=hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None,

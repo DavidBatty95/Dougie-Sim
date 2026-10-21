@@ -164,3 +164,24 @@ deferral without loss, sparse-elevation wall normals, small wall constraints bes
 a large floor, and proactive return before the localization stop threshold.
 These are heuristic safeguards; they do not establish calibrated covariance or
 independently qualified loop-closing SLAM. Fresh mission results follow separately.
+
+### Conservative v2 screening and final refinements
+
+The corrected v2 budget matrix returned cleanly in **all four trials**, including
+the previously failed 10 uSv seed pair. The position p95 for seed 3 / 2 uSv fell
+to .0189 m. However, the heuristic uncertainty reserve ended these missions early
+(181–248 s). A well-conditioned revisit that already agreed with an old anchor
+was being ignored because its pose correction was small. Confirmed near-zero
+matches now revalidate the drift allowance without changing pose or map revision;
+they still require two consistent full-rank registrations.
+
+The expanded v2 circuit matrix completed every task, but the one-endpoint
+information score used 5.9% more dose for seed 4. Both paired result sets are
+retained ([budget v2](results/dougie_robust_budget_600_v2.json),
+[circuit v2](results/dougie_robust_circuit_expanded_v2.json)). For mandatory circuit
+work, information mode now evaluates at most **24 orders of the four remaining
+observed goals**, including the home leg. Leg shortening is support/risk checked,
+so grid turns do not hide the benefit of continuous diagonal routes. Only the
+first leg is executed; all subsequent work is revalidated after new observations.
+This bounded task-sequencing refinement is specific to the explicit circuit
+objective; survey mode retains the information-per-resource candidate objective.

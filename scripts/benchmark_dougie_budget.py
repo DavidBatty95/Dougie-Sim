@@ -36,11 +36,16 @@ def score(run, returncode):
     consistency = dict(scope='offline heuristic envelope check, not Gaussian calibration qualification',
                        samples=len(localized), three_sigma_axis_envelope_fraction=None, normalized_max_axis_error_p95=None)
     if localized:
-        error = np.abs(np.asarray([p['position'] for p in localized])-np.asarray([p['evaluator_true_position'] for p in localized]))
+        difference = np.asarray([p['position'] for p in localized])-np.asarray([p['evaluator_true_position'] for p in localized])
+        error = np.abs(difference)
         std = np.asarray([p['position_std_m'] for p in localized])
         normalized = np.max(error/np.maximum(std, 1e-9), axis=1)
+        aligned = np.linalg.norm(difference-difference[0], axis=1)
         consistency.update(three_sigma_axis_envelope_fraction=float(np.mean(normalized <= 3.)),
-                           normalized_max_axis_error_p95=float(np.percentile(normalized, 95)))
+                           normalized_max_axis_error_p95=float(np.percentile(normalized, 95)),
+                           initial_translation_offset_m=difference[0].tolist(),
+                           translation_aligned_position_rmse_m=float(np.sqrt(np.mean(aligned**2))),
+                           translation_aligned_position_p95_m=float(np.percentile(aligned, 95)))
     seconds, dose = summary['simulation']['simulation_time_s'], summary['true_dose_usv']
     progress = []
     for cutoff in (90., 180., 300., 600.):
