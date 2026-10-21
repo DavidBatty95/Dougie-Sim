@@ -86,6 +86,8 @@ class FusedOdometry:
         self.slam_backend = slam_backend
         from .pose_graph import PoseGraph
         self.pose_graph = PoseGraph() if slam_backend == 'pose-graph' else None
+        from .pose_uncertainty import PoseUncertaintyScale
+        self.uncertainty_scale = PoseUncertaintyScale()
 
     def update(self, observation):
         t = observation.stamp_s
@@ -253,8 +255,12 @@ class FusedOdometry:
         return len(self.corrections)
 
     @property
-    def position_std(self):
+    def uncalibrated_position_std(self):
         return np.sqrt(np.diag(self.covariance)[:3]+self.drift_variance)
+
+    @property
+    def position_std(self):
+        return self.uncertainty_scale.apply(self.uncalibrated_position_std)
 
     def _observe_submaps(self, points, normals, stamp):
         from .registration import Keyframe, register
@@ -350,6 +356,10 @@ class FusedOdometry:
         self.corrections.append(event)
         self.last_loop_stamp, self.loop_candidate = stamp, None
         self.drift_variance = max(.03**2, anchor.variance+fit.rmse**2)
+        if self.pose_graph is not None:
+            marginal = self.pose_graph.last_result.get('position_marginal_covariance')
+            if marginal is not None:
+                self.drift_variance = max(self.drift_variance, float(np.max(np.diag(marginal))))
 
     def world_packet(self, local):
         if self.stamp is not None and abs(local.stamp_s-self.stamp) > .015:
@@ -363,6 +373,8 @@ class FusedOdometry:
         return dict(source='imu_leg_lidar_fusion', initialized=self.initialized,
             position=self.position.tolist(), velocity=self.velocity.tolist(), yaw=self.yaw,
             position_std_m=self.position_std.tolist(),
+            uncalibrated_position_std_m=self.uncalibrated_position_std.tolist(),
+            uncertainty_calibration=self.uncertainty_scale.metrics(),
             conditional_position_std_m=np.sqrt(np.diag(self.covariance)[:3]).tolist(),
             gyro_bias=self.gyro_bias.tolist(), scan_updates=self.scan_updates,
             scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map),

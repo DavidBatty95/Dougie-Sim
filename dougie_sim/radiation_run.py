@@ -56,6 +56,7 @@ def main():
     parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
     parser.add_argument('--slam-backend', choices=('distributed', 'pose-graph'), help='pose-graph for robust fusion; distributed retains the previous correction model')
+    parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
@@ -101,6 +102,8 @@ def main():
     args.slam_backend = args.slam_backend or ('pose-graph' if args.navigation_profile == 'robust' else 'distributed')
     if args.slam_backend == 'pose-graph' and args.navigation_profile != 'robust':
         parser.error('--slam-backend pose-graph requires --navigation-profile robust')
+    if args.uncertainty_profile and (args.localization != 'fused' or args.navigation_profile != 'robust'):
+        parser.error('--uncertainty-profile requires robust fused localization')
     args.utility_mode = args.utility_mode or 'legacy'
     if not math.isfinite(args.circuit_radius) or not 1. <= args.circuit_radius <= 3.:
         parser.error('--circuit-radius must be between 1 and 3 metres')
@@ -168,6 +171,9 @@ def main():
         odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust', slam_backend=args.slam_backend), OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
+    evaluation_origin_offset = None
+    evaluation_envelope_max = 0.
+    evaluation_envelope_samples = 0
     local_packet = None
     mapped_packet = None
     last_onboard_scan = -1.
@@ -179,15 +185,27 @@ def main():
     # Archive the resolved runtime shielding, not the reactor's nominal list.
     description['shields'] = field.shields
     output = args.output or ROOT/'results/dougie'/datetime.now(timezone.utc).strftime('radiation_%Y%m%dT%H%M%S_%fZ')
-    output.mkdir(parents=True, exist_ok=False)
     source_hashes = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
                      for path in sorted((ROOT/'dougie_sim').glob('*.py'))}
     source_hashes['config/dougie_assets.json'] = hashlib.sha256((ROOT/'config/dougie_assets.json').read_bytes()).hexdigest()
     source_hashes['radiation_source_config'] = hashlib.sha256(config_path.read_bytes()).hexdigest()
     resolved_args = {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()}
+    import sys
+    import scipy
+    import torch
+    run_config = {**resolved_args, 'output': str(output), 'source_sha256': source_hashes,
+        'policy': sim.policy_contract.identity(), 'software_versions': dict(python=sys.version.split()[0],
+            numpy=np.__version__, scipy=scipy.__version__, mujoco=mujoco.__version__, torch=str(torch.__version__))}
+    if args.uncertainty_profile:
+        from .pose_uncertainty import PoseUncertaintyScale
+        try:
+            odometry.uncertainty_scale = PoseUncertaintyScale.load(args.uncertainty_profile, run_config)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            parser.error(str(exc))
+        run_config['uncertainty_profile_sha256'] = odometry.uncertainty_scale.identity
+    output.mkdir(parents=True, exist_ok=False)
     (output/'source_scenario.json').write_text(json.dumps(dict(profile=args.source_profile, **description), indent=2)+'\n')
-    (output/'run_config.json').write_text(json.dumps({**resolved_args, 'output': str(output),
-        'source_sha256': source_hashes, 'policy': sim.policy_contract.identity()}, indent=2)+'\n')
+    (output/'run_config.json').write_text(json.dumps(run_config, indent=2)+'\n')
     (output/'scene.xml').write_text(sim.scene_xml)
     (output/'policy_contract.json').write_text(json.dumps(sim.policy_contract.config, indent=2)+'\n')
     detector = Detector(args.seed)
@@ -356,6 +374,16 @@ def main():
                     lidar_times.append(time.perf_counter()-lidar_started)
                 sim.onboard_proprioception = proprioception, odometry.rotation.copy()
                 position = odometry.support_position
+                if odometry.initialized:
+                    # Evaluator-only control-tick maximum. This value is never
+                    # supplied to fusion, mapping, recovery or goal selection.
+                    difference = odometry.position-sim.data.qpos[:3]
+                    if evaluation_origin_offset is None:
+                        evaluation_origin_offset = difference.copy()
+                    score = np.max(np.abs(difference-evaluation_origin_offset)/
+                                   np.maximum(3.*odometry.uncalibrated_position_std, 1e-12))
+                    evaluation_envelope_max = max(evaluation_envelope_max, float(score))
+                    evaluation_envelope_samples += 1
                 if stamp-last_pose_log >= .1 and odometry.initialized:
                     pose_errors.append(float(np.linalg.norm(odometry.position-sim.data.qpos[:3])))
                     localization_log.write(json.dumps(dict(stamp_s=stamp, **odometry.metrics(),
@@ -623,7 +651,10 @@ def main():
         metrics['post_stop_true_dose_usv'] = max(0., true_dose-terminal_stop['evaluator_true_dose_usv']) if terminal_stop else 0.
         metrics['localization_evaluation'] = dict(position_rmse_m=float(np.sqrt(np.mean(np.square(pose_errors)))) if pose_errors else None,
             position_p95_m=float(np.percentile(pose_errors, 95)) if pose_errors else None,
-            true_home_distance_m=float(np.linalg.norm(sim.data.qpos[:3]-true_home)))
+            true_home_distance_m=float(np.linalg.norm(sim.data.qpos[:3]-true_home)),
+            episode_max_three_sigma_ratio=evaluation_envelope_max if evaluation_envelope_samples else None,
+            episode_control_tick_samples=evaluation_envelope_samples,
+            envelope_scope='initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only')
         metrics.update(planner=args.planner, path_length_m=distance_travelled, target_switches=target_switches,
                        world=args.world, exploration_complete=False,
                        gp_mode=args.gp_mode, path_mode=args.path_mode,

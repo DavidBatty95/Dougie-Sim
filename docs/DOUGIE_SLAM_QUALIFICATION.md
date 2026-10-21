@@ -34,3 +34,30 @@ returned on the lower floor at 133.230 s / .040503 uSv and failed the strict
 vertical round-trip gate. This is not a successful multi-floor mission. The
 following stages investigate calibration and observed ramp admission while
 retaining the original physical contact, budget and witness gates.
+
+## Episode-level uncertainty calibration
+
+The new calibration protocol uses one **maximum normalized pose error per
+independent episode**, evaluated at every active control tick. Thousands of
+correlated telemetry frames are not treated as thousands of calibration examples.
+Only initial translation gauge is removed; no trajectory is fitted to truth.
+
+The finite-sample rank is `ceil((n + 1) * (1 - alpha))`. A finite 90% marginal
+episode envelope needs at least nine calibration episodes; 95% needs at least 19.
+The multiplier is never below one. A preregistered harness assigns disjoint sensor
+seeds to calibration and validation before any trial runs and retains failures.
+Invalid/incomplete calibration evidence prevents artifact generation.
+
+`--uncertainty-profile` accepts only aggregate scales, episode scores/identities,
+and pinned source/domain metadata. Runtime cannot read evaluator poses from the
+artifact. Source, software, policy, scenario, time/budget, sensing and execution
+settings must match. Loaded scales only inflate the existing pose allowance.
+Conditional graph marginals are also recorded, but are not themselves calibrated
+probabilistic covariance.
+
+The coverage statement is **conditional on exchangeable reference-policy
+episodes** and applies to the sampled control ticks. It is not an unconditional
+guarantee for unseen layouts, new sensor models, continuous time or real hardware.
+If an inflation factor changes closed-loop decisions, the deployment distribution
+can change; fresh runtime validation is required. Pose coverage and successful
+physical mission completion are reported separately.

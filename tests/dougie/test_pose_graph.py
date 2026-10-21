@@ -25,6 +25,9 @@ def test_joint_pose_graph_optimization_closes_3d_loop_without_moving_gauge():
     assert event is not None, graph.last_result
     assert len(event.knots) == 5
     assert graph.last_result['final_cost'] < graph.last_result['initial_cost']
+    marginal = np.asarray(graph.last_result['position_marginal_covariance'])
+    assert np.linalg.eigvalsh(marginal).min() > 0.
+    assert np.max(np.sqrt(np.diag(marginal))) < .1
     assert np.linalg.norm(graph.poses[-1].position) < np.linalg.norm(current_p)/2
     np.testing.assert_array_equal(graph.poses[0].position, initial[0][0])
     np.testing.assert_array_equal(graph.poses[0].rotation, initial[0][1])

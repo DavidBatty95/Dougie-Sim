@@ -11,6 +11,8 @@ import time
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
+from scipy.sparse import eye as sparse_eye
+from scipy.sparse.linalg import splu
 from scipy.spatial.transform import Rotation
 
 from .map_corrections import MapCorrection
@@ -151,6 +153,20 @@ class PoseGraph:
         if not accepted:
             self.rejected_loops += 1
             return None
+        # Conditional Gauss-Newton marginal in the optimized parameter chart.
+        # It is not a calibrated SLAM posterior: association and factor-scale
+        # uncertainty still require held-out episode checks.
+        H = (result.jac.T@result.jac).tocsc()+sparse_eye(len(x0), format='csc')*1e-9
+        columns = np.zeros((len(x0), 3))
+        columns[-6:-3, :] = np.eye(3)
+        marginal = splu(H).solve(columns)[-6:-3, :]
+        marginal = (marginal+marginal.T)*.5
+        if not np.isfinite(marginal).all() or np.linalg.eigvalsh(marginal).min() < -1e-8:
+            self.rejected_loops += 1
+            self.last_result.update(accepted=False, reason='invalid_graph_marginal')
+            return None
+        self.last_result['position_marginal_covariance'] = marginal.tolist()
+        self.last_result['wall_ms'] = (time.perf_counter()-started)*1000.
         knots = []
         for old, new in zip(original, optimized):
             R = new.rotation@old.rotation.T
