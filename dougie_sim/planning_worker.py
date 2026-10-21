@@ -13,6 +13,8 @@ _explorer = None
 _planner = None
 _limits = None
 _options = {}
+_journal = None
+_parameters = _terrain_profile = None
 
 
 def create_explorer(parameters, planner, terrain_profile, options=None):
@@ -20,6 +22,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     explorer = (DoseExplorer(*parameters) if planner == 'baseline' else
                  ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
+    explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
@@ -43,19 +46,72 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
 
 
 def initialize(parameters, planner, terrain_profile, limit_threads=True, options=None):
-    global _explorer, _planner, _limits, _options
+    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile
     # Never reconfigure native thread pools in a Python worker thread while the
     # main thread is executing Torch. The parent already limits the thread mode.
     if limit_threads:
         _limits = threadpool_limits(limits=1)
     _planner = planner
     _options = options or {}
+    _parameters, _terrain_profile = parameters, terrain_profile
+    from .map_corrections import ObservationJournal
+    _journal = ObservationJournal() if _options.get('consistent_mapping') else None
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
-def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None):
+def observe_packet(explorer, packet):
+    if hasattr(explorer.terrain, 'observe_packet'):
+        explorer.terrain.observe_packet(packet)
+    else:
+        explorer.observe_geometry(packet.points, packet.supports, packet.origin)
+
+
+def rebuild_explorer(old, new_events):
+    """Reconstruct support and radiation in one revision before any route is used."""
+    fresh = create_explorer(_parameters, _planner, _terrain_profile, _options)
+    fresh.home = None if old.home is None else old.home.copy()
+    fresh.home_stamp = getattr(old, 'home_stamp', 0.)
+    for event in new_events:
+        if fresh.home is not None:
+            fresh.home = event.point(fresh.home, fresh.home_stamp)
+    for packet in _journal.scans:
+        observe_packet(fresh, packet)
+        if hasattr(fresh.gp, 'observe_geometry'):
+            fresh.gp.observe_geometry(packet)
+    for sample in _journal.samples:
+        fresh.observe_radiation(sample)
+        fresh.display_samples[tuple(np.floor(np.asarray(sample.position)/.4).astype(int))] = (np.asarray(sample.position), sample.rate_usv_h)
+    fresh.display_samples = dict(list(fresh.display_samples.items())[-2048:])
+    fresh.terrain.build_graph()
+    fresh.visited = {key for _, point in _journal.visits if (key := fresh.terrain.nearest(point)) is not None}
+    fresh.returning |= old.returning
+    fresh.events = old.events
+    fresh.worker_ms = old.worker_ms
+    fresh.worker_phase_history = getattr(old, 'worker_phase_history', {})
+    if hasattr(old, 'plan_delays'):
+        fresh.plan_delays, fresh.wait_allowance = old.plan_delays, old.wait_allowance
+    fresh.failed = old.failed
+    for event in new_events:
+        fresh.failed = [(event.point(point, stamp), stamp) for point, stamp in fresh.failed]
+    fresh.last_reason = 'map_revision_revalidated'
+    return fresh
+
+
+def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None, corrections=(), localization=None):
+    global _explorer
     started = time.perf_counter()
+    if _journal is not None:
+        previous = _journal.revision
+        if _journal.correct(corrections):
+            _explorer = rebuild_explorer(_explorer, [e for e in corrections if e.revision > previous])
+        packet = _journal.align_packet(packet)
+        batch = [_journal.align_sample(sample) for sample in batch]
+        _journal.append(batch, packet, position, stamp)
     explorer = _explorer
+    explorer.map_consistency = _journal.metrics() if _journal else dict(map_revision=0)
+    explorer.localization = localization or {}
+    if _journal and _journal.saturated:
+        explorer.returning, explorer.last_reason = True, 'observation_journal_capacity'
     explorer.start_yaw = yaw
     if hasattr(explorer, 'observe_plan_delay'):
         explorer.observe_plan_delay(plan_delay_s)
@@ -74,12 +130,22 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         explorer.last_reason = 'radiation_model_capacity_limit'
     observed = time.perf_counter()
     if hasattr(explorer.terrain, 'observe_packet'):
-        explorer.terrain.observe_packet(packet)
+        # Repeated recovery plans may reference the same capture; do not count
+        # its occupancy evidence repeatedly.
+        if packet.stamp_s != getattr(explorer, 'last_packet_stamp', None):
+            explorer.terrain.observe_packet(packet)
         if explorer.terrain.support_saturated or explorer.terrain.occupancy.saturated:
             explorer.returning = True
             explorer.last_reason = 'mapping_capacity_limit'
     else:
-        explorer.observe_geometry(packet.points, packet.supports, packet.origin)
+        if packet.stamp_s != getattr(explorer, 'last_packet_stamp', None):
+            explorer.observe_geometry(packet.points, packet.supports, packet.origin)
+    explorer.last_packet_stamp = packet.stamp_s
+    if _journal is not None:
+        local_std = max((localization or {}).get('conditional_position_std_m', [.02]))
+        residual = (localization or {}).get('scan_rmse_m') or 0.
+        margin = min(.1, math.ceil(2.*math.hypot(local_std, residual)/.02)*.02)
+        explorer.terrain.set_localization_margin(margin)
     if stalled and explorer.target is not None:
         if hasattr(explorer, 'report_stall'):
             explorer.report_stall(position, stamp)
@@ -87,6 +153,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             explorer.failed.append((explorer.target.copy(), stamp))
     mapped = time.perf_counter()
     explorer.replan(position, stamp)
+    if _journal is not None and stamp-packet.stamp_s > .75:
+        explorer.path, explorer.state, explorer.last_reason = [], 'waiting_for_range', 'stale_range_packet'
     planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
     motion = None
@@ -114,7 +182,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     displayed = time.perf_counter()
     metrics = explorer.metrics()
     metrics.update(planner=_planner, selected_target=None if explorer.target is None else explorer.target.tolist(),
-                   planned_path=[p.tolist() for p in execution_path])
+                   planned_path=[p.tolist() for p in execution_path], map_revision=_journal.revision if _journal else 0)
     if motion is not None:
         metrics.update(grid_path=[p.tolist() for p in explorer.path], path_spans=motion.spans, motion=motion.metrics)
         if explorer.state.startswith('return'):
@@ -144,8 +212,23 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     return execution_path, explorer.state, metrics, volume
 
 
-def finalize(pending_samples):
+def finalize(pending_samples, corrections=()):
     """Drain every remaining count sample and transfer the final archive state."""
+    global _explorer
+    if _journal is not None:
+        previous = _journal.revision
+        if _journal.correct(corrections):
+            _explorer = rebuild_explorer(_explorer, [e for e in corrections if e.revision > previous])
+        pending_samples = [_journal.align_sample(sample) for sample in pending_samples]
     for sample in pending_samples:
+        if _journal is not None:
+            if _journal.samples and sample.stamp_s <= _journal.samples[-1].stamp_s:
+                raise ValueError('final count observations must not be assimilated twice')
+            if len(_journal.samples) < _journal.sample_capacity:
+                _journal.samples.append(sample)
+            else:
+                _journal.saturated = True
         _explorer.observe_radiation(sample)
+    if _journal is not None:
+        _explorer.map_consistency = _journal.metrics()
     return _explorer

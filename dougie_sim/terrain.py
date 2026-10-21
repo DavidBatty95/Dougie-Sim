@@ -22,6 +22,20 @@ class SurfaceMap:
         self.max_local_relief = max_local_relief
         self._known_columns = None
         self._edge_lengths = {}
+        self.base_radius = radius
+        self.localization_margin = 0.
+
+    def set_localization_margin(self, margin):
+        if not math.isfinite(margin) or margin < 0:
+            raise ValueError('invalid localization clearance margin')
+        if abs(margin-self.localization_margin) < 1e-9:
+            return
+        self.localization_margin, self.radius = margin, self.base_radius+margin
+        if hasattr(self, '_candidate_cache'):
+            self._candidate_cache.clear()
+            self._footprint_candidates.clear()
+            self._footprint_planes.clear()
+            self._supported_keys.clear()
 
     def update(self, points, supports, origin=None):
         self._known_columns = None
@@ -55,7 +69,8 @@ class SurfaceMap:
         candidate_keys = list(candidates)
         nearby = tree.query_ball_point(np.asarray(list(candidates.values()))[:, :2], self.radius) if tree is not None and candidates else None
         nodes = {}
-        footprint = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+        reach = math.ceil(self.radius/self.resolution)
+        footprint = [(dx, dy) for dx in range(-reach, reach+1) for dy in range(-reach, reach+1)
                      if math.hypot(dx, dy)*self.resolution <= self.radius]
         for index, key in enumerate(candidate_keys):
             point = candidates[key]

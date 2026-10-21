@@ -112,6 +112,8 @@ class RadiationSample:
     counts_per_usv: float = 50000.
     window_positions: tuple = ()
     window_durations_s: tuple = ()
+    map_revision: int = 0
+    position_valid: bool = True
 
 
 class Detector:
@@ -127,17 +129,22 @@ class Detector:
         self.samples = 0
         self.window_position_sum = np.zeros((8, 3))
         self.window_duration = np.zeros(8)
+        self.window_time_sum = np.zeros(8)
+        self.map_revision = 0
+        self.window_position_valid = True
         if not math.isfinite(counts_per_usv) or counts_per_usv <= 0 or not math.isfinite(period) or period <= 0:
             raise ValueError('invalid detector calibration')
 
-    def integrate(self, point, rate, dt, stamp):
+    def integrate(self, point, rate, dt, stamp, *, position_valid=True):
         if not all(math.isfinite(v) for v in (rate, dt, stamp)) or rate < 0 or dt <= 0:
             raise ValueError('invalid exposure interval')
         self.expected_counts += rate*dt/3600.*self.sensitivity
+        self.window_position_valid &= bool(position_valid)
         self.position_sum += np.asarray(point)*dt
         slot = min(7, int(self.elapsed/self.period*8))
         self.window_position_sum[slot] += np.asarray(point)*dt
         self.window_duration[slot] += dt
+        self.window_time_sum[slot] += (stamp-dt/2.)*dt
         self.elapsed += dt
         if self.elapsed+1e-9 < self.period:
             return None
@@ -153,9 +160,23 @@ class Detector:
         positions = self.window_position_sum[used]/self.window_duration[used, None]
         sample = RadiationSample(stamp, tuple(self.position_sum/self.elapsed), counts,
                                  self.elapsed, counts*scale, variance, self.dose, upper, self.sensitivity,
-                                 tuple(map(tuple, positions)), tuple(self.window_duration[used]))
+                                 tuple(map(tuple, positions)), tuple(self.window_duration[used]), self.map_revision, self.window_position_valid)
         self.expected_counts, self.elapsed = 0., 0.
         self.position_sum[:] = 0.
         self.window_position_sum[:] = 0.
         self.window_duration[:] = 0.
+        self.window_time_sum[:] = 0.
+        self.window_position_valid = True
         return sample
+
+    def correct_map(self, correction):
+        if correction.revision <= self.map_revision:
+            return
+        if correction.revision != self.map_revision+1:
+            raise ValueError('detector correction revisions must be contiguous')
+        for i in np.flatnonzero(self.window_duration):
+            duration = self.window_duration[i]
+            point = self.window_position_sum[i]/duration
+            self.window_position_sum[i] = correction.point(point, self.window_time_sum[i]/duration)*duration
+        self.position_sum[:] = self.window_position_sum.sum(axis=0)
+        self.map_revision = correction.revision

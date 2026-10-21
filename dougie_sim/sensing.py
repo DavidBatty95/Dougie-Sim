@@ -46,6 +46,7 @@ class RangePacket:
     distances: np.ndarray
     max_range_m: float
     support_mask: np.ndarray
+    map_revision: int = 0
 
     def __post_init__(self):
         # Packets crossing a worker boundary own immutable arrays.

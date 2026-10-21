@@ -79,6 +79,7 @@ def main():
     radiation.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     radiation.add_argument('--record-view', choices=('field', 'routes'), default='field')
     radiation.add_argument('--sensor-seed', type=int, default=0)
+    radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
     radiation.add_argument('--policy-config', help='policy manifest inside this checkout')
     radiation.add_argument('--fixed-plan-delay', type=float, help='headless fast reproducible planning schedule')
     radiation.add_argument('--require-clean', action='store_true')
@@ -180,6 +181,7 @@ def main():
             '--mission-objective', args.mission_objective,
             '--region-scheduling', args.region_scheduling,
             '--localization', args.localization, '--sensor-seed', str(args.sensor_seed),
+            '--navigation-profile', args.navigation_profile,
             '--detector-likelihood', args.detector_likelihood,
             '--record-view', args.record_view,
             '--camera', args.camera, '--map-layer', args.map_layer,

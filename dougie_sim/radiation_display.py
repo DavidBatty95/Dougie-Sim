@@ -42,6 +42,8 @@ class RadiationHighlights:
         self._confirmed = None
 
     def observe(self, sample):
+        if not sample.position_valid:
+            return
         if sample.stamp_s <= self.last_stamp:
             return  # Dashboard redraws must not assimilate the same sample twice.
         self.last_stamp = sample.stamp_s

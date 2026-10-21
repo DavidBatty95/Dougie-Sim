@@ -111,6 +111,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             return
         if self.home is None:
             self.home = np.asarray(position).copy()
+            self.home_stamp = stamp
         home = self.terrain.nearest(self.home)
         if home is None:
             self.path = []
@@ -223,7 +224,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         selected = None
         if self.returning:
             selected, self.state = home, 'returning'
-            if math.dist(position, self.home) < .4:
+            if math.dist(position, self.home) < self.home_tolerance:
                 self.target = self.home.copy()
                 self._remember(home, 'return_home', stamp)
                 self.path, self.state = [], 'returned'
@@ -327,6 +328,18 @@ class ClusteredDoseExplorer(DoseExplorer):
                 goal_return_duration_s=home_time[selected], goal_return_upper_dose_usv=home_dose[selected],
                 goal_return_peak_rate_usv_h=home_peak[selected])
         self.path = [nodes[key].copy() for key in self.terrain.path(parent, selected)[1:]]
+        if self.returning and not self.path and math.dist(position, self.home) >= self.home_tolerance:
+            # A coarse graph cell can be reached before the tighter physical
+            # home tolerance. Certify the final continuous approach explicitly.
+            from .path_motion import RouteGeometry
+            if RouteGeometry(self.terrain).line(np.asarray(position), self.home, margin=0.) is not None:
+                self.path = [self.home.copy()]
+                seconds, exposure = forecast_polyline([position, self.home], [rates[root], rates[root]],
+                    start_yaw=getattr(self, 'start_yaw', None))
+                self.route_forecast.update(return_duration_s=seconds, return_upper_dose_usv=exposure,
+                                           return_forecast_geometry='checked_final_home_approach')
+            else:
+                self.state, self.last_reason = 'waiting_for_home_support', 'final_home_approach_unavailable'
         self.events.append(dict(time_s=stamp, state=self.state, reason=self.last_reason, target=goal.tolist(),
             predicted_outbound_dose_usv=dose[selected], return_reserve_usv=self.return_reserve,
             measured_dose_upper_usv=self.sample.dose_upper_usv, candidates=self.candidate_count))

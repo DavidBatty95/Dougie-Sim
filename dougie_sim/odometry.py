@@ -50,7 +50,7 @@ def leg_kinematics(joints, velocities):
 
 
 class FusedOdometry:
-    def __init__(self, map_capacity=20000):
+    def __init__(self, map_capacity=20000, robust=True):
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -67,6 +67,19 @@ class FusedOdometry:
         self.scan_rmse = None
         self.last_scan_stamp = None
         self.last_contact_stamp = None
+        self.robust = robust
+        self.keyframes = []
+        self.corrections = []
+        self.registration_status = 'initializing'
+        self.registration_rank = 0
+        self.inlier_fraction = 0.
+        self.rejection_streak = 0
+        self.slipping_legs = 0
+        self.last_good_scan = None
+        self.last_loop_attempt = -100.
+        self.last_loop_stamp = 0.
+        self.loop_candidate = None
+        self.loop_closure_enabled = True
 
     def update(self, observation):
         t = observation.stamp_s
@@ -77,9 +90,20 @@ class FusedOdometry:
             raise ValueError('IMU observation gap exceeds 100 ms')
         self.stamp = t
         self.drift_variance += dt*1e-5
+        if self.robust:
+            self.drift_variance += np.linalg.norm(self.velocity)*dt*.0008
         feet, foot_velocity = leg_kinematics(observation.joints, observation.joint_velocity)
         self.feet = feet
         contact = observation.foot_force > 12.
+        self.slipping_legs = 0
+        if self.robust and np.count_nonzero(contact) >= 3:
+            estimates = -(foot_velocity+np.cross(observation.gyro-self.gyro_bias, feet))@self.rotation.T
+            median = np.median(estimates[contact], axis=0)
+            residual = np.linalg.norm(estimates-median, axis=1)
+            bad = contact & (residual > max(.08, 3.*float(np.median(residual[contact]))))
+            self.slipping_legs = int(bad.sum())
+            contact &= ~bad
+            self.drift_variance += self.slipping_legs*dt*.0002
         omega = observation.gyro-self.gyro_bias
         acceleration = observation.acceleration
         # Gravity tilt correction is gated against strongly dynamic acceleration.
@@ -161,10 +185,15 @@ class FusedOdometry:
         points, normals = points[valid], normals[valid]/lengths[valid, None]
         if len(points) < 40:
             self.scan_rejections += 1
+            self.rejection_streak += 1
+            self.registration_status = 'insufficient_range_structure'
             return
         _, indices = np.unique(np.floor(points/.12).astype(int), axis=0, return_index=True)
         indices = indices[::max(1, math.ceil(len(indices)/1500))]
         points, normals = points[indices], normals[indices]
+        if self.robust:
+            self._observe_submaps(points, normals, local.stamp_s)
+            return
         if len(self.map) >= 40:
             stored = np.asarray(list(self.map.values()))
             target, target_normals = stored[:, :3], stored[:, 3:]
@@ -209,18 +238,106 @@ class FusedOdometry:
             keys = sorted(self.map, key=lambda k: np.linalg.norm(self.map[k][:3]-self.position))[:self.map_capacity]
             self.map = {key: self.map[key] for key in keys}
 
+    @property
+    def map_revision(self):
+        return len(self.corrections)
+
+    @property
+    def position_std(self):
+        return np.sqrt(np.diag(self.covariance)[:3]+self.drift_variance)
+
+    def _observe_submaps(self, points, normals, stamp):
+        from .registration import Keyframe, register
+        if self.keyframes:
+            recent = self.keyframes[-4:]
+            worlds = [frame.world() for frame in recent]
+            target, target_normals = np.concatenate([x[0] for x in worlds]), np.concatenate([x[1] for x in worlds])
+            fit = register(points, normals, target, target_normals, self.position, self.rotation)
+            self.registration_status = fit.reason
+            self.registration_rank, self.inlier_fraction = fit.observable_rank, fit.inlier_fraction
+            self.scan_rmse = fit.rmse if math.isfinite(fit.rmse) else None
+            if not fit.accepted:
+                self.scan_rejections += 1
+                self.rejection_streak += 1
+                self.drift_variance += .0001
+                return  # Rejected scans must not contaminate future registration.
+            self.position, self.rotation = fit.position, fit.rotation
+            self.scan_updates += 1
+            self.rejection_streak = 0
+            self.last_good_scan = stamp
+            self.drift_variance += min(.0002, fit.translation_m**2*.05)
+            self.anchors = {leg: self.position+self.rotation@self.feet[leg] for leg in self.anchors}
+            self._try_loop(points, normals, stamp)
+        else:
+            self.registration_status, self.last_good_scan = 'initial_submap', stamp
+        last = self.keyframes[-1] if self.keyframes else None
+        if (last is None or np.linalg.norm(self.position-last.position) > .6
+                or Rotation.from_matrix(self.rotation@last.rotation.T).magnitude() > .35 or stamp-last.stamp > 12.):
+            self.keyframes.append(Keyframe(stamp, self.position.copy(), self.rotation.copy(), points.copy(), normals.copy(), self.drift_variance))
+            if len(self.keyframes) > 64:
+                del self.keyframes[8]  # Retain initial anchors plus recent submaps.
+        # Compatibility/diagnostics only; registration uses immutable keyframes.
+        world, n = self.keyframes[-1].world()
+        self.map = {tuple(np.floor(p/.12).astype(int)): np.r_[p, normal] for p, normal in zip(world, n)}
+
+    def _try_loop(self, points, normals, stamp):
+        from .registration import register
+        from .map_corrections import MapCorrection
+        if not self.loop_closure_enabled or len(self.corrections) >= 16 or stamp-self.last_loop_stamp < 30. or stamp-self.last_loop_attempt < 2.:
+            return
+        self.last_loop_attempt = stamp
+        candidates = [frame for frame in self.keyframes[:-4]
+                      if stamp-frame.stamp > 20. and np.linalg.norm(frame.position-self.position) < 1.25]
+        if not candidates:
+            self.loop_candidate = None
+            return
+        anchor = min(candidates, key=lambda frame: frame.stamp)
+        target, target_normals = anchor.world()
+        fit = register(points, normals, target, target_normals, self.position, self.rotation, .4, .15)
+        if not fit.accepted or fit.observable_rank < 5 or fit.inlier_fraction < .55 or fit.rmse > .025:
+            self.loop_candidate = None
+            return
+        R = fit.rotation@self.rotation.T
+        t = fit.position-R@self.position
+        rv = Rotation.from_matrix(R).as_rotvec()
+        if fit.translation_m < .025 and np.linalg.norm(rv) < .015:
+            self.loop_candidate = None
+            return
+        previous = self.loop_candidate
+        self.loop_candidate = anchor.stamp, rv.copy(), t.copy(), stamp
+        if (previous is None or previous[0] != anchor.stamp or stamp-previous[3] > 5.
+                or np.linalg.norm(previous[1]-rv) > .03 or np.linalg.norm(previous[2]-t) > .08):
+            return
+        event = MapCorrection(self.map_revision+1, max(anchor.stamp, self.last_loop_stamp), stamp, tuple(rv), tuple(t))
+        self.position, self.rotation = fit.position, fit.rotation
+        self.velocity = R@self.velocity
+        transform = np.zeros((6, 6))
+        transform[:3, :3] = transform[3:, 3:] = R
+        self.covariance = transform@self.covariance@transform.T
+        for frame in self.keyframes:
+            frame.correct(event)
+        self.anchors = {leg: self.position+self.rotation@self.feet[leg] for leg in self.anchors}
+        self.corrections.append(event)
+        self.last_loop_stamp, self.loop_candidate = stamp, None
+        self.drift_variance = max(.03**2, anchor.variance+fit.rmse**2)
+
     def world_packet(self, local):
         if self.stamp is not None and abs(local.stamp_s-self.stamp) > .015:
             raise ValueError('LiDAR must be transformed at its capture timestamp')
         directions = local.directions@self.rotation.T
         origin = self.position+self.rotation@local.origin
         return RangePacket(local.stamp_s, local.sequence, origin, directions, local.distances,
-                           local.max_range_m, support_mask(origin, directions, local.distances, local.max_range_m))
+                           local.max_range_m, support_mask(origin, directions, local.distances, local.max_range_m), self.map_revision)
 
     def metrics(self):
         return dict(source='imu_leg_lidar_fusion', initialized=self.initialized,
             position=self.position.tolist(), velocity=self.velocity.tolist(), yaw=self.yaw,
-            position_std_m=np.sqrt(np.diag(self.covariance)[:3]+self.drift_variance).tolist(),
+            position_std_m=self.position_std.tolist(),
             conditional_position_std_m=np.sqrt(np.diag(self.covariance)[:3]).tolist(),
             gyro_bias=self.gyro_bias.tolist(), scan_updates=self.scan_updates,
-            scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map))
+            scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map),
+            robust=self.robust, map_revision=self.map_revision, keyframes=len(self.keyframes),
+            registration_status=self.registration_status, observable_rank=self.registration_rank,
+            inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,
+            last_good_scan_s=self.last_good_scan,
+            uncertainty_scope='conditional filter plus path/innovation drift allowance; not a calibrated probability guarantee')

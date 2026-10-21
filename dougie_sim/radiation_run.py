@@ -54,6 +54,7 @@ def main():
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     parser.add_argument('--sensor-seed', type=int, default=0)
+    parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
@@ -145,7 +146,7 @@ def main():
             parser.error('fused missions currently require the proprioceptive policy contract')
         from .odometry import FusedOdometry
         from .onboard_sensors import OnboardSensors
-        odometry, sensors = FusedOdometry(), OnboardSensors(args.sensor_seed)
+        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust'), OnboardSensors(args.sensor_seed)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
     local_packet = None
@@ -176,6 +177,7 @@ def main():
                         ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
+    planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
     controls.highlights, controls.field_display = highlights, args.field_display
@@ -220,6 +222,8 @@ def main():
     error = None
     live_metrics = dict(state='initial_survey', planner=args.planner)
     trail = []
+    trail_stamps = []
+    display_history = []
     distance_travelled = 0.
     previous_position = sim.data.qpos[:3].copy()
     last_target = None
@@ -258,6 +262,7 @@ def main():
     loop_times, bridge_times, viewer_times, lidar_times = [], [], [], []
     last_plan = -10.
     accepted_plan_stamp = -10.
+    accepted_map_revision = 0
     observed_plan_delay = 0.
     minimum_sensor_z = math.inf
     maximum_sensor_z = -math.inf
@@ -267,6 +272,7 @@ def main():
     trace = (output/'trace.jsonl').open('w')
     measurements = (output/'measurements.jsonl').open('w')
     localization_log = (output/'localization_evaluation.jsonl').open('w')
+    correction_log = (output/'map_corrections.jsonl').open('w')
     last_pose_log = -1.
 
     print(f'Dougie radiation mission: {output}\nSource profile: {args.source_profile} ({len(field.sources)} point sources)', flush=True)
@@ -292,8 +298,27 @@ def main():
                 if stamp-last_onboard_scan >= .2-1e-9:
                     lidar_started = time.perf_counter()
                     local_packet = sensors.scan(sim)
+                    revision_before = odometry.map_revision
                     odometry.observe_scan(local_packet)
-                    mapped_packet = odometry.world_packet(local_packet)
+                    for event in odometry.corrections[revision_before:]:
+                        detector.correct_map(event)
+                        samples = [event.sample(s) for s in samples]
+                        if latest_sample is not None:
+                            latest_sample = event.sample(latest_sample)
+                        display_history = [event.sample(s) for s in display_history]
+                        trail = [event.point(p, t).tolist() for p, t in zip(trail, trail_stamps)]
+                        last_path_position = event.point(last_path_position, last_progress_stamp)
+                        highlights.cells.clear()
+                        highlights.last_stamp = -math.inf
+                        highlights._tree = highlights._confirmed = None
+                        for observation in display_history:
+                            highlights.observe(observation)
+                        path, map_view = [], None
+                        follower.set_route([], [], odometry.support_position)
+                        correction_log.write(json.dumps(asdict(event))+'\n')
+                        correction_log.flush()
+                    if odometry.initialized and (not odometry.robust or odometry.rejection_streak == 0):
+                        mapped_packet = odometry.world_packet(local_packet)
                     last_onboard_scan = stamp
                     lidar_times.append(time.perf_counter()-lidar_started)
                 sim.onboard_proprioception = proprioception, odometry.rotation.copy()
@@ -311,17 +336,22 @@ def main():
                 next_report = stamp+30.
             if not trail or math.dist(position, trail[-1]) > .08:
                 trail.append(position.tolist())
+                trail_stamps.append(stamp)
                 if len(trail) > 2000:
                     trail = trail[::2]
+                    trail_stamps = trail_stamps[::2]
             sensor = sim.data.qpos[:3]+(rotation(sim.data.qpos[3:7])@np.array([0., 0., .12]) if odometry else [0., 0., .12])
             minimum_sensor_z = min(minimum_sensor_z, float(sensor[2]))
             maximum_sensor_z = max(maximum_sensor_z, float(sensor[2]))
             rate = field.rate(sensor)
             true_dose += rate*sim.model.opt.timestep/3600.
             sample = detector.integrate(odometry.sensor_position if odometry else sensor,
-                                        rate, sim.model.opt.timestep, stamp+sim.model.opt.timestep)
+                rate, sim.model.opt.timestep, stamp+sim.model.opt.timestep,
+                position_valid=not odometry or not odometry.robust or (odometry.initialized
+                    and odometry.rejection_streak < 5 and odometry.position_std.max() <= .3))
             if sample is not None:
                 latest_sample = sample
+                display_history = (display_history+[sample])[-8192:]
                 highlights.observe(sample)
                 samples.append(sample)
                 measurements.write(json.dumps(asdict(sample))+'\n')
@@ -333,10 +363,16 @@ def main():
                 else future.done() or (args.fast and stamp-last_plan >= .5))
             if ready:
                 path, state, metrics, map_view = future.result()
+                accepted_map_revision = metrics.get('map_revision', 0)
+                if odometry and accepted_map_revision != odometry.map_revision:
+                    path, map_view, state = [], None, 'waiting_for_map_revision'
+                    metrics.update(state=state, planned_path=[], path_spans=[])
                 observed_plan_delay = max(0., stamp-last_plan)
                 metrics['plan_age_sim_s'] = observed_plan_delay
                 if odometry:
                     metrics['localization'] = odometry.metrics()
+                    if metrics.get('map_consistency', {}).get('retained_scans', 0) >= 992:
+                        odometry.loop_closure_enabled = False
                 if args.path_mode == 'smooth':
                     metrics['route_accepted'] = follower.set_route(path, metrics.get('path_spans', []), position)
                     metrics['route_replan_rejections'] = follower.replan_rejections
@@ -369,7 +405,7 @@ def main():
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
             stalled = stamp-last_progress_stamp > 15.
-            if future is None and samples and stamp-last_plan >= 2. and (odometry is None or odometry.initialized):
+            if future is None and samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
                 lidar_started = time.perf_counter()
                 packet = mapped_packet if odometry else sim.lidar_packet()
                 lidar_times.append(time.perf_counter()-lidar_started)
@@ -378,7 +414,8 @@ def main():
                     visualization.update_landmarks(landmark_sensor.packets())
                 future = pool.submit(planning_worker.plan, samples, packet, position.copy(), stamp, stalled,
                                      landmark_observations, observed_plan_delay,
-                                     odometry.yaw if odometry else math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]))
+                                     odometry.yaw if odometry else math.atan2(rotation(sim.data.qpos[3:7])[1, 0], rotation(sim.data.qpos[3:7])[0, 0]),
+                                     tuple(odometry.corrections) if odometry else (), odometry.metrics() if odometry else None)
                 samples = []
                 last_plan = stamp
                 if stalled:
@@ -391,7 +428,8 @@ def main():
                 command[:] = 0.
                 follower.stop()
             if odometry and (not odometry.initialized or stamp-last_onboard_scan > .6
-                    or np.sqrt(np.diag(odometry.covariance)[:3]+odometry.drift_variance).max() > .3):
+                    or odometry.position_std.max() > .3 or accepted_map_revision != odometry.map_revision
+                    or (odometry.robust and odometry.rejection_streak >= 5)):
                 command[:] = 0.
                 follower.stop()
             if latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
@@ -442,7 +480,7 @@ def main():
         try:
             if future is not None:
                 _, _, _, map_view = future.result()
-            explorer = pool.submit(planning_worker.finalize, samples).result()
+            explorer = pool.submit(planning_worker.finalize, samples, tuple(odometry.corrections) if odometry else ()).result()
         except Exception as exc:
             error = error or str(exc)
         finally:
@@ -454,6 +492,7 @@ def main():
         trace.close()
         measurements.close()
         localization_log.close()
+        correction_log.close()
         witness.save(output/'motion_trace.npz')
         if map_view is None and explorer.terrain.nodes:
             nodes = np.asarray(list(explorer.terrain.nodes.values()))

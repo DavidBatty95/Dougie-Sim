@@ -21,6 +21,8 @@ class DoseExplorer:
         self.budget, self.rate_limit = budget, rate_limit
         self.mission_duration = mission_duration
         self.home = None
+        self.home_stamp = 0.
+        self.home_tolerance = .4
         self.sample = None
         self.path = []
         self.target = None
@@ -36,10 +38,13 @@ class DoseExplorer:
         self.progress_stamp = 0.
         self.failed = []
         self.detector_likelihood = 'window'
+        self.invalid_position_windows = 0
 
     def observe_radiation(self, sample):
         self.sample = sample
-        if self.gp.likelihood == 'poisson':
+        if not sample.position_valid:
+            self.invalid_position_windows += 1
+        elif self.gp.likelihood == 'poisson':
             if self.detector_likelihood == 'window' and sample.window_positions:
                 self.gp.update_counts_window(sample.window_positions, sample.window_durations_s, sample.counts, sample.counts_per_usv)
             else:
@@ -62,6 +67,7 @@ class DoseExplorer:
             return
         if self.home is None:
             self.home = np.asarray(position).copy()
+            self.home_stamp = stamp
         home = self.terrain.nearest(self.home)
         if home is None:
             self.path = []
@@ -86,7 +92,7 @@ class DoseExplorer:
         if self.returning:
             selected = home
             self.state = 'returning'
-            if math.dist(position, self.home) < .4:
+            if math.dist(position, self.home) < self.home_tolerance:
                 self.path = []
                 self.state = 'returned'
                 return
@@ -155,4 +161,5 @@ class DoseExplorer:
             observed_free_volume_m3=len(self.terrain.free_voxels)*.2**3,
             gp=self.gp.metrics(), planning_p95_ms=float(np.percentile(self.plan_ms, 95)) if self.plan_ms else None,
             worker_p95_ms=float(np.percentile(self.worker_ms, 95)) if self.worker_ms else None,
-            events=self.events)
+            events=self.events, map_consistency=getattr(self, 'map_consistency', {}),
+            localization_margin_m=self.terrain.localization_margin, invalid_position_windows=self.invalid_position_windows)
