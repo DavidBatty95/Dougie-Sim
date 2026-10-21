@@ -74,7 +74,10 @@ def main():
     radiation.add_argument('--layout-seed', type=int, default=0)
     radiation.add_argument('--landmark-count', type=int, default=0)
     radiation.add_argument('--landmark-seed', type=int, default=0)
-    radiation.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
+    radiation.add_argument('--mission-objective', choices=('survey', 'inspect', 'circuit'), default='survey')
+    radiation.add_argument('--utility-mode', choices=('legacy', 'information'))
+    radiation.add_argument('--circuit-radius', type=float, default=1.5)
+    radiation.add_argument('--require-circuit', action='store_true')
     radiation.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     radiation.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     radiation.add_argument('--record-view', choices=('field', 'routes'), default='field')
@@ -180,6 +183,7 @@ def main():
             '--world', args.world, '--layout-seed', str(args.layout_seed), '--planner', args.planner,
             '--landmark-count', str(args.landmark_count), '--landmark-seed', str(args.landmark_seed),
             '--mission-objective', args.mission_objective,
+            '--circuit-radius', str(args.circuit_radius),
             '--region-scheduling', args.region_scheduling,
             '--localization', args.localization, '--sensor-seed', str(args.sensor_seed),
             '--navigation-profile', args.navigation_profile,
@@ -190,6 +194,10 @@ def main():
             '--visualizer', args.visualizer]
         if args.lidar_dropout_after is not None:
             command += ['--lidar-dropout-after', str(args.lidar_dropout_after)]
+        if args.utility_mode:
+            command += ['--utility-mode', args.utility_mode]
+        if args.require_circuit:
+            command.append('--require-circuit')
         command += ['--gp-mode', args.gp_mode, '--gp-expert-capacity', str(args.gp_expert_capacity),
                     '--gp-max-experts', str(args.gp_max_experts), '--gp-cell-size', *map(str, args.gp_cell_size),
                     '--path-mode', args.path_mode]

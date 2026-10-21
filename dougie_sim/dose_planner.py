@@ -40,9 +40,16 @@ class DoseExplorer:
         self.failed = []
         self.detector_likelihood = 'window'
         self.invalid_position_windows = 0
+        from .mission_utility import ExposureUtility, CountCalibration
+        self.utility = ExposureUtility()
+        self.calibration = CountCalibration()
+        self.calibration_enabled = False
 
-    def observe_radiation(self, sample):
+    def observe_radiation(self, sample, replay=False):
         self.sample = sample
+        self.utility.observe(sample)
+        if self.calibration_enabled and not replay:
+            self.calibration.observe(self.gp, sample)
         if not sample.position_valid:
             self.invalid_position_windows += 1
         elif self.gp.likelihood == 'poisson':
@@ -164,4 +171,4 @@ class DoseExplorer:
             worker_p95_ms=float(np.percentile(self.worker_ms, 95)) if self.worker_ms else None,
             events=self.events, map_consistency=getattr(self, 'map_consistency', {}),
             localization_margin_m=self.terrain.localization_margin, invalid_position_windows=self.invalid_position_windows,
-            recovery=getattr(self, 'recovery', {}))
+            recovery=getattr(self, 'recovery', {}), count_calibration=self.calibration.metrics())

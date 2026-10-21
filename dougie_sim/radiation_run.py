@@ -60,7 +60,10 @@ def main():
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
-    parser.add_argument('--mission-objective', choices=('survey', 'inspect'), default='survey')
+    parser.add_argument('--mission-objective', choices=('survey', 'inspect', 'circuit'), default='survey')
+    parser.add_argument('--utility-mode', choices=('legacy', 'information'), help='defaults to information for robust navigation')
+    parser.add_argument('--circuit-radius', type=float, default=1.5, help='radius of four goals selected from initially observed support')
+    parser.add_argument('--require-circuit', action='store_true', help='require all four physical circuit witnesses and clean home return')
     parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
@@ -94,6 +97,15 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
+    args.utility_mode = args.utility_mode or ('information' if args.navigation_profile == 'robust' else 'legacy')
+    if not math.isfinite(args.circuit_radius) or not 1. <= args.circuit_radius <= 3.:
+        parser.error('--circuit-radius must be between 1 and 3 metres')
+    if args.require_circuit:
+        if args.mission_objective != 'circuit':
+            parser.error('--require-circuit requires --mission-objective circuit')
+        args.require_clean = True
+    if args.mission_objective == 'circuit' and args.planner == 'baseline':
+        parser.error('observed circuit requires a clustered planner')
     if args.lidar_dropout_after is not None and (args.localization != 'fused' or not math.isfinite(args.lidar_dropout_after) or args.lidar_dropout_after < 0):
         parser.error('--lidar-dropout-after requires fused localization and a nonnegative finite time')
     if args.gp_mode == 'geometry' and args.gp_likelihood != 'poisson':
@@ -177,7 +189,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
@@ -239,6 +251,9 @@ def main():
     contact_force = np.empty(6)
     from .mission_evaluation import MissionWitness
     witness = MissionWitness(sim, args.world)
+    from .circuit_evaluation import CircuitWitness
+    circuit_witness = CircuitWitness()
+    evaluator_capture_frames = {}
     recorder = None
     if args.record_demo:
         from .demo_recording import DemoRecorder
@@ -327,6 +342,12 @@ def main():
                         correction_log.flush()
                     if odometry.initialized and (not odometry.robust or odometry.rejection_streak == 0):
                         mapped_packet = odometry.world_packet(local_packet)
+                        if args.mission_objective == 'circuit':
+                            # This transform only reaches the independent witness.
+                            R_score = rotation(sim.data.qpos[3:7])@odometry.rotation.T
+                            evaluator_capture_frames[local_packet.sequence] = (R_score, sim.data.qpos[:3].copy()-R_score@odometry.position)
+                            if len(evaluator_capture_frames) > 64:
+                                del evaluator_capture_frames[next(iter(evaluator_capture_frames))]
                     last_onboard_scan = stamp
                     lidar_times.append(time.perf_counter()-lidar_started)
                 sim.onboard_proprioception = proprioception, odometry.rotation.copy()
@@ -392,6 +413,9 @@ def main():
                     metrics['route_replan_rejections'] = follower.replan_rejections
                     metrics['follower_status'] = follower.status
                 live_metrics = metrics
+                if args.mission_objective == 'circuit':
+                    task = metrics.get('circuit', {})
+                    circuit_witness.set_goals(task, evaluator_capture_frames.get(task.get('capture_sequence')))
                 target = metrics.get('selected_target')
                 if target is not None and (last_target is None or math.dist(target, last_target) > .35):
                     target_switches += 1
@@ -422,6 +446,10 @@ def main():
             if terminal_stop is None and future is None and samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
                 lidar_started = time.perf_counter()
                 packet = mapped_packet if odometry else sim.lidar_packet()
+                if args.mission_objective == 'circuit' and odometry is None:
+                    evaluator_capture_frames[packet.sequence] = (np.eye(3), np.zeros(3))
+                    if len(evaluator_capture_frames) > 64:
+                        del evaluator_capture_frames[next(iter(evaluator_capture_frames))]
                 lidar_times.append(time.perf_counter()-lidar_started)
                 landmark_observations = () if odometry else landmark_sensor.scan(sim)
                 if visualization:
@@ -489,6 +517,8 @@ def main():
                 bridge_times.append(time.perf_counter()-bridge_started)
             sim.step(command)
             witness.tick(sim)
+            if args.mission_objective == 'circuit':
+                circuit_witness.tick(support_pose(sim), float(sim.data.time), sim.model.opt.timestep)
             for i, contact in enumerate(sim.data.contact):
                 a, b = int(contact.geom1), int(contact.geom2)
                 if (a in robot_geoms) == (b in robot_geoms):
@@ -601,6 +631,12 @@ def main():
         from .mission_evaluation import round_trip_failures
         metrics['round_trip_failures'] = round_trip_failures(metrics)
         metrics['round_trip_completed'] = not metrics['round_trip_failures']
+        if args.mission_objective == 'circuit':
+            evaluated_circuit = circuit_witness.metrics()
+            metrics['circuit_evaluation'] = evaluated_circuit
+            metrics['circuit_mission_completed'] = bool(metrics['clean_return'] and evaluated_circuit['all_goals_reached']
+                and metrics.get('circuit', {}).get('completed'))
+            (output/'circuit_evaluation.json').write_text(json.dumps(evaluated_circuit, indent=2)+'\n')
         metrics['route_replan_rejections'] = follower.replan_rejections
         metrics['worker_phase_p95_ms'] = {name: float(np.percentile(values, 95))
             for name, values in getattr(explorer, 'worker_phase_history', {}).items()}
@@ -634,7 +670,7 @@ def main():
             console_metrics['exploration_agenda'] = {k:v for k,v in console_metrics['exploration_agenda'].items() if k != 'tasks'}
         print(json.dumps(console_metrics, indent=2))
         if visualization:
-            final_state = 'failed: '+error if error else state if state in ('returned', 'interrupted') else 'time limit reached'
+            final_state = 'failed: '+error if error else state if state in ('returned', 'interrupted', 'stopped_unrecoverable') else 'time limit reached'
             visualization.update(map_view, {**live_metrics, 'planned_path': [], 'selected_target': None}, trail)
             visualization.update_dashboard({**live_metrics, 'state': final_state+' / PAUSED'},
                                            latest_sample, args.dose_budget, args.rate_limit)
@@ -674,7 +710,8 @@ def main():
             finally:
                 viewer.close()
     if (error or true_dose > args.dose_budget or (args.require_clean and not metrics['clean_return'])
-            or (args.require_round_trip and not metrics['round_trip_completed'])):
+            or (args.require_round_trip and not metrics['round_trip_completed'])
+            or (args.require_circuit and not metrics.get('circuit_mission_completed'))):
         raise SystemExit(1)
 
 

@@ -45,6 +45,10 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.smooth_execution = False
         self.region_agenda = RegionAgenda()
         self.region_scheduling = 'hierarchical'
+        self.utility_mode = 'legacy'
+        self.selected_utility = {}
+        from .observed_circuit import ObservedCircuit
+        self.circuit = ObservedCircuit()
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -82,8 +86,8 @@ class ClusteredDoseExplorer(DoseExplorer):
             self.failed.append((self.target.copy(), stamp))
         self.path = []
 
-    def observe_radiation(self, sample):
-        super().observe_radiation(sample)
+    def observe_radiation(self, sample, replay=False):
+        super().observe_radiation(sample, replay=replay)
         if sample.rate_usv_h > self.rate_limit:
             self.last_reason = 'measured_rate_limit'
         elif sample.dose_upper_usv >= self.budget*.8:
@@ -124,8 +128,9 @@ class ClusteredDoseExplorer(DoseExplorer):
             return
         self.visited.add(root)
         keys = list(nodes)
-        _, sigma, upper = self.gp.predict([nodes[key]+[0, 0, .44] for key in keys])
+        mean, sigma, upper = self.gp.predict([nodes[key]+[0, 0, .44] for key in keys])
         rates, uncertainty = dict(zip(keys, upper)), dict(zip(keys, sigma))
+        means = dict(zip(keys, mean))
         _, _, length, parent = self.terrain.routes(root, rates, max_rate=self.rate_limit)
         emergency_return = False
         if home not in parent:
@@ -191,7 +196,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             dwell_dose = (rates[root]*self.wait_allowance+rates[key]*(5.+self.wait_allowance+self.recovery_reserve_s))/3600.
             total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
             deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
-            if (self.smooth_execution and self.landmark_bonus(nodes[key]) > 0 and key not in checked_inspections
+            if (self.smooth_execution and (self.landmark_bonus(nodes[key]) > 0 or self.objective == 'circuit') and key not in checked_inspections
                     and len(checked_inspections) < 4 and (total > self.budget or deadline > self.mission_duration)):
                 # Grid turns can grossly overestimate a nearby inspection trip.
                 # Recheck a bounded number of promising known-target approaches
@@ -225,8 +230,26 @@ class ClusteredDoseExplorer(DoseExplorer):
             self._remember(key, 'pending', stamp)
             return True
 
+        utility_details = {}
+        def information_score(key, novelty, fresh_fraction, target_bonus=0., connector_bonus=0.):
+            detail = self.utility.score(nodes[key]+[0., 0., .44], novelty, fresh_fraction,
+                means[key], uncertainty[key], outbound_time[key], home_time[key], dose[key], home_dose[key],
+                rates[key], rates[root], self.wait_allowance, self.recovery_reserve_s,
+                self.mission_duration-stamp, self.budget-self.sample.dose_upper_usv-self.budget*.15,
+                self.sample.counts_per_usv, target_bonus, connector_bonus)
+            utility_details[key] = detail
+            return detail['score']
+
+        if self.objective == 'circuit':
+            if not self.returning and not self.circuit.prepare(self.terrain, root, self.home, stamp, getattr(self, 'last_packet_sequence', None)):
+                self.path, self.state, self.last_reason = [], 'waiting_for_task_observations', 'circuit_not_observable'
+                return
+            self.circuit.observe_position(np.asarray(position), stamp)
+            if self.circuit.completed:
+                self.returning, self.last_reason = True, 'observed_circuit_complete'
+
         previous = None if self.target is None else self.terrain.nearest(self.target)
-        reached_tolerance = .2 if inspection else .4
+        reached_tolerance = .2 if inspection or self.objective == 'circuit' else .4
         selected = None
         if self.returning:
             selected, self.state = home, 'returning'
@@ -235,6 +258,23 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self._remember(home, 'return_home', stamp)
                 self.path, self.state = [], 'returned'
                 return
+        elif self.objective == 'circuit':
+            candidates = []
+            for key in self.circuit.pending(self.terrain):
+                if admitted(key):
+                    score = information_score(key, 0., 0., target_bonus=8.) if self.utility_mode == 'information' else (
+                        8.+.5*math.log1p(uncertainty[key]**2/.02))/(1.+.35*length[key]+5.*dose[key])
+                    candidates.append((score, key))
+            self.candidate_count = len(candidates)
+            if not candidates:
+                self.returning = True
+                selected, self.state, self.last_reason = home, 'returning_incomplete_circuit', 'circuit_goals_not_admissible'
+            else:
+                viable = {key for _, key in candidates}
+                selected = previous if previous in viable and stamp-self.goal_started < 45. else max(candidates)[1]
+                if selected != previous:
+                    self.goal_started = stamp
+                self.state, self.last_reason = 'exploring', 'observed_circuit_goal'
         elif (self.commitment and previous is not None and math.dist(nodes[previous], self.target) < .25
               and math.dist(position, self.target) > reached_tolerance and stamp-self.goal_started < 45. and admitted(previous)):
             selected, self.state, self.last_reason = previous, 'exploring', 'continue_revalidated_goal'
@@ -280,6 +320,9 @@ class ClusteredDoseExplorer(DoseExplorer):
                         # back down a visited ramp instead of onto a new landing.
                         score += fresh_fraction*bonus/(1.+.35*length[key]+5.*dose[key])
                     if admitted(key):
+                        if self.utility_mode == 'information':
+                            bonus = self.terrain.acquisition_bonus(key, self.sampled_height_bands) if inspection and novelty > 0 else 0.
+                            score = information_score(key, novelty, fresh_fraction, target_bonus, bonus)
                         scored.append((score, key, novelty))
                 if not scored:
                     continue
@@ -328,6 +371,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         if self.target is None or math.dist(goal, self.target) > .35:
             self.goal_switches += 1
         self.target = goal
+        self.selected_utility = utility_details.get(selected, {})
         self._remember(selected, 'return_home' if self.returning else 'active', stamp)
         if not self.returning:
             self.route_forecast.update(outbound_duration_s=outbound_time[selected], outbound_upper_dose_usv=dose[selected],
@@ -372,4 +416,8 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['known_landmarks_pending'] = sum(not o.inspected for o in self.landmarks.values())
         result['mission_objective'] = self.objective
         result['region_agenda'] = self.region_agenda.metrics()
+        result['utility_mode'] = self.utility_mode
+        result['selected_utility'] = self.selected_utility
+        if self.objective == 'circuit':
+            result['circuit'] = self.circuit.metrics()
         return result

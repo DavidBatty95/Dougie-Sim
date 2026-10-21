@@ -26,10 +26,14 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
     explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
     explorer.recovery_reserve_s = 3. if options.get('recovery_enabled') else 0.
+    explorer.calibration_enabled = options.get('navigation_profile') == 'robust'
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
         explorer.region_scheduling = options.get('region_scheduling', 'hierarchical')
+        explorer.utility_mode = options.get('utility_mode', 'legacy')
+        from .observed_circuit import ObservedCircuit
+        explorer.circuit = ObservedCircuit(options.get('circuit_radius', 1.5))
     if terrain_profile == 'conservative':
         explorer.terrain = SurfaceMap(radius=.4, max_step=.02, max_local_relief=.02)
     elif terrain_profile == 'layered':
@@ -85,7 +89,7 @@ def rebuild_explorer(old, new_events):
         if hasattr(fresh.gp, 'observe_geometry'):
             fresh.gp.observe_geometry(packet)
     for sample in _journal.samples:
-        fresh.observe_radiation(sample)
+        fresh.observe_radiation(sample, replay=True)
         fresh.display_samples[tuple(np.floor(np.asarray(sample.position)/.4).astype(int))] = (np.asarray(sample.position), sample.rate_usv_h)
     fresh.display_samples = dict(list(fresh.display_samples.items())[-2048:])
     fresh.terrain.build_graph()
@@ -97,8 +101,14 @@ def rebuild_explorer(old, new_events):
     if hasattr(old, 'plan_delays'):
         fresh.plan_delays, fresh.wait_allowance = old.plan_delays, old.wait_allowance
     fresh.failed = old.failed
+    fresh.calibration = old.calibration
+    if hasattr(old, 'circuit'):
+        import copy
+        fresh.circuit = copy.deepcopy(old.circuit)
     for event in new_events:
         fresh.failed = [(event.point(point, stamp), stamp) for point, stamp in fresh.failed]
+        if hasattr(fresh, 'circuit'):
+            fresh.circuit.correct(event)
     fresh.last_reason = 'map_revision_revalidated'
     return fresh
 
@@ -150,6 +160,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         if packet.stamp_s != getattr(explorer, 'last_packet_stamp', None):
             explorer.observe_geometry(packet.points, packet.supports, packet.origin)
     explorer.last_packet_stamp = packet.stamp_s
+    explorer.last_packet_sequence = packet.sequence
     if _journal is not None:
         local_std = max((localization or {}).get('conditional_position_std_m', [.02]))
         residual = (localization or {}).get('scan_rmse_m') or 0.

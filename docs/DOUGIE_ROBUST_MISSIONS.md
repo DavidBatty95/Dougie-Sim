@@ -81,3 +81,55 @@ dose superiority. Artifact: `robust_recovery_stage2_seed4`.
 Verification: 228 tests passed before adding the missing-range fault regression;
 all 24 affected recovery/odometry/multi-floor tests subsequently passed. The
 fault trial is a deliberately retained failure, not a mission-completion pass.
+
+## Stage 3 — useful information per exposure and matched work
+
+`--utility-mode information` is the robust-profile default. Candidate utility
+combines fresh geometric views, a Poisson expected-count/Fisher information proxy,
+known inspection work and connector novelty. Repeatedly measured cells receive a
+residence-time discount. The cost includes outward **and return** exposure/time,
+turning through the shared forecast, inspection dwell, planning waits and recovery
+reserve. Normalization uses remaining time and dose resources. This is a heuristic
+proxy objective, not exact mutual-information optimization or dose optimality.
+`--utility-mode legacy` retains the earlier outbound-oriented score.
+
+Pre-assimilation count diagnostics compare each localized window with the model's
+upper latent-rate envelope plus a Poisson 99% count quantile. Counts withheld for
+bad pose are excluded; map-history replay does not rescore training windows.
+These diagnostics never reduce beta or the return reserve and are not a calibrated
+joint Poisson-lognormal predictive distribution. Held-out field/layout calibration
+is still required before relaxing conservative bounds.
+
+`--mission-objective circuit --require-circuit` freezes four supported goals from
+the initial observed graph, without a source/landmark catalogue. Both directions
+of geometric reachability are required. Planner goal visits and independent
+physical witnesses are separate: physical support position must be within .35 m
+for .2 s at every goal, followed by a clean home return. The evaluator transforms
+the initially observed goals into physics coordinates solely for scoring; that
+transform never enters autonomy. Comparisons check that both initial and physical
+goal sets match before reporting a paired dose difference.
+
+Initial matched circuit matrix (240 s cap, 2 uSv, 1.5 m goal radius, robust fusion
+and recovery for both scores):
+
+| Detector/sensor | Legacy utility | Information utility | Matched task outcome |
+|---|---|---|---|
+| 3/0 | 105.155 s / .308865 uSv | 105.155 s / .308865 uSv | Both completed all four physical goals and home |
+| 4/1 | 103.150 s / .294386 uSv | 103.150 s / .294386 uSv | Both completed all four physical goals and home |
+
+The trajectories were identical within each pair: **no dose improvement is claimed
+for this fixture**. All pre-assimilation count windows were below their upper
+count bounds; this small, correlated cohort is not calibration qualification.
+[Portable circuit evidence](results/dougie_robust_circuit_v1.json).
+
+Verification: **235 tests passed**, including information cost/revisit behavior,
+pre-assimilation diagnostics, immutable observed goals, disconnected/unknown goal
+rejection, independent physical witnesses and non-duplicating map replay.
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/benchmark_dougie_circuit.py \
+  --duration 240 --dose-budget 2 --radius 1.5 --seed-pairs 3:0 4:1
+./dougie radiation --headless --fast --duration 240 --dose-budget 2 \
+  --mission-objective circuit --require-circuit --utility-mode information \
+  --seed 3 --sensor-seed 0 --fixed-plan-delay .5
+```

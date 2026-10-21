@@ -87,6 +87,8 @@ def failure_reason(explorer, packet, stamp, localization, stalled, execution_sta
         return 'stale_range'
     if explorer.state in ('waiting_for_support', 'waiting_for_fresh_sensors_or_support'):
         return 'missing_local_support'
+    if explorer.state == 'waiting_for_task_observations':
+        return 'task_support_unavailable'
     if explorer.state in ('no_observed_return_route', 'waiting_for_home_support'):
         return 'return_route_disconnected'
     if stalled and explorer.path:

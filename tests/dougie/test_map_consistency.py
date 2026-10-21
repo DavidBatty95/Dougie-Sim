@@ -104,7 +104,7 @@ def test_partial_detector_window_correction_preserves_physical_counts():
 def test_worker_rebuild_replays_each_count_once_and_corrects_home():
     from dougie_sim import planning_worker as worker
     worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'conservative',
-                      options=dict(consistent_mapping=True, path_mode='grid', display_prediction=False))
+                      options=dict(consistent_mapping=True, navigation_profile='robust', path_mode='grid', display_prediction=False))
     sample = RadiationSample(.5, (0., 0., .4), 10, .5, 1.44, .1, .001, .002)
     worker.plan([sample], floor_packet(), np.zeros(3), .5, False)
     event = MapCorrection(1, 0., 1., (0., 0., 0.), (.2, 0., 0.))
@@ -113,6 +113,7 @@ def test_worker_rebuild_replays_each_count_once_and_corrects_home():
         packet, np.array([.2, 0., 0.]), 1.5, False, corrections=(event,))
     result = worker.finalize([])
     assert result.gp.updates == 2 and metrics['map_revision'] == 1
+    assert result.calibration.windows == 2  # Replay must not rescore held-in counts.
     np.testing.assert_allclose(result.home, [.1, 0., 0.])
     assert metrics['map_consistency']['retained_count_windows'] == 2
 
