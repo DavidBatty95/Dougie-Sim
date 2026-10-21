@@ -61,7 +61,7 @@ def main():
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
     parser.add_argument('--mission-objective', choices=('survey', 'inspect', 'circuit'), default='survey')
-    parser.add_argument('--utility-mode', choices=('legacy', 'information'), help='defaults to information for robust navigation')
+    parser.add_argument('--utility-mode', choices=('legacy', 'information'), help='default legacy utility; information is an experimental cost/whole-task scorer')
     parser.add_argument('--circuit-radius', type=float, default=1.5, help='radius of four goals selected from initially observed support')
     parser.add_argument('--require-circuit', action='store_true', help='require all four physical circuit witnesses and clean home return')
     parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
@@ -97,7 +97,7 @@ def main():
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
-    args.utility_mode = args.utility_mode or ('information' if args.navigation_profile == 'robust' else 'legacy')
+    args.utility_mode = args.utility_mode or 'legacy'
     if not math.isfinite(args.circuit_radius) or not 1. <= args.circuit_radius <= 3.:
         parser.error('--circuit-radius must be between 1 and 3 metres')
     if args.require_circuit:

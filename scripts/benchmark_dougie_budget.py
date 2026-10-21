@@ -58,7 +58,7 @@ def score(run, returncode):
             'decision_reason', 'nonfoot_contacts', 'nonfoot_impulse_ns', 'nonfoot_peak_force_n',
             'localization_evaluation', 'worker_p95_ms', 'worker_phase_p95_ms', 'wall_time_s',
             'source_sha256', 'gp', 'route_forecast', 'recovery', 'terminal_stop', 'post_stop_true_dose_usv',
-            'map_consistency', 'count_calibration', 'localization')
+            'map_consistency', 'count_calibration', 'localization', 'tracking_clearance_margin_m', 'localization_margin_m')
     return dict(run=run.name, returncode=returncode, summary_sha256=digest(summary_file),
         config_sha256=digest(run/'run_config.json'), trajectory_sha256=digest(run/'localization_evaluation.jsonl'),
         configuration={k: config.get(k) for k in ('seed', 'sensor_seed', 'dose_budget', 'duration', 'rate_limit',
@@ -97,7 +97,7 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--report', type=Path)
     args = parser.parse_args()
-    args.utility_mode = args.utility_mode or ('information' if args.navigation_profile == 'robust' else 'legacy')
+    args.utility_mode = args.utility_mode or 'legacy'
     if not math.isfinite(args.duration) or args.duration <= 0:
         parser.error('duration must be positive and finite')
     try:

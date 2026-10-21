@@ -184,3 +184,13 @@ def test_confirmed_small_loop_revalidates_uncertainty_without_moving_maps():
     assert odometry.anchor_revalidations == 1 and odometry.map_revision == 0
     assert odometry.drift_variance < .002
     np.testing.assert_array_equal(odometry.position, before)
+
+
+def test_planned_clearance_reserves_the_followers_tracking_error():
+    from dougie_sim.planning_worker import create_explorer
+    from dougie_sim.path_motion import TRACKING_ERROR_LIMIT
+    explorer = create_explorer((2., 100., 32, 600., 'poisson'), 'clustered', 'conservative',
+                               dict(consistent_mapping=True, path_mode='smooth'))
+    assert explorer.terrain.base_radius == pytest.approx(.4+TRACKING_ERROR_LIMIT)
+    explorer.terrain.set_localization_margin(.02)
+    assert explorer.terrain.radius == pytest.approx(.4+TRACKING_ERROR_LIMIT+.02)

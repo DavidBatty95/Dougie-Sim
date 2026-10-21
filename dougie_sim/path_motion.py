@@ -12,6 +12,8 @@ import numpy as np
 from scipy.spatial import cKDTree
 from .route_forecast import forecast_polyline
 
+TRACKING_ERROR_LIMIT = .12
+
 
 def sample_polyline(points, spacing=.05):
     points = np.asarray(points, dtype=float).reshape(-1, 3)
@@ -280,7 +282,7 @@ class RouteFollower:
             # A delayed replan may start behind the robot. Join a nearby point
             # already on its observed prefix, instead of commanding backtracking.
             _, distance = self._project(np.asarray(position), prefix=1., joining=True)
-            if distance > .12:
+            if distance > TRACKING_ERROR_LIMIT:
                 self.route_accepted = False
                 self.progress = 0.
                 self.replan_rejections += 1
@@ -339,7 +341,7 @@ class RouteFollower:
             self.status = 'at_goal'
             return self.stop()
         segment, error_distance = self._project(position)
-        if error_distance > .12:
+        if error_distance > TRACKING_ERROR_LIMIT:
             self.status = 'waiting_for_route_reacquisition'
             return self.stop()
         span = next((s for s in self.spans if s[0] <= segment < s[1]), self.spans[-1])

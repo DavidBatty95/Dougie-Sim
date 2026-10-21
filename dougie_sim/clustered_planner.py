@@ -288,7 +288,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                                 length_m=tour['length_m'], normalized_cost=tour['normalized_cost'],
                                 remaining_goals=[nodes[k].tolist() for k in tour['order']],
                                 scope='support/risk-checked remaining-task lookahead; only first leg dispatched')
-                if selected != previous:
+                if selected != previous or stamp-self.goal_started >= 45.:
                     self.goal_started = stamp
                 self.state = 'exploring'
                 self.last_reason = 'observed_circuit_tour' if self.circuit_tour else 'observed_circuit_goal'

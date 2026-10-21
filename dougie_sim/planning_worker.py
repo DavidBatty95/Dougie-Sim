@@ -39,6 +39,13 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     elif terrain_profile == 'layered':
         from .layered_terrain import LayeredSurfaceMap
         explorer.terrain = LayeredSurfaceMap()
+    if options.get('consistent_mapping') and options.get('path_mode') == 'smooth':
+        from .path_motion import TRACKING_ERROR_LIMIT
+        # The planned clearance must cover permitted execution error, not just
+        # the robot footprint and localization residual at the path centreline.
+        explorer.terrain.tracking_margin = TRACKING_ERROR_LIMIT
+        explorer.terrain.base_radius += TRACKING_ERROR_LIMIT
+        explorer.terrain.radius = explorer.terrain.base_radius
     if options.get('gp_mode') == 'spatial':
         from .spatial_gp import SpatialGP
         explorer.gp = SpatialGP(capacity=options.get('gp_expert_capacity', 32),

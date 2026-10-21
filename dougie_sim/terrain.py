@@ -24,6 +24,7 @@ class SurfaceMap:
         self._edge_lengths = {}
         self.base_radius = radius
         self.localization_margin = 0.
+        self.tracking_margin = 0.
 
     def set_localization_margin(self, margin):
         if not math.isfinite(margin) or margin < 0:

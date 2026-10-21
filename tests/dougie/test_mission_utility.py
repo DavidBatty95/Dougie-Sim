@@ -109,3 +109,19 @@ def test_whole_task_lookahead_uses_checked_diagonals_instead_of_crossing_home():
     assert tour is not None and len(tour['order']) == 4
     assert tour['length_m'] < 10.  # Four cardinal goals: crossed grid tour is 12 m.
     assert tour['first'] in pending
+
+
+def test_reselected_circuit_goal_renews_commitment_instead_of_recomputing_every_tick():
+    from dougie_sim.clustered_planner import ClusteredDoseExplorer
+    planner = ClusteredDoseExplorer(mission_duration=600.)
+    planner.objective = 'circuit'
+    planner.terrain = grid()
+    planner.terrain.build_graph = lambda: (planner.terrain.nodes, planner.terrain.graph)
+    planner.gp = S(predict=lambda p: (np.ones(len(p)), np.ones(len(p))*.1, np.ones(len(p))))
+    planner.sample = RadiationSample(1., (0., 0., .44), 5, .5, .72, .1, .001, .002)
+    planner.replan(np.zeros(3), 1.)
+    target = planner.target.copy()
+    planner.sample = replace(planner.sample, stamp_s=48.)
+    planner.replan(np.zeros(3), 48.)
+    np.testing.assert_array_equal(planner.target, target)
+    assert planner.goal_started == 48.

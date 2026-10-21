@@ -171,4 +171,5 @@ class DoseExplorer:
             worker_p95_ms=float(np.percentile(self.worker_ms, 95)) if self.worker_ms else None,
             events=self.events, map_consistency=getattr(self, 'map_consistency', {}),
             localization_margin_m=self.terrain.localization_margin, invalid_position_windows=self.invalid_position_windows,
-            recovery=getattr(self, 'recovery', {}), count_calibration=self.calibration.metrics())
+            recovery=getattr(self, 'recovery', {}), count_calibration=self.calibration.metrics(),
+            tracking_clearance_margin_m=self.terrain.tracking_margin)

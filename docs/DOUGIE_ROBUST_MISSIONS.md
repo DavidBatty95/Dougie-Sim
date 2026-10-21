@@ -84,7 +84,7 @@ fault trial is a deliberately retained failure, not a mission-completion pass.
 
 ## Stage 3 — useful information per exposure and matched work
 
-`--utility-mode information` is the robust-profile default. Candidate utility
+`--utility-mode information` implements the new experimental scorer. Candidate utility
 combines fresh geometric views, a Poisson expected-count/Fisher information proxy,
 known inspection work and connector novelty. Repeatedly measured cells receive a
 residence-time discount. The cost includes outward **and return** exposure/time,
@@ -185,3 +185,22 @@ so grid turns do not hide the benefit of continuous diagonal routes. Only the
 first leg is executed; all subsequent work is revalidated after new observations.
 This bounded task-sequencing refinement is specific to the explicit circuit
 objective; survey mode retains the information-per-resource candidate objective.
+
+### Final utility selection and tracking clearance
+
+The completed three-pair circuit comparison is retained in
+[the final circuit report](results/dougie_robust_circuit_final.json). All six runs
+completed identical paired physical goals and home return. Information/tour mode
+used **3.3% more dose on seed 3**, **5.2% more on seed 4**, and **6.1% less on the
+additional seed 5**. The evidence is mixed, so **legacy utility remains the default**;
+information mode stays available explicitly. This choice affects candidate scoring,
+not the new fused localization, map consistency or recovery defaults.
+
+The information-mode long matrix is also retained
+([report](results/dougie_robust_budget_600_final.json)). Three runs returned; the
+seed-4 / 2 uSv trial hit `shield_west` with the base and correctly failed contact
+qualification. The planned radius had not explicitly reserved the follower's
+allowed .12 m execution error. Robust smooth navigation now adds that same
+tracking-error limit to its base clearance, in addition to the existing local
+localization margin. The contact thresholds were not relaxed. Revised default
+and affected-case checks are reported separately below.
