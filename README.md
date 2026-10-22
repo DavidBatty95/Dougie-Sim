@@ -19,7 +19,13 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Pose-graph qualification update — 21 October 2026: 263 tests pass.** The explicit
+**Stop-transition update — 22 October 2026: 265 tests pass.** A 20-trial paired
+walking-to-stop screen found that guarded commanded-target hold reduced uphill
+drift, but **all four downhill hold trials failed non-foot contact limits**.
+It remains an experimental comparator and is not enabled in missions.
+[Results and retained failures](docs/DOUGIE_SLAM_QUALIFICATION.md#walking-to-stop-transitions--22-october-2026).
+
+**Pose-graph qualification update — 21 October 2026: 263 tests passed.** The explicit
 8° mezzanine variant passed all **25 sensor-only round trips** in a predeclared
 19-calibration / 5-held-out / 1-application cohort. Held-out pose-envelope coverage
 was 5/5; the source-pinned profile retained the existing allowance (multiplier 1.0).
@@ -121,6 +127,19 @@ for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
 [Provenance and regeneration](docs/DOUGIE_MEDIA.md#pose-graph-mission-refresh--21-october-2026) ·
 [Portable evidence](docs/results/dougie_pose_graph_recorded_20261021.json)
+
+### Stop-transition screening — retained failures
+
+![Animated evaluator telemetry for all 20 walking-to-stop trials, showing reduced drift but failed downhill contact outcomes under guarded target hold](docs/media/dougie/stop-transitions.gif)
+
+This is a **telemetry animation, not physics footage**. Bars show the maximum
+downsampled XY drift across two seeds; contact flags show final trial outcomes.
+After six seconds of walking commands, each trial has 120 seconds of zero-command
+dwell. Lower displacement alone is not a pass: downhill hold caused sustained
+non-foot contact. The mission controller has not been changed to use it.
+[Static comparison](docs/media/dougie/stop-transitions.png) ·
+[All 20 trials](docs/results/dougie_stop_transitions_20261022.json) ·
+[Media provenance](docs/DOUGIE_MEDIA.md#stop-transition-replay--22-october-2026)
 
 ### Historical multi-floor and initial integration gallery
 

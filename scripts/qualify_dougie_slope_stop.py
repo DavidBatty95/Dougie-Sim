@@ -21,9 +21,20 @@ from dougie_sim.terrain_courses import Course, CourseSpec
 from dougie_sim.pose_uncertainty import core_fingerprint
 
 
-def trial(angle, mode, seed, duration):
+def hold_eligibility(measured, stamp, stopped_at, quiet_since):
+    """Require fresh, quiet four-foot support after a zero-command settling delay."""
+    quiet = (0 <= stamp-measured.stamp_s <= .05 and stamp-stopped_at >= .5
+             and np.all(measured.foot_force > 5.) and np.linalg.norm(measured.gyro) <= .15
+             and np.max(np.abs(measured.joint_velocity)) <= .5)
+    if not quiet:
+        return False, None
+    quiet_since = stamp if quiet_since is None else quiet_since
+    return stamp-quiet_since >= .2 and stamp-stopped_at <= 3., quiet_since
+
+
+def trial(angle, mode, seed, duration, approach_s=0., direction='up'):
     course = Course(CourseSpec(name='stop_screen', kind='flat' if angle == 0 else 'ramp',
-                              slope_deg=angle or 8., length=8., width=3., friction=.4), seed)
+                              slope_deg=angle or 8., direction=direction, length=8., width=3., friction=.4), seed)
     sim = Simulation(model_xml=course.xml)
     # Place on the middle of the fixture once, before integration starts.
     sim.data.qpos[:3] = [4., 0., course.surface_height(4., 0.)+.34]
@@ -34,35 +45,52 @@ def trial(angle, mode, seed, duration):
     start, trace, held_at, error = None, [], None, None
     nonfoot_impulse = 0.
     max_drift = 0.
+    peak_force, peak_torque, quiet_since = 0., 0., None
+    approach_start = None
+    stopped_at = 5.+approach_s
     wrench = np.zeros(6)
-    while sim.data.time < duration+5.:
+    while sim.data.time < duration+stopped_at:
         measured = sensors.proprioception(sim)
         odometry.update(measured)
         sim.onboard_proprioception = measured, odometry.rotation
-        if sim.data.time >= 5. and start is None:
+        if sim.data.time >= 5. and approach_start is None:
+            approach_start = sim.data.qpos[:3].copy()
+        if sim.data.time >= stopped_at and start is None:
             start = sim.data.qpos[:3].copy()
-        if start is not None and mode != 'zero_policy' and held_at is None and np.all(measured.foot_force > 5.):
+        eligible = np.all(measured.foot_force > 5.)
+        if mode == 'guarded_target_hold':
+            eligible, quiet_since = hold_eligibility(measured, float(sim.data.time), stopped_at, quiet_since)
+        if start is not None and mode != 'zero_policy' and held_at is None and eligible:
             target_action = ((measured.joints-sim.default)/sim.policy_contract.action_scale
                              if mode == 'encoder_hold' else sim.action.copy())
             action = torch.from_numpy(target_action.astype(np.float32))[None, :]
             sim.policy = lambda observation: action
             held_at = float(sim.data.time)
         try:
-            sim.step((0., 0., 0.))
+            sim.step((.15 if 5. <= sim.data.time < stopped_at else 0., 0., 0.))
         except RuntimeError as exc:
             error = str(exc)
             break
         if start is not None:
             max_drift = max(max_drift, float(np.linalg.norm(sim.data.qpos[:2]-start[:2])))
+        if approach_start is not None:
+            peak_torque = max(peak_torque, float(np.max(np.abs(sim.data.ctrl[sim.actuators]))))
             for contact_index in range(sim.data.ncon):
                 contact = sim.data.contact[contact_index]
                 pair = {int(contact.geom1), int(contact.geom2)}
                 if pair & robot and pair-robot and not pair & feet:
                     mujoco.mj_contactForce(sim.model, sim.data, contact_index, wrench)
                     nonfoot_impulse += abs(float(wrench[0]))*sim.model.opt.timestep
+                    peak_force = max(peak_force, abs(float(wrench[0])))
         if sim.counter % 200 == 0:
-            trace.append(dict(time_s=float(sim.data.time), evaluator_position=sim.data.qpos[:3].tolist()))
-    return dict(angle_deg=angle, mode=mode, sensor_seed=seed, hold_started_s=held_at, error=error,
+            trace.append(dict(time_s=float(sim.data.time), evaluator_position=sim.data.qpos[:3].tolist(),
+                              command=sim.last_command.tolist(), held=held_at is not None))
+    return dict(angle_deg=angle, direction=direction, mode=mode, sensor_seed=seed, hold_started_s=held_at, error=error,
+        stop_requested_s=stopped_at, approach_s=approach_s,
+        evaluator_approach_distance_m=None if start is None or approach_start is None else float(np.linalg.norm(start[:2]-approach_start[:2])),
+        hold_entry_failed=mode != 'zero_policy' and held_at is None,
+        nonfoot_peak_force_n=peak_force, peak_motor_torque_nm=peak_torque,
+        policy=sim.policy_contract.identity(),
         max_horizontal_drift_m=max_drift, nonfoot_impulse_ns=nonfoot_impulse,
         scene_sha256=hashlib.sha256(course.xml.encode()).hexdigest(), trace=trace)
 
@@ -71,18 +99,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--duration', type=float, default=120.)
-    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold'),
+    parser.add_argument('--approach-seconds', type=float, default=0.)
+    parser.add_argument('--directions', nargs='+', choices=('up', 'down'), default=['up'])
+    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold', 'guarded_target_hold'),
                         default=['zero_policy', 'encoder_hold'])
     args = parser.parse_args()
-    if args.output.exists() or not np.isfinite(args.duration) or args.duration <= 0:
-        parser.error('output must be new and duration positive')
-    cases = [(angle, mode, seed) for angle in (0., 8.53, 10.)
-             for mode in args.modes for seed in (0, 1)]
-    report = dict(scope=__doc__, duration_s=args.duration, cases=cases, source_sha256=core_fingerprint(),
+    if (args.output.exists() or not np.isfinite([args.duration, args.approach_seconds]).all()
+            or args.duration <= 0 or not 0 <= args.approach_seconds <= 10.):
+        parser.error('output must be new, duration positive, and approach between 0 and 10 seconds')
+    cases = [(angle, mode, seed, direction) for direction in args.directions for angle in (0., 8.53, 10.)
+             if angle != 0 or direction == args.directions[0] for mode in args.modes for seed in (0, 1)]
+    report = dict(scope=__doc__, duration_s=args.duration, approach_s=args.approach_seconds,
+                  hold_entry=dict(zero_command_delay_s=.5, quiet_dwell_s=.2, maximum_entry_delay_s=3.,
+                      minimum_each_foot_force_n=5., maximum_gyro_norm_rad_s=.15, maximum_joint_speed_rad_s=.5),
+                  cases=cases, source_sha256=core_fingerprint(),
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
-    for angle, mode, seed in cases:
-        result = trial(angle, mode, seed, args.duration)
+    for angle, mode, seed, direction in cases:
+        result = trial(angle, mode, seed, args.duration, args.approach_seconds, direction)
         report['results'].append(result)
         args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
         print(json.dumps({key: value for key, value in result.items() if key != 'trace'}), flush=True)

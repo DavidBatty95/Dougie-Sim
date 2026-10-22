@@ -4,6 +4,28 @@
 
 ## Gallery provenance
 
+### Stop-transition replay — 22 October 2026
+
+[Stop-transition GIF](media/dougie/stop-transitions.gif) and
+[static final comparison](media/dougie/stop-transitions.png) visualize all 20
+trials in the [paired walking-to-stop report](results/dougie_stop_transitions_20261022.json).
+The GIF has 81 frames at 800 × 590, 100 ms/frame, approximately 15× playback.
+It is evaluator telemetry, not physics video. Bars show maximum displacement so
+far across both seeds, relative to the first 1 Hz sample at the stop request;
+the report retains exact full-control-rate maxima. Final contact outcomes remain
+labelled throughout the animation. All four downhill hold failures are shown.
+
+The [manifest](media/dougie/stop-transitions.json) records report/renderer/GIF
+hashes, Pillow version, timing, dimensions and the existing contact thresholds.
+Regenerate and decode every frame with:
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/render_dougie_stop_transitions.py
+```
+
+The earlier native mission GIFs below retain their runtime identities: this stage
+changes the screening harness, not the mission controller.
+
 ### Pose-graph mission refresh — 21 October 2026
 
 The README leads with a fresh **pose-graph / fused-localization / geometry-GP /

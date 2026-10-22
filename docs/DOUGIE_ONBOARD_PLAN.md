@@ -16,7 +16,7 @@
 | Mission planning | Full-cost information scorer and bounded observed-task sequencing, alongside prior utility | Mixed measured dose results; legacy utility remains default, with robust sensing/recovery |
 | Recovery | Bounded resensing, checked retreats and terminal-stop accounting | Missing sensors do not authorize blind motion; stranded exposure is still scored |
 | Clearance | Localization residual and follower tracking-error reserves | Wall-contact regression retained; thresholds not weakened |
-| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 263 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
+| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 265 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
 
 Defaults: `--localization fused --gp-mode geometry --detector-likelihood window`.
 Navigation uses `--navigation-profile robust --utility-mode legacy`. Selecting
@@ -99,9 +99,11 @@ The 8° variant passed all 25 cohort episodes and a fresh recorded round trip wi
 the diagnostic runtime. The original 10° variant and full-height facility remain
 unqualified. Capture-time diagnostics now identify support-fit/footprint rejection
 at facility disconnection. Static commanded-target hold reduced ramp drift in six
-screening cases, but moving-to-stop transitions and end-to-end recovery are still
-required before enabling it in missions. Encoder-angle hold caused sustained body
-contact and was rejected. See the retained evidence in the qualification report.
+screening cases, but the subsequent 20-trial walking-to-stop screen failed all
+four downhill hold contact gates despite quiet four-foot entry. It is not enabled
+in missions. Active stance/load stabilization, disturbances and end-to-end recovery
+remain open. Encoder-angle hold also caused sustained body contact and was rejected.
+See the retained evidence in the qualification report.
 
 - Start with the mezzanine, then full-height ramps, using fused pose throughout.
 - Require ordered upper/lower/home witnesses, clean contacts, budget compliance,

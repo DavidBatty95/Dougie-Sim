@@ -265,3 +265,54 @@ every frame, detector-window consistency and ordered vertical witnesses were
 verified. The full current suite passed **263 tests**. The tests include cached
 support-rejection diagnostics; the instrumented full-height failure remains in
 the evidence rather than being presented as a successful mission.
+
+## Walking-to-stop transitions — 22 October 2026
+
+The [20-trial paired screen](results/dougie_stop_transitions_20261022.json)
+tests flat ground and both directions on 8.53°/10° ramps, with two sensor seeds
+per controller/fixture. After five seconds of settling, the policy receives
+six seconds of .15 m/s forward commands, followed by 120 seconds of zero-command
+dwell. Physical approach displacement was .12–.49 m; commanded speed is not
+claimed as achieved speed. Fixture friction remains .4.
+
+The guarded comparator waits at least .5 s after the zero command, then requires
+.2 s of uninterrupted four-foot measured support (>5 N each), gyro norm ≤.15 rad/s
+and maximum joint speed ≤.5 rad/s. Measurements must be at most .05 s old.
+Entry expires after three seconds. All ten hold cases entered at 11.700 s,
+approximately .7 s after the stop request. These are experimental harness rules,
+not an enabled mission stop mode.
+
+| Fixture | Baseline max drift, two seeds | Guarded hold max drift, two seeds | Hold non-foot contact result |
+|---|---|---|---|
+| Flat | .082–.098 m | .054–.070 m | No non-foot contact |
+| 8.53° uphill | 1.545–1.550 m | .030–.060 m | No non-foot contact |
+| 10° uphill | 1.513–1.737 m | .032–.034 m | No non-foot contact |
+| 8.53° downhill | 1.278–1.411 m | .130–.131 m | Both failed: 1188–1975 Ns, 90.7–109.7 N peak |
+| 10° downhill | 1.624 m | .125–.133 m | Both failed: about 1738 Ns, 92.9–93.6 N peak |
+
+Contact and motor metrics include the approach and dwell after initial settling.
+All baseline cases had zero non-foot contact. Peak motor torque across the cohort
+was 22.18 Nm, below the existing 23.5 Nm limit. No trial raised a simulator fall
+exception; that did **not** prevent four hold cases from failing the independent
+.10 Ns / 25 N non-foot contact limits. Their failures are retained.
+
+**Conclusion:** quiet four-foot entry does not make frozen targets a general
+stable stop controller. The earlier settled/uphill evidence did not transfer to
+downhill walking-to-stop transitions. Do not enable this comparator in missions
+or classify smaller drift as recovery success. The next controller work needs
+active stance/load stabilization and disturbance tests, rather than merely a
+longer quiet-entry timer. Facility support disconnection remains a separate open
+mapping problem; this screen does not qualify the facility or original mezzanine.
+
+Reproduce with:
+
+```bash
+docker compose run --rm -T dougie-sim python3 -m scripts.qualify_dougie_slope_stop \
+  --approach-seconds 6 --directions up down --modes zero_policy guarded_target_hold \
+  --output docs/results/NEW_STOP_TRANSITIONS.json
+```
+
+The full suite passes **265 tests**, including stale/future measurements,
+continuous-support timing, interrupted contact, joint motion and entry expiry.
+The [81-frame replay](media/dougie/stop-transitions.gif) shows all cases with final
+contact-failure labels; it is downsampled evaluator telemetry, not camera footage.
