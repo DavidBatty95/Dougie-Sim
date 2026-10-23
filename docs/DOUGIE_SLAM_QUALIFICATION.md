@@ -153,6 +153,11 @@ artifact requires the exact pinned software, runtime sources and operating domai
 future estimator/planner changes require a new cohort. The original 10° fixture
 and full-height facility remain unqualified.
 
+The subsequent [gravity-supported stance stage](DOUGIE_STANCE_RECOVERY.md)
+provides a tested opt-in mitigation for physical downhill motion after terminal
+stop, including matched facility evidence. It does not resolve the return-graph
+disconnection or qualify full-height mission completion.
+
 **Version note:** the subsequent capture-time diagnostic additions change the
 runtime source fingerprint. This profile is retained for runtime `7d035f8` and
 is deliberately rejected by the newer runtime. It is not a current-runtime
@@ -438,3 +443,7 @@ nonzero commands in a purportedly inhibited fault trace. The next gates are
 stabilization during loss of range, tighter physical position bounds, local
 clearance/support validation and end-to-end recovery. The original 10° mezzanine
 and full-height facility remain unqualified.
+
+Follow-up: [gravity-supported stance and the matched facility terminal trial](DOUGIE_STANCE_RECOVERY.md)
+now provide an opt-in physical-stop mitigation. The facility return-route failure
+is still retained; successful terminal posture is not successful mission recovery.

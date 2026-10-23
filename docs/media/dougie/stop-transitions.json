@@ -2,10 +2,10 @@
   "kind": "downsampled evaluator telemetry, not physics video",
   "report": "docs/results/dougie_stop_transitions_20261022.json",
   "report_sha256": "6c2609287710d6c0fa967d8c8aa4b1afb82b310a7eaa4397bc47d79d03c48b1a",
-  "renderer_sha256": "8728d9b1a7c6ac42896bb193bc3bb0a54a71bd5bf5469999341ca16cf1329d45",
+  "renderer_sha256": "cc174eb65d5df1a311400208b70fe9661bf87b5bf9ae49428353a2a1da80eb76",
   "pillow_version": "9.0.1",
-  "sha256": "2223da10d380ffe490a6c77497be733e176bfe039614dc2ac98dd8e678a6841b",
-  "bytes": 2131069,
+  "sha256": "24de1924d03717581c4a02ff0055347ff20524f4f1207df1a37056c30bd656c2",
+  "bytes": 2110822,
   "size": [
     800,
     590

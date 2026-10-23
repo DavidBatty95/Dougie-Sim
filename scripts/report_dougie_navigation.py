@@ -5,10 +5,34 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
+
 
 def load(path):
     raw = path.read_bytes()
     return json.loads(raw), hashlib.sha256(raw).hexdigest()
+
+
+def terminal_motion(run, summary):
+    """Independent 20 Hz physical trace; never substitute estimated pose drift."""
+    stop = summary.get('terminal_stop')
+    path = run/'motion_trace.npz'
+    if not stop or not path.exists():
+        return None
+    with np.load(path, allow_pickle=False) as archive:
+        rows = archive['rows']
+    if rows.ndim != 2 or rows.shape[1] < 4 or not np.isfinite(rows[:, :4]).all():
+        raise ValueError('invalid physical motion trace')
+    if np.any(np.diff(rows[:, 0]) <= 0):
+        raise ValueError('physical motion trace times must increase')
+    selected = rows[rows[:, 0] >= stop['time_s']]
+    if not len(selected):
+        raise ValueError('missing post-stop physical samples')
+    return dict(scope='sampled evaluator XY drift from first post-stop frame; 20 Hz, not a continuous-time bound',
+        trace_sha256=hashlib.sha256(path.read_bytes()).hexdigest(), samples=len(selected),
+        first_sample_s=float(selected[0, 0]), last_sample_s=float(selected[-1, 0]),
+        first_position=selected[0, 1:4].tolist(), last_position=selected[-1, 1:4].tolist(),
+        max_horizontal_drift_m=float(np.linalg.norm(selected[:, 1:3]-selected[0, 1:3], axis=1).max()))
 
 
 def navigation_transitions(trace):
@@ -77,6 +101,7 @@ def main():
                  'lidar_dropout_after', 'circuit_radius', 'require_circuit', 'slam_backend',
                  'mezzanine_angle', 'uncertainty_profile', 'require_round_trip', 'terminal_hold')},
             terminal_stance=summary['simulation'].get('terminal_stance'),
+            post_stop_motion=terminal_motion(run, summary),
             simulated_time_s=summary['simulation']['simulation_time_s'], return_forecast=forecast,
             navigation_transitions=navigation_transitions(trace),
             **{k: summary.get(k) for k in keys}))

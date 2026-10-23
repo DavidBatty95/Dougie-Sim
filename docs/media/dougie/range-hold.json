@@ -2,10 +2,10 @@
   "kind": "downsampled evaluator telemetry, not physics video",
   "report": "docs/results/dougie_range_hold_20261023.json",
   "report_sha256": "763b940d9da6f5814fe6ee1ca57bc9495261538ba31e952397fe4d2efb11b8cd",
-  "renderer_sha256": "8728d9b1a7c6ac42896bb193bc3bb0a54a71bd5bf5469999341ca16cf1329d45",
+  "renderer_sha256": "cc174eb65d5df1a311400208b70fe9661bf87b5bf9ae49428353a2a1da80eb76",
   "pillow_version": "9.0.1",
-  "sha256": "7e87e99bfe476dcf2c210c6c1cb60fe3598a2edbadc031300c17773c479de289",
-  "bytes": 2154546,
+  "sha256": "9dddccdf39018077c9df43b145ce8b557c0d5af6fccdc3ccc59df7cd2968c25d",
+  "bytes": 2113864,
   "size": [
     800,
     590

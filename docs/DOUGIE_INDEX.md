@@ -19,6 +19,7 @@ Geoff's G1 humanoid development history.
 | See implemented work and next acceptance gates | [Active onboard mission plan](DOUGIE_ONBOARD_PLAN.md) |
 | Inspect robust localization, recovery and matched-work planning | [Staged robust-mission implementation and evidence](DOUGIE_ROBUST_MISSIONS.md) |
 | Inspect pose-graph SLAM and sensor-only vertical qualification | [Graph backend, uncertainty protocol and retained vertical outcomes](DOUGIE_SLAM_QUALIFICATION.md) |
+| Inspect slope stopping, range-loss fallback and terminal stance | [Gravity-supported stance, matched facility trial and remaining recovery limits](DOUGIE_STANCE_RECOVERY.md) |
 | Test five times the dose allowance on longer missions | [Paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) |
 | Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |

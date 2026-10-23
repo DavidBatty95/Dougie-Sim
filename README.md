@@ -19,7 +19,15 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Range-hold update — 23 October 2026: 271 tests pass.** Noisy LiDAR registration
+**Gravity-stance update — 23 October 2026: 279 tests pass.** The new opt-in
+`--terminal-hold gravity` reduced sampled facility post-stop drift from **3.93 m
+to 4.1 cm**, with zero non-foot contacts through the 600 s deadline. A 20-case
+stance screen kept all ten gravity cases below 2 cm; all eight tested range-loss
+handovers remained supported. **The facility still failed its vertical mission**
+because the return graph was disconnected. Exposure and failed mission gates are
+retained. [Controller, paired results and remaining work](docs/DOUGIE_STANCE_RECOVERY.md).
+
+**Range-hold update — 23 October 2026: 271 tests passed.** Noisy LiDAR registration
 and correction-aware hold anchors reduced healthy-range ramp drift to **8.8–16.4 cm**
 in a 20-trial paired screen, with zero non-foot contacts. Eight dropout trials
 correctly withheld corrective commands, but still drifted **1.32–1.52 m** under
@@ -135,7 +143,7 @@ Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
 **0.0958 m** true home error, and zero non-foot contacts. Upper/lower witnesses
 occurred at **85.170 / 192.825 s**. This is the explicit 8° variant, not a pass for
 the original 10° mezzanine or the full-height facility. The recording uses the
-current diagnostic runtime without the historical calibration profile.
+21 October diagnostic runtime without the historical calibration profile.
 Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
@@ -143,6 +151,20 @@ for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Portable evidence](docs/results/dougie_pose_graph_recorded_20261021.json)
 
 ### Stop-transition screening — retained failures
+
+| Gravity-supported stance screen | Actual facility terminal-stance recording |
+|---|---|
+| ![Evaluator telemetry from all 20 gravity-stance trials, with under two centimetres of drift in every gravity-hold case](docs/media/dougie/gravity-stance.gif) | ![Native MuJoCo footage of Go2 holding on the facility ramp after an unrecoverable return-route failure; the vertical mission remains failed](docs/media/dougie/facility-terminal-hold.gif) |
+
+**Left:** telemetry, not video, from the paired 120-second stance screen.
+**Right:** actual physics footage, approximately 33× playback, of the failed
+facility mission using experimental gravity-supported terminal stance. It stayed
+within **4.1 cm sampled post-stop drift** with no non-foot contact, but did not
+return home. Its **.1702 µSv post-stop exposure** is counted.
+[Results and limits](docs/DOUGIE_STANCE_RECOVERY.md) ·
+[Static stance comparison](docs/media/dougie/gravity-stance.png) ·
+[Static facility frame](docs/media/dougie/facility-terminal-hold.png) ·
+[Provenance](docs/DOUGIE_MEDIA.md#gravity-stance-and-facility-terminal-recording--23-october-2026)
 
 ![Physical drift telemetry for 20 healthy-LiDAR hold trials, showing improvement with range registration but no stationary-stop qualification](docs/media/dougie/range-hold.gif)
 
@@ -307,6 +329,7 @@ compare physical visitation, dose, return success and localization error.
 | `--localization` | `fused` | IMU/leg/LiDAR estimation; `ground-truth` is an explicit historical comparator |
 | `--sensor-seed` | `0` | Separate seed for IMU biases/noise, encoders, foot forces and LiDAR noise/dropout |
 | `--navigation-profile` | `robust` | Quality-gated submaps, consistent map revisions and bounded recovery; `legacy` retains the earlier navigation comparator |
+| `--terminal-hold` | `zero-policy` | Opt-in `gravity` supports stance after terminal stop; experimental, requires robust fused sensing and preserves failed-mission scoring |
 | `--utility-mode` | `legacy` | Prior candidate utility; `information` enables experimental information/cost scoring and observed-circuit lookahead |
 | `--gp-capacity` | `128` | Maximum inducing dictionary size |
 | `--gp-mode` | `geometry` | Observed-surface feature kernel, `global` Matérn comparator, or `spatial` experts |

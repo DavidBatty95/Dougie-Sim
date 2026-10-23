@@ -274,7 +274,8 @@ def main():
                   range_observations=args.range_observations, lidar_dropout_after_s=args.lidar_dropout_after,
                   range_scan_period_s=.2 if args.range_observations else None,
                   gravity_hold=dict(model_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/stance_hold.py').read_bytes()).hexdigest(),
-                      load_transfer_s=.5, feedforward_limit_nm=12., com_approximation='base origin', enabled_in_missions=False),
+                      load_transfer_s=.5, feedforward_limit_nm=12., com_approximation='base origin',
+                      mission_option='--terminal-hold gravity', enabled_by_default=False),
                   cases=cases, source_sha256=core_fingerprint(),
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')

@@ -62,6 +62,10 @@ def audit(report, require_contact_clean=False, require_range_withheld=False, req
         contact_or_error_failures=sum(failed for _, failed in values),
         entry_failures=sum(r['hold_entry_failed'] for r, _ in values),
         stance_refusals=sum(r.get('stance_failure') is not None for r, _ in values),
+        stance_started_s=None if any(r.get('gravity_stance_started_s') is None for r, _ in values) else
+            [min(r['gravity_stance_started_s'] for r, _ in values), max(r['gravity_stance_started_s'] for r, _ in values)],
+        post_stance_drift_m=None if any(r.get('gravity_stance_started_s') is None or 'max_stance_horizontal_drift_m' not in r for r, _ in values) else
+            [min(r['max_stance_horizontal_drift_m'] for r, _ in values), max(r['max_stance_horizontal_drift_m'] for r, _ in values)],
         anchor_corrections=sum(r.get('anchor_corrections', 0) for r, _ in values))
         for key, values in groups.items()]
 

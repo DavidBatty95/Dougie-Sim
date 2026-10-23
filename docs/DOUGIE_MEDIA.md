@@ -4,6 +4,34 @@
 
 ## Gallery provenance
 
+### Gravity stance and facility terminal recording — 23 October 2026
+
+| Asset | Provenance |
+|---|---|
+| [Gravity-stance telemetry GIF](media/dougie/gravity-stance.gif) / [poster](media/dougie/gravity-stance.png) | All 20 cases in the [paired stance screen](results/dougie_gravity_stance_20261023.json), 81 frames, 800 × 590, 100 ms/frame. Evaluator telemetry, not video. Exact full-rate maxima remain in the report. [Manifest](media/dougie/gravity-stance.json). |
+| [Facility terminal-hold GIF](media/dougie/facility-terminal-hold.gif) / [poster](media/dougie/facility-terminal-hold.png) | Actual native MuJoCo capture `facility_gravity_hold`, 181 frames, 640 × 490, 100 ms/frame, approximately 33× playback. Copied unchanged after checksum and full-frame verification. The poster is the final captured frame. [Manifest](media/dougie/facility-terminal-hold.json). |
+
+The native recording is explicitly a **failed vertical mission**: the robot
+entered terminal stop at 119.195 s after losing its return route, then held stance
+until the 600 s deadline. It did not return home. Its .170175 uSv post-stop exposure
+and failed return/witness gates remain in the [paired evidence](results/dougie_facility_terminal_hold_20261023.json).
+The [independent audit](results/dougie_terminal_hold_audit_20261023.json) verifies
+identical pre-stop physics for the zero-policy comparator and gravity run.
+
+The updated telemetry renderer preserves earlier comparisons and now labels
+contact/controller gates together, including explicit stance refusals. Native
+mission footage and telemetry animations remain distinct.
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/render_dougie_stop_transitions.py \
+  --report docs/results/dougie_gravity_stance_20261023.json --prefix gravity-stance
+docker compose run --rm -T dougie-sim python3 scripts/publish_dougie_terminal_hold.py \
+  --run results/dougie/facility_gravity_hold
+```
+
+Regenerating native footage requires a fresh mission; see the
+[recording command and controller limits](DOUGIE_STANCE_RECOVERY.md).
+
 ### Range-hold replay — 23 October 2026
 
 [Range-hold GIF](media/dougie/range-hold.gif) and

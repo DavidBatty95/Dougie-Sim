@@ -1,0 +1,78 @@
+{
+  "scope": "identical pre-stop physical trajectory; terminal posture comparison, both vertical missions failed",
+  "matched_pre_stop_samples": 2383,
+  "terminal_stop_s": 119.19499999996408,
+  "audit_sha256": "edec738fca478b516934e548e4dec42a1c2000cf7076fca65faa8bda7a8c8784",
+  "trials": [
+    {
+      "run": "facility_zero_hold",
+      "post_stop_motion": {
+        "scope": "sampled evaluator XY drift from first post-stop frame; 20 Hz, not a continuous-time bound",
+        "trace_sha256": "ca0f97e74c0ee139b4dabb5fc9cb9ba13e4b98836afb700802e93adc8c6e01a7",
+        "samples": 6603,
+        "first_sample_s": 119.19999999996408,
+        "last_sample_s": 449.2999999996639,
+        "first_position": [
+          4.870904325993866,
+          6.388215194060741,
+          0.91160385971386
+        ],
+        "last_position": [
+          1.0307691673471486,
+          7.245131713539581,
+          0.3435193946027534
+        ],
+        "max_horizontal_drift_m": 3.9345830729608924
+      },
+      "input_sha256": {
+        "run_config.json": "4e39841621d61ce27cdbc65f0bd28ec191187186a91d2d2abbb4d0ac42ea3f88",
+        "radiation_summary.json": "8638f14ec6a7e6f9254236c116d94c656743a148ced4a471e71df55d858313e7",
+        "motion_trace.npz": "ca0f97e74c0ee139b4dabb5fc9cb9ba13e4b98836afb700802e93adc8c6e01a7"
+      },
+      "end_s": 449.33499999966386,
+      "true_dose_usv": 0.09328562843868175,
+      "nonfoot_impulse_ns": 0.17211054301233153,
+      "round_trip_failures": [
+        "simulation_error",
+        "not_returned",
+        "not_clean",
+        "nonfoot_impulse_ns_failure",
+        "missing_ordered_vertical_witness"
+      ]
+    },
+    {
+      "run": "facility_gravity_hold",
+      "post_stop_motion": {
+        "scope": "sampled evaluator XY drift from first post-stop frame; 20 Hz, not a continuous-time bound",
+        "trace_sha256": "dbc12b18ee3a1371c0e60c22edbf75a9da55ac91295720ed289163c17f8d8692",
+        "samples": 9617,
+        "first_sample_s": 119.19999999996408,
+        "last_sample_s": 599.9999999995268,
+        "first_position": [
+          4.870904325993866,
+          6.388215194060741,
+          0.91160385971386
+        ],
+        "last_position": [
+          4.833379632958595,
+          6.404808042515619,
+          0.9099846017536013
+        ],
+        "max_horizontal_drift_m": 0.041029565038370644
+      },
+      "input_sha256": {
+        "run_config.json": "37b331b27151e0f0193ee4b703b0962ce3758699cc172c9e1d91cbc5602d3cac",
+        "radiation_summary.json": "d3db1823f4260f44a4f6a9ca0a5c9218096cf9c6af8471c3c2ba1162fa5b3dbc",
+        "motion_trace.npz": "dbc12b18ee3a1371c0e60c22edbf75a9da55ac91295720ed289163c17f8d8692"
+      },
+      "end_s": 600.0049999995268,
+      "true_dose_usv": 0.1959862105018279,
+      "nonfoot_impulse_ns": 0.0,
+      "round_trip_failures": [
+        "not_returned",
+        "not_clean",
+        "missing_ordered_vertical_witness"
+      ]
+    }
+  ]
+}

@@ -20,7 +20,7 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--report', type=Path, default=REPORT)
-    parser.add_argument('--prefix', choices=('stop-transitions', 'position-hold', 'range-hold'), default='stop-transitions')
+    parser.add_argument('--prefix', choices=('stop-transitions', 'position-hold', 'range-hold', 'gravity-stance'), default='stop-transitions')
     args = parser.parse_args()
     report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
@@ -29,11 +29,12 @@ def main():
     if actual != [tuple(case) for case in report['cases']] or len(actual) != 20:
         raise ValueError('the animation requires the complete declared 20-case cohort')
     modes = {result['mode'] for result in results}-{'zero_policy'}
-    if len(modes) != 1 or not modes <= {'guarded_target_hold', 'position_hold', 'range_position_hold'}:
+    if len(modes) != 1 or not modes <= {'guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold'}:
         raise ValueError('expected one supported comparator paired with zero policy')
     comparator = next(iter(modes))
     feedback = comparator != 'guarded_target_hold'
     range_feedback = comparator == 'range_position_hold'
+    gravity = comparator == 'gravity_hold'
     hold_results = [result for result in results if result['mode'] == comparator]
     ramp_drift = [result['max_horizontal_drift_m'] for result in hold_results if result['angle_deg'] > 0]
     contact_clean = all(result['nonfoot_impulse_ns'] <= .1 and result['nonfoot_peak_force_n'] <= 25.
@@ -54,13 +55,13 @@ def main():
         draw = ImageDraw.Draw(image)
         def text(x, y, value, size=14, color='#ecf5ff'):
             draw.text((x, y), value, font=fonts[size], fill=color)
-        title = 'DOUGIE / RANGE-OBSERVABLE HOLD' if range_feedback else 'DOUGIE / ACTIVE HOLD SCREEN' if feedback else 'DOUGIE / WALK-TO-STOP SCREEN'
+        title = 'DOUGIE / GRAVITY-SUPPORTED STANCE' if gravity else 'DOUGIE / RANGE-OBSERVABLE HOLD' if range_feedback else 'DOUGIE / ACTIVE HOLD SCREEN' if feedback else 'DOUGIE / WALK-TO-STOP SCREEN'
         text(20, 14, title, 22, '#48daca')
         text(20, 47, 'Evaluator telemetry, not video / all 20 '+('healthy-range ' if range_feedback else '')+'trials / two seeds per pair', 14)
         text(20, 73, f'Time after stop request: {stamp:5.1f} s   |   120 s dwell, friction 0.4', 14)
-        label = 'range-registered position feedback' if range_feedback else 'IMU/leg position feedback' if feedback else 'guarded target hold'
+        label = 'gravity-supported stance' if gravity else 'range-registered position feedback' if range_feedback else 'IMU/leg position feedback' if feedback else 'guarded target hold'
         text(20, 103, 'Amber: zero-command policy     Teal: '+label, 14)
-        text(570, 130, 'FINAL contact outcome', 12)
+        text(570, 130, 'FINAL contact / control', 12)
         for row_index, (angle, direction, label) in enumerate(rows):
             y = 154+row_index*72
             text(20, y, label, 14)
@@ -75,12 +76,14 @@ def main():
                 draw.rectangle((185, yy, 185+min(2., value)*160, yy+15), fill=color)
                 text(515, yy-2, f'{value:.2f}m', 12)
                 failed = sum(r['nonfoot_impulse_ns'] > .1 or r['nonfoot_peak_force_n'] > 25.
-                             or r['error'] is not None or r['hold_entry_failed'] for r, _, _ in group)
-                text(585, yy-2, f'{failed}/2 FAIL' if failed else '0/2 contact failures', 12,
+                             or r['error'] is not None or r['hold_entry_failed'] or r.get('stance_failure') is not None for r, _, _ in group)
+                text(585, yy-2, f'{failed}/2 FAIL' if failed else '0/2 gate failures', 12,
                      '#ff7c80' if failed else '#a7bdcf')
         text(185, 520, 'Bars: max XY drift so far across two seeds / common 0–2 m scale', 12)
         warning = (f"{'Contact-clean' if contact_clean else 'Contact failures'}; ramp drift {min(ramp_drift):.2f}–{max(ramp_drift):.2f} m: NOT qualified."
                    if feedback else 'Downhill hold reduces travel but causes body contact: NOT a qualified stop controller.')
+        if gravity:
+            warning = f'Ramp drift {min(ramp_drift):.3f}–{max(ramp_drift):.3f} m. Limited fixture screen; mission recovery is separate.'
         text(20, 545, warning, 14, '#ff7c80')
         text(20, 570, '1 Hz trace replay; exact full-rate maxima are in the linked report. Approx. 15x playback.', 12)
         frames.append(image)

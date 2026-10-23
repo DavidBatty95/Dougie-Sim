@@ -16,7 +16,7 @@
 | Mission planning | Full-cost information scorer and bounded observed-task sequencing, alongside prior utility | Mixed measured dose results; legacy utility remains default, with robust sensing/recovery |
 | Recovery | Bounded resensing, checked retreats and terminal-stop accounting | Missing sensors do not authorize blind motion; stranded exposure is still scored |
 | Clearance | Localization residual and follower tracking-error reserves | Wall-contact regression retained; thresholds not weakened |
-| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 271 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
+| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 279 tests; [pose-graph cohort](DOUGIE_SLAM_QUALIFICATION.md) and [stance recovery](DOUGIE_STANCE_RECOVERY.md); historical ideal-pose full-height runs remain separate |
 
 Defaults: `--localization fused --gp-mode geometry --detector-likelihood window`.
 Navigation uses `--navigation-profile robust --utility-mode legacy`. Selecting
@@ -117,6 +117,15 @@ contacts. All eight separate dropout cases correctly withheld corrections but
 drifted 1.315–1.522 m. Physical stabilization under loss of observations, local
 clearance/support checks and end-to-end recovery remain open; command refusal
 alone is not a stationary stop. No mission-controller default has changed.
+
+The gravity-support model now mitigates that physical drift in tested fixtures:
+all ten stance cases stayed below 2 cm, and all eight range-loss handovers retained
+support. Opt-in `--terminal-hold gravity` was tested in the facility: 4.1 cm sampled
+post-stop drift and no non-foot contact through 600 s, compared with 3.93 m and a
+contact abort for the matched zero-policy baseline. Both vertical missions failed
+because the return graph remained disconnected. Priority now shifts to robust
+support fusion/return connectivity and broader stance disturbance/traction tests.
+See [versioned evidence and acceptance boundaries](DOUGIE_STANCE_RECOVERY.md).
 
 - Start with the mezzanine, then full-height ramps, using fused pose throughout.
 - Require ordered upper/lower/home witnesses, clean contacts, budget compliance,

@@ -39,3 +39,14 @@ def test_support_diagnosis_distinguishes_disconnected_overlapping_levels():
     assert components[0]['maximum_xyz'] == [1., 0., 0.]
     assert components[1]['minimum_xyz'] == [0., 0., 2.4]
     assert connectivity(SimpleNamespace(nodes={}, graph={})) == []
+
+
+def test_terminal_motion_uses_post_stop_physics_samples(tmp_path):
+    import numpy as np
+    from scripts.report_dougie_navigation import terminal_motion
+    np.savez_compressed(tmp_path/'motion_trace.npz', rows=np.array([
+        [10., 100., 100., 0.], [10.05, 1., 2., .5], [10.1, 4., 6., .5]]))
+    result = terminal_motion(tmp_path, dict(terminal_stop=dict(time_s=10.02)))
+    assert result['max_horizontal_drift_m'] == 5.
+    assert result['first_sample_s'] == 10.05 and result['samples'] == 2
+    assert terminal_motion(tmp_path, {}) is None
