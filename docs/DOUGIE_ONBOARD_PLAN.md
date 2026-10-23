@@ -16,7 +16,7 @@
 | Mission planning | Full-cost information scorer and bounded observed-task sequencing, alongside prior utility | Mixed measured dose results; legacy utility remains default, with robust sensing/recovery |
 | Recovery | Bounded resensing, checked retreats and terminal-stop accounting | Missing sensors do not authorize blind motion; stranded exposure is still scored |
 | Clearance | Localization residual and follower tracking-error reserves | Wall-contact regression retained; thresholds not weakened |
-| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 265 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
+| Reproducibility | Source hashes, retained failures, matched physical goals and independent dose/pose scoring | 267 tests; [pose-graph cohort and diagnostics](DOUGIE_SLAM_QUALIFICATION.md); historical ideal-pose full-height runs remain separate |
 
 Defaults: `--localization fused --gp-mode geometry --detector-likelihood window`.
 Navigation uses `--navigation-profile robust --utility-mode legacy`. Selecting
@@ -104,6 +104,12 @@ four downhill hold contact gates despite quiet four-foot entry. It is not enable
 in missions. Active stance/load stabilization, disturbances and end-to-end recovery
 remain open. Encoder-angle hold also caused sustained body contact and was rejected.
 See the retained evidence in the qualification report.
+
+The subsequent 20-case active-position-hold screen kept the policy running and
+avoided non-foot contact in all ten feedback trials. However, proprioceptive-only
+pose feedback underestimated movement: physical ramp drift remained .37–.60 m.
+Range-observable feedback, correction-aware anchors and degraded-sensing handling
+must be tested before mission integration. This remains a harness comparator.
 
 - Start with the mezzanine, then full-height ramps, using fused pose throughout.
 - Require ordered upper/lower/home witnesses, clean contacts, budget compliance,

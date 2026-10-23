@@ -316,3 +316,53 @@ The full suite passes **265 tests**, including stale/future measurements,
 continuous-support timing, interrupted contact, joint motion and entry expiry.
 The [81-frame replay](media/dougie/stop-transitions.gif) shows all cases with final
 contact-failure labels; it is downsampled evaluator telemetry, not camera footage.
+
+## Active estimated-position hold — 23 October 2026
+
+The [next 20-case paired screen](results/dougie_position_hold_20261023.json) uses
+the same five fixtures, two seeds, six-second walking approach and 120-second
+dwell, with a newly rerun zero-command baseline. The active comparator retains
+the neural walking policy. After the existing quiet-entry guard, a planar PD
+controller uses an anchor captured from the **estimated pose at the stop request**,
+estimated velocity and estimated yaw. No evaluator coordinates enter feedback.
+
+Declared gains are `kp=.6`, `kd=.25`; translation-command norm is capped at
+**.08 m/s**, and command slew at **.2 m/s²**. Yaw command remains zero. Unlike the
+baseline, the hold comparator can issue small corrective velocity commands during
+the dwell. This isolated harness uses IMU/leg odometry without LiDAR corrections;
+initialization and proprioceptive freshness gate feedback, not a claim of bounded
+global pose error. The mode is not enabled in mission control.
+
+| Fixture | Baseline physical max drift | Active hold physical max drift | Active hold estimated max drift |
+|---|---|---|---|
+| Flat | .082–.098 m | .040–.049 m | .035–.037 m |
+| 8.53° uphill | 1.545–1.550 m | .449–.490 m | .116–.122 m |
+| 10° uphill | 1.513–1.737 m | .366–.410 m | .113–.120 m |
+| 8.53° downhill | 1.278–1.411 m | .477–.481 m | .122–.124 m |
+| 10° downhill | 1.624 m | .446–.600 m | .114–.118 m |
+
+All ten active trials entered hold at 11.700 s and had **zero non-foot impulse**,
+no simulator errors and no feedback freshness inhibitions. Peak active-case motor
+torque was **22.432 Nm**, below the existing 23.5 Nm limit. The paired physical
+approach distances match the baseline for each fixture/seed. All results and
+estimated/evaluator traces are retained, including the .600 m worst case.
+
+The active policy avoids the downhill body-contact failure seen with frozen
+targets, but residual motion remains substantial. The difference between estimated
+and physical displacement identifies an observability limitation in this
+proprioceptive-only screen; increasing controller gain is not evidence of fixing
+it. Next gates are independently observable range registration, correction-aware
+hold anchors, degraded-sensing behavior, longer dwell and end-to-end mission
+recovery. No stationary-position or full-height qualification is claimed.
+
+```bash
+docker compose run --rm -T dougie-sim python3 -m scripts.qualify_dougie_slope_stop \
+  --approach-seconds 6 --directions up down --modes zero_policy position_hold \
+  --output docs/results/NEW_POSITION_HOLD.json
+```
+
+The full suite passes **267 tests**, including command-norm/slew limits, coordinate
+frame invariance and invalid-interval refusal. The [new replay](media/dougie/position-hold.gif)
+shows all 20 cases and physical drift; it does not substitute estimated drift for
+the evaluator measurement. This harness-only stage leaves mission runtime hashes
+and the earlier native mission GIF provenance unchanged.

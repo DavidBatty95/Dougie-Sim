@@ -4,6 +4,27 @@
 
 ## Gallery provenance
 
+### Active position-hold replay — 23 October 2026
+
+The [active-hold GIF](media/dougie/position-hold.gif) and
+[static comparison](media/dougie/position-hold.png) use all 20 cases in the
+[active-feedback report](results/dougie_position_hold_20261023.json).
+The 81-frame, 800 × 590 animation is downsampled **evaluator telemetry**, not
+physics video. It shows the same common 0–2 m physical-drift scale as the earlier
+frozen-target screen. Zero contact failures do not imply successful stationary
+hold: the residual .37–.60 m ramp drift is labelled explicitly.
+
+The [manifest](media/dougie/position-hold.json) pins the report, renderer, GIF,
+Pillow version and frame timing. Regenerate and decode all frames with:
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/render_dougie_stop_transitions.py \
+  --report docs/results/dougie_position_hold_20261023.json --prefix position-hold
+```
+
+The prior frozen-target replay is retained and its renderer manifest refreshed.
+Native mission footage remains the separately qualified 8° round trip below.
+
 ### Stop-transition replay — 22 October 2026
 
 [Stop-transition GIF](media/dougie/stop-transitions.gif) and

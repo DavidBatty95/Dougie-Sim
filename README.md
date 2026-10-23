@@ -19,7 +19,14 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Stop-transition update — 22 October 2026: 265 tests pass.** A 20-trial paired
+**Active-hold update — 23 October 2026: 267 tests pass.** A new 20-trial paired
+screen keeps the walking policy active and applies bounded IMU/leg-estimated
+position feedback. All ten feedback trials avoided non-foot contact, including
+downhill transitions, but ramp drift remained **0.37–0.60 m** while the estimator
+reported only about .11–.12 m. This remains experimental, not a qualified stop.
+[Results and estimator limits](docs/DOUGIE_SLAM_QUALIFICATION.md#active-estimated-position-hold--23-october-2026).
+
+**Stop-transition update — 22 October 2026: 265 tests passed.** A 20-trial paired
 walking-to-stop screen found that guarded commanded-target hold reduced uphill
 drift, but **all four downhill hold trials failed non-foot contact limits**.
 It remains an experimental comparator and is not enabled in missions.
@@ -129,6 +136,16 @@ for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Portable evidence](docs/results/dougie_pose_graph_recorded_20261021.json)
 
 ### Stop-transition screening — retained failures
+
+![Evaluator telemetry from 20 active-position-hold comparisons: no non-foot contact, but substantial residual ramp drift](docs/media/dougie/position-hold.gif)
+
+**Latest comparator:** bounded position feedback retains the active policy instead
+of freezing joints. The animation shows physical evaluator drift, not the smaller
+IMU/leg estimate used by the controller. No non-foot contact occurred, but residual
+ramp drift still prevents qualification. This is telemetry, not camera footage.
+[Static comparison](docs/media/dougie/position-hold.png) ·
+[All trials](docs/results/dougie_position_hold_20261023.json) ·
+[Provenance](docs/DOUGIE_MEDIA.md#active-position-hold-replay--23-october-2026)
 
 ![Animated evaluator telemetry for all 20 walking-to-stop trials, showing reduced drift but failed downhill contact outcomes under guarded target hold](docs/media/dougie/stop-transitions.gif)
 

@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from scripts.qualify_dougie_slope_stop import hold_eligibility
+from scripts.qualify_dougie_slope_stop import hold_eligibility, position_hold_command
 
 
 def observation(stamp, force=20., speed=0.):
@@ -23,3 +23,26 @@ def test_hold_refuses_stale_future_and_late_measurements():
     assert hold_eligibility(observation(10.5), 10.8, 10., 10.5) == (False, None)
     assert hold_eligibility(observation(10.9), 10.8, 10., 10.5) == (False, None)
     assert not hold_eligibility(observation(13.1), 13.1, 10., 10.5)[0]
+
+
+def test_position_hold_is_frame_invariant_and_bounded():
+    anchor, position, velocity = np.array([1., 2., 0.]), np.array([0., 0., 0.]), np.array([.1, .2, 0.])
+    previous = np.zeros(3)
+    for _ in range(100):
+        command = position_hold_command(anchor, position, velocity, .3, previous, .02)
+        assert np.linalg.norm(command[:2]) <= .08+1e-12
+        assert np.linalg.norm(command[:2]-previous[:2]) <= .004+1e-12
+        previous = command
+    rotation = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    offset = np.array([5., -7., 1.])
+    transformed = position_hold_command(rotation@anchor+offset, rotation@position+offset,
+                                        rotation@velocity, .3+np.pi/2, previous, .02)
+    np.testing.assert_allclose(transformed, command, atol=1e-12)
+    assert command[2] == 0.
+
+
+def test_position_hold_rejects_invalid_inputs():
+    import pytest
+    for dt in (0., .1, float('nan')):
+        with pytest.raises(ValueError):
+            position_hold_command(np.zeros(3), np.zeros(3), np.zeros(3), 0., np.zeros(3), dt)

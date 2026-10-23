@@ -2,6 +2,7 @@
 """Render all paired stop-transition trials as labelled evaluator telemetry."""
 import hashlib
 import json
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -17,11 +18,25 @@ def digest(path):
 
 
 def main():
-    report = json.loads(REPORT.read_text())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--report', type=Path, default=REPORT)
+    parser.add_argument('--prefix', choices=('stop-transitions', 'position-hold'), default='stop-transitions')
+    args = parser.parse_args()
+    report_path = args.report.resolve()
+    report = json.loads(report_path.read_text())
     results = report['results']
     actual = [(r['angle_deg'], r['mode'], r['sensor_seed'], r['direction']) for r in results]
     if actual != [tuple(case) for case in report['cases']] or len(actual) != 20:
         raise ValueError('the animation requires the complete declared 20-case cohort')
+    modes = {result['mode'] for result in results}-{'zero_policy'}
+    if len(modes) != 1 or not modes <= {'guarded_target_hold', 'position_hold'}:
+        raise ValueError('expected one supported comparator paired with zero policy')
+    comparator = next(iter(modes))
+    feedback = comparator == 'position_hold'
+    hold_results = [result for result in results if result['mode'] == comparator]
+    ramp_drift = [result['max_horizontal_drift_m'] for result in hold_results if result['angle_deg'] > 0]
+    contact_clean = all(result['nonfoot_impulse_ns'] <= .1 and result['nonfoot_peak_force_n'] <= 25.
+                        for result in hold_results)
     rows = [(0., 'up', 'Flat'), (8.53, 'up', '8.53 deg uphill'), (10., 'up', '10 deg uphill'),
             (8.53, 'down', '8.53 deg downhill'), (10., 'down', '10 deg downhill')]
     series = []
@@ -38,15 +53,15 @@ def main():
         draw = ImageDraw.Draw(image)
         def text(x, y, value, size=14, color='#ecf5ff'):
             draw.text((x, y), value, font=fonts[size], fill=color)
-        text(20, 14, 'DOUGIE / WALK-TO-STOP SCREEN', 22, '#48daca')
+        text(20, 14, 'DOUGIE / ACTIVE HOLD SCREEN' if feedback else 'DOUGIE / WALK-TO-STOP SCREEN', 22, '#48daca')
         text(20, 47, 'Evaluator telemetry, not video / all 20 trials / two sensor seeds per pair', 14)
-        text(20, 73, f'Time after zero command: {stamp:5.1f} s   |   120 s dwell, friction 0.4', 14)
-        text(20, 103, 'Amber: zero-command policy     Teal: guarded target hold', 14)
+        text(20, 73, f'Time after stop request: {stamp:5.1f} s   |   120 s dwell, friction 0.4', 14)
+        text(20, 103, 'Amber: zero-command policy     Teal: '+('IMU/leg position feedback' if feedback else 'guarded target hold'), 14)
         text(570, 130, 'FINAL contact outcome', 12)
         for row_index, (angle, direction, label) in enumerate(rows):
             y = 154+row_index*72
             text(20, y, label, 14)
-            for mode_index, mode in enumerate(('zero_policy', 'guarded_target_hold')):
+            for mode_index, mode in enumerate(('zero_policy', comparator)):
                 group = [(r, t, d) for r, t, d in series
                          if r['angle_deg'] == angle and r['direction'] == direction and r['mode'] == mode]
                 value = max(float(d[min(len(d)-1, max(0, np.searchsorted(t, stamp, side='right')-1))])
@@ -61,20 +76,22 @@ def main():
                 text(585, yy-2, f'{failed}/2 FAIL' if failed else '0/2 contact failures', 12,
                      '#ff7c80' if failed else '#a7bdcf')
         text(185, 520, 'Bars: max XY drift so far across two seeds / common 0–2 m scale', 12)
-        text(20, 545, 'Downhill hold reduces travel but causes body contact: NOT a qualified stop controller.', 14, '#ff7c80')
+        warning = (f"{'Contact-clean' if contact_clean else 'Contact failures'}; ramp drift {min(ramp_drift):.2f}–{max(ramp_drift):.2f} m: NOT qualified."
+                   if feedback else 'Downhill hold reduces travel but causes body contact: NOT a qualified stop controller.')
+        text(20, 545, warning, 14, '#ff7c80')
         text(20, 570, '1 Hz trace replay; exact full-rate maxima are in the linked report. Approx. 15x playback.', 12)
         frames.append(image)
     palette = frames[-1].quantize(colors=96)
     encoded = [image.quantize(palette=palette, dither=0) for image in frames]
-    path = MEDIA/'stop-transitions.gif'
+    path = MEDIA/(args.prefix+'.gif')
     encoded[0].save(path, save_all=True, append_images=encoded[1:], duration=100, loop=0, disposal=2)
-    frames[-1].save(MEDIA/'stop-transitions.png')
-    manifest = dict(kind='downsampled evaluator telemetry, not physics video', report=str(REPORT.relative_to(ROOT)),
-        report_sha256=digest(REPORT), renderer_sha256=digest(Path(__file__)), pillow_version=pillow_version,
+    frames[-1].save(MEDIA/(args.prefix+'.png'))
+    manifest = dict(kind='downsampled evaluator telemetry, not physics video', report=str(report_path.relative_to(ROOT)),
+        report_sha256=digest(report_path), renderer_sha256=digest(Path(__file__)), pillow_version=pillow_version,
         sha256=digest(path), bytes=path.stat().st_size, size=[800, 590], frame_duration_ms=100,
         frame_times_after_stop_s=stamps.tolist(), cases=len(results),
         contact_limits=dict(impulse_ns=.1, peak_force_n=25.))
-    (MEDIA/'stop-transitions.json').write_text(json.dumps(manifest, indent=2)+'\n')
+    (MEDIA/(args.prefix+'.json')).write_text(json.dumps(manifest, indent=2)+'\n')
     with Image.open(path) as decoded:
         assert decoded.n_frames == len(frames) and decoded.size == (800, 590)
         for index in range(decoded.n_frames):
