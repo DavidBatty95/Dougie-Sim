@@ -132,6 +132,7 @@ class Simulation:
         torch.set_num_threads(1)
         self.policy = self.policy_contract.load() if controller == 'policy' else None
         self.last_command = np.zeros(3)
+        self.terminal_stance = None
         self._policy_scan = None
         self.ray_box_plane_ids = [i for i in range(self.model.ngeom)
             if self.model.geom_group[i] not in (2, 4) and self.model.geom_rgba[i, 3] > 0
@@ -157,6 +158,15 @@ class Simulation:
             self._policy_scan = self.lidar_packet(sparse=True)
         return np.r_[proprio, range_features(self._policy_scan.distances, self.data.time-self._policy_scan.stamp_s)]
 
+    def request_terminal_stance(self):
+        if self.terminal_stance is None:
+            if self.policy is None or getattr(self, 'onboard_proprioception', None) is None:
+                raise ValueError('gravity stance requires onboard proprioception and a policy controller')
+            from .stance_hold import GravityStanceHold
+            mass = float(self.model.body_mass[self.model.body_rootid == self.base].sum())
+            self.terminal_stance = GravityStanceHold(self.data.time, mass, self.default,
+                self.policy_contract.action_scale, self.policy_contract.config['kp'])
+
     def step(self, command=(0., 0., 0.)):
         command = np.asarray(command, dtype=float)
         if command.shape != (3,) or not np.isfinite(command).all():
@@ -164,11 +174,20 @@ class Simulation:
         command = np.clip(command, [-.5, -.3, -.8], [.6, .3, .8])
         if self.data.time < 1.:
             command = np.zeros(3)
+        stance_action = None
+        if self.terminal_stance is not None:
+            if np.any(command != 0):
+                raise ValueError('terminal stance requires a zero velocity command')
+            measured, attitude = self.onboard_proprioception
+            stance_action = self.terminal_stance.update(measured, attitude, self.action, float(self.data.time))
         if self.counter % self.control_decimation == 0:
             self.last_command = command.copy()
             if self.policy is not None and self.data.time >= .5:
-                with torch.inference_mode():
-                    action = self.policy(torch.from_numpy(self.observation(command)).unsqueeze(0)).numpy().reshape(-1)
+                if stance_action is None:
+                    with torch.inference_mode():
+                        action = self.policy(torch.from_numpy(self.observation(command)).unsqueeze(0)).numpy().reshape(-1)
+                else:
+                    action = stance_action
                 if action.shape != (12,) or not np.isfinite(action).all():
                     raise RuntimeError('invalid Go2 policy output')
                 clip = self.policy_contract.config['action_clip']
@@ -254,4 +273,5 @@ class Simulation:
                     odometry_source='imu_leg_lidar_fusion' if getattr(self, 'onboard_proprioception', None) else 'mujoco_ground_truth',
                     scan_source='noisy_body_frame_raycast' if getattr(self, 'onboard_proprioception', None) else 'ideal_mujoco_raycast',
                     base_position_scope='evaluator-only physics state',
+                    terminal_stance=None if self.terminal_stance is None else self.terminal_stance.metrics(),
                     policy=self.policy_contract.identity())

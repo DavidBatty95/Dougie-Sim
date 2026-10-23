@@ -75,7 +75,8 @@ def main():
                  'mission_objective', 'region_scheduling', 'fixed_plan_delay', 'ros', 'fast',
                  'localization', 'sensor_seed', 'detector_likelihood', 'navigation_profile', 'utility_mode',
                  'lidar_dropout_after', 'circuit_radius', 'require_circuit', 'slam_backend',
-                 'mezzanine_angle', 'uncertainty_profile', 'require_round_trip')},
+                 'mezzanine_angle', 'uncertainty_profile', 'require_round_trip', 'terminal_hold')},
+            terminal_stance=summary['simulation'].get('terminal_stance'),
             simulated_time_s=summary['simulation']['simulation_time_s'], return_forecast=forecast,
             navigation_transitions=navigation_transitions(trace),
             **{k: summary.get(k) for k in keys}))

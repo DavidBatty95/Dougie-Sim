@@ -58,6 +58,8 @@ def main():
     parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
     parser.add_argument('--slam-backend', choices=('distributed', 'pose-graph'), help='pose-graph for robust fusion; distributed retains the previous correction model')
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
+    parser.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'), default='zero-policy',
+                        help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--mezzanine-angle', type=float, help='simulator-only access slope, 6..10 degrees; original fixture defaults to 10')
@@ -110,6 +112,8 @@ def main():
         parser.error('--slam-backend pose-graph requires --navigation-profile robust')
     if args.uncertainty_profile and (args.localization != 'fused' or args.navigation_profile != 'robust'):
         parser.error('--uncertainty-profile requires robust fused localization')
+    if args.terminal_hold == 'gravity' and (args.localization != 'fused' or args.navigation_profile != 'robust'):
+        parser.error('--terminal-hold gravity requires robust fused localization')
     args.utility_mode = args.utility_mode or 'legacy'
     if not math.isfinite(args.circuit_radius) or not 1. <= args.circuit_radius <= 3.:
         parser.error('--circuit-radius must be between 1 and 3 metres')
@@ -537,6 +541,8 @@ def main():
             if terminal_stop is not None:
                 state, path = 'stopped_unrecoverable', []
                 command[:] = 0.
+                if args.terminal_hold == 'gravity':
+                    sim.request_terminal_stance()
                 follower.stop()
                 terminal_status = {k: v for k, v in terminal_stop.items() if not k.startswith('evaluator_')}
                 live_metrics.update(state=state, terminal_stop=terminal_status, planned_path=[], selected_target=None)
