@@ -2,10 +2,10 @@
   "kind": "downsampled evaluator telemetry, not physics video",
   "report": "docs/results/dougie_position_hold_20261023.json",
   "report_sha256": "e0e4c336b7362e18628182c506951f349d6367f250278fdecb3dbf01bf0ae885",
-  "renderer_sha256": "e1195c0c30693dbffca30ad9a2f94344217869908d37e1301594a0fb0797c794",
+  "renderer_sha256": "8728d9b1a7c6ac42896bb193bc3bb0a54a71bd5bf5469999341ca16cf1329d45",
   "pillow_version": "9.0.1",
-  "sha256": "1264ea862754d698052c5ab92b280c3f5a70d99f772f57db6d233b2683775d19",
-  "bytes": 2100938,
+  "sha256": "391258673f26ce0e3d450ece89a894b1f6628ae50b076fc77e55874a96aa4532",
+  "bytes": 2094537,
   "size": [
     800,
     590

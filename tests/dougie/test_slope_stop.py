@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from scripts.qualify_dougie_slope_stop import hold_eligibility, position_hold_command
+from scripts.qualify_dougie_slope_stop import HoldAnchor, hold_eligibility, position_hold_command
 
 
 def observation(stamp, force=20., speed=0.):
@@ -46,3 +46,25 @@ def test_position_hold_rejects_invalid_inputs():
     for dt in (0., .1, float('nan')):
         with pytest.raises(ValueError):
             position_hold_command(np.zeros(3), np.zeros(3), np.zeros(3), 0., np.zeros(3), dt)
+
+
+def test_hold_anchor_uses_capture_time_and_applies_each_revision_once():
+    from dougie_sim.map_corrections import MapCorrection
+    anchor = HoldAnchor([1., 2., 0.], 5., 1)
+    events = [MapCorrection(1, 0., 10., (0., 0., 0.), (100., 0., 0.)),
+              MapCorrection(2, 0., 10., (0., 0., 0.), (1., 0., 0.)),
+              MapCorrection(3, 0., 10., (0., 0., 0.), (0., 2., 0.))]
+    anchor.correct(events)
+    np.testing.assert_allclose(anchor.position, [1.5, 3., 0.])
+    anchor.correct(events)
+    np.testing.assert_allclose(anchor.position, [1.5, 3., 0.])
+    assert anchor.revision == 3 and anchor.stamp == 5.
+
+
+def test_hold_anchor_refuses_missing_revision():
+    import pytest
+    from dougie_sim.map_corrections import MapCorrection
+    anchor = HoldAnchor([1., 2., 0.], 5., 0)
+    with pytest.raises(ValueError, match='missed a map revision'):
+        anchor.correct([MapCorrection(2, 0., 10., (0., 0., 0.), (1., 0., 0.))])
+    np.testing.assert_array_equal(anchor.position, [1., 2., 0.])

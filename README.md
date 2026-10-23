@@ -19,7 +19,14 @@ It has an independent twelve-joint Go2 runtime and a pinned pretrained walking
 policy. Geoff's source history and humanoid research remain available in the
 [historical README](README-GEOFF.md).
 
-**Active-hold update — 23 October 2026: 267 tests pass.** A new 20-trial paired
+**Range-hold update — 23 October 2026: 271 tests pass.** Noisy LiDAR registration
+and correction-aware hold anchors reduced healthy-range ramp drift to **8.8–16.4 cm**
+in a 20-trial paired screen, with zero non-foot contacts. Eight dropout trials
+correctly withheld corrective commands, but still drifted **1.32–1.52 m** under
+the zero-command policy. This is experimental screening, not a qualified safe stop.
+[Range feedback, fault results and limits](docs/DOUGIE_SLAM_QUALIFICATION.md#range-observable-hold-and-dropout--23-october-2026).
+
+**Active-hold update — 23 October 2026: 267 tests passed.** A new 20-trial paired
 screen keeps the walking policy active and applies bounded IMU/leg-estimated
 position feedback. All ten feedback trials avoided non-foot contact, including
 downhill transitions, but ramp drift remained **0.37–0.60 m** while the estimator
@@ -137,9 +144,21 @@ for sensor generation, diagnostic rendering and scoring—not mission decisions.
 
 ### Stop-transition screening — retained failures
 
+![Physical drift telemetry for 20 healthy-LiDAR hold trials, showing improvement with range registration but no stationary-stop qualification](docs/media/dougie/range-hold.gif)
+
+**Range-observable comparator:** the policy receives bounded pose feedback only
+while local registration is fresh and full-rank. The GIF includes all 20
+healthy-range trials; **the separate eight dropout trials drifted 1.32–1.52 m**
+after corrective commands were withheld. The new fixtures have observable walls,
+so comparisons with earlier open-fixture screens are not matched experiments.
+[Healthy trials](docs/results/dougie_range_hold_20261023.json) ·
+[All dropout trials](docs/results/dougie_range_hold_dropout_20261023.json) ·
+[Static comparison](docs/media/dougie/range-hold.png) ·
+[Provenance](docs/DOUGIE_MEDIA.md#range-hold-replay--23-october-2026)
+
 ![Evaluator telemetry from 20 active-position-hold comparisons: no non-foot contact, but substantial residual ramp drift](docs/media/dougie/position-hold.gif)
 
-**Latest comparator:** bounded position feedback retains the active policy instead
+**Earlier proprioceptive comparator:** bounded position feedback retains the active policy instead
 of freezing joints. The animation shows physical evaluator drift, not the smaller
 IMU/leg estimate used by the controller. No non-foot contact occurred, but residual
 ramp drift still prevents qualification. This is telemetry, not camera footage.

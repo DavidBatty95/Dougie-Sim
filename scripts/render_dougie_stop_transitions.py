@@ -20,7 +20,7 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--report', type=Path, default=REPORT)
-    parser.add_argument('--prefix', choices=('stop-transitions', 'position-hold'), default='stop-transitions')
+    parser.add_argument('--prefix', choices=('stop-transitions', 'position-hold', 'range-hold'), default='stop-transitions')
     args = parser.parse_args()
     report_path = args.report.resolve()
     report = json.loads(report_path.read_text())
@@ -29,10 +29,11 @@ def main():
     if actual != [tuple(case) for case in report['cases']] or len(actual) != 20:
         raise ValueError('the animation requires the complete declared 20-case cohort')
     modes = {result['mode'] for result in results}-{'zero_policy'}
-    if len(modes) != 1 or not modes <= {'guarded_target_hold', 'position_hold'}:
+    if len(modes) != 1 or not modes <= {'guarded_target_hold', 'position_hold', 'range_position_hold'}:
         raise ValueError('expected one supported comparator paired with zero policy')
     comparator = next(iter(modes))
-    feedback = comparator == 'position_hold'
+    feedback = comparator != 'guarded_target_hold'
+    range_feedback = comparator == 'range_position_hold'
     hold_results = [result for result in results if result['mode'] == comparator]
     ramp_drift = [result['max_horizontal_drift_m'] for result in hold_results if result['angle_deg'] > 0]
     contact_clean = all(result['nonfoot_impulse_ns'] <= .1 and result['nonfoot_peak_force_n'] <= 25.
@@ -53,10 +54,12 @@ def main():
         draw = ImageDraw.Draw(image)
         def text(x, y, value, size=14, color='#ecf5ff'):
             draw.text((x, y), value, font=fonts[size], fill=color)
-        text(20, 14, 'DOUGIE / ACTIVE HOLD SCREEN' if feedback else 'DOUGIE / WALK-TO-STOP SCREEN', 22, '#48daca')
-        text(20, 47, 'Evaluator telemetry, not video / all 20 trials / two sensor seeds per pair', 14)
+        title = 'DOUGIE / RANGE-OBSERVABLE HOLD' if range_feedback else 'DOUGIE / ACTIVE HOLD SCREEN' if feedback else 'DOUGIE / WALK-TO-STOP SCREEN'
+        text(20, 14, title, 22, '#48daca')
+        text(20, 47, 'Evaluator telemetry, not video / all 20 '+('healthy-range ' if range_feedback else '')+'trials / two seeds per pair', 14)
         text(20, 73, f'Time after stop request: {stamp:5.1f} s   |   120 s dwell, friction 0.4', 14)
-        text(20, 103, 'Amber: zero-command policy     Teal: '+('IMU/leg position feedback' if feedback else 'guarded target hold'), 14)
+        label = 'range-registered position feedback' if range_feedback else 'IMU/leg position feedback' if feedback else 'guarded target hold'
+        text(20, 103, 'Amber: zero-command policy     Teal: '+label, 14)
         text(570, 130, 'FINAL contact outcome', 12)
         for row_index, (angle, direction, label) in enumerate(rows):
             y = 154+row_index*72

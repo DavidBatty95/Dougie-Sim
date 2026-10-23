@@ -366,3 +366,75 @@ frame invariance and invalid-interval refusal. The [new replay](media/dougie/pos
 shows all 20 cases and physical drift; it does not substitute estimated drift for
 the evaluator measurement. This harness-only stage leaves mission runtime hashes
 and the earlier native mission GIF provenance unchanged.
+
+## Range-observable hold and dropout — 23 October 2026
+
+The harness now offers `--range-observations` and `range_position_hold`. Four
+simulator-only walls supply independent surface normals; the controller receives
+only noisy body-frame LiDAR, IMU, encoders and foot forces. Both paired modes use
+the same fixture and 5 Hz scans. The estimator is the robust pose-graph backend.
+The walls and range-updated gravity estimate change the experiment from the
+earlier open fixture, so only the new within-fixture pairs are matched comparisons.
+
+The PD gains and .08 m/s / .2 m/s² command bounds are unchanged. In addition to
+the existing quiet entry, range feedback requires initialized localization,
+zero rejection streak, rank six, last good scan age ≤.6 s, residual ≤.025 m and
+conditional position standard deviation ≤.05 m. The stamped hold anchor consumes
+each map correction exactly once at its capture time; missing revisions raise
+an error instead of silently moving a stale target into a new frame.
+
+### Healthy observations
+
+The retained [30-second downhill pilot](results/dougie_range_hold_pilot_20261023.json)
+was followed by the complete [20-case, 120-second paired screen](results/dougie_range_hold_20261023.json).
+The approach, seeds, friction and contact limits match the previous protocol.
+
+| Fixture | Zero-command physical max drift | Range-hold physical max drift | Range-hold estimated max drift |
+|---|---|---|---|
+| Flat | .115–.119 m | .046–.047 m | .047–.048 m |
+| 8.53° uphill | 1.444–1.518 m | .163–.164 m | .162–.165 m |
+| 10° uphill | 1.694–1.768 m | .146–.152 m | .146–.153 m |
+| 8.53° downhill | 1.357–1.369 m | .088–.120 m | .087–.119 m |
+| 10° downhill | 1.623–1.633 m | .098–.101 m | .0997–.1005 m |
+
+All ten active trials entered hold, incurred no feedback inhibition and had
+zero non-foot contact. Their anchors consumed **40 map corrections** in total.
+All 20 cases passed the contact/error audit, which also checks complete declared
+case membership and identical paired fixture hashes and physical approaches.
+Estimated displacement maxima now track physical maxima closely. This improves
+observability and control, but does not establish a stationary-stop guarantee.
+
+### Range dropout
+
+The separate [eight-case ramp fault cohort](results/dougie_range_hold_dropout_20261023.json)
+declares permanent LiDAR dropout at 30 s, after hold entry. The first missing scan
+was approximately 30.2 s in these sampled runs. All eight cases withheld corrective
+commands thereafter: **20,161 inhibited control ticks per trial**, zero requested
+correction magnitude while inhibited, and zero applied velocity commands in the
+post-dropout trace. The auditor checks the trace as well as summary counters.
+
+Physical drift nevertheless reached **1.315–1.522 m**, with no non-foot contacts
+in these open fixtures. Refusing corrections on unreliable sensing is not the
+same as physically holding position. These are retained fault outcomes, not
+successful stationary stops. The scope remains an experimental harness mode;
+it is not enabled in radiation missions and does not qualify facility recovery.
+
+```bash
+docker compose run --rm -T dougie-sim python3 -m scripts.qualify_dougie_slope_stop \
+  --range-observations --approach-seconds 6 --directions up down \
+  --modes zero_policy range_position_hold --output docs/results/NEW_RANGE_HOLD.json
+docker compose run --rm -T dougie-sim python3 -m scripts.qualify_dougie_slope_stop \
+  --range-observations --lidar-dropout-after 30 --approach-seconds 6 \
+  --angles 8.53 10 --directions up down --modes range_position_hold \
+  --output docs/results/NEW_RANGE_DROPOUT.json
+python3 scripts/check_dougie_stop_screen.py docs/results/NEW_RANGE_HOLD.json --require-contact-clean
+python3 scripts/check_dougie_stop_screen.py docs/results/NEW_RANGE_DROPOUT.json \
+  --require-contact-clean --require-range-withheld
+```
+
+**271 tests passed**, including capture-time anchor correction, idempotent revision
+application, missing-revision refusal, complete-case auditing and rejection of
+nonzero commands in a purportedly inhibited fault trace. The next gates are
+stabilization during loss of range, tighter physical position bounds, local
+clearance/support validation and end-to-end recovery. The original 10° mezzanine
+and full-height facility remain unqualified.

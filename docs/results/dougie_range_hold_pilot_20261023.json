@@ -1,0 +1,2135 @@
+{
+  "scope": "Controlled stop screening with frozen-target and active-feedback comparators.\n\nFixture pose is used only for initialization and evaluation. Approach commands\nare timed; corrective feedback uses onboard estimates. This is a screening\nexperiment, not deployment qualification of any comparator.\n",
+  "duration_s": 30.0,
+  "approach_s": 6.0,
+  "hold_entry": {
+    "zero_command_delay_s": 0.5,
+    "quiet_dwell_s": 0.2,
+    "maximum_entry_delay_s": 3.0,
+    "minimum_each_foot_force_n": 5.0,
+    "maximum_gyro_norm_rad_s": 0.15,
+    "maximum_joint_speed_rad_s": 0.5
+  },
+  "position_hold": {
+    "kp": 0.6,
+    "kd": 0.25,
+    "command_norm_limit_m_s": 0.08,
+    "command_slew_limit_m_s2": 0.2,
+    "estimator": "IMU/leg/LiDAR pose graph",
+    "enabled_in_missions": false
+  },
+  "range_observations": true,
+  "lidar_dropout_after_s": null,
+  "range_scan_period_s": 0.2,
+  "cases": [
+    [
+      8.53,
+      "zero_policy",
+      0,
+      "down"
+    ],
+    [
+      8.53,
+      "range_position_hold",
+      0,
+      "down"
+    ]
+  ],
+  "source_sha256": {
+    "dougie_sim/odometry.py": "1d8267c7b8cd42376f0e20f8f3f500b9e9fd3fb56f48a41b875f47faec98cf29",
+    "dougie_sim/registration.py": "4d5fc96b8970053e5330d43511ec1a7374d737a8fea7941982d521de5c19def2",
+    "dougie_sim/pose_graph.py": "801ac8de81279e10841e55104d0e56c97cb52c54d41da2b44995d4abc423a0d2",
+    "dougie_sim/scan_geometry.py": "580e32b26310535968fc12bf40e555088e88e6d2dd392520ffbf7b16d677a23b",
+    "dougie_sim/map_corrections.py": "0c81755cc875af2d9eca859cd02a63c167f0c092a93f628f94dfdc319d8b940b",
+    "dougie_sim/pose_uncertainty.py": "5298bee12eedac44482df37edee8d1488cc69e9d39e9bb04531819b791e163d0",
+    "dougie_sim/onboard_sensors.py": "822589318d6877e24f0dc84b544bac3ccebf6fbde485d0df3e9adcb63e810b58",
+    "dougie_sim/sensing.py": "2da904954194364bdeee1e3533f3b5ec1cfe4f7a01770977be479dd2648804b6",
+    "dougie_sim/simulation.py": "e633d0e420ae75bc4f4661df25cca965d6ecec7ffba8c0a6ff4db2e087b1e435",
+    "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+    "dougie_sim/radiation.py": "2c4771061e06dbfd0874c70a373206f7c118c11ef93864ca51c9a15c352bb63d",
+    "dougie_sim/radiation_run.py": "bbf810ed62bb0a42558c8fc51fb75b1c08196e1cc9729ac99a467f1ad848241b",
+    "dougie_sim/terrain.py": "6a78a8641e92406beaa84d3db24a53a292f7a9ce59599a4d14ce9be54551473a",
+    "dougie_sim/layered_terrain.py": "20822ea34b77e340b4d739786c2fbf84ebb9aa32117df17470f31f29dae5a9a0",
+    "dougie_sim/dose_planner.py": "6c287e0425483c6493f10f580e2d1b118caabe188f88f3017a124765619271c9",
+    "dougie_sim/clustered_planner.py": "0b45c3c2eb27303a2a2de501214c457f94845983a239dd6d0ef3436b7c45993e",
+    "dougie_sim/planning_worker.py": "28aad42c02336c4343ce831fa2026b93241ee29ae071e3b5cd12c8cac58a0785",
+    "dougie_sim/path_motion.py": "bd9e38a19e2893afa0a734f77e9b374da0b4a7b81948c340fe215e663580122b",
+    "dougie_sim/route_forecast.py": "8fbe20b2b2a20f55fe92d1f1034cf4678f5697cf14bbedd3b0a553bf5966eed6",
+    "dougie_sim/motion_cost.py": "ec159b52ae930bc0d34dcbf3b52345ebcc6402bb4447d149b3e19c54a29dfadf",
+    "dougie_sim/mission_utility.py": "0bf4692ce14a8e9cef5a06a9a8c57cbc954e26e9874ddb59ffbc84403a7cde34",
+    "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+    "dougie_sim/region_agenda.py": "ffb8ad0ecd3ca16e138adacef5d19000dfe33fe7616c660139a4773af96ebc78",
+    "dougie_sim/geometry_gp.py": "28309663c2da9198b647f15b5ed02cd92e2bc0b58b6ece75f9f414f47b9bcc6a",
+    "dougie_sim/gp.py": "ce779f0c9695a77b4381e680e41f0489badea2ea74a836b357b5984e96e848c7",
+    "dougie_sim/spatial_gp.py": "1d42421d1605d627871cb88cb09ddefd841630e27247c4aa2dc8709ade11c793",
+    "dougie_sim/recovery.py": "1919752c02207e3a50bd52280c756548be6e314b6511b627c100f513c27ce5d6",
+    "dougie_sim/reactor.py": "7566cd65e0c11ecdb2dcd268d7ac7090c59e5b8929d92be5bfbc6cbb88e9a2bf",
+    "dougie_sim/multilevel.py": "cb6bf40ca9fbc19afb67c53bc3c484f18a253af119c3bf2c3db57b9df0414a3f",
+    "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+    "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+    "dougie_sim/observed_circuit.py": "6cfc10f2b8e4a42918adc317f5773c4b02e9bb5d874d9b36bafb395087bf0006",
+    "dougie_sim/mission_evaluation.py": "58c983d13845dde3cf2bde6b6718fe25b3ebd446a36f3318719f1a357187ac90",
+    "dougie_sim/circuit_evaluation.py": "4d314cca55ee4082feae8b69fe059c891f2832da71bc3f2ceb80d90fabd81f6f"
+  },
+  "script_sha256": "9b5bbeae6c3da8ae20585245c1843e852c8b3e157e3bd618b9d69873d024b157",
+  "results": [
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "mode": "zero_policy",
+      "sensor_seed": 0,
+      "hold_started_s": null,
+      "error": null,
+      "stop_requested_s": 11.0,
+      "approach_s": 6.0,
+      "evaluator_approach_distance_m": 0.17049147720927135,
+      "hold_entry_failed": false,
+      "max_estimated_horizontal_drift_m": 0.2065512507898836,
+      "feedback_inhibited_ticks": 0,
+      "range_observations": true,
+      "lidar_dropout_after_s": null,
+      "range_inhibited_ticks": 0,
+      "max_inhibited_requested_command_m_s": 0.0,
+      "anchor_corrections": 1,
+      "localization": {
+        "source": "imu_leg_lidar_fusion",
+        "initialized": true,
+        "position": [
+          0.4085805822243158,
+          -0.026418101401393973,
+          0.2632537119564454
+        ],
+        "velocity": [
+          0.001899357260594698,
+          -0.009377097493484362,
+          -0.0006920677279076229
+        ],
+        "yaw": -3.0817864930001577,
+        "position_std_m": [
+          0.03712301602011678,
+          0.03712301602011678,
+          0.03712301602011678
+        ],
+        "uncalibrated_position_std_m": [
+          0.03712301602011678,
+          0.03712301602011678,
+          0.03712301602011678
+        ],
+        "uncertainty_calibration": {
+          "profile_sha256": null,
+          "sigma_multiplier": 1.0,
+          "reference_episode_miscoverage": null,
+          "scope": "reference-policy episode bound under exchangeability; control feedback/domain shift require fresh validation"
+        },
+        "conditional_position_std_m": [
+          0.0025750330387641776,
+          0.0025750330387641776,
+          0.0025750330387641776
+        ],
+        "gyro_bias": [
+          -0.00041600095359302364,
+          4.6028571068568505e-05,
+          -7.76032401988371e-05
+        ],
+        "scan_updates": 204,
+        "scan_rejections": 0,
+        "scan_rmse_m": 0.002226269212995405,
+        "local_map_cells": 1206,
+        "robust": true,
+        "map_revision": 1,
+        "keyframes": 10,
+        "anchor_revalidations": 1,
+        "slam_backend": "pose-graph",
+        "pose_graph": {
+          "nodes": 11,
+          "factor_count": 11,
+          "capacity": 512,
+          "saturated": false,
+          "accepted_loops": 1,
+          "rejected_loops": 0,
+          "last_optimization": {
+            "accepted": true,
+            "reason": "optimized",
+            "initial_cost": 0.0034288355086875555,
+            "final_cost": 0.0010730956712219353,
+            "evaluations": 4,
+            "max_translation_m": 0.0010423172662828405,
+            "max_rotation_rad": 0.0004081090697466614,
+            "loop_residual_norm": 0.018444281645232537,
+            "wall_ms": 33.287863014265895,
+            "position_marginal_covariance": [
+              [
+                0.000600709357210563,
+                -1.575276695257901e-08,
+                2.2390017704025337e-08
+              ],
+              [
+                -1.575276695257901e-08,
+                0.0006009476272594495,
+                2.6897387302253374e-09
+              ],
+              [
+                2.2390017704025337e-08,
+                2.6897387302253374e-09,
+                0.0006009385817327984
+              ]
+            ]
+          },
+          "method": "root-anchored SE3 graph, robust sparse least squares"
+        },
+        "registration_status": "registered",
+        "observable_rank": 6,
+        "inlier_fraction": 0.9920634920634921,
+        "rejection_streak": 0,
+        "slipping_legs": 0,
+        "last_good_scan_s": 40.80000000000242,
+        "uncertainty_scope": "conditional filter plus path/innovation drift allowance; not a calibrated probability guarantee"
+      },
+      "nonfoot_peak_force_n": 0.0,
+      "peak_motor_torque_nm": 20.028230619702626,
+      "policy": {
+        "name": "go2-robot-lab-baseline",
+        "schema": "go2-proprio-45-v1",
+        "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+        "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+        "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+      },
+      "max_horizontal_drift_m": 0.2069117132298387,
+      "nonfoot_impulse_ns": 0.0,
+      "scene_sha256": "d9906e6b076744208f89af536d37ebb37ad6bb47f90c2f37658a1040d4b1cbf8",
+      "trace": [
+        {
+          "time_s": 1.0000000000000007,
+          "evaluator_position": [
+            4.03492855338962,
+            -0.004098810554545539,
+            1.0736213880147105
+          ],
+          "estimated_position": [
+            0.0376014321948556,
+            -0.0037725233746864553,
+            0.3160703998549776
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 1.9999999999999793,
+          "evaluator_position": [
+            4.033821009010173,
+            -0.004989224247989089,
+            1.07370748260736
+          ],
+          "estimated_position": [
+            0.03564315558300006,
+            -0.004752957280078908,
+            0.3162023327113862
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 2.9999999999999583,
+          "evaluator_position": [
+            4.032816873800668,
+            -0.005480761779699939,
+            1.0738054426280157
+          ],
+          "estimated_position": [
+            0.03382177859995694,
+            -0.005396566710309609,
+            0.3167195062832711
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 3.999999999999937,
+          "evaluator_position": [
+            4.031839526804847,
+            -0.00578281821583323,
+            1.0738880506779538
+          ],
+          "estimated_position": [
+            0.033285976712017495,
+            -0.005980855675057873,
+            0.3166248925825735
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 4.999999999999916,
+          "evaluator_position": [
+            4.030910129065635,
+            -0.00593144743914903,
+            1.0739770748538755
+          ],
+          "estimated_position": [
+            0.03216556529242399,
+            -0.005272635320296158,
+            0.3168107958487653
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 5.999999999999894,
+          "evaluator_position": [
+            4.0943292486848595,
+            -0.007455835846850444,
+            1.0411008176005812
+          ],
+          "estimated_position": [
+            0.09492920636313688,
+            -0.007032417846477707,
+            0.28373560099533934
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 6.999999999999873,
+          "evaluator_position": [
+            4.104171231292525,
+            -0.014441289297799108,
+            1.0387481573077806
+          ],
+          "estimated_position": [
+            0.10540942806844959,
+            -0.014314131913669842,
+            0.2814068252645382
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 7.999999999999852,
+          "evaluator_position": [
+            4.1061812317819895,
+            -0.01603800393750576,
+            1.0385188093218907
+          ],
+          "estimated_position": [
+            0.10755335475330349,
+            -0.016071049609794393,
+            0.28139508587582446
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 9.000000000000007,
+          "evaluator_position": [
+            4.140011694533535,
+            -0.004757921205446061,
+            1.0362365948016652
+          ],
+          "estimated_position": [
+            0.13716247441115526,
+            -0.0041377740162804036,
+            0.28036870570281086
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 10.000000000000163,
+          "evaluator_position": [
+            4.194747566272433,
+            -0.007901193747694601,
+            1.0258377090184758
+          ],
+          "estimated_position": [
+            0.19601790905628003,
+            -0.008284091441863232,
+            0.2683110032108558
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 11.00000000000032,
+          "evaluator_position": [
+            4.20124877795455,
+            -0.013046776319396476,
+            1.0240416394132625
+          ],
+          "estimated_position": [
+            0.20233158497589784,
+            -0.013306347027935858,
+            0.2668122743045615
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 12.000000000000476,
+          "evaluator_position": [
+            4.205715774742721,
+            -0.012136190287431885,
+            1.0437295327931129
+          ],
+          "estimated_position": [
+            0.20719709668610323,
+            -0.011996626904969478,
+            0.28616241891740196
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 13.000000000000632,
+          "evaluator_position": [
+            4.2046099128098025,
+            -0.011769934599261431,
+            1.043902550536041
+          ],
+          "estimated_position": [
+            0.2067473188650824,
+            -0.011722703071205324,
+            0.2860596125609799
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 14.000000000000789,
+          "evaluator_position": [
+            4.203524440987663,
+            -0.011429058765386396,
+            1.04410663818261
+          ],
+          "estimated_position": [
+            0.20632722882272936,
+            -0.011400882765337355,
+            0.2863343784954536
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 15.000000000000945,
+          "evaluator_position": [
+            4.202419270946542,
+            -0.011055829221702477,
+            1.0443084175885538
+          ],
+          "estimated_position": [
+            0.20417219600934886,
+            -0.011210418579159883,
+            0.2864070982241843
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 16.0000000000011,
+          "evaluator_position": [
+            4.201191669361697,
+            -0.01055503925615562,
+            1.0444899014554354
+          ],
+          "estimated_position": [
+            0.20313467874619368,
+            -0.010626841960546167,
+            0.2868452830666596
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 17.000000000000902,
+          "evaluator_position": [
+            4.1929220905887625,
+            -0.005499576156533955,
+            1.044154041027614
+          ],
+          "estimated_position": [
+            0.19440867767908246,
+            -0.005425743051733397,
+            0.28658250888945197
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 18.000000000000703,
+          "evaluator_position": [
+            4.189625533946333,
+            0.0077778450978018806,
+            1.0460617863124624
+          ],
+          "estimated_position": [
+            0.19053538894062402,
+            0.007873335065689895,
+            0.2885495190328122
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 19.000000000000504,
+          "evaluator_position": [
+            4.191734103962661,
+            0.008642309579125327,
+            1.0473843138084746
+          ],
+          "estimated_position": [
+            0.19345724640799794,
+            0.008446303165272092,
+            0.2898486665066859
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 20.000000000000306,
+          "evaluator_position": [
+            4.199789323818329,
+            0.00974497272821981,
+            1.0493334790838391
+          ],
+          "estimated_position": [
+            0.20168097154515968,
+            0.009394614839142551,
+            0.2916945536759807
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 21.000000000000107,
+          "evaluator_position": [
+            4.204026868812129,
+            0.01859475627951976,
+            1.0475394428747007
+          ],
+          "estimated_position": [
+            0.20482705750631663,
+            0.018631043727902783,
+            0.28992136394848406
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 21.999999999999908,
+          "evaluator_position": [
+            4.218024320913126,
+            0.0063790818315585035,
+            1.0405037927283458
+          ],
+          "estimated_position": [
+            0.2190251336490128,
+            0.006459245704214624,
+            0.2826301670499046
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 22.99999999999971,
+          "evaluator_position": [
+            4.226396687233396,
+            0.02147727563408994,
+            1.038965308810077
+          ],
+          "estimated_position": [
+            0.22645840117043975,
+            0.021347517147180355,
+            0.2817250930099059
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 23.99999999999951,
+          "evaluator_position": [
+            4.238784675404435,
+            0.024210508292586204,
+            1.0422849291983594
+          ],
+          "estimated_position": [
+            0.23998482782061326,
+            0.024701979031168105,
+            0.28473104431807567
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 24.99999999999931,
+          "evaluator_position": [
+            4.249621119749084,
+            0.025868939325319022,
+            1.035551089708717
+          ],
+          "estimated_position": [
+            0.24953913475519462,
+            0.02574786983144408,
+            0.27820960277287654
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 25.999999999999112,
+          "evaluator_position": [
+            4.261557665182562,
+            0.028577843683284164,
+            1.039323149523528
+          ],
+          "estimated_position": [
+            0.2613995256061281,
+            0.028693056623630062,
+            0.2822251755303775
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 26.999999999998913,
+          "evaluator_position": [
+            4.269581318532806,
+            0.025928970167534114,
+            1.0327169185323082
+          ],
+          "estimated_position": [
+            0.26975471147737473,
+            0.026129429207381576,
+            0.27532994127015814
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 27.999999999998714,
+          "evaluator_position": [
+            4.279695453898035,
+            0.030380722021515667,
+            1.0371439327563363
+          ],
+          "estimated_position": [
+            0.28073481952721224,
+            0.030487961232831085,
+            0.27964663245506866
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 28.999999999998515,
+          "evaluator_position": [
+            4.2850861639368985,
+            0.023002917189044427,
+            1.0321136713548722
+          ],
+          "estimated_position": [
+            0.28599040343800775,
+            0.02255526905541085,
+            0.2745926737812536
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 29.999999999998316,
+          "evaluator_position": [
+            4.294311291114638,
+            0.02723386034694417,
+            1.0363278734904875
+          ],
+          "estimated_position": [
+            0.2946498892874592,
+            0.027344807945435177,
+            0.2787159447024445
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 30.999999999998117,
+          "evaluator_position": [
+            4.302446633634883,
+            0.015137418085633394,
+            1.0303459789835074
+          ],
+          "estimated_position": [
+            0.3033402636378447,
+            0.014817578753936599,
+            0.27288560110686194
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 31.999999999997918,
+          "evaluator_position": [
+            4.303387975311324,
+            0.02110464549996565,
+            1.035916593811572
+          ],
+          "estimated_position": [
+            0.3049310965468401,
+            0.02107882235156293,
+            0.2780459610455792
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 32.99999999999843,
+          "evaluator_position": [
+            4.314975743824454,
+            0.009355599282458197,
+            1.029534898836162
+          ],
+          "estimated_position": [
+            0.3146734363853983,
+            0.009202841150303944,
+            0.27243904851469514
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 33.99999999999894,
+          "evaluator_position": [
+            4.316221325179255,
+            0.007919051532181707,
+            1.0348059194794492
+          ],
+          "estimated_position": [
+            0.3166481439525655,
+            0.0075819366703878946,
+            0.2775515092532108
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 34.99999999999945,
+          "evaluator_position": [
+            4.332378893535249,
+            -0.004748001625295701,
+            1.0269226150024235
+          ],
+          "estimated_position": [
+            0.33278274142357006,
+            -0.0050085713736529374,
+            0.2694222103392028
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 35.999999999999964,
+          "evaluator_position": [
+            4.33714615668862,
+            -0.007360996675331281,
+            1.0312203959181043
+          ],
+          "estimated_position": [
+            0.338917623016537,
+            -0.007431770959190522,
+            0.27364991935540856
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 37.000000000000476,
+          "evaluator_position": [
+            4.344948596712126,
+            -0.0076826895469677145,
+            1.028297156874573
+          ],
+          "estimated_position": [
+            0.34571330072671536,
+            -0.007420474959219276,
+            0.27094678032986164
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 38.00000000000099,
+          "evaluator_position": [
+            4.364614202361052,
+            -0.011917818051806873,
+            1.0341788787222266
+          ],
+          "estimated_position": [
+            0.36649080013224455,
+            -0.012093509017332792,
+            0.2780229748901501
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 39.0000000000015,
+          "evaluator_position": [
+            4.3719417439220365,
+            -0.019352625312479783,
+            1.0257414815340933
+          ],
+          "estimated_position": [
+            0.3724034406298869,
+            -0.01911189905720977,
+            0.2683849160590078
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 40.00000000000201,
+          "evaluator_position": [
+            4.396215750765298,
+            -0.0191338122436066,
+            1.0149454821107124
+          ],
+          "estimated_position": [
+            0.3967010509268501,
+            -0.019320025422591248,
+            0.2575189720948444
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 41.00000000000252,
+          "evaluator_position": [
+            4.40771517044475,
+            -0.02661460016073639,
+            1.0207906179868715
+          ],
+          "estimated_position": [
+            0.4085805822243158,
+            -0.026418101401393973,
+            0.2632537119564454
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        }
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "mode": "range_position_hold",
+      "sensor_seed": 0,
+      "hold_started_s": 11.70000000000043,
+      "error": null,
+      "stop_requested_s": 11.0,
+      "approach_s": 6.0,
+      "evaluator_approach_distance_m": 0.17049147720927135,
+      "hold_entry_failed": false,
+      "max_estimated_horizontal_drift_m": 0.08703903262406441,
+      "feedback_inhibited_ticks": 0,
+      "range_observations": true,
+      "lidar_dropout_after_s": null,
+      "range_inhibited_ticks": 0,
+      "max_inhibited_requested_command_m_s": 0.0,
+      "anchor_corrections": 1,
+      "localization": {
+        "source": "imu_leg_lidar_fusion",
+        "initialized": true,
+        "position": [
+          0.27631095742757183,
+          -0.027171345022117547,
+          0.28204707356502956
+        ],
+        "velocity": [
+          -0.011251379482095966,
+          -0.002913065932400717,
+          -0.00020970953898153096
+        ],
+        "yaw": 2.9946655760232606,
+        "position_std_m": [
+          0.03621738485798912,
+          0.03621738485798912,
+          0.03621738485798912
+        ],
+        "uncalibrated_position_std_m": [
+          0.03621738485798912,
+          0.03621738485798912,
+          0.03621738485798912
+        ],
+        "uncertainty_calibration": {
+          "profile_sha256": null,
+          "sigma_multiplier": 1.0,
+          "reference_episode_miscoverage": null,
+          "scope": "reference-policy episode bound under exchangeability; control feedback/domain shift require fresh validation"
+        },
+        "conditional_position_std_m": [
+          0.0025800433305390694,
+          0.0025800433305390694,
+          0.0025800433305390694
+        ],
+        "gyro_bias": [
+          -0.00041600095359302364,
+          4.6028571068568505e-05,
+          -7.76032401988371e-05
+        ],
+        "scan_updates": 204,
+        "scan_rejections": 0,
+        "scan_rmse_m": 0.0025525312550501414,
+        "local_map_cells": 1211,
+        "robust": true,
+        "map_revision": 1,
+        "keyframes": 10,
+        "anchor_revalidations": 1,
+        "slam_backend": "pose-graph",
+        "pose_graph": {
+          "nodes": 11,
+          "factor_count": 11,
+          "capacity": 512,
+          "saturated": false,
+          "accepted_loops": 1,
+          "rejected_loops": 0,
+          "last_optimization": {
+            "accepted": true,
+            "reason": "optimized",
+            "initial_cost": 0.0006394138790937198,
+            "final_cost": 0.00020541220052816556,
+            "evaluations": 3,
+            "max_translation_m": 0.0003347188773338066,
+            "max_rotation_rad": 0.0002617791319827397,
+            "loop_residual_norm": 0.00819719587669449,
+            "wall_ms": 24.970095022581518,
+            "position_marginal_covariance": [
+              [
+                0.000569417235191012,
+                1.0468409079765888e-08,
+                2.182059185205335e-09
+              ],
+              [
+                1.0468409079765888e-08,
+                0.0005695059738010888,
+                1.7923404518117867e-09
+              ],
+              [
+                2.182059185205335e-09,
+                1.7923404518117867e-09,
+                0.0005695205683562504
+              ]
+            ]
+          },
+          "method": "root-anchored SE3 graph, robust sparse least squares"
+        },
+        "registration_status": "registered",
+        "observable_rank": 6,
+        "inlier_fraction": 0.9915449654112222,
+        "rejection_streak": 0,
+        "slipping_legs": 0,
+        "last_good_scan_s": 40.80000000000242,
+        "uncertainty_scope": "conditional filter plus path/innovation drift allowance; not a calibrated probability guarantee"
+      },
+      "nonfoot_peak_force_n": 0.0,
+      "peak_motor_torque_nm": 21.212015303989716,
+      "policy": {
+        "name": "go2-robot-lab-baseline",
+        "schema": "go2-proprio-45-v1",
+        "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+        "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+        "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+      },
+      "max_horizontal_drift_m": 0.08775384888294267,
+      "nonfoot_impulse_ns": 0.0,
+      "scene_sha256": "d9906e6b076744208f89af536d37ebb37ad6bb47f90c2f37658a1040d4b1cbf8",
+      "trace": [
+        {
+          "time_s": 1.0000000000000007,
+          "evaluator_position": [
+            4.03492855338962,
+            -0.004098810554545539,
+            1.0736213880147105
+          ],
+          "estimated_position": [
+            0.0376014321948556,
+            -0.0037725233746864553,
+            0.3160703998549776
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 1.9999999999999793,
+          "evaluator_position": [
+            4.033821009010173,
+            -0.004989224247989089,
+            1.07370748260736
+          ],
+          "estimated_position": [
+            0.03564315558300006,
+            -0.004752957280078908,
+            0.3162023327113862
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 2.9999999999999583,
+          "evaluator_position": [
+            4.032816873800668,
+            -0.005480761779699939,
+            1.0738054426280157
+          ],
+          "estimated_position": [
+            0.03382177859995694,
+            -0.005396566710309609,
+            0.3167195062832711
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 3.999999999999937,
+          "evaluator_position": [
+            4.031839526804847,
+            -0.00578281821583323,
+            1.0738880506779538
+          ],
+          "estimated_position": [
+            0.033285976712017495,
+            -0.005980855675057873,
+            0.3166248925825735
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 4.999999999999916,
+          "evaluator_position": [
+            4.030910129065635,
+            -0.00593144743914903,
+            1.0739770748538755
+          ],
+          "estimated_position": [
+            0.03216556529242399,
+            -0.005272635320296158,
+            0.3168107958487653
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 5.999999999999894,
+          "evaluator_position": [
+            4.0943292486848595,
+            -0.007455835846850444,
+            1.0411008176005812
+          ],
+          "estimated_position": [
+            0.09492920636313688,
+            -0.007032417846477707,
+            0.28373560099533934
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 6.999999999999873,
+          "evaluator_position": [
+            4.104171231292525,
+            -0.014441289297799108,
+            1.0387481573077806
+          ],
+          "estimated_position": [
+            0.10540942806844959,
+            -0.014314131913669842,
+            0.2814068252645382
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 7.999999999999852,
+          "evaluator_position": [
+            4.1061812317819895,
+            -0.01603800393750576,
+            1.0385188093218907
+          ],
+          "estimated_position": [
+            0.10755335475330349,
+            -0.016071049609794393,
+            0.28139508587582446
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 9.000000000000007,
+          "evaluator_position": [
+            4.140011694533535,
+            -0.004757921205446061,
+            1.0362365948016652
+          ],
+          "estimated_position": [
+            0.13716247441115526,
+            -0.0041377740162804036,
+            0.28036870570281086
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 10.000000000000163,
+          "evaluator_position": [
+            4.194747566272433,
+            -0.007901193747694601,
+            1.0258377090184758
+          ],
+          "estimated_position": [
+            0.19601790905628003,
+            -0.008284091441863232,
+            0.2683110032108558
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 11.00000000000032,
+          "evaluator_position": [
+            4.20124877795455,
+            -0.013046776319396476,
+            1.0240416394132625
+          ],
+          "estimated_position": [
+            0.20233158497589784,
+            -0.013306347027935858,
+            0.2668122743045615
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": null,
+          "command": [
+            0.15,
+            0.0,
+            0.0
+          ],
+          "held": false
+        },
+        {
+          "time_s": 12.000000000000476,
+          "evaluator_position": [
+            4.205705340249511,
+            -0.012142444806514194,
+            1.0437063083278495
+          ],
+          "estimated_position": [
+            0.20716368216226627,
+            -0.01200131206863245,
+            0.2861629568903191
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0023916505847018047,
+            -0.0007289172800614614,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 13.000000000000632,
+          "evaluator_position": [
+            4.204582522271228,
+            -0.011823975684628556,
+            1.043844099100869
+          ],
+          "estimated_position": [
+            0.20614427136917707,
+            -0.01198805996549738,
+            0.28637616933497034
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0018959539029043673,
+            -0.0007520076645243946,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 14.000000000000789,
+          "evaluator_position": [
+            4.203496371547942,
+            -0.011534273608860411,
+            1.0440290797025429
+          ],
+          "estimated_position": [
+            0.2053793560442112,
+            -0.011288455755226382,
+            0.2865715828532635
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0013609218581497398,
+            -0.0011739232175153747,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 15.000000000000945,
+          "evaluator_position": [
+            4.202419825541322,
+            -0.011203699563170872,
+            1.044209008407543
+          ],
+          "estimated_position": [
+            0.20436535634995528,
+            -0.010990282774682784,
+            0.2866760145459714
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0008651840956869483,
+            -0.001419194025206101,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 16.0000000000011,
+          "evaluator_position": [
+            4.201277465443508,
+            -0.010785060788393778,
+            1.0443892033464033
+          ],
+          "estimated_position": [
+            0.2035719447591306,
+            -0.010586942896236382,
+            0.2868495417581004
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.00042625367482264825,
+            -0.0016394724291403152,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 17.000000000000902,
+          "evaluator_position": [
+            4.196268102968149,
+            -0.008352481855688883,
+            1.0439955609314893
+          ],
+          "estimated_position": [
+            0.19824403555098263,
+            -0.008476676190489875,
+            0.28643501131610444
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.005462509693549431,
+            -0.004620362367593271,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 18.000000000000703,
+          "evaluator_position": [
+            4.190730595359889,
+            0.0025443011827511117,
+            1.044994507365953
+          ],
+          "estimated_position": [
+            0.1930953315887155,
+            0.0024594140343531068,
+            0.2875365812878925
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.005030381527044111,
+            -0.012242575767269321,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 19.000000000000504,
+          "evaluator_position": [
+            4.1928757781624775,
+            0.007774328205168027,
+            1.0465157979455884
+          ],
+          "estimated_position": [
+            0.19404768698060992,
+            0.007800327948599606,
+            0.2890910608252727
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            0.0027109088631391874,
+            -0.013094226332102906,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 20.000000000000306,
+          "evaluator_position": [
+            4.197211840505158,
+            0.0029047838215809692,
+            1.048000427532656
+          ],
+          "estimated_position": [
+            0.19910979633290554,
+            0.003376994562120305,
+            0.290182493833508
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.002565020635126318,
+            -0.007800259471631462,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 21.000000000000107,
+          "evaluator_position": [
+            4.203595553916616,
+            0.011753656521120323,
+            1.0475953468570511
+          ],
+          "estimated_position": [
+            0.20473102371810914,
+            0.011167683819525806,
+            0.2902511358561381
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.006432330648828241,
+            -0.014724909479684236,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 21.999999999999908,
+          "evaluator_position": [
+            4.213262936820799,
+            0.011482996403322666,
+            1.0438866827158673
+          ],
+          "estimated_position": [
+            0.21363855141423344,
+            0.011172359257807978,
+            0.28648486356370384
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.012572401235433399,
+            -0.006666695172385406,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 22.99999999999971,
+          "evaluator_position": [
+            4.220279128038983,
+            0.014566729413606087,
+            1.0363439282197433
+          ],
+          "estimated_position": [
+            0.22069911767220501,
+            0.014491418870887942,
+            0.27860149084038316
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.01632143745021856,
+            -0.012275574806635478,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 23.99999999999951,
+          "evaluator_position": [
+            4.2199482298932045,
+            0.017965925845950467,
+            1.044683023005061
+          ],
+          "estimated_position": [
+            0.2199680174831645,
+            0.01609091498807018,
+            0.28666997384756016
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.02389151987867444,
+            -0.013786667873958217,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 24.99999999999931,
+          "evaluator_position": [
+            4.226351463874289,
+            0.01908981109941062,
+            1.0442498014077812
+          ],
+          "estimated_position": [
+            0.22702424250041858,
+            0.019156901393716858,
+            0.2869167186529713
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.023656359059929605,
+            -0.003698412078449513,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 25.999999999999112,
+          "evaluator_position": [
+            4.2266788533685755,
+            0.018437533018181775,
+            1.0434917258744847
+          ],
+          "estimated_position": [
+            0.22702725817864713,
+            0.01819280038512644,
+            0.2862505345586673
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.024022249829609356,
+            -0.0011772308666377002,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 26.999999999998913,
+          "evaluator_position": [
+            4.235255583981191,
+            0.016123829531586545,
+            1.0380653775804152
+          ],
+          "estimated_position": [
+            0.23570117646962904,
+            0.015904175857986806,
+            0.280777909585534
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.024948042708171365,
+            0.008144199495970115,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 27.999999999998714,
+          "evaluator_position": [
+            4.242080136805239,
+            0.012363589903843772,
+            1.0415079643685987
+          ],
+          "estimated_position": [
+            0.24350133563424511,
+            0.012629019674406956,
+            0.28329479430435495
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.02426932713772681,
+            0.01656562994167238,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 28.999999999998515,
+          "evaluator_position": [
+            4.247450936102502,
+            0.010216293269514082,
+            1.0379380347426626
+          ],
+          "estimated_position": [
+            0.24697103888065486,
+            0.010079511563790288,
+            0.28071693761194183
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.019554238515287675,
+            0.02157790467896123,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 29.999999999998316,
+          "evaluator_position": [
+            4.25059255944979,
+            0.007523770919765024,
+            1.0415071411561645
+          ],
+          "estimated_position": [
+            0.25114484656698866,
+            0.007966563089585597,
+            0.2832051461247987
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.016040789107759183,
+            0.027671288432035826,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 30.999999999998117,
+          "evaluator_position": [
+            4.258737162394529,
+            0.0039331119539221795,
+            1.0383398377071156
+          ],
+          "estimated_position": [
+            0.25853983680652975,
+            0.0037383641795931412,
+            0.28098160103157993
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0081213226195069,
+            0.03401583759976992,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 31.999999999997918,
+          "evaluator_position": [
+            4.26083095593865,
+            0.0002687841281561483,
+            1.0413756720249876
+          ],
+          "estimated_position": [
+            0.26153157949042827,
+            0.0009846118323988636,
+            0.2826066041660358
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 0,
+          "anchor_revision": 0,
+          "command": [
+            -0.0012442244439647943,
+            0.03733120717948323,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 32.99999999999843,
+          "evaluator_position": [
+            4.267336389560185,
+            -0.0028458320136491126,
+            1.0386852321947082
+          ],
+          "estimated_position": [
+            0.267068218898133,
+            -0.0030244103515636262,
+            0.28140041055834636
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.006644477391816407,
+            0.03918653764304299,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 33.99999999999894,
+          "evaluator_position": [
+            4.270303410279125,
+            -0.008011441177995566,
+            1.0401302867438371
+          ],
+          "estimated_position": [
+            0.2702673120440282,
+            -0.007977022914454656,
+            0.2825721580448252
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.015477696443748383,
+            0.037881611640149755,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 34.99999999999945,
+          "evaluator_position": [
+            4.274383821807339,
+            -0.011081969407777933,
+            1.0382449725888485
+          ],
+          "estimated_position": [
+            0.2749758945914542,
+            -0.011661853674689101,
+            0.28094531313393806
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.023462457074995658,
+            0.03716340448192461,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 35.999999999999964,
+          "evaluator_position": [
+            4.280724377551069,
+            -0.016841126640232396,
+            1.0444700540430065
+          ],
+          "estimated_position": [
+            0.2829526536038521,
+            -0.01797175487171635,
+            0.28619635785678477
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.030421869221722794,
+            0.0318445355206275,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 37.000000000000476,
+          "evaluator_position": [
+            4.279570491146995,
+            -0.020115951889129034,
+            1.0370295079192329
+          ],
+          "estimated_position": [
+            0.2799271112516128,
+            -0.020576094011033826,
+            0.27965641627454735
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.038105544168888554,
+            0.025904997307580557,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 38.00000000000099,
+          "evaluator_position": [
+            4.287511437008136,
+            -0.022962937598716267,
+            1.0401086539229651
+          ],
+          "estimated_position": [
+            0.2879385560857314,
+            -0.02315702919712359,
+            0.2812988335028651
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.048201698349094255,
+            0.018839225051603823,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 39.0000000000015,
+          "evaluator_position": [
+            4.278962419359876,
+            -0.02379079429880813,
+            1.0378171144471002
+          ],
+          "estimated_position": [
+            0.27877036909413255,
+            -0.02414132681657997,
+            0.2805356271876921
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.04325143583722082,
+            0.01088036797699565,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 40.00000000000201,
+          "evaluator_position": [
+            4.285124486392409,
+            -0.024991997153324196,
+            1.029792445384982
+          ],
+          "estimated_position": [
+            0.2849670932854625,
+            -0.025015694744012554,
+            0.27244369016959213
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.05219014981045985,
+            0.004219820623955518,
+            0.0
+          ],
+          "held": true
+        },
+        {
+          "time_s": 41.00000000000252,
+          "evaluator_position": [
+            4.27519508878272,
+            -0.026741501487724778,
+            1.0395868525762217
+          ],
+          "estimated_position": [
+            0.27631095742757183,
+            -0.027171345022117547,
+            0.28204707356502956
+          ],
+          "range_feedback_ready": true,
+          "map_revision": 1,
+          "anchor_revision": 1,
+          "command": [
+            0.042483078344337566,
+            -0.0027428393612421364,
+            0.0
+          ],
+          "held": true
+        }
+      ]
+    }
+  ]
+}

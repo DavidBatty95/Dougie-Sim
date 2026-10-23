@@ -4,6 +4,29 @@
 
 ## Gallery provenance
 
+### Range-hold replay — 23 October 2026
+
+[Range-hold GIF](media/dougie/range-hold.gif) and
+[static comparison](media/dougie/range-hold.png) visualize the full
+[20-case healthy-range screen](results/dougie_range_hold_20261023.json).
+The same 81-frame, 800 × 590, 100 ms/frame format uses evaluator telemetry and a
+common 0–2 m scale. This is not video or evidence of facility completion.
+The [manifest](media/dougie/range-hold.json) pins the inputs and renderer.
+
+The animation is explicitly labelled **healthy-range**. The separate
+[eight dropout trials](results/dougie_range_hold_dropout_20261023.json) are retained
+and linked next to it in the README: withholding correction commands still left
+1.32–1.52 m of physical drift. Their outcomes must not be inferred from the
+healthy-range animation. All earlier comparator animations remain available.
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/render_dougie_stop_transitions.py \
+  --report docs/results/dougie_range_hold_20261023.json --prefix range-hold
+```
+
+Generation decodes and verifies all 81 frames. The shared renderer and manifests
+for the earlier two stop-screen animations were refreshed at this stage.
+
 ### Active position-hold replay — 23 October 2026
 
 The [active-hold GIF](media/dougie/position-hold.gif) and
