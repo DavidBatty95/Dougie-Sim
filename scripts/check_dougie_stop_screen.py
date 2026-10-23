@@ -25,7 +25,7 @@ def audit(report, require_contact_clean=False, require_range_withheld=False):
         if paired in prefixes and prefix != prefixes[paired]:
             raise ValueError('paired cases do not share fixture and physical approach')
         prefixes[paired] = prefix
-        failed = (result['error'] is not None or result['nonfoot_impulse_ns'] > .1
+        failed = (result['error'] is not None or result.get('stance_failure') is not None or result['nonfoot_impulse_ns'] > .1
                   or result['nonfoot_peak_force_n'] > 25.)
         if require_contact_clean and failed:
             raise ValueError('physical contact/error gate failed: '+str(paired))
@@ -50,6 +50,7 @@ def audit(report, require_contact_clean=False, require_range_withheld=False):
         range_inhibited_ticks=sum(r.get('range_inhibited_ticks', 0) for r, _ in values),
         contact_or_error_failures=sum(failed for _, failed in values),
         entry_failures=sum(r['hold_entry_failed'] for r, _ in values),
+        stance_refusals=sum(r.get('stance_failure') is not None for r, _ in values),
         anchor_corrections=sum(r.get('anchor_corrections', 0) for r, _ in values))
         for key, values in groups.items()]
 

@@ -30,3 +30,11 @@ def test_stop_audit_checks_actual_fault_trace_not_only_summary_counter():
     data['results'][0]['trace'][0]['command'][0] = .01
     with pytest.raises(ValueError, match='post-dropout'):
         audit(data, require_range_withheld=True)
+
+
+def test_stance_refusal_is_not_reported_as_successful_hold():
+    data = report()
+    data['results'][0]['stance_failure'] = 'lost support'
+    assert audit(data)[0]['stance_refusals'] == 1
+    with pytest.raises(ValueError, match='contact/error'):
+        audit(data, require_contact_clean=True)

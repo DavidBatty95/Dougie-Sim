@@ -22,6 +22,7 @@ from dougie_sim.simulation import Simulation
 from dougie_sim.terrain_courses import Course, CourseSpec
 from dougie_sim.pose_uncertainty import core_fingerprint
 from dougie_sim.recovery import healthy_local_return
+from dougie_sim.stance_hold import support_torques
 
 
 class HoldAnchor:
@@ -91,6 +92,12 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
     mujoco.mj_forward(sim.model, sim.data)
     sensors = OnboardSensors(seed, lidar_dropout_after=dropout_after)
     odometry = FusedOdometry(slam_backend='pose-graph' if range_observations else 'distributed')
+    original_policy = sim.policy
+    # A constant from the pinned robot model, not a measured/world-state input.
+    robot_mass = float(np.sum(sim.model.body_mass[1:]))
+    stance_joints = stance_entry_action = None
+    stance_failure = None
+    maximum_support_torque = 0.
     robot = {i for i in range(sim.model.ngeom) if sim.model.geom_bodyid[i] != 0}
     feet = {sim.model.geom(name).id for name in ('FR', 'FL', 'RR', 'RL')}
     start, trace, held_at, error = None, [], None, None
@@ -130,17 +137,34 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
             estimated_anchor = odometry.position.copy()
             stamped_anchor = HoldAnchor(estimated_anchor, float(sim.data.time), odometry.map_revision)
         eligible = np.all(measured.foot_force > 5.)
-        if mode in ('guarded_target_hold', 'position_hold', 'range_position_hold'):
+        if mode in ('guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold'):
             eligible, quiet_since = hold_eligibility(measured, float(sim.data.time), stopped_at, quiet_since)
             if mode == 'range_position_hold':
                 eligible = eligible and range_ready
         if start is not None and mode != 'zero_policy' and held_at is None and eligible:
-            if mode not in ('position_hold', 'range_position_hold'):
+            if mode == 'gravity_hold':
+                stance_joints, stance_entry_action = measured.joints.copy(), sim.action.copy()
+            elif mode not in ('position_hold', 'range_position_hold'):
                 target_action = ((measured.joints-sim.default)/sim.policy_contract.action_scale
                                  if mode == 'encoder_hold' else sim.action.copy())
                 action = torch.from_numpy(target_action.astype(np.float32))[None, :]
                 sim.policy = lambda observation: action
             held_at = float(sim.data.time)
+        if held_at is not None and mode == 'gravity_hold' and stance_failure is None:
+            try:
+                if (not 0 <= sim.data.time-measured.stamp_s <= .05 or np.any(measured.foot_force <= 5.)
+                        or np.linalg.norm(measured.gyro) > .3):
+                    raise ValueError('stance lost fresh quiet four-foot support')
+                torque, loads = support_torques(measured.joints, odometry.rotation.T@np.array([0., 0., 1.]), robot_mass)
+                maximum_support_torque = max(maximum_support_torque, float(np.max(np.abs(torque))))
+                target = stance_joints+torque/sim.policy_contract.config['kp']
+                desired = (target-sim.default)/sim.policy_contract.action_scale
+                blend = min(1., (float(sim.data.time)-held_at)/.5)
+                action = torch.from_numpy(((1-blend)*stance_entry_action+blend*desired).astype(np.float32))[None, :]
+                sim.policy = lambda observation: action
+            except ValueError as exc:
+                stance_failure = str(exc)
+                sim.policy = original_policy  # Retain zero-command drift/contact scoring after refusal.
         command = (.15 if 5. <= sim.data.time < stopped_at else 0., 0., 0.)
         if held_at is not None and mode in ('position_hold', 'range_position_hold'):
             permitted = (odometry.initialized and 0 <= sim.data.time-measured.stamp_s <= .05
@@ -182,6 +206,8 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
         stop_requested_s=stopped_at, approach_s=approach_s,
         evaluator_approach_distance_m=None if start is None or approach_start is None else float(np.linalg.norm(start[:2]-approach_start[:2])),
         hold_entry_failed=mode != 'zero_policy' and held_at is None,
+        stance_failure=stance_failure, maximum_support_torque_nm=maximum_support_torque,
+        robot_model_mass_kg=robot_mass,
         max_estimated_horizontal_drift_m=max_estimated_drift, feedback_inhibited_ticks=feedback_inhibited_ticks,
         range_observations=range_observations, lidar_dropout_after_s=dropout_after,
         range_inhibited_ticks=range_inhibited_ticks, max_inhibited_requested_command_m_s=maximum_inhibited_command,
@@ -202,7 +228,7 @@ def main():
     parser.add_argument('--sensor-seeds', nargs='+', type=int, default=[0, 1])
     parser.add_argument('--range-observations', action='store_true')
     parser.add_argument('--lidar-dropout-after', type=float)
-    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold', 'guarded_target_hold', 'position_hold', 'range_position_hold'),
+    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold', 'guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold'),
                         default=['zero_policy', 'encoder_hold'])
     args = parser.parse_args()
     if (args.output.exists() or not np.isfinite([args.duration, args.approach_seconds]).all()
@@ -225,6 +251,8 @@ def main():
                       estimator='IMU/leg/LiDAR pose graph' if args.range_observations else 'IMU/leg only; no LiDAR corrections', enabled_in_missions=False),
                   range_observations=args.range_observations, lidar_dropout_after_s=args.lidar_dropout_after,
                   range_scan_period_s=.2 if args.range_observations else None,
+                  gravity_hold=dict(model_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/stance_hold.py').read_bytes()).hexdigest(),
+                      load_transfer_s=.5, feedforward_limit_nm=12., com_approximation='base origin', enabled_in_missions=False),
                   cases=cases, source_sha256=core_fingerprint(),
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
