@@ -7,15 +7,15 @@ from collections import defaultdict
 from pathlib import Path
 
 
-def audit(report, require_contact_clean=False, require_range_withheld=False):
+def audit(report, require_contact_clean=False, require_range_withheld=False, require_gravity_fallback=False):
     expected = [tuple(case) for case in report['cases']]
     actual = [(r['angle_deg'], r['mode'], r['sensor_seed'], r['direction']) for r in report['results']]
     if not expected or len(set(expected)) != len(expected) or actual != expected:
         raise ValueError('missing, duplicated or unexpected predeclared cases')
-    if require_range_withheld and report.get('lidar_dropout_after_s') is None:
+    if (require_range_withheld or require_gravity_fallback) and report.get('lidar_dropout_after_s') is None:
         raise ValueError('dropout audit requires a declared dropout')
     groups, prefixes = defaultdict(list), {}
-    faults_checked = 0
+    faults_checked = gravity_checked = 0
     for result in report['results']:
         for key in ('max_horizontal_drift_m', 'nonfoot_impulse_ns', 'nonfoot_peak_force_n', 'peak_motor_torque_nm'):
             if not math.isfinite(result[key]) or result[key] < 0:
@@ -29,7 +29,7 @@ def audit(report, require_contact_clean=False, require_range_withheld=False):
                   or result['nonfoot_peak_force_n'] > 25.)
         if require_contact_clean and failed:
             raise ValueError('physical contact/error gate failed: '+str(paired))
-        if require_range_withheld and result['mode'] == 'range_position_hold':
+        if require_range_withheld and result['mode'] in ('range_position_hold', 'range_gravity_hold'):
             dropout = report['lidar_dropout_after_s']
             if (result['hold_started_s'] is None or result['hold_started_s'] >= dropout
                     or result['range_inhibited_ticks'] <= 0
@@ -39,9 +39,20 @@ def audit(report, require_contact_clean=False, require_range_withheld=False):
             if not after or any(row['range_feedback_ready'] or any(abs(v) > 1e-12 for v in row['command']) for row in after):
                 raise ValueError('post-dropout trace does not show withheld commands')
             faults_checked += 1
+        if require_gravity_fallback and result['mode'] == 'range_gravity_hold':
+            started = result.get('gravity_stance_started_s')
+            if (started is None or started <= report['lidar_dropout_after_s']
+                    or result.get('stance_failure') is not None):
+                raise ValueError('gravity fallback did not enter and remain available')
+            after = [row for row in result['trace'] if row['time_s'] >= started+1.]
+            if not after or not all(row.get('gravity_stance_active', False) for row in after):
+                raise ValueError('gravity fallback trace is incomplete or inactive')
+            gravity_checked += 1
         groups[result['angle_deg'], result['direction'], result['mode']].append((result, failed))
     if require_range_withheld and faults_checked == 0:
         raise ValueError('no range-hold fault cases were audited')
+    if require_gravity_fallback and gravity_checked == 0:
+        raise ValueError('no gravity-fallback cases were audited')
     return [dict(angle_deg=key[0], direction=key[1], mode=key[2], cases=len(values),
         drift_m=[min(r['max_horizontal_drift_m'] for r, _ in values), max(r['max_horizontal_drift_m'] for r, _ in values)],
         estimated_drift_m=None if any('max_estimated_horizontal_drift_m' not in r for r, _ in values) else
@@ -60,8 +71,9 @@ def main():
     parser.add_argument('report', type=Path)
     parser.add_argument('--require-contact-clean', action='store_true')
     parser.add_argument('--require-range-withheld', action='store_true')
+    parser.add_argument('--require-gravity-fallback', action='store_true')
     args = parser.parse_args()
-    result = audit(json.loads(args.report.read_text()), args.require_contact_clean, args.require_range_withheld)
+    result = audit(json.loads(args.report.read_text()), args.require_contact_clean, args.require_range_withheld, args.require_gravity_fallback)
     print(json.dumps(result, indent=2))
 
 

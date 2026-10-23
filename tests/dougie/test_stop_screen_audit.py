@@ -38,3 +38,14 @@ def test_stance_refusal_is_not_reported_as_successful_hold():
     assert audit(data)[0]['stance_refusals'] == 1
     with pytest.raises(ValueError, match='contact/error'):
         audit(data, require_contact_clean=True)
+
+
+def test_gravity_fallback_requires_post_fault_entry_and_active_trace():
+    data = report()
+    data['cases'][0][1] = data['results'][0]['mode'] = 'range_gravity_hold'
+    data['results'][0]['gravity_stance_started_s'] = 30.9
+    data['results'][0]['trace'][0].update(time_s=32., gravity_stance_active=True)
+    assert audit(data, require_range_withheld=True, require_gravity_fallback=True)[0]['cases'] == 1
+    data['results'][0]['trace'][0]['gravity_stance_active'] = False
+    with pytest.raises(ValueError, match='fallback trace'):
+        audit(data, require_gravity_fallback=True)

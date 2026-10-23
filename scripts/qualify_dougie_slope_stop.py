@@ -97,6 +97,9 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
     robot_mass = float(np.sum(sim.model.body_mass[1:]))
     stance_joints = stance_entry_action = None
     stance_failure = None
+    stance_started = stance_requested = stance_quiet_since = None
+    evaluator_stance_start = None
+    max_stance_drift = 0.
     maximum_support_torque = 0.
     robot = {i for i in range(sim.model.ngeom) if sim.model.geom_bodyid[i] != 0}
     feet = {sim.model.geom(name).id for name in ('FR', 'FL', 'RR', 'RL')}
@@ -137,20 +140,35 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
             estimated_anchor = odometry.position.copy()
             stamped_anchor = HoldAnchor(estimated_anchor, float(sim.data.time), odometry.map_revision)
         eligible = np.all(measured.foot_force > 5.)
-        if mode in ('guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold'):
+        if mode in ('guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold', 'range_gravity_hold'):
             eligible, quiet_since = hold_eligibility(measured, float(sim.data.time), stopped_at, quiet_since)
-            if mode == 'range_position_hold':
+            if mode in ('range_position_hold', 'range_gravity_hold'):
                 eligible = eligible and range_ready
         if start is not None and mode != 'zero_policy' and held_at is None and eligible:
             if mode == 'gravity_hold':
                 stance_joints, stance_entry_action = measured.joints.copy(), sim.action.copy()
-            elif mode not in ('position_hold', 'range_position_hold'):
+                stance_started = float(sim.data.time)
+                evaluator_stance_start = sim.data.qpos[:3].copy()
+            elif mode not in ('position_hold', 'range_position_hold', 'range_gravity_hold'):
                 target_action = ((measured.joints-sim.default)/sim.policy_contract.action_scale
                                  if mode == 'encoder_hold' else sim.action.copy())
                 action = torch.from_numpy(target_action.astype(np.float32))[None, :]
                 sim.policy = lambda observation: action
             held_at = float(sim.data.time)
-        if held_at is not None and mode == 'gravity_hold' and stance_failure is None:
+        if mode == 'range_gravity_hold' and held_at is not None and stance_started is None and stance_failure is None:
+            if range_ready:
+                stance_requested = stance_quiet_since = None
+            else:
+                if stance_requested is None:
+                    stance_requested = float(sim.data.time)
+                ready, stance_quiet_since = hold_eligibility(measured, float(sim.data.time), stance_requested, stance_quiet_since)
+                if ready:
+                    stance_joints, stance_entry_action = measured.joints.copy(), sim.action.copy()
+                    stance_started = float(sim.data.time)
+                    evaluator_stance_start = sim.data.qpos[:3].copy()
+                elif sim.data.time-stance_requested > 3.:
+                    stance_failure = 'no supported gravity stance within entry deadline'
+        if stance_started is not None and stance_failure is None:
             try:
                 if (not 0 <= sim.data.time-measured.stamp_s <= .05 or np.any(measured.foot_force <= 5.)
                         or np.linalg.norm(measured.gyro) > .3):
@@ -159,16 +177,16 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
                 maximum_support_torque = max(maximum_support_torque, float(np.max(np.abs(torque))))
                 target = stance_joints+torque/sim.policy_contract.config['kp']
                 desired = (target-sim.default)/sim.policy_contract.action_scale
-                blend = min(1., (float(sim.data.time)-held_at)/.5)
+                blend = min(1., (float(sim.data.time)-stance_started)/.5)
                 action = torch.from_numpy(((1-blend)*stance_entry_action+blend*desired).astype(np.float32))[None, :]
                 sim.policy = lambda observation: action
             except ValueError as exc:
                 stance_failure = str(exc)
                 sim.policy = original_policy  # Retain zero-command drift/contact scoring after refusal.
         command = (.15 if 5. <= sim.data.time < stopped_at else 0., 0., 0.)
-        if held_at is not None and mode in ('position_hold', 'range_position_hold'):
+        if held_at is not None and stance_started is None and mode in ('position_hold', 'range_position_hold', 'range_gravity_hold'):
             permitted = (odometry.initialized and 0 <= sim.data.time-measured.stamp_s <= .05
-                         and (mode != 'range_position_hold' or range_ready))
+                         and (mode not in ('range_position_hold', 'range_gravity_hold') or range_ready))
             if permitted:
                 feedback_command = position_hold_command(estimated_anchor, odometry.position, odometry.velocity,
                                                         odometry.yaw, feedback_command, sim.model.opt.timestep)
@@ -176,9 +194,9 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
             else:
                 feedback_command = np.zeros(3)
                 feedback_inhibited_ticks += 1
-            if mode == 'range_position_hold' and not range_ready:
-                range_inhibited_ticks += 1
-                maximum_inhibited_command = max(maximum_inhibited_command, float(np.linalg.norm(command[:2])))
+        if held_at is not None and mode in ('range_position_hold', 'range_gravity_hold') and not range_ready:
+            range_inhibited_ticks += 1
+            maximum_inhibited_command = max(maximum_inhibited_command, float(np.linalg.norm(command[:2])))
         try:
             sim.step(command)
         except RuntimeError as exc:
@@ -187,6 +205,8 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
         if start is not None:
             max_drift = max(max_drift, float(np.linalg.norm(sim.data.qpos[:2]-start[:2])))
             max_estimated_drift = max(max_estimated_drift, float(np.linalg.norm(odometry.position[:2]-estimated_anchor[:2])))
+        if evaluator_stance_start is not None:
+            max_stance_drift = max(max_stance_drift, float(np.linalg.norm(sim.data.qpos[:2]-evaluator_stance_start[:2])))
         if approach_start is not None:
             peak_torque = max(peak_torque, float(np.max(np.abs(sim.data.ctrl[sim.actuators]))))
             for contact_index in range(sim.data.ncon):
@@ -201,12 +221,14 @@ def trial(angle, mode, seed, duration, approach_s=0., direction='up', range_obse
                               estimated_position=odometry.position.tolist(),
                               range_feedback_ready=range_ready, map_revision=odometry.map_revision,
                               anchor_revision=None if stamped_anchor is None else stamped_anchor.revision,
+                              gravity_stance_active=stance_started is not None and stance_failure is None,
                               command=sim.last_command.tolist(), held=held_at is not None))
     return dict(angle_deg=angle, direction=direction, mode=mode, sensor_seed=seed, hold_started_s=held_at, error=error,
         stop_requested_s=stopped_at, approach_s=approach_s,
         evaluator_approach_distance_m=None if start is None or approach_start is None else float(np.linalg.norm(start[:2]-approach_start[:2])),
         hold_entry_failed=mode != 'zero_policy' and held_at is None,
         stance_failure=stance_failure, maximum_support_torque_nm=maximum_support_torque,
+        gravity_stance_started_s=stance_started, max_stance_horizontal_drift_m=max_stance_drift,
         robot_model_mass_kg=robot_mass,
         max_estimated_horizontal_drift_m=max_estimated_drift, feedback_inhibited_ticks=feedback_inhibited_ticks,
         range_observations=range_observations, lidar_dropout_after_s=dropout_after,
@@ -228,7 +250,7 @@ def main():
     parser.add_argument('--sensor-seeds', nargs='+', type=int, default=[0, 1])
     parser.add_argument('--range-observations', action='store_true')
     parser.add_argument('--lidar-dropout-after', type=float)
-    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold', 'guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold'),
+    parser.add_argument('--modes', nargs='+', choices=('zero_policy', 'encoder_hold', 'target_hold', 'guarded_target_hold', 'position_hold', 'range_position_hold', 'gravity_hold', 'range_gravity_hold'),
                         default=['zero_policy', 'encoder_hold'])
     args = parser.parse_args()
     if (args.output.exists() or not np.isfinite([args.duration, args.approach_seconds]).all()
@@ -238,7 +260,7 @@ def main():
             or any(seed < 0 for seed in args.sensor_seeds)
             or any(len(values) != len(set(values)) for values in (args.angles, args.sensor_seeds, args.directions, args.modes))):
         parser.error('angles/seeds must be valid and case selections unique')
-    if (('range_position_hold' in args.modes or args.lidar_dropout_after is not None) and not args.range_observations):
+    if ((set(args.modes) & {'range_position_hold', 'range_gravity_hold'} or args.lidar_dropout_after is not None) and not args.range_observations):
         parser.error('range hold and dropout require --range-observations')
     if args.lidar_dropout_after is not None and (not np.isfinite(args.lidar_dropout_after) or args.lidar_dropout_after < 0):
         parser.error('dropout time must be finite and nonnegative')
