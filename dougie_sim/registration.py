@@ -20,7 +20,7 @@ class Registration:
 
 
 def register(points, normals, target, target_normals, position, rotation, max_translation=.18, max_rotation=.12):
-    """Atomic update: a rejected fit never leaks partially updated pose or map."""
+    """Atomic fit using sensor-facing normals; reject opposite observed faces."""
     original_p, original_R = np.asarray(position).copy(), np.asarray(rotation).copy()
     p, R = original_p.copy(), original_R.copy()
     tree = cKDTree(target)
@@ -31,7 +31,7 @@ def register(points, normals, target, target_normals, position, rotation, max_tr
             rotated = points@R.T
             world = rotated+p
             distance, nearest = tree.query(world)
-            agreement = np.abs(np.sum((normals@R.T)*target_normals[nearest], axis=1))
+            agreement = np.sum((normals@R.T)*target_normals[nearest], axis=1)
             keep = (distance < .3) & (agreement > .8)
             fraction = float(keep.mean())
             if keep.sum() < 40 or fraction < .35:
@@ -75,7 +75,7 @@ def register(points, normals, target, target_normals, position, rotation, max_tr
         if reason in ('registered', 'weak_geometry'):
             world = points@R.T+p
             distance, nearest = tree.query(world)
-            keep = (distance < .3) & (np.abs(np.sum((normals@R.T)*target_normals[nearest], axis=1)) > .8)
+            keep = (distance < .3) & (np.sum((normals@R.T)*target_normals[nearest], axis=1) > .8)
             fraction = float(keep.mean())
             rmse = float(np.sqrt(np.mean(np.sum(target_normals[nearest[keep]]*(target[nearest[keep]]-world[keep]), axis=1)**2))) if keep.any() else float('inf')
             if keep.sum() < 40 or fraction < .35 or rmse > .06:

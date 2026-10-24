@@ -24,4 +24,8 @@ def registration_cloud(packet):
     valid &= (lengths > 1e-5) & (product > 1e-10) & (agreement > .8)
     valid &= (np.linalg.norm(across, axis=2) < .6) & (np.linalg.norm(radial, axis=2) < radial_limit)
     valid[[0, -1]] = False
-    return points[valid], normals[valid]/lengths[valid, None]
+    cloud, normal = points[valid], normals[valid]/lengths[valid, None]
+    # Preserve the observed side of a surface. Opposite faces of a thin wall
+    # must not become compatible merely because their normals are antiparallel.
+    normal[np.sum(normal*(cloud-packet.origin), axis=1) > 0.] *= -1.
+    return cloud, normal

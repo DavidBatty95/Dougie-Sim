@@ -49,6 +49,36 @@ def test_flat_scene_does_not_invent_observable_horizontal_motion():
     np.testing.assert_allclose(result.position, [.1, .1, 0.], atol=1e-6)
 
 
+def test_opposite_observed_faces_cannot_collapse_a_thin_obstacle():
+    points, normals = corner_cloud()
+    face, normal = points[:441], normals[:441]
+    result = register(face+[.05, 0., 0.], normal, face, -normal, np.zeros(3), np.eye(3))
+    assert not result.accepted
+    np.testing.assert_array_equal(result.position, np.zeros(3))
+
+
+def test_opposite_face_does_not_invent_rank_in_otherwise_weak_geometry():
+    target, normals = corner_cloud()
+    source, target_normals = target.copy(), normals.copy()
+    source[:441, 0] += .05
+    target_normals[:441] *= -1.
+    result = register(source, normals, target, target_normals, np.zeros(3), np.eye(3))
+    assert result.accepted and result.observable_rank == 5
+    np.testing.assert_allclose(result.position, np.zeros(3), atol=1e-6)
+
+
+def test_registration_normals_face_the_observing_sensor():
+    from dougie_sim.scan_geometry import registration_cloud
+    for azimuth in (0., np.pi):
+        a, e = np.meshgrid(np.linspace(-.4, .4, 41)+azimuth, np.array([-.15, 0., .15, .35, .6]))
+        directions = np.stack((np.cos(e)*np.cos(a), np.cos(e)*np.sin(a), np.sin(e)), axis=-1)
+        distances = 3./np.abs(directions[:, :, 0])
+        packet = RangePacket(1., 0, np.zeros(3), directions, distances, 6., np.zeros(a.shape, bool))
+        points, normals = registration_cloud(packet)
+        assert len(points) >= 100
+        assert np.all(np.sum(normals*(points-packet.origin), axis=1) <= 0.)
+
+
 def test_rejected_scan_cannot_poison_submaps_and_loop_requires_confirmation():
     points, normals = corner_cloud()
     odometry = FusedOdometry()
