@@ -18,6 +18,7 @@ _parameters = _terrain_profile = None
 _recovery = None
 _breadcrumbs = []
 _support_captured = False
+_checkpoints = None
 
 
 def create_explorer(parameters, planner, terrain_profile, options=None):
@@ -62,7 +63,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
 
 
 def initialize(parameters, planner, terrain_profile, limit_threads=True, options=None):
-    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile, _recovery, _breadcrumbs, _support_captured
+    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile, _recovery, _breadcrumbs, _support_captured, _checkpoints
     # Never reconfigure native thread pools in a Python worker thread while the
     # main thread is executing Torch. The parent already limits the thread mode.
     if limit_threads:
@@ -76,6 +77,8 @@ def initialize(parameters, planner, terrain_profile, limit_threads=True, options
     _recovery = BudgetedRecovery() if _options.get('recovery_enabled') else None
     _breadcrumbs = []
     _support_captured = False
+    from .localization_checkpoint import LocalizationCheckpoints
+    _checkpoints = LocalizationCheckpoints(_options.get('localization_checkpoints', 0))
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
@@ -167,6 +170,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     if ((localization or {}).get('pose_graph') or {}).get('saturated', False):
         explorer.returning, explorer.last_reason = True, 'pose_graph_capacity'
     if _options.get('consistent_mapping') and max((localization or {}).get('position_std_m', [0.])) >= .18:
+        if not explorer.returning:
+            _checkpoints.request(localization or {})
         explorer.returning, explorer.last_reason = True, 'localization_return_reserve'
     if _journal and _journal.saturated:
         explorer.returning, explorer.last_reason = True, 'observation_journal_capacity'
@@ -212,6 +217,31 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             explorer.failed.append((explorer.target.copy(), stamp))
     mapped = time.perf_counter()
     explorer.replan(position, stamp)
+    if _checkpoints.limit:
+        at_home = explorer.state == 'returned'
+        capacity_ok = (not (_journal and (_journal.saturated or len(_journal.scans) >= 992))
+            and not getattr(explorer.gp, 'saturated', False)
+            and not getattr(explorer.terrain, 'support_saturated', False)
+            and not getattr(getattr(explorer.terrain, 'occupancy', None), 'saturated', False)
+            and not (((localization or {}).get('pose_graph') or {}).get('saturated', False)))
+        admissible = capacity_ok and (_recovery is None or (_recovery.started is None and not _recovery.terminal))
+        if at_home:
+            key = explorer.terrain.nearest(explorer.home)
+            plane = getattr(explorer.terrain, 'planes', {}).get(key)
+            sample = explorer.sample
+            rate = sample.rate_usv_h+3.*math.sqrt(sample.variance_usv_h2) if sample else math.inf
+            admissible &= (plane is not None and np.linalg.norm(plane[:2]) <= math.tan(math.radians(2.))
+                and sample is not None and 0 <= stamp-sample.stamp_s <= 1.5
+                and sample.dose_upper_usv < .8*explorer.budget and rate <= explorer.rate_limit
+                and sample.dose_upper_usv+explorer.return_reserve+rate*_checkpoints.wait_s/3600. < explorer.budget
+                and stamp+_checkpoints.wait_s+15. < explorer.mission_duration)
+        if _checkpoints.step(stamp, localization or {}, at_home, admissible, explorer.last_reason):
+            explorer.returning = False
+            explorer.target, explorer.path, explorer.return_path = None, [], []
+            explorer.state, explorer.last_reason = 'checkpoint_revalidated', 'checkpoint_revalidated'
+            explorer.route_forecast = {}
+        elif at_home and _checkpoints.waiting:
+            explorer.state, explorer.path = 'returning_checkpoint', []
     support_diagnosis = None
     if explorer.state in ('no_observed_return_route', 'waiting_for_home_support', 'waiting_for_support') and hasattr(explorer.terrain, 'support_diagnosis'):
         support_diagnosis = dict(state=explorer.state, reason=getattr(explorer, 'last_reason', explorer.state),
@@ -250,6 +280,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         volume = (query, *explorer.gp.predict(query))
     displayed = time.perf_counter()
     metrics = explorer.metrics()
+    metrics['localization_checkpoints'] = _checkpoints.metrics()
     if support_diagnosis is not None:
         metrics['support_diagnosis'] = support_diagnosis
     metrics.update(planner=_planner, selected_target=None if explorer.target is None else explorer.target.tolist(),
@@ -380,4 +411,5 @@ def finalize(pending_samples, corrections=(), support_archive=None):
         _explorer.map_consistency = _journal.metrics()
     if support_archive is not None:
         save_support_archive(support_archive)
+    _explorer.localization_checkpoints = _checkpoints.metrics()
     return _explorer

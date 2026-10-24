@@ -18,14 +18,14 @@ CORE = ('odometry.py', 'registration.py', 'pose_graph.py', 'scan_geometry.py', '
         'clustered_planner.py', 'planning_worker.py', 'path_motion.py', 'route_forecast.py',
         'motion_cost.py', 'mission_utility.py', 'region_clustering.py', 'region_agenda.py',
         'geometry_gp.py', 'gp.py', 'spatial_gp.py', 'recovery.py', 'reactor.py', 'multilevel.py', 'facility.py',
-        'source_config.py', 'observed_circuit.py', 'mission_evaluation.py', 'circuit_evaluation.py', 'stance_hold.py')
+        'source_config.py', 'observed_circuit.py', 'mission_evaluation.py', 'circuit_evaluation.py', 'stance_hold.py', 'localization_checkpoint.py')
 DOMAIN_KEYS = ('world', 'layout_seed', 'mezzanine_angle', 'source_profile', 'duration', 'dose_budget', 'rate_limit',
                'localization', 'navigation_profile', 'slam_backend', 'gp_mode', 'gp_likelihood',
                'gp_capacity', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'detector_likelihood',
                'path_mode', 'terrain_profile', 'mission_objective', 'utility_mode', 'region_scheduling',
                'fixed_plan_delay', 'fast', 'ros', 'lidar_dropout_after', 'circuit_radius',
                'require_clean', 'require_round_trip', 'require_circuit', 'headless', 'visualizer',
-               'record_demo', 'record_view', 'show_sources', 'terminal_hold', 'support_fusion', 'record_support', 'loop_search_radius')
+               'record_demo', 'record_view', 'show_sources', 'terminal_hold', 'support_fusion', 'record_support', 'loop_search_radius', 'localization_checkpoints')
 
 
 def core_fingerprint():

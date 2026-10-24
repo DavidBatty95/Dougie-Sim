@@ -59,6 +59,8 @@ def main():
     parser.add_argument('--slam-backend', choices=('distributed', 'pose-graph'), help='pose-graph for robust fusion; distributed retains the previous correction model')
     parser.add_argument('--loop-search-radius', type=float, default=1.25,
                         help='estimated-pose radius for older anchor eligibility, .5..3 m; registration gates are unchanged')
+    parser.add_argument('--localization-checkpoints', type=int, default=0,
+                        help='experimental bounded home relocalization/resume cycles (0..3), within the original budget')
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'), default='zero-policy',
                         help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
@@ -155,6 +157,11 @@ def main():
         parser.error('--record-support requires robust fused localization and layered terrain')
     if args.record_support and (not args.fast or args.fixed_plan_delay is None):
         parser.error('--record-support requires a fixed-delay fast run')
+    if not 0 <= args.localization_checkpoints <= 3:
+        parser.error('--localization-checkpoints must be between zero and three')
+    if args.localization_checkpoints and (args.localization != 'fused' or args.navigation_profile != 'robust'
+            or args.terrain_profile != 'layered' or args.planner == 'baseline' or args.mission_objective != 'survey'):
+        parser.error('localization checkpoints require a robust fused layered survey with a clustered planner')
     args.source_profile = args.source_profile or (args.world if args.world in ('mezzanine', 'facility') else 'hotspots-and-leaks')
     if not math.isfinite(args.duration) or args.duration <= 0 or not 8 <= args.gp_capacity <= 512:
         parser.error('invalid duration or GP capacity (8..512)')
@@ -239,7 +246,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion', 'localization_checkpoints')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
@@ -504,6 +511,8 @@ def main():
                     break
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
+            if state in ('returning_checkpoint', 'checkpoint_revalidated'):
+                last_path_position, last_progress_stamp = position.copy(), stamp
             stalled = stamp-last_progress_stamp > 15.
             ready_samples, future_samples = [], samples
             if terminal_stop is None and future is None and stamp-last_plan >= 2.:
@@ -666,6 +675,7 @@ def main():
                 coarse_free_voxel_size_m=2*terrain.occupancy.resolution,
                 voxel_size_m=terrain.occupancy.resolution)
         metrics = dict(**explorer.metrics(), simulation=sim.metrics(), end_state=state, error=error,
+            localization_checkpoints=getattr(explorer, 'localization_checkpoints', None),
             source_profile=args.source_profile, radiation_source_count=len(field.sources),
             source_sha256=source_hashes,
             true_dose_usv=true_dose, measured_dose_usv=detector.dose,
