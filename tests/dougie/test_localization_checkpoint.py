@@ -82,3 +82,21 @@ def test_worker_does_not_wait_for_checkpoint_with_high_dose_or_sloping_home(dose
     assert state == 'returned'
     assert metrics['localization_checkpoints']['outcome'] == 'not_admissible'
     assert metrics['localization_checkpoints']['used'] == 0
+
+
+def test_enroute_resensing_preserves_pending_checkpoint_without_resuming():
+    from dougie_sim import planning_worker as worker
+    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'layered', options=dict(
+        consistent_mapping=True, recovery_enabled=True, navigation_profile='robust',
+        path_mode='grid', display_prediction=False, localization_checkpoints=1))
+    worker._explorer.home = np.array([-.4, 0., 0.])
+    sample = RadiationSample(.5, (.4, 0., .4), 10, .5, 1.44, .1, .001, .002)
+    worker.plan([sample], floor_packet(), np.array([.4, 0., 0.]), .5, False,
+                localization=localization(.5, std=.19, revision=0))
+    assert worker._checkpoints.origin is not None
+    worker._recovery.step('route_tracking_lost', .6, .001, .002, 2., 10., 1.5, 600., valid_route=True)
+    _, _, metrics, _ = worker.plan([replace(sample, stamp_s=1.5)], floor_packet(1.5),
+        np.array([.4, 0., 0.]), 1.5, False, localization=localization(1.5, std=.19, revision=0))
+    assert metrics['localization_checkpoints']['pending']
+    assert metrics['localization_checkpoints']['used'] == 0
+    assert metrics['recovery']['phase'] == 'resensing'

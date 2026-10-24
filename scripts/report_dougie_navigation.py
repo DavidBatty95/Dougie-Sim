@@ -45,9 +45,11 @@ def navigation_transitions(trace):
     previous = None
     for row in trace:
         recovery = row.get('recovery') or {}
+        checkpoint = row.get('localization_checkpoints') or {}
         revision = (row.get('map_consistency') or {}).get('map_revision')
         signature = (row.get('state'), row.get('decision_reason'), revision,
-                     recovery.get('phase'), recovery.get('reason'), recovery.get('retreat_attempts'))
+                     recovery.get('phase'), recovery.get('reason'), recovery.get('retreat_attempts'),
+                     checkpoint.get('used'), checkpoint.get('outcome'))
         if signature == previous:
             continue
         previous = signature
@@ -55,6 +57,7 @@ def navigation_transitions(trace):
         events.append(dict(time_s=row['time_s'], state=row.get('state'),
             decision_reason=row.get('decision_reason'), map_revision=revision,
             recovery=recovery, estimated_position=localization.get('position'),
+            localization_checkpoints=checkpoint or None,
             support_diagnosis=row.get('support_diagnosis'),
             position_std_m=localization.get('position_std_m'),
             scan_rmse_m=localization.get('scan_rmse_m'),

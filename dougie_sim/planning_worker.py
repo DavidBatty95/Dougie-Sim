@@ -224,8 +224,11 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             and not getattr(explorer.terrain, 'support_saturated', False)
             and not getattr(getattr(explorer.terrain, 'occupancy', None), 'saturated', False)
             and not (((localization or {}).get('pose_graph') or {}).get('saturated', False)))
-        admissible = capacity_ok and (_recovery is None or (_recovery.started is None and not _recovery.terminal))
+        # A bounded resensing episode on the way home must finish before resume,
+        # but need not cancel the pending checkpoint before home is reached.
+        admissible = capacity_ok and (_recovery is None or not _recovery.terminal)
         if at_home:
+            admissible &= _recovery is None or _recovery.started is None
             key = explorer.terrain.nearest(explorer.home)
             plane = getattr(explorer.terrain, 'planes', {}).get(key)
             sample = explorer.sample
