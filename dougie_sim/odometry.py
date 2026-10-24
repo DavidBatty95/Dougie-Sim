@@ -50,9 +50,13 @@ def leg_kinematics(joints, velocities):
 
 
 class FusedOdometry:
-    def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed'):
+    def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed', loop_search_radius=1.25):
         if slam_backend not in ('distributed', 'pose-graph') or (not robust and slam_backend != 'distributed'):
             raise ValueError('pose-graph localization requires the robust navigation profile')
+        if not math.isfinite(loop_search_radius) or not .5 <= loop_search_radius <= 3.:
+            raise ValueError('loop search radius must be between .5 and 3 metres')
+        self.loop_search_radius = float(loop_search_radius)
+        self.loop_search = dict(attempts=0, candidates=0, last_reason='not_attempted')
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -304,15 +308,25 @@ class FusedOdometry:
         if not self.loop_closure_enabled or len(self.corrections) >= 16 or stamp-self.last_loop_stamp < 30. or stamp-self.last_loop_attempt < 2.:
             return
         self.last_loop_attempt = stamp
+        self.loop_search['attempts'] += 1
+        self.loop_search['stamp_s'] = float(stamp)
         candidates = [frame for frame in self.keyframes[:-4]
-                      if stamp-frame.stamp > 20. and np.linalg.norm(frame.position-self.position) < 1.25]
+                      if stamp-frame.stamp > 20. and np.linalg.norm(frame.position-self.position) < self.loop_search_radius]
+        self.loop_search['candidates'] = len(candidates)
         if not candidates:
+            self.loop_search.update(last_reason='no_eligible_anchor', anchor_stamp_s=None,
+                anchor_distance_m=None, rank=None, inlier_fraction=None, residual_m=None)
             self.loop_candidate = None
             return
         anchor = min(candidates, key=lambda frame: frame.stamp)
         target, target_normals = anchor.world()
         fit = register(points, normals, target, target_normals, self.position, self.rotation, .4, .15)
+        self.loop_search.update(anchor_stamp_s=anchor.stamp,
+            anchor_distance_m=float(np.linalg.norm(anchor.position-self.position)),
+            rank=fit.observable_rank, inlier_fraction=fit.inlier_fraction,
+            residual_m=fit.rmse if math.isfinite(fit.rmse) else None)
         if not fit.accepted or fit.observable_rank < 6 or fit.inlier_fraction < .55 or fit.rmse > .025:
+            self.loop_search['last_reason'] = 'registration_quality_rejected'
             self.loop_candidate = None
             return
         R = fit.rotation@self.rotation.T
@@ -323,6 +337,7 @@ class FusedOdometry:
         self.loop_candidate = anchor.stamp, rv.copy(), t.copy(), stamp
         if (previous is None or previous[0] != anchor.stamp or stamp-previous[3] > 5.
                 or np.linalg.norm(previous[1]-rv) > .03 or np.linalg.norm(previous[2]-t) > .08):
+            self.loop_search['last_reason'] = 'awaiting_confirmation'
             return
         if small and self.pose_graph is None:
             # A confirmed near-zero loop match is still useful evidence against
@@ -331,11 +346,13 @@ class FusedOdometry:
             self.drift_variance = min(self.drift_variance, max(.03**2, anchor.variance+fit.rmse**2))
             self.last_loop_stamp, self.loop_candidate = stamp, None
             self.anchor_revalidations += 1
+            self.loop_search['last_reason'] = 'anchor_revalidated'
             return
         if self.pose_graph is not None:
             event = self.pose_graph.close_loop(anchor.stamp, stamp, self.position, self.rotation,
                 fit.position, fit.rotation, self.map_revision+1)
             if event is None:
+                self.loop_search['last_reason'] = 'graph_rejected'
                 self.loop_candidate = None
                 return
             self.position = self.pose_graph.poses[-1].position.copy()
@@ -354,6 +371,7 @@ class FusedOdometry:
             frame.correct(event)
         self.anchors = {leg: self.position+self.rotation@self.feet[leg] for leg in self.anchors}
         self.corrections.append(event)
+        self.loop_search['last_reason'] = 'map_corrected'
         self.last_loop_stamp, self.loop_candidate = stamp, None
         self.drift_variance = max(.03**2, anchor.variance+fit.rmse**2)
         if self.pose_graph is not None:
@@ -380,6 +398,7 @@ class FusedOdometry:
             scan_rejections=self.scan_rejections, scan_rmse_m=self.scan_rmse, local_map_cells=len(self.map),
             robust=self.robust, map_revision=self.map_revision, keyframes=len(self.keyframes),
             anchor_revalidations=self.anchor_revalidations,
+            loop_search_radius_m=self.loop_search_radius, loop_search=dict(self.loop_search),
             slam_backend=self.slam_backend, pose_graph=self.pose_graph.metrics() if self.pose_graph is not None else None,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,

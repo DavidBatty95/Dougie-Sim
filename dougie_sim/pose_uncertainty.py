@@ -25,7 +25,7 @@ DOMAIN_KEYS = ('world', 'layout_seed', 'mezzanine_angle', 'source_profile', 'dur
                'path_mode', 'terrain_profile', 'mission_objective', 'utility_mode', 'region_scheduling',
                'fixed_plan_delay', 'fast', 'ros', 'lidar_dropout_after', 'circuit_radius',
                'require_clean', 'require_round_trip', 'require_circuit', 'headless', 'visualizer',
-               'record_demo', 'record_view', 'show_sources', 'terminal_hold', 'support_fusion', 'record_support')
+               'record_demo', 'record_view', 'show_sources', 'terminal_hold', 'support_fusion', 'record_support', 'loop_search_radius')
 
 
 def core_fingerprint():

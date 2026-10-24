@@ -67,6 +67,34 @@ def test_rejected_scan_cannot_poison_submaps_and_loop_requires_confirmation():
     np.testing.assert_allclose(odometry.keyframes[0].position, np.zeros(3), atol=1e-9)
 
 
+def test_wider_anchor_eligibility_still_requires_confirmed_full_rank_registration():
+    points, normals = corner_cloud()
+    for radius, revisions in ((1.25, 0), (3., 1)):
+        odometry = FusedOdometry(loop_search_radius=radius)
+        odometry.keyframes = [Keyframe(i*5., np.zeros(3), np.eye(3), points, normals, .001) for i in range(5)]
+        odometry.position = np.array([2.1, 0., 0.])
+        odometry._try_loop(points-[2., 0., 0.], normals, 60.)
+        assert odometry.map_revision == 0
+        odometry._try_loop(points-[2., 0., 0.], normals, 62.)
+        assert odometry.map_revision == revisions
+        if revisions:
+            np.testing.assert_allclose(odometry.position, [2., 0., 0.], atol=.005)
+    weak = FusedOdometry(loop_search_radius=3.)
+    floor, up = points[-441:], normals[-441:]
+    weak.keyframes = [Keyframe(i*5., np.zeros(3), np.eye(3), floor, up, .001) for i in range(5)]
+    weak.position = np.array([2.1, 0., 0.])
+    weak._try_loop(floor-[2., 0., 0.], up, 60.)
+    weak._try_loop(floor-[2., 0., 0.], up, 62.)
+    assert weak.map_revision == 0
+    assert weak.loop_search['last_reason'] == 'registration_quality_rejected'
+
+
+def test_invalid_loop_search_radius_is_rejected():
+    for radius in (0., 3.1, float('nan')):
+        with pytest.raises(ValueError, match='loop search radius'):
+            FusedOdometry(loop_search_radius=radius)
+
+
 def test_count_window_and_scan_share_the_same_revision_without_duplicate_counts():
     event = MapCorrection(1, 0., 1., (0., 0., .1), (.2, 0., 0.))
     detector = Detector(3)

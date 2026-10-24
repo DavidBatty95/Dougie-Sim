@@ -1,0 +1,189 @@
+{
+  "scope": "Compare support estimators on identical archived observations.\n\nFirst-failure captures retain that decision's frame; final captures include later\nSLAM corrections. This is a geometry ablation, not an executable radiation-safe route.\n",
+  "captures": 54,
+  "map_revision": 0,
+  "capture_scope": "first_support_failure",
+  "planning_state": "no_observed_return_route",
+  "planning_reason": "return_graph_disconnected",
+  "original_mode": "maximum",
+  "results": [
+    {
+      "mode": "maximum",
+      "metrics": {
+        "support_nodes": 1714,
+        "support_returns": 34214,
+        "support_fusion": "maximum",
+        "support_fusion_cells": 0,
+        "support_fusion_span_m": 0.016,
+        "support_peak_retention_cells": 0,
+        "fit_rejections": {
+          "local_discontinuity": 227,
+          "insufficient_returns": 21,
+          "plane_residual": 2
+        },
+        "support_capacity": 160000,
+        "fitted_columns": 3357,
+        "reused_columns": 0,
+        "footprints_checked": 2082,
+        "support_cache_saturated": false,
+        "occupied_voxels": 0,
+        "free_voxels": 0,
+        "occupancy_storage_cells": 0,
+        "coarse_free_blocks": 0,
+        "free_block_compactions": 0,
+        "occupancy_saturated": false,
+        "ramp_edges": 152,
+        "last_scan_stamp_s": null
+      },
+      "components": [
+        {
+          "nodes": 1630,
+          "minimum_xyz": [
+            -2.1,
+            -3.1,
+            0.011087199656410376
+          ],
+          "maximum_xyz": [
+            6.1000000000000005,
+            11.100000000000001,
+            0.014931106078987882
+          ]
+        },
+        {
+          "nodes": 84,
+          "minimum_xyz": [
+            3.3000000000000003,
+            5.7,
+            0.36164231519965123
+          ],
+          "maximum_xyz": [
+            7.5,
+            6.9,
+            0.9881167884512195
+          ]
+        }
+      ],
+      "estimated_home_supported": true,
+      "estimated_current_supported": true,
+      "estimated_home_connected": false,
+      "matches_original_node_count": true
+    },
+    {
+      "mode": "bounded-mean",
+      "metrics": {
+        "support_nodes": 1723,
+        "support_returns": 34214,
+        "support_fusion": "bounded-mean",
+        "support_fusion_cells": 34214,
+        "support_fusion_span_m": 0.016,
+        "support_peak_retention_cells": 186,
+        "fit_rejections": {
+          "insufficient_returns": 21,
+          "local_discontinuity": 197,
+          "plane_residual": 1
+        },
+        "support_capacity": 160000,
+        "fitted_columns": 3361,
+        "reused_columns": 0,
+        "footprints_checked": 2091,
+        "support_cache_saturated": false,
+        "occupied_voxels": 0,
+        "free_voxels": 0,
+        "occupancy_storage_cells": 0,
+        "coarse_free_blocks": 0,
+        "free_block_compactions": 0,
+        "occupancy_saturated": false,
+        "ramp_edges": 130,
+        "last_scan_stamp_s": null
+      },
+      "components": [
+        {
+          "nodes": 1647,
+          "minimum_xyz": [
+            -2.1,
+            -3.1,
+            0.010582489137925736
+          ],
+          "maximum_xyz": [
+            6.1000000000000005,
+            11.100000000000001,
+            0.0134513481621709
+          ]
+        },
+        {
+          "nodes": 66,
+          "minimum_xyz": [
+            4.9,
+            5.7,
+            0.5993669256058363
+          ],
+          "maximum_xyz": [
+            7.5,
+            6.9,
+            0.9879928891303722
+          ]
+        },
+        {
+          "nodes": 10,
+          "minimum_xyz": [
+            3.1,
+            6.5,
+            0.3297593177198812
+          ],
+          "maximum_xyz": [
+            4.1000000000000005,
+            6.9,
+            0.47949088089099406
+          ]
+        }
+      ],
+      "estimated_home_supported": true,
+      "estimated_current_supported": true,
+      "estimated_home_connected": false,
+      "matches_original_node_count": null
+    }
+  ],
+  "run": "support_fusion_capture",
+  "source_sha256": {
+    "dougie_sim/odometry.py": "1d8267c7b8cd42376f0e20f8f3f500b9e9fd3fb56f48a41b875f47faec98cf29",
+    "dougie_sim/registration.py": "4d5fc96b8970053e5330d43511ec1a7374d737a8fea7941982d521de5c19def2",
+    "dougie_sim/pose_graph.py": "801ac8de81279e10841e55104d0e56c97cb52c54d41da2b44995d4abc423a0d2",
+    "dougie_sim/scan_geometry.py": "580e32b26310535968fc12bf40e555088e88e6d2dd392520ffbf7b16d677a23b",
+    "dougie_sim/map_corrections.py": "0c81755cc875af2d9eca859cd02a63c167f0c092a93f628f94dfdc319d8b940b",
+    "dougie_sim/pose_uncertainty.py": "b18a898114582fc6f27071bf363bc52538f6c0819d15e685443304395adaee65",
+    "dougie_sim/onboard_sensors.py": "822589318d6877e24f0dc84b544bac3ccebf6fbde485d0df3e9adcb63e810b58",
+    "dougie_sim/sensing.py": "2da904954194364bdeee1e3533f3b5ec1cfe4f7a01770977be479dd2648804b6",
+    "dougie_sim/simulation.py": "df65f236d8e26e8973147837e1c2bb32ff47333560aee76e184c2bd03a6a1a9d",
+    "dougie_sim/policy.py": "56f827b3712b0bf74710d1ce00ee6f6693387744ce25882463ce8c57a8a0adfb",
+    "dougie_sim/radiation.py": "2c4771061e06dbfd0874c70a373206f7c118c11ef93864ca51c9a15c352bb63d",
+    "dougie_sim/radiation_run.py": "4dc085cfc00c4ea522dcfce9afe3d923e5429cb5e9f4b083144effb4eeb6f2ed",
+    "dougie_sim/terrain.py": "6a78a8641e92406beaa84d3db24a53a292f7a9ce59599a4d14ce9be54551473a",
+    "dougie_sim/layered_terrain.py": "8597719a23cdc3b74e1ba5a4d55220c52c0d8549e35ca929ce9368ea681cabee",
+    "dougie_sim/dose_planner.py": "6c287e0425483c6493f10f580e2d1b118caabe188f88f3017a124765619271c9",
+    "dougie_sim/clustered_planner.py": "0b45c3c2eb27303a2a2de501214c457f94845983a239dd6d0ef3436b7c45993e",
+    "dougie_sim/planning_worker.py": "edc7901dd92366bd43b5365603a4b2940ce9b4352572e7e1f4fa4b696ab580cd",
+    "dougie_sim/path_motion.py": "bd9e38a19e2893afa0a734f77e9b374da0b4a7b81948c340fe215e663580122b",
+    "dougie_sim/route_forecast.py": "8fbe20b2b2a20f55fe92d1f1034cf4678f5697cf14bbedd3b0a553bf5966eed6",
+    "dougie_sim/motion_cost.py": "ec159b52ae930bc0d34dcbf3b52345ebcc6402bb4447d149b3e19c54a29dfadf",
+    "dougie_sim/mission_utility.py": "0bf4692ce14a8e9cef5a06a9a8c57cbc954e26e9874ddb59ffbc84403a7cde34",
+    "dougie_sim/region_clustering.py": "2a93fdc59236907355753a7cd0486c2f2ce88305d83b1c44b60779690aa14765",
+    "dougie_sim/region_agenda.py": "ffb8ad0ecd3ca16e138adacef5d19000dfe33fe7616c660139a4773af96ebc78",
+    "dougie_sim/geometry_gp.py": "28309663c2da9198b647f15b5ed02cd92e2bc0b58b6ece75f9f414f47b9bcc6a",
+    "dougie_sim/gp.py": "ce779f0c9695a77b4381e680e41f0489badea2ea74a836b357b5984e96e848c7",
+    "dougie_sim/spatial_gp.py": "1d42421d1605d627871cb88cb09ddefd841630e27247c4aa2dc8709ade11c793",
+    "dougie_sim/recovery.py": "1919752c02207e3a50bd52280c756548be6e314b6511b627c100f513c27ce5d6",
+    "dougie_sim/reactor.py": "7566cd65e0c11ecdb2dcd268d7ac7090c59e5b8929d92be5bfbc6cbb88e9a2bf",
+    "dougie_sim/multilevel.py": "cb6bf40ca9fbc19afb67c53bc3c484f18a253af119c3bf2c3db57b9df0414a3f",
+    "dougie_sim/facility.py": "270520aa2b8117dc46ebcc2287f005369068ad7847f60cfcf25327fb2d9b56f5",
+    "dougie_sim/source_config.py": "1e18cb543f0abaa66905d7c782ba246f04025fa11b8bb16829ce59734058b7dd",
+    "dougie_sim/observed_circuit.py": "6cfc10f2b8e4a42918adc317f5773c4b02e9bb5d874d9b36bafb395087bf0006",
+    "dougie_sim/mission_evaluation.py": "58c983d13845dde3cf2bde6b6718fe25b3ebd446a36f3318719f1a357187ac90",
+    "dougie_sim/circuit_evaluation.py": "4d314cca55ee4082feae8b69fe059c891f2832da71bc3f2ceb80d90fabd81f6f",
+    "dougie_sim/stance_hold.py": "897cdefda1f8910706369129bbbb62e9681fe8b40ffb182c6ab70c49c8dd0335"
+  },
+  "script_sha256": "522e0461855484d0cac20efaef3385752e55bf8ab7d370f1358a04d31ce347db",
+  "input_sha256": {
+    "support_failure.npz": "4af80a97a940f9de2be179b21589742331bdef8707cb235529d1ceae5d4fbd94",
+    "run_config.json": "74406fa6d519bc685b8c8a9cbebe5237ad66dbc148b6dcb555e4e96f438aa7f5"
+  }
+}

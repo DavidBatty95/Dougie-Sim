@@ -84,6 +84,7 @@ def main():
     radiation.add_argument('--sensor-seed', type=int, default=0)
     radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
     radiation.add_argument('--slam-backend', choices=('distributed', 'pose-graph'))
+    radiation.add_argument('--loop-search-radius', type=float)
     radiation.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'))
     radiation.add_argument('--support-fusion', choices=('maximum', 'bounded-mean'))
     radiation.add_argument('--record-support', action='store_true')
@@ -204,6 +205,8 @@ def main():
             command += ['--utility-mode', args.utility_mode]
         if args.slam_backend:
             command += ['--slam-backend', args.slam_backend]
+        if args.loop_search_radius is not None:
+            command += ['--loop-search-radius', str(args.loop_search_radius)]
         if args.terminal_hold:
             command += ['--terminal-hold', args.terminal_hold]
         if args.support_fusion:

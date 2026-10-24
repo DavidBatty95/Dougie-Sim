@@ -57,6 +57,8 @@ def main():
     parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust', help='quality-gated submaps and consistent history, or pre-recovery comparator')
     parser.add_argument('--slam-backend', choices=('distributed', 'pose-graph'), help='pose-graph for robust fusion; distributed retains the previous correction model')
+    parser.add_argument('--loop-search-radius', type=float, default=1.25,
+                        help='estimated-pose radius for older anchor eligibility, .5..3 m; registration gates are unchanged')
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'), default='zero-policy',
                         help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
@@ -114,6 +116,10 @@ def main():
     args.slam_backend = args.slam_backend or ('pose-graph' if args.navigation_profile == 'robust' else 'distributed')
     if args.slam_backend == 'pose-graph' and args.navigation_profile != 'robust':
         parser.error('--slam-backend pose-graph requires --navigation-profile robust')
+    if not math.isfinite(args.loop_search_radius) or not .5 <= args.loop_search_radius <= 3.:
+        parser.error('--loop-search-radius must be between .5 and 3 metres')
+    if args.loop_search_radius != 1.25 and (args.localization != 'fused' or args.navigation_profile != 'robust'):
+        parser.error('nondefault loop search requires robust fused localization')
     if args.uncertainty_profile and (args.localization != 'fused' or args.navigation_profile != 'robust'):
         parser.error('--uncertainty-profile requires robust fused localization')
     if args.terminal_hold == 'gravity' and (args.localization != 'fused' or args.navigation_profile != 'robust'):
@@ -188,7 +194,9 @@ def main():
             parser.error('fused missions currently require the proprioceptive policy contract')
         from .odometry import FusedOdometry
         from .onboard_sensors import OnboardSensors
-        odometry, sensors = FusedOdometry(robust=args.navigation_profile == 'robust', slam_backend=args.slam_backend), OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
+        odometry = FusedOdometry(robust=args.navigation_profile == 'robust', slam_backend=args.slam_backend,
+                                loop_search_radius=args.loop_search_radius)
+        sensors = OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
     evaluation_origin_offset = None
