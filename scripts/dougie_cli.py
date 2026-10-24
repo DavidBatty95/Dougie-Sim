@@ -85,6 +85,7 @@ def main():
     radiation.add_argument('--navigation-profile', choices=('robust', 'legacy'), default='robust')
     radiation.add_argument('--slam-backend', choices=('distributed', 'pose-graph'))
     radiation.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'))
+    radiation.add_argument('--support-fusion', choices=('maximum', 'bounded-mean'))
     radiation.add_argument('--mezzanine-angle', type=float)
     radiation.add_argument('--uncertainty-profile')
     radiation.add_argument('--lidar-dropout-after', type=float)
@@ -204,6 +205,8 @@ def main():
             command += ['--slam-backend', args.slam_backend]
         if args.terminal_hold:
             command += ['--terminal-hold', args.terminal_hold]
+        if args.support_fusion:
+            command += ['--support-fusion', args.support_fusion]
         if args.mezzanine_angle is not None:
             command += ['--mezzanine-angle', str(args.mezzanine_angle)]
         if args.uncertainty_profile:

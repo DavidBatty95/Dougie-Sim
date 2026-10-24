@@ -39,7 +39,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         explorer.terrain = SurfaceMap(radius=.4, max_step=.02, max_local_relief=.02)
     elif terrain_profile == 'layered':
         from .layered_terrain import LayeredSurfaceMap
-        explorer.terrain = LayeredSurfaceMap()
+        explorer.terrain = LayeredSurfaceMap(support_fusion=options.get('support_fusion', 'maximum'))
     if options.get('consistent_mapping') and options.get('path_mode') == 'smooth':
         from .path_motion import TRACKING_ERROR_LIMIT
         # The planned clearance must cover permitted execution error, not just

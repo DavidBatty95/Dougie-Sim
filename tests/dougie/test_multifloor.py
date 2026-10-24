@@ -78,8 +78,9 @@ def cloud(height):
                      for y in np.arange(-1., 1.01, .05)])
 
 
-def test_piecewise_ramp_join_keeps_full_footprint_without_extrapolating_one_plane():
-    terrain = LayeredSurfaceMap(radius=.59)
+@pytest.mark.parametrize('fusion', ['maximum', 'bounded-mean'])
+def test_piecewise_ramp_join_keeps_full_footprint_without_extrapolating_one_plane(fusion):
+    terrain = LayeredSurfaceMap(radius=.59, support_fusion=fusion)
     slope = math.tan(math.radians(10.))
     supports = cloud(lambda x: slope*max(0., x))
     terrain.update(supports, supports)
@@ -153,9 +154,10 @@ def test_incremental_footprints_match_fresh_graph_after_obstacle():
     assert terrain.edge_kind == fresh.edge_kind
 
 
-def test_layered_map_accepts_slope_but_rejects_equivalent_abrupt_step():
+@pytest.mark.parametrize('fusion', ['maximum', 'bounded-mean'])
+def test_layered_map_accepts_slope_but_rejects_equivalent_abrupt_step(fusion):
     for height, reachable in ((lambda x: .15*x, True), (lambda x: 0. if x < 0 else .06, False)):
-        terrain = LayeredSurfaceMap()
+        terrain = LayeredSurfaceMap(support_fusion=fusion)
         supports = cloud(height)
         terrain.update(supports, supports)
         terrain.build_graph()
@@ -164,14 +166,59 @@ def test_layered_map_accepts_slope_but_rejects_equivalent_abrupt_step():
         assert (b in terrain.routes(a)[0]) == reachable
 
 
-def test_stacked_floors_have_no_vertical_shortcuts():
-    terrain = LayeredSurfaceMap()
+@pytest.mark.parametrize('fusion', ['maximum', 'bounded-mean'])
+def test_stacked_floors_have_no_vertical_shortcuts(fusion):
+    terrain = LayeredSurfaceMap(support_fusion=fusion)
     supports = np.vstack((cloud(lambda x: 0.), cloud(lambda x: 2.5)))
     terrain.update(supports, supports)
     terrain.build_graph()
     lower, upper = terrain.nearest([0, 0, 0]), terrain.nearest([0, 0, 2.5])
     assert lower is not None and upper is not None and lower != upper
     assert upper not in terrain.routes(lower)[0]
+
+
+def test_bounded_fusion_reduces_repeated_range_noise_and_keeps_ramp_connected():
+    rng = np.random.default_rng(7)
+    maps = [LayeredSurfaceMap(support_fusion=mode) for mode in ('maximum', 'bounded-mean')]
+    surface = cloud(lambda x: .03+.15*max(x, 0.))
+    for _ in range(30):
+        observed = surface.copy()
+        observed[:, 2] += rng.normal(0., .002, len(observed))
+        for terrain in maps:
+            terrain.update(observed, observed)
+    errors = []
+    for terrain in maps:
+        points = np.asarray(list(terrain.support_returns.values()))
+        errors.append(np.sqrt(np.mean((points[:, 2]-(.03+.15*np.maximum(points[:, 0], 0.)))**2)))
+    assert errors[1] < errors[0]
+    terrain = maps[1]
+    terrain.build_graph()
+    start, end = terrain.nearest([-.8, 0., .03]), terrain.nearest([.8, 0., .15])
+    assert start is not None and end is not None and end in terrain.routes(start)[0]
+    json.dumps(terrain.metrics(), allow_nan=False)
+
+
+def test_single_small_ledge_is_not_outvoted_by_repeated_floor_returns():
+    terrain = LayeredSurfaceMap(support_fusion='bounded-mean')
+    floor = cloud(lambda x: .02)
+    peak = np.array([[.025, .025, .05]])
+    observed = np.vstack((floor, peak))  # The hazard is last, in an already-populated voxel.
+    terrain.update(observed, observed)
+    for _ in range(20):
+        terrain.update(floor, floor)
+    np.testing.assert_array_equal(terrain.support_returns[(0, 0, 0)], peak[0])
+    terrain.build_graph()
+    assert not any(np.linalg.norm(p[:2]-peak[0, :2]) < .4 for p in terrain.nodes.values())
+    assert terrain.metrics()['support_peak_retention_cells'] >= 1
+
+
+def test_fusion_storage_respects_support_capacity():
+    terrain = LayeredSurfaceMap(support_capacity=3, support_fusion='bounded-mean')
+    observed = cloud(lambda x: .02)
+    terrain.update(observed, observed)
+    terrain.update(observed, observed)
+    assert terrain.support_saturated
+    assert len(terrain.support_returns) == len(terrain._support_moments) == 3
 
 
 def test_reverse_routes_use_original_edge_direction_and_time():

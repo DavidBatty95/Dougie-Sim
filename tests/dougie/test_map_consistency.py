@@ -105,10 +105,12 @@ def test_partial_detector_window_correction_preserves_physical_counts():
     assert actual.map_revision == 1
 
 
-def test_worker_rebuild_replays_each_count_once_and_corrects_home():
+@pytest.mark.parametrize('terrain_profile,fusion', [('conservative', 'maximum'), ('layered', 'bounded-mean')])
+def test_worker_rebuild_replays_each_count_once_and_corrects_home(terrain_profile, fusion):
     from dougie_sim import planning_worker as worker
-    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'conservative',
-                      options=dict(consistent_mapping=True, navigation_profile='robust', path_mode='grid', display_prediction=False))
+    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', terrain_profile,
+                      options=dict(consistent_mapping=True, navigation_profile='robust', path_mode='grid',
+                                   display_prediction=False, support_fusion=fusion))
     sample = RadiationSample(.5, (0., 0., .4), 10, .5, 1.44, .1, .001, .002)
     worker.plan([sample], floor_packet(), np.zeros(3), .5, False)
     event = MapCorrection(1, 0., 1., (0., 0., 0.), (.2, 0., 0.))
@@ -120,6 +122,9 @@ def test_worker_rebuild_replays_each_count_once_and_corrects_home():
     assert result.calibration.windows == 2  # Replay must not rescore held-in counts.
     np.testing.assert_allclose(result.home, [.1, 0., 0.])
     assert metrics['map_consistency']['retained_count_windows'] == 2
+    if fusion == 'bounded-mean':
+        assert result.terrain.support_fusion == fusion
+        assert len(result.terrain._support_moments) == len(result.terrain.support_returns) > 0
 
 
 def test_same_graph_cell_still_executes_checked_final_home_approach():

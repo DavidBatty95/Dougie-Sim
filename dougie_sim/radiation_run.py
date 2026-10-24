@@ -60,6 +60,8 @@ def main():
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'), default='zero-policy',
                         help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
+    parser.add_argument('--support-fusion', choices=('maximum', 'bounded-mean'), default='maximum',
+                        help='layered support observation fusion; bounded-mean is experimental')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--mezzanine-angle', type=float, help='simulator-only access slope, 6..10 degrees; original fixture defaults to 10')
@@ -139,6 +141,8 @@ def main():
             parser.error('--require-round-trip requires a multi-floor world')
         args.require_clean = True
     args.terrain_profile = args.terrain_profile or ('layered' if args.world in ('mezzanine', 'facility') else 'conservative')
+    if args.support_fusion != 'maximum' and args.terrain_profile != 'layered':
+        parser.error('--support-fusion bounded-mean requires layered terrain')
     args.source_profile = args.source_profile or (args.world if args.world in ('mezzanine', 'facility') else 'hotspots-and-leaks')
     if not math.isfinite(args.duration) or args.duration <= 0 or not 8 <= args.gp_capacity <= 512:
         parser.error('invalid duration or GP capacity (8..512)')
@@ -221,7 +225,7 @@ def main():
     detector = Detector(args.seed)
     parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
-                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius')}
+                        ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)

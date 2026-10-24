@@ -81,8 +81,14 @@ class VoxelEvidence:
 
 
 class LayeredSurfaceMap(SurfaceMap):
-    def __init__(self, resolution=.2, radius=.45, max_slope_deg=10., residual_limit=.025, support_capacity=160000):
+    def __init__(self, resolution=.2, radius=.45, max_slope_deg=10., residual_limit=.025, support_capacity=160000,
+                 support_fusion='maximum'):
         super().__init__(resolution=resolution, radius=radius, max_step=.02)
+        if support_fusion not in ('maximum', 'bounded-mean'):
+            raise ValueError('unknown support fusion mode')
+        self.support_fusion = support_fusion
+        self.fusion_span_m = .016
+        self._support_moments = {}
         self.max_slope = math.tan(math.radians(max_slope_deg))
         self.residual_limit = residual_limit
         # Fit curvature locally, but certify a wider body/swing-foot footprint.
@@ -122,6 +128,9 @@ class LayeredSurfaceMap(SurfaceMap):
             self._dirty_columns.update(map(tuple, np.unique((cells[:, None, :]+offsets).reshape(-1, 2), axis=0)))
         super().update(points, supports, origin)
         if len(supports):
+            if self.support_fusion == 'bounded-mean':
+                self._fuse_supports(np.asarray(supports))
+                return
             # Exact floor hits can be +/- machine epsilon around a voxel boundary.
             # Stabilize quantization instead of storing two copies of each floor.
             keys, indices = np.unique(np.floor(np.asarray(supports)/.06+1e-8).astype(int), axis=0, return_index=True)
@@ -134,6 +143,40 @@ class LayeredSurfaceMap(SurfaceMap):
                         self.support_returns[key] = point.copy()
                 else:
                     self.support_saturated = True
+
+    def _fuse_supports(self, supports):
+        """Equal-weight capture means, with permanent retention of height jumps.
+
+        A narrow (<=16 mm) height band may be fused inside a 6 cm XYZ voxel.
+        Wider bands retain their highest actual return, even if seen only once.
+        Extrema include every return, so a small ledge cannot be outvoted by
+        repeated floor observations. This is a measurement model, not a change
+        to slope, discontinuity, footprint or body-clearance admission limits.
+        """
+        keys, inverse, counts = np.unique(np.floor(supports/.06+1e-8).astype(int),
+                                          axis=0, return_inverse=True, return_counts=True)
+        order = np.argsort(inverse, kind='stable')
+        starts = np.r_[0, np.cumsum(counts)[:-1]]
+        means = np.add.reduceat(supports[order], starts, axis=0)/counts[:, None]
+        lows = np.minimum.reduceat(supports[order, 2], starts)
+        height_order = np.lexsort((supports[:, 2], inverse))
+        peaks = supports[height_order[np.cumsum(counts)-1]]
+        for index, key in enumerate(map(tuple, keys)):
+            if key not in self.support_returns and len(self.support_returns) >= self.support_capacity:
+                self.support_saturated = True
+                continue
+            previous = self._support_moments.get(key)
+            if previous is None:
+                count, mean, low, peak = 1, means[index].copy(), float(lows[index]), peaks[index].copy()
+            else:
+                count, mean, low, peak = previous
+                count += 1
+                mean = mean+(means[index]-mean)/count
+                low = min(low, float(lows[index]))
+                if peaks[index, 2] > peak[2]:
+                    peak = peaks[index].copy()
+            self._support_moments[key] = count, mean, low, peak
+            self.support_returns[key] = (mean if peak[2]-low <= self.fusion_span_m else peak).copy()
 
     def build_graph(self):
         points = np.asarray(list(self.support_returns.values())).reshape(-1, 3)
@@ -333,6 +376,10 @@ class LayeredSurfaceMap(SurfaceMap):
 
     def metrics(self):
         return dict(support_nodes=len(self.nodes), support_returns=len(self.support_returns),
+                    support_fusion=self.support_fusion, support_fusion_cells=len(self._support_moments),
+                    support_fusion_span_m=self.fusion_span_m,
+                    support_peak_retention_cells=sum(bool(peak[2]-low > self.fusion_span_m)
+                        for count, mean, low, peak in self._support_moments.values()),
                     fit_rejections=dict(Counter(item['reason'] for column in self._candidate_cache
                         for item in self.fit_rejections.get(column, []))),
                     support_capacity=self.support_capacity, fitted_columns=self.fitted_columns, reused_columns=self.reused_columns,
