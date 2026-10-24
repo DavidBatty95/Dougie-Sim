@@ -106,7 +106,7 @@ def test_partial_detector_window_correction_preserves_physical_counts():
 
 
 @pytest.mark.parametrize('terrain_profile,fusion', [('conservative', 'maximum'), ('layered', 'bounded-mean')])
-def test_worker_rebuild_replays_each_count_once_and_corrects_home(terrain_profile, fusion):
+def test_worker_rebuild_replays_each_count_once_and_corrects_home(terrain_profile, fusion, tmp_path):
     from dougie_sim import planning_worker as worker
     worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', terrain_profile,
                       options=dict(consistent_mapping=True, navigation_profile='robust', path_mode='grid',
@@ -117,7 +117,8 @@ def test_worker_rebuild_replays_each_count_once_and_corrects_home(terrain_profil
     packet = event.packet(floor_packet(1.5))
     _, _, metrics, _ = worker.plan([replace(sample, stamp_s=1.5, position=(.2, 0., .4), map_revision=1)],
         packet, np.array([.2, 0., 0.]), 1.5, False, corrections=(event,))
-    result = worker.finalize([])
+    archive = tmp_path/'support.npz' if terrain_profile == 'layered' else None
+    result = worker.finalize([], support_archive=archive)
     assert result.gp.updates == 2 and metrics['map_revision'] == 1
     assert result.calibration.windows == 2  # Replay must not rescore held-in counts.
     np.testing.assert_allclose(result.home, [.1, 0., 0.])
@@ -125,6 +126,19 @@ def test_worker_rebuild_replays_each_count_once_and_corrects_home(terrain_profil
     if fusion == 'bounded-mean':
         assert result.terrain.support_fusion == fusion
         assert len(result.terrain._support_moments) == len(result.terrain.support_returns) > 0
+        with np.load(archive, allow_pickle=False) as saved:
+            assert int(saved['map_revision']) == 1
+            np.testing.assert_allclose(saved['points'][:len(floor_packet().points)], event.packet(floor_packet()).points)
+        from scripts.replay_dougie_support_fusion import replay
+        comparison = replay(archive)
+        assert comparison['captures'] == 2
+        assert comparison['results'][1]['matches_original_node_count']
+        with np.load(archive, allow_pickle=False) as saved:
+            incomplete = dict(saved)
+        incomplete['journal_saturated'] = True
+        np.savez_compressed(tmp_path/'incomplete.npz', **incomplete)
+        with pytest.raises(ValueError, match='complete'):
+            replay(tmp_path/'incomplete.npz')
 
 
 def test_same_graph_cell_still_executes_checked_final_home_approach():
@@ -139,6 +153,22 @@ def test_same_graph_cell_still_executes_checked_final_home_approach():
     planner.replan(np.array([.24, .24, 0.]), 1.)
     assert planner.state == 'returning' and planner.path
     np.testing.assert_allclose(planner.path[-1], planner.home)
+
+
+def test_first_support_failure_capture_is_not_overwritten(tmp_path):
+    from dougie_sim import planning_worker as worker
+    path = tmp_path/'first_failure.npz'
+    worker.initialize((10., 100., 32, 600., 'poisson'), 'clustered', 'layered',
+                      options=dict(consistent_mapping=True, display_prediction=False, support_capture_path=str(path)))
+    worker._explorer.home = np.zeros(3)
+    sample = RadiationSample(.5, (0., 0., .4), 10, .5, 1.44, .1, .001, .002)
+    worker.plan([sample], floor_packet(), np.array([10., 0., 0.]), .5, False)
+    original = path.read_bytes()
+    with np.load(path, allow_pickle=False) as capture:
+        assert str(capture['capture_scope']) == 'first_support_failure'
+        assert len(capture['stamps_s']) == 1
+    worker.plan([replace(sample, stamp_s=1.5)], floor_packet(1.5), np.array([11., 0., 0.]), 1.5, False)
+    assert path.read_bytes() == original
 
 
 def test_sparse_elevation_wall_normals_are_not_discarded_by_fixed_distance_cutoff():

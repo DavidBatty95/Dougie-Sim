@@ -62,6 +62,8 @@ def main():
                         help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
     parser.add_argument('--support-fusion', choices=('maximum', 'bounded-mean'), default='maximum',
                         help='layered support observation fusion; bounded-mean is experimental')
+    parser.add_argument('--record-support', action='store_true',
+                        help='fixed-delay diagnostic: archive first support failure and final scan history')
     parser.add_argument('--lidar-dropout-after', type=float, help='fault experiment: all LiDAR beams missing after this simulated time')
     parser.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
     parser.add_argument('--mezzanine-angle', type=float, help='simulator-only access slope, 6..10 degrees; original fixture defaults to 10')
@@ -143,6 +145,10 @@ def main():
     args.terrain_profile = args.terrain_profile or ('layered' if args.world in ('mezzanine', 'facility') else 'conservative')
     if args.support_fusion != 'maximum' and args.terrain_profile != 'layered':
         parser.error('--support-fusion bounded-mean requires layered terrain')
+    if args.record_support and (args.terrain_profile != 'layered' or args.localization != 'fused' or args.navigation_profile != 'robust'):
+        parser.error('--record-support requires robust fused localization and layered terrain')
+    if args.record_support and (not args.fast or args.fixed_plan_delay is None):
+        parser.error('--record-support requires a fixed-delay fast run')
     args.source_profile = args.source_profile or (args.world if args.world in ('mezzanine', 'facility') else 'hotspots-and-leaks')
     if not math.isfinite(args.duration) or args.duration <= 0 or not 8 <= args.gp_capacity <= 512:
         parser.error('invalid duration or GP capacity (8..512)')
@@ -230,6 +236,8 @@ def main():
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
     planning_options['recovery_enabled'] = args.navigation_profile == 'robust'
+    if args.record_support:
+        planning_options['support_capture_path'] = str(output/'support_failure.npz')
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
     controls = DemoControls(args.camera, args.map_layer, args.show_sources)
     controls.highlights, controls.field_display = highlights, args.field_display
@@ -607,7 +615,8 @@ def main():
         try:
             if future is not None:
                 _, _, _, map_view = future.result()
-            explorer = pool.submit(planning_worker.finalize, samples, tuple(odometry.corrections) if odometry else ()).result()
+            explorer = pool.submit(planning_worker.finalize, samples, tuple(odometry.corrections) if odometry else (),
+                                   output/'support_observations.npz' if args.record_support else None).result()
         except Exception as exc:
             error = error or str(exc)
         finally:

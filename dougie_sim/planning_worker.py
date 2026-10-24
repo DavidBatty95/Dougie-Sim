@@ -17,6 +17,7 @@ _journal = None
 _parameters = _terrain_profile = None
 _recovery = None
 _breadcrumbs = []
+_support_captured = False
 
 
 def create_explorer(parameters, planner, terrain_profile, options=None):
@@ -61,7 +62,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
 
 
 def initialize(parameters, planner, terrain_profile, limit_threads=True, options=None):
-    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile, _recovery, _breadcrumbs
+    global _explorer, _planner, _limits, _options, _journal, _parameters, _terrain_profile, _recovery, _breadcrumbs, _support_captured
     # Never reconfigure native thread pools in a Python worker thread while the
     # main thread is executing Torch. The parent already limits the thread mode.
     if limit_threads:
@@ -74,6 +75,7 @@ def initialize(parameters, planner, terrain_profile, limit_threads=True, options
     from .recovery import BudgetedRecovery
     _recovery = BudgetedRecovery() if _options.get('recovery_enabled') else None
     _breadcrumbs = []
+    _support_captured = False
     _explorer = create_explorer(parameters, planner, terrain_profile, _options)
 
 
@@ -147,7 +149,7 @@ def rebuild_explorer(old, new_events):
 
 
 def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0., yaw=None, corrections=(), localization=None, execution_status=None):
-    global _explorer, _breadcrumbs
+    global _explorer, _breadcrumbs, _support_captured
     started = time.perf_counter()
     if _journal is not None:
         previous = _journal.revision
@@ -212,9 +214,12 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     explorer.replan(position, stamp)
     support_diagnosis = None
     if explorer.state in ('no_observed_return_route', 'waiting_for_home_support', 'waiting_for_support') and hasattr(explorer.terrain, 'support_diagnosis'):
-        support_diagnosis = dict(state=explorer.state, reason=explorer.last_reason,
+        support_diagnosis = dict(state=explorer.state, reason=getattr(explorer, 'last_reason', explorer.state),
             current=explorer.terrain.support_diagnosis(position),
             home=None if explorer.home is None else explorer.terrain.support_diagnosis(explorer.home))
+        if _options.get('support_capture_path') and not _support_captured and explorer.home is not None:
+            save_support_archive(_options['support_capture_path'], 'first_support_failure')
+            _support_captured = True
     if _journal is not None and stamp-packet.stamp_s > .75:
         explorer.path, explorer.state, explorer.last_reason = [], 'waiting_for_range', 'stale_range_packet'
     if _recovery is not None and explorer.state != 'returned':
@@ -329,7 +334,32 @@ def apply_recovery(explorer, packet, position, stamp, stalled, execution_status,
     explorer.recovery = _recovery.metrics()
 
 
-def finalize(pending_samples, corrections=()):
+def save_support_archive(path, scope='final'):
+    if _journal is None:
+        raise ValueError('support replay capture requires an observation journal')
+    terrain = _explorer.terrain
+    points = [packet.points for packet in _journal.scans]
+    supports = [packet.supports for packet in _journal.scans]
+    np.savez_compressed(path, schema_version=1, map_revision=_journal.revision,
+        capture_scope=scope, planning_state=_explorer.state,
+        planning_reason=getattr(_explorer, 'last_reason', None) or _explorer.state,
+        journal_saturated=_journal.saturated,
+        stamps_s=np.array([packet.stamp_s for packet in _journal.scans]),
+        origins=np.array([packet.origin for packet in _journal.scans]).reshape(-1, 3),
+        point_offsets=np.r_[0, np.cumsum([len(p) for p in points], dtype=np.int64)],
+        support_offsets=np.r_[0, np.cumsum([len(p) for p in supports], dtype=np.int64)],
+        points=np.concatenate(points) if points else np.empty((0, 3)),
+        support_points=np.concatenate(supports) if supports else np.empty((0, 3)),
+        home=np.array([]) if _explorer.home is None else _explorer.home,
+        last_position=np.array([]) if not _journal.visits else _journal.visits[-1][1],
+        resolution=terrain.resolution, base_radius=terrain.base_radius,
+        localization_margin=terrain.localization_margin, max_slope_deg=math.degrees(math.atan(terrain.max_slope)),
+        residual_limit=terrain.residual_limit, support_capacity=terrain.support_capacity,
+        support_fusion=terrain.support_fusion, fusion_span_m=terrain.fusion_span_m,
+        archived_nodes=len(terrain.nodes))
+
+
+def finalize(pending_samples, corrections=(), support_archive=None):
     """Drain every remaining count sample and transfer the final archive state."""
     global _explorer
     if _journal is not None:
@@ -348,4 +378,6 @@ def finalize(pending_samples, corrections=()):
         _explorer.observe_radiation(sample)
     if _journal is not None:
         _explorer.map_consistency = _journal.metrics()
+    if support_archive is not None:
+        save_support_archive(support_archive)
     return _explorer
