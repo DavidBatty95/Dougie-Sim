@@ -51,7 +51,7 @@ def leg_kinematics(joints, velocities):
 
 class FusedOdometry:
     def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed', loop_search_radius=1.25,
-                 keyframe_retention='recent'):
+                 keyframe_retention='recent', registration_sampling='spatial'):
         if slam_backend not in ('distributed', 'pose-graph') or (not robust and slam_backend != 'distributed'):
             raise ValueError('pose-graph localization requires the robust navigation profile')
         if not math.isfinite(loop_search_radius) or not .5 <= loop_search_radius <= 3.:
@@ -61,6 +61,9 @@ class FusedOdometry:
         if keyframe_retention not in ('recent', 'coverage'):
             raise ValueError('unknown keyframe retention policy')
         self.keyframe_retention, self.keyframe_evictions = keyframe_retention, 0
+        if registration_sampling not in ('spatial', 'normal-balanced'):
+            raise ValueError('unknown registration sampling policy')
+        self.registration_sampling = registration_sampling
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -208,9 +211,8 @@ class FusedOdometry:
             self.rejection_streak += 1
             self.registration_status = 'insufficient_range_structure'
             return
-        _, indices = np.unique(np.floor(points/.12).astype(int), axis=0, return_index=True)
-        indices = indices[::max(1, math.ceil(len(indices)/1500))]
-        points, normals = points[indices], normals[indices]
+        from .scan_geometry import sample_registration_cloud
+        points, normals = sample_registration_cloud(points, normals, self.registration_sampling)
         if self.robust:
             self._observe_submaps(points, normals, local.stamp_s)
             return
@@ -421,6 +423,7 @@ class FusedOdometry:
             anchor_revalidations=self.anchor_revalidations,
             loop_search_radius_m=self.loop_search_radius, loop_search=dict(self.loop_search),
             keyframe_retention=self.keyframe_retention, keyframe_evictions=self.keyframe_evictions,
+            registration_sampling=self.registration_sampling,
             slam_backend=self.slam_backend, pose_graph=self.pose_graph.metrics() if self.pose_graph is not None else None,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,

@@ -79,6 +79,38 @@ def test_registration_normals_face_the_observing_sensor():
         assert np.all(np.sum(normals*(points-packet.origin), axis=1) <= 0.)
 
 
+def test_normal_balanced_sampling_preserves_observed_directions_inside_voxels():
+    from dougie_sim.scan_geometry import sample_registration_cloud
+    x, y = np.meshgrid(np.arange(0., 3., .05), np.arange(0., 3., .05))
+    floor = np.c_[x.ravel(), y.ravel(), np.zeros(x.size)]
+    along = .05+np.arange(7)*.24
+    wall_x = np.c_[np.full(7, .01), along, np.full(7, .05)]
+    wall_y = np.c_[along, np.full(7, .01), np.full(7, .05)]
+    points = np.vstack((floor, wall_x, wall_y))
+    normals = np.vstack((np.tile([0., 0., 1.], (len(floor), 1)),
+                         np.tile([-1., 0., 0.], (7, 1)), np.tile([0., -1., 0.], (7, 1))))
+    spatial, spatial_n = sample_registration_cloud(points, normals, capacity=200)
+    selected, selected_n = sample_registration_cloud(points, normals, 'normal-balanced', 200)
+    assert len(selected) <= 200
+    assert len(set(map(tuple, selected))) == len(selected)
+    assert sum(selected_n[:, 0] == -1.) >= 4 and sum(selected_n[:, 1] == -1.) >= 4
+    assert set(map(tuple, selected)) <= set(map(tuple, points))
+    assert register(spatial, spatial_n, spatial, spatial_n, np.zeros(3), np.eye(3)).observable_rank == 3
+    assert register(selected, selected_n, selected, selected_n, np.zeros(3), np.eye(3)).observable_rank == 6
+
+
+def test_spatial_registration_sampling_retains_historical_order_and_budget():
+    from dougie_sim.scan_geometry import sample_registration_cloud
+    rng = np.random.default_rng(3)
+    points = rng.uniform(-5., 5., (10000, 3))
+    normals = np.tile([0., 0., 1.], (len(points), 1))
+    _, indices = np.unique(np.floor(points/.12).astype(int), axis=0, return_index=True)
+    indices = indices[::int(np.ceil(len(indices)/1500))]
+    selected, selected_n = sample_registration_cloud(points, normals)
+    np.testing.assert_array_equal(selected, points[indices])
+    np.testing.assert_array_equal(selected_n, normals[indices])
+
+
 def test_rejected_scan_cannot_poison_submaps_and_loop_requires_confirmation():
     points, normals = corner_cloud()
     odometry = FusedOdometry()

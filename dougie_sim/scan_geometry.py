@@ -29,3 +29,36 @@ def registration_cloud(packet):
     # must not become compatible merely because their normals are antiparallel.
     normal[np.sum(normal*(cloud-packet.origin), axis=1) > 0.] *= -1.
     return cloud, normal
+
+
+def sample_registration_cloud(points, normals, mode='spatial', capacity=1500):
+    """Retain actual observations, optionally preserving rare normal directions."""
+    if mode not in ('spatial', 'normal-balanced') or capacity < 1:
+        raise ValueError('invalid registration sampling policy or capacity')
+    if not len(points):
+        return points.copy(), normals.copy()
+    cells = np.floor(points/.12).astype(int)
+    if mode == 'spatial':
+        _, indices = np.unique(cells, axis=0, return_index=True)
+        indices = indices[::max(1, int(np.ceil(len(indices)/capacity)))]
+        return points[indices], normals[indices]
+    directions = np.rint(normals/.25).astype(int)
+    _, indices = np.unique(np.c_[cells, directions], axis=0, return_index=True)
+    if len(indices) > capacity:
+        _, groups, counts = np.unique(directions[indices], axis=0, return_inverse=True, return_counts=True)
+        if len(counts) > capacity:
+            raise ValueError('registration capacity cannot retain each observed normal group')
+        quotas = np.minimum(counts, min(4, max(1, capacity//len(counts))))
+        remaining = capacity-int(quotas.sum())
+        spare = counts-quotas
+        allocation = remaining*spare/spare.sum()
+        extra = np.floor(allocation).astype(int)
+        quotas += extra
+        for group in np.argsort(-(allocation-extra), kind='stable')[:capacity-int(quotas.sum())]:
+            quotas[group] += 1
+        selected = []
+        for group, quota in enumerate(quotas):
+            members = indices[groups == group]
+            selected.extend(members[np.linspace(0, len(members)-1, int(quota), dtype=int)])
+        indices = np.sort(selected)
+    return points[indices], normals[indices]

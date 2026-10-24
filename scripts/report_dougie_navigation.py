@@ -102,7 +102,7 @@ def main():
                  'mission_objective', 'region_scheduling', 'fixed_plan_delay', 'ros', 'fast',
                  'localization', 'sensor_seed', 'detector_likelihood', 'navigation_profile', 'utility_mode',
                  'lidar_dropout_after', 'circuit_radius', 'require_circuit', 'slam_backend',
-                 'mezzanine_angle', 'uncertainty_profile', 'require_round_trip', 'terminal_hold', 'support_fusion', 'record_support', 'loop_search_radius', 'localization_checkpoints', 'keyframe_retention')},
+                 'mezzanine_angle', 'uncertainty_profile', 'require_round_trip', 'terminal_hold', 'support_fusion', 'record_support', 'loop_search_radius', 'localization_checkpoints', 'keyframe_retention', 'registration_sampling')},
             terminal_stance=summary['simulation'].get('terminal_stance'),
             post_stop_motion=terminal_motion(run, summary),
             simulated_time_s=summary['simulation']['simulation_time_s'], return_forecast=forecast,
