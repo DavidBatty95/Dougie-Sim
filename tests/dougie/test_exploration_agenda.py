@@ -144,3 +144,25 @@ def test_newly_hot_only_return_route_is_reported_as_emergency_retreat(monkeypatc
     assert planner.route_forecast['emergency_rate_override']
     assert planner.route_forecast['return_peak_rate_usv_h'] == 200.
     np.testing.assert_allclose(planner.path[-1], planner.home)
+
+
+@pytest.mark.parametrize('blocked', [None, 'rate', 'return', 'time', 'dose'])
+def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatch, blocked):
+    root, flat, high = (0, 0, 0), (1, 0, 0), (0, 2, 1)
+    nodes = {root: [0., 0., 0.], flat: [1., 0., 0.], high: [0., 2., .2]}
+    edges = {root: [flat, high], flat: [root], high: [] if blocked == 'return' else [root]}
+    rates = {root: 1., flat: 1., high: 200. if blocked == 'rate' else 50. if blocked == 'dose' else 1.}
+    planner = planner_fixture(monkeypatch, nodes, edges, rates)
+    planner.objective, planner.region_scheduling = 'vertical', 'local'
+    planner.terrain.active_viewpoints = True
+    planner.terrain.acquisition_bonus = lambda key, bands: 0.
+    monkeypatch.setattr('dougie_sim.clustered_planner.ObservedGain', lambda terrain:
+        SimpleNamespace(value=lambda key: 10. if key == flat else 0., cache={}))
+    if blocked == 'time':
+        planner.mission_duration = 80.
+    if blocked == 'dose':
+        planner.budget = 1.
+    planner.replan(np.zeros(3), 1.)
+    np.testing.assert_allclose(planner.target, nodes[high if blocked is None else flat])
+    if blocked is None:
+        assert planner.last_reason == 'survey_observed_height_band'

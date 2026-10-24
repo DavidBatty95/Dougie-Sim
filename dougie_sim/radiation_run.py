@@ -76,7 +76,7 @@ def main():
     parser.add_argument('--layout-seed', type=int, default=0, help='facility doorway/equipment layout seed, separate from detector noise')
     parser.add_argument('--landmark-count', type=int, default=0, help='optional seeded facility discovery targets (2..64)')
     parser.add_argument('--landmark-seed', type=int, default=0)
-    parser.add_argument('--mission-objective', choices=('survey', 'inspect', 'circuit'), default='survey')
+    parser.add_argument('--mission-objective', choices=('survey', 'vertical', 'inspect', 'circuit'), default='survey')
     parser.add_argument('--utility-mode', choices=('legacy', 'information'), help='default legacy utility; information is an experimental cost/whole-task scorer')
     parser.add_argument('--circuit-radius', type=float, default=1.5, help='radius of four goals selected from initially observed support')
     parser.add_argument('--require-circuit', action='store_true', help='require all four physical circuit witnesses and clean home return')
@@ -157,6 +157,8 @@ def main():
     args.terrain_profile = args.terrain_profile or ('layered' if args.world in ('mezzanine', 'facility') else 'conservative')
     if args.support_fusion != 'maximum' and args.terrain_profile != 'layered':
         parser.error('--support-fusion bounded-mean requires layered terrain')
+    if args.mission_objective == 'vertical' and (args.terrain_profile != 'layered' or args.planner == 'baseline'):
+        parser.error('vertical survey requires layered terrain and a clustered planner')
     if args.record_support and (args.terrain_profile != 'layered' or args.localization != 'fused' or args.navigation_profile != 'robust'):
         parser.error('--record-support requires robust fused localization and layered terrain')
     if args.record_support and (not args.fast or args.fixed_plan_delay is None):
@@ -164,7 +166,7 @@ def main():
     if not 0 <= args.localization_checkpoints <= 3:
         parser.error('--localization-checkpoints must be between zero and three')
     if args.localization_checkpoints and (args.localization != 'fused' or args.navigation_profile != 'robust'
-            or args.terrain_profile != 'layered' or args.planner == 'baseline' or args.mission_objective != 'survey'):
+            or args.terrain_profile != 'layered' or args.planner == 'baseline' or args.mission_objective not in ('survey', 'vertical')):
         parser.error('localization checkpoints require a robust fused layered survey with a clustered planner')
     args.source_profile = args.source_profile or (args.world if args.world in ('mezzanine', 'facility') else 'hotspots-and-leaks')
     if not math.isfinite(args.duration) or args.duration <= 0 or not 8 <= args.gp_capacity <= 512:

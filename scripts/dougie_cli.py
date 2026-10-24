@@ -74,7 +74,7 @@ def main():
     radiation.add_argument('--layout-seed', type=int, default=0)
     radiation.add_argument('--landmark-count', type=int, default=0)
     radiation.add_argument('--landmark-seed', type=int, default=0)
-    radiation.add_argument('--mission-objective', choices=('survey', 'inspect', 'circuit'), default='survey')
+    radiation.add_argument('--mission-objective', choices=('survey', 'vertical', 'inspect', 'circuit'), default='survey')
     radiation.add_argument('--utility-mode', choices=('legacy', 'information'))
     radiation.add_argument('--circuit-radius', type=float, default=1.5)
     radiation.add_argument('--require-circuit', action='store_true')

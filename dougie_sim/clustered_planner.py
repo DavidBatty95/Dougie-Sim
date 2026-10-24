@@ -143,6 +143,8 @@ class ClusteredDoseExplorer(DoseExplorer):
             emergency_return = True
             self.returning, self.last_reason = True, 'no_rate_compliant_return_route'
         inspection = getattr(self.terrain, 'active_viewpoints', False)
+        def new_height(key):
+            return inspection and round(float(nodes[key][2])/.2) not in self.sampled_height_bands
         if inspection:
             self.sampled_height_bands.add(round(float(position[2])/.2))
             # Mark supported body-footprint neighbours as visited, not just one
@@ -321,9 +323,10 @@ class ClusteredDoseExplorer(DoseExplorer):
                 # One representative per homogeneous connected group, plus a
                 # second distant representative for elongated regions.
                 local = [key for key in group if (.25 if inspection else .75) <= length[key]
-                          and (visit_distance[key] >= .65 or uncertainty[key] > .8 or
-                               (inspection and visit_distance[key] >= .15 and gain.value(key) > 0) or
-                               self.landmark_bonus(nodes[key]) > 0)]
+                           and (visit_distance[key] >= .65 or uncertainty[key] > .8 or
+                                (inspection and visit_distance[key] >= .15 and gain.value(key) > 0) or
+                                (self.objective == 'vertical' and new_height(key)) or
+                                self.landmark_bonus(nodes[key]) > 0)]
                 if not local:
                     continue
                 # Bound visibility work but sample the entire group's ordering.
@@ -331,13 +334,21 @@ class ClusteredDoseExplorer(DoseExplorer):
                 target_local = sorted((key for key in local if self.landmark_bonus(nodes[key]) > 0), key=lambda key: length[key])[:8]
                 remembered = [key for key in local if key in self.agenda and self.agenda[key]['status'] != 'visited'][:8]
                 refined = [key for key in local if key in refinement_keys]
-                local = sorted(set(local[::max(1, math.ceil(len(local)/8))]+target_local+remembered+refined))
+                height_representatives = []
+                if self.objective == 'vertical':
+                    bands = {}
+                    for key in sorted(local, key=lambda key: length[key]):
+                        if new_height(key):
+                            bands.setdefault(round(float(nodes[key][2])/.2), key)
+                    height_representatives = list(bands.values())[:8]
+                local = sorted(set(local[::max(1, math.ceil(len(local)/8))]+target_local+remembered+refined+height_representatives))
                 scored = []
                 for key in local:
                     novelty = gain.value(key)
                     nearest_visit = float(visit_distance[key])
                     target_bonus = self.landmark_bonus(nodes[key])
-                    if nearest_visit < .65 and uncertainty[key] <= .8 and (not inspection or novelty == 0) and target_bonus == 0:
+                    if (nearest_visit < .65 and uncertainty[key] <= .8 and (not inspection or novelty == 0)
+                            and target_bonus == 0 and not (self.objective == 'vertical' and new_height(key))):
                         continue
                     information = .5*math.log1p(uncertainty[key]**2/.02)
                     fresh_fraction = min(1., nearest_visit/.8)
@@ -358,7 +369,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                         scored.append((score, key, novelty))
                 if not scored:
                     continue
-                scored.sort(reverse=True)
+                scored.sort(key=lambda item: (self.objective == 'vertical' and new_height(item[1]), item[0], item[1]), reverse=True)
                 chosen = scored[0]
                 candidates.append(chosen)
                 # Preserve a local representative even when this group's best
@@ -384,8 +395,9 @@ class ClusteredDoseExplorer(DoseExplorer):
             else:
                 nearby = [item for item in candidates if length[item[1]] <= 6.]
                 inspections = [item for item in candidates if self.landmark_bonus(nodes[item[1]]) > 0]
-                pool = inspections if self.objective == 'inspect' and inspections else nearby or candidates
-                if inspection and self.region_scheduling == 'hierarchical' and not (self.objective == 'inspect' and inspections):
+                heights = [item for item in candidates if new_height(item[1])] if self.objective == 'vertical' else []
+                pool = heights or (inspections if self.objective == 'inspect' and inspections else nearby or candidates)
+                if inspection and self.region_scheduling == 'hierarchical' and not heights and not (self.objective == 'inspect' and inspections):
                     _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp,
                         inspection_keys={item[1] for item in inspections})
                 else:
@@ -397,6 +409,8 @@ class ClusteredDoseExplorer(DoseExplorer):
                     self.last_reason = 'inspect_observed_landmark'
                 if inspection and length[selected] < .75:
                     self.last_reason = 'near_frontier_inspection'
+                if heights:
+                    self.last_reason = 'survey_observed_height_band'
                 self.goal_started = stamp
         goal = nodes[selected].copy()
         self.route_forecast['checked_inspection_candidates'] = len(checked_inspections)
