@@ -130,25 +130,34 @@ they are demonstrations of traversal, not a validated operating envelope.
 |---|---|
 | ![Recorded sensor-only Go2 upstairs and downstairs mission on the 8-degree mezzanine, approximately 33-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded pose-graph estimate versus independent evaluator, with estimated and true height and moving detector windows](docs/media/dougie/onboard-fusion.gif) |
 
-**Left:** a fresh torque-driven MuJoCo recording from 21 October, with the
+**Left:** a torque-driven MuJoCo recording from the 24 October surface-normal fix, with the
 radiation cloud hidden in the recording so the robot and routes remain visible.
 The geometry-aware GP still runs. **Right:** telemetry from the same mission;
 teal is the estimated pose, white the independent evaluator, and amber the moving
 detector window. It is a log replay, not camera footage. Both animations are accelerated.
-The native recording has 73 frames at approximately 33× simulated-time playback;
-the telemetry replay has 100 frames at approximately 24× playback.
+The native recording plays at approximately 33× simulated time;
+the telemetry replay has 100 frames at approximately 28× playback.
 
 Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
-**237.490 s**, **23.166 m** travelled, **0.164563 µSv** actual exposure,
-**0.0958 m** true home error, and zero non-foot contacts. Upper/lower witnesses
-occurred at **85.170 / 192.825 s**. This is the explicit 8° variant, not a pass for
+**275.585 s**, **25.755 m** travelled, **0.274697 µSv** actual exposure,
+**0.1071 m** true home error, and zero non-foot contacts. Upper/lower witnesses
+occurred at **88.475 / 262.675 s**. This is the explicit 8° variant, not a pass for
 the original 10° mezzanine or the full-height facility. The recording uses the
-21 October diagnostic runtime without the historical calibration profile.
+surface-normal-fix runtime without the historical calibration profile.
 Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
-[Provenance and regeneration](docs/DOUGIE_MEDIA.md#pose-graph-mission-refresh--21-october-2026) ·
-[Portable evidence](docs/results/dougie_pose_graph_recorded_20261021.json)
+[Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--24-october-2026) ·
+[Portable evidence](docs/results/dougie_support_alignment_20261024.json)
+
+**Navigation development — 24–25 October:** corrected LiDAR surface-side matching,
+added bounded home relocalization checkpoints and spatial keyframe retention, and
+retained identical-observation support-fusion failures. Coverage plus checkpoints
+reached the facility's 1.2 m intermediate landing and returned cleanly in 861.045 s;
+the 2.4 m upper-floor mission remains unqualified. Normal-balanced registration
+sampling is experimental: its facility and original-mezzanine trials returned
+cleanly at **419.945 s / 355.785 s**, but both failed the upper-floor witness gate.
+See the [development results and reproducible replay](docs/DOUGIE_NAVIGATION_RECOVERY.md).
 
 ### Stop-transition screening — retained failures
 

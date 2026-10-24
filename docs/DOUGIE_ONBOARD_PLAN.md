@@ -1,7 +1,16 @@
-# Onboard mission plan — 21 October 2026
+# Onboard mission plan — 25 October 2026
 
 [Project home](../README.md) · [Implemented methods](DOUGIE_ONBOARD_MISSION.md) ·
-[Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#pose-graph-mission-refresh--21-october-2026)
+[Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#navigation-refresh--24-october-2026)
+
+Latest [navigation recovery development](DOUGIE_NAVIGATION_RECOVERY.md): signed
+surface matching, bounded home checkpoints, coverage-based cloud retention and
+opt-in normal-balanced sampling are implemented; **307 tests pass**. The 8°
+regression passes, while original 10° and full-height facility qualification
+remain open. The normal-balanced closed-loop facility and original-mezzanine
+trials both returned cleanly, but neither reached the upper landing. Next isolate
+observed-route admission and target selection from localization improvements;
+retain strict vertical witnesses as the acceptance gate.
 
 ## Current implementation
 

@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 
 import numpy as np
 from threadpoolctl import threadpool_limits
@@ -68,6 +69,7 @@ def main():
     parser.add_argument('--run', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--capture', choices=('support_failure.npz', 'support_observations.npz'), default='support_failure.npz')
+    parser.add_argument('--export-inputs', type=Path, help='new directory for exact portable capture/config copies')
     args = parser.parse_args()
     with threadpool_limits(limits=1):
         report = replay(args.run/args.capture)
@@ -75,6 +77,13 @@ def main():
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         input_sha256={name: hashlib.sha256((args.run/name).read_bytes()).hexdigest()
                       for name in (args.capture, 'run_config.json')})
+    if args.export_inputs is not None:
+        args.export_inputs.mkdir(exist_ok=False)
+        for name in (args.capture, 'run_config.json'):
+            shutil.copyfile(args.run/name, args.export_inputs/name)
+            if hashlib.sha256((args.export_inputs/name).read_bytes()).hexdigest() != report['input_sha256'][name]:
+                raise ValueError('portable support replay copy failed checksum validation')
+        report['portable_inputs'] = str(args.export_inputs)
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
     print(json.dumps(report, indent=2, allow_nan=False))
 

@@ -1,7 +1,7 @@
 {
   "scope": "native MuJoCo terminal-stance experiment; failed vertical mission, not successful recovery",
   "origin": "results/dougie/facility_gravity_hold",
-  "publisher_sha256": "67a4fad69aaa6e3eb04e289b6af92a40268408632cb92e129efcd3afe93e68e4",
+  "publisher_sha256": "d8c9bbe1791280382ecc9f9794be321f8eb89d03fceb8e2def7b1a650489e479",
   "capture": {
     "kind": "actual native MuJoCo run with live route overlay, accelerated playback",
     "frame_times_s": [
@@ -274,6 +274,13 @@
       "not_clean",
       "missing_ordered_vertical_witness"
     ],
+    "clean_return": false,
+    "physical_witness": {
+      "upper_landing_witness_s": null,
+      "lower_return_witness_s": null,
+      "vertical_round_trip_witness": false,
+      "scope": "evaluator-only foot poses, 0.2 s dwell; not exploration completeness"
+    },
     "terminal_stop": {
       "time_s": 119.19499999996408,
       "reason": "return_route_disconnected",
@@ -283,6 +290,15 @@
     "true_dose_usv": 0.1959862105018279,
     "post_stop_true_dose_usv": 0.17017515483490894,
     "nonfoot_contacts": {}
+  },
+  "configuration": {
+    "world": "facility",
+    "duration": 600.0,
+    "seed": 4,
+    "sensor_seed": 1,
+    "support_fusion": null,
+    "loop_search_radius": null,
+    "terminal_hold": "gravity"
   },
   "terminal_stance": {
     "phase": "holding",
