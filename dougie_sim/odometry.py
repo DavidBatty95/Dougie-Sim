@@ -50,13 +50,17 @@ def leg_kinematics(joints, velocities):
 
 
 class FusedOdometry:
-    def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed', loop_search_radius=1.25):
+    def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed', loop_search_radius=1.25,
+                 keyframe_retention='recent'):
         if slam_backend not in ('distributed', 'pose-graph') or (not robust and slam_backend != 'distributed'):
             raise ValueError('pose-graph localization requires the robust navigation profile')
         if not math.isfinite(loop_search_radius) or not .5 <= loop_search_radius <= 3.:
             raise ValueError('loop search radius must be between .5 and 3 metres')
         self.loop_search_radius = float(loop_search_radius)
         self.loop_search = dict(attempts=0, candidates=0, last_reason='not_attempted')
+        if keyframe_retention not in ('recent', 'coverage'):
+            raise ValueError('unknown keyframe retention policy')
+        self.keyframe_retention, self.keyframe_evictions = keyframe_retention, 0
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -297,10 +301,27 @@ class FusedOdometry:
             if self.pose_graph is not None:
                 self.pose_graph.add_pose(stamp, self.position, self.rotation)
             if len(self.keyframes) > 64:
-                del self.keyframes[8]  # Retain initial anchors plus recent submaps.
+                self._prune_keyframes()
         # Compatibility/diagnostics only; registration uses immutable keyframes.
         world, n = self.keyframes[-1].world()
         self.map = {tuple(np.floor(p/.12).astype(int)): np.r_[p, normal] for p, normal in zip(world, n)}
+
+    def _prune_keyframes(self):
+        if len(self.keyframes) <= 64:
+            return
+        victim = 8  # Historical policy: initial eight plus recent submaps.
+        if self.keyframe_retention == 'coverage':
+            positions = np.asarray([frame.position for frame in self.keyframes])
+            up = np.asarray([frame.rotation[:, 2] for frame in self.keyframes])
+            distance = (np.linalg.norm(positions[:, None]-positions[None, :], axis=2)
+                        +.5*np.linalg.norm(up[:, None]-up[None, :], axis=2))
+            np.fill_diagonal(distance, np.inf)
+            nearest = distance.min(axis=1)
+            pending = None if self.loop_candidate is None else self.loop_candidate[0]
+            eligible = [i for i in range(8, len(self.keyframes)-4) if self.keyframes[i].stamp != pending]
+            victim = min(eligible, key=lambda i: (nearest[i], -self.keyframes[i].variance, self.keyframes[i].stamp))
+        del self.keyframes[victim]
+        self.keyframe_evictions += 1
 
     def _try_loop(self, points, normals, stamp):
         from .registration import register
@@ -399,6 +420,7 @@ class FusedOdometry:
             robust=self.robust, map_revision=self.map_revision, keyframes=len(self.keyframes),
             anchor_revalidations=self.anchor_revalidations,
             loop_search_radius_m=self.loop_search_radius, loop_search=dict(self.loop_search),
+            keyframe_retention=self.keyframe_retention, keyframe_evictions=self.keyframe_evictions,
             slam_backend=self.slam_backend, pose_graph=self.pose_graph.metrics() if self.pose_graph is not None else None,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,

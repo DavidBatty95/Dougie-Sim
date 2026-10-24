@@ -125,6 +125,23 @@ def test_invalid_loop_search_radius_is_rejected():
             FusedOdometry(loop_search_radius=radius)
 
 
+@pytest.mark.parametrize('retention,keeps_remote', [('recent', False), ('coverage', True)])
+def test_cloud_retention_keeps_coverage_without_discarding_graph_constraints(retention, keeps_remote):
+    odometry = FusedOdometry(slam_backend='pose-graph', keyframe_retention=retention)
+    points, normals = corner_cloud()
+    for i in range(65):
+        position = np.array([10. if i == 8 else 0., 0., 0.])
+        odometry.keyframes.append(Keyframe(float(i), position, np.eye(3), points, normals, .01))
+        odometry.pose_graph.add_pose(float(i), position, np.eye(3))
+    odometry.loop_candidate = (9., np.zeros(3), np.zeros(3), 70.)
+    odometry._prune_keyframes()
+    stamps = {frame.stamp for frame in odometry.keyframes}
+    assert len(stamps) == 64 and (8. in stamps) == keeps_remote
+    assert set(range(8)) | set(range(61, 65)) <= stamps
+    assert 9. in stamps  # A candidate awaiting confirmation must survive coverage pruning.
+    assert len(odometry.pose_graph.poses) == 65 and len(odometry.pose_graph.factors) == 64
+
+
 def test_count_window_and_scan_share_the_same_revision_without_duplicate_counts():
     event = MapCorrection(1, 0., 1., (0., 0., .1), (.2, 0., 0.))
     detector = Detector(3)
