@@ -4,16 +4,18 @@
 
 ## Gallery provenance
 
-### Navigation refresh — 24 October 2026
+### Navigation refresh — 25 October 2026
 
 The current `onboard-mission.gif` and `onboard-fusion.gif` use
-`oriented_mezzanine`: the strict 8° round trip after the surface-normal fix,
+`mezzanine_8_preempt_regression`: the strict 8° survey regression after the vertical-goal fix,
 275.585 s, .274697 µSv, zero non-foot contacts. Native MuJoCo footage and
 estimated-pose/detector-window telemetry show the same mission. The telemetry
 contains 100 frames at 100 ms/frame; both images are 640 × 490.
 The [manifest](media/dougie/onboard-manifest.json) pins source and asset hashes;
 the [portable replay](media/dougie/onboard-replay.json) retains regeneration data.
 The older 21 October numbers below describe historical evidence, not current GIFs.
+This fresh run reproduces the 24 October `oriented_mezzanine` metrics and both GIF
+checksums exactly; the portable inputs and source provenance identify the new run.
 
 The additional [support-fusion return GIF](media/dougie/support-fusion-return.gif)
 and [poster](media/dougie/support-fusion-return.png) show a clean downstairs return
@@ -22,7 +24,7 @@ retains the native recording identity. See the
 [navigation development report](DOUGIE_NAVIGATION_RECOVERY.md) for negative results.
 
 ```bash
-python3 scripts/render_dougie_onboard.py --run results/dougie/oriented_mezzanine
+python3 scripts/render_dougie_onboard.py --run results/dougie/mezzanine_8_preempt_regression
 python3 scripts/check_dougie_onboard_media.py
 ```
 

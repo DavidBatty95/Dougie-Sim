@@ -81,6 +81,54 @@ For the original mezzanine, change world to `mezzanine`, duration to `600`, and
 use a separate output directory. No angle override is used. A clean return
 without vertical witnesses intentionally exits nonzero under `--require-round-trip`.
 
+## Vertical goal commitment follow-up — 25 October
+
+`8b7401c` fixes a reproduced priority inversion in the opt-in vertical objective:
+a committed flat-floor goal previously delayed consideration of newly reachable
+height bands for up to 45 s. Admitted new-height candidates now compete immediately.
+If all fail the existing return/rate/dose/deadline checks, the old admitted goal
+and its original commitment timer remain. An unreached new-height goal retains
+commitment to avoid repeated switching as more heights become visible.
+
+The full suite passes **313 tests**, including rejected-preemption cases and
+retention of an unreached height goal. Per-plan `vertical_frontier` telemetry
+records supported graph heights, reachable new-height nodes, admitted candidates
+and commitment preemption. These heights describe fitted, footprint-admitted
+support nodes, not all raw range returns or hidden floor geometry.
+
+The [matched development outcomes](results/dougie_vertical_preemption_20261025.json)
+and [decision diagnostics](results/dougie_vertical_preemption_decisions_20261025.json)
+retain both improvements and failures:
+
+| Run | Return time | Actual dose | Result |
+|---|---:|---:|---|
+| 8° survey regression, seed 3 / sensor 0 | 275.585 s | .274697 µSv | Strict upper/lower/home pass; reproduces earlier metrics and native GIF bytes exactly |
+| Facility vertical, seed 4 / sensor 1 | 419.945 s | .139867 µSv | Clean return, no upper witness; no improvement in completion |
+| Original 10° vertical, seed 4 / sensor 1 | 87.115 s | .041415 µSv | Earlier ramp selection, support disconnection, clean return; no upper witness |
+
+All three had zero non-foot contacts. The original 10° result is an earlier
+aborted exploration, **not a mission-efficiency gain**. The facility's maximum
+reachable supported height remained .298322 m; the original mezzanine's reached
+.488142 m in its decision history, but its return graph subsequently disconnected.
+
+The [21-scan failure replay](results/dougie_preemption_failure_replay_20261025.json)
+exposes an important distinction: bounded-mean fusion changes the nearest node
+from the disconnected ramp (.485 m away) to the connected ground floor (.543 m
+away). Its boolean home-connectivity result improves, but its home-connected
+component only reaches .018 m. It has **not repaired ramp connectivity**. Replay
+reports now include the estimated current position, selected node, distance and
+maximum home-connected height so this cannot be mistaken for an upstairs route.
+
+Remaining priorities, in order:
+
+1. Isolate ramp-junction fit and footprint rejection on frozen observations;
+   compare the same physical approach and component, not only nearest-node flags.
+2. Validate any repaired connector in closed-loop 10° and full-height trials,
+   including paced asynchronous execution and held-out noise/layout seeds.
+3. Recalibrate uncertainty on the frozen successful runtime; historical envelopes
+   remain inapplicable. Broader stance disturbance/traction screens and radiation
+   calibration/latency qualification remain separate open workstreams.
+
 ## Portable identical-observation replay
 
 The committed input archive contains the first support failure: 54 scans, map

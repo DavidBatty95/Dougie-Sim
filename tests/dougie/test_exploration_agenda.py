@@ -173,3 +173,19 @@ def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatc
     elif committed:
         assert planner.last_reason == 'continue_revalidated_goal'
         assert planner.goal_started == .5
+
+
+def test_vertical_preemption_keeps_an_unreached_new_height_commitment(monkeypatch):
+    root, high, higher = (0, 0, 0), (1, 0, 1), (2, 0, 2)
+    nodes = {root: [0., 0., 0.], high: [1., 0., .2], higher: [2., 0., .4]}
+    planner = planner_fixture(monkeypatch, nodes, {root: [high], high: [root, higher], higher: [high]})
+    planner.objective = 'vertical'
+    planner.terrain.active_viewpoints = True
+    planner.terrain.acquisition_bonus = lambda key, bands: 0.
+    planner.target = np.array(nodes[high])
+    planner.goal_started = .5
+    planner.replan(np.zeros(3), 1.)
+    np.testing.assert_allclose(planner.target, nodes[high])
+    assert planner.last_reason == 'continue_revalidated_goal'
+    assert planner.goal_started == .5
+    assert not planner.vertical_frontier['commitment_preempted']

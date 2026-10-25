@@ -54,9 +54,14 @@ def replay(path):
         terrain.build_graph()
         home, current = terrain.nearest(data['home']), terrain.nearest(data['last_position'])
         connected = home is not None and current is not None and current in terrain.routes(home)[0]
+        home_component = {} if home is None else terrain.routes(home)[0]
         results.append(dict(mode=mode, metrics=terrain.metrics(), components=connectivity(terrain),
             estimated_home_supported=home is not None, estimated_current_supported=current is not None,
             estimated_home_connected=connected,
+            estimated_current_position=data['last_position'].tolist(),
+            nearest_current_node=None if current is None else terrain.nodes[current].tolist(),
+            nearest_current_distance_m=None if current is None else float(np.linalg.norm(terrain.nodes[current]-data['last_position'])),
+            maximum_home_connected_height_m=max((float(terrain.nodes[key][2]) for key in home_component), default=None),
             matches_original_node_count=len(terrain.nodes) == int(data['archived_nodes']) if mode == str(data['support_fusion']) else None))
     return dict(scope=__doc__, captures=count, map_revision=int(data['map_revision']),
                 capture_scope=str(data['capture_scope']), planning_state=str(data['planning_state']),

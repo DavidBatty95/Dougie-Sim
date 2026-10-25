@@ -17,11 +17,18 @@ def diagnose(run):
         signature = (row.get('decision_reason'), None if target is None else tuple(round(v, 2) for v in target))
         if signature != previous:
             decisions.append({key: row.get(key) for key in ('time_s', 'state', 'decision_reason',
-                'selected_target', 'sampled_support_height_bands_m', 'rejection_counts', 'route_forecast')})
+                'selected_target', 'sampled_support_height_bands_m', 'rejection_counts', 'route_forecast', 'vertical_frontier')})
             previous = signature
     return dict(run=run.name, trace_sha256=hashlib.sha256(raw).hexdigest(),
         reason_samples=dict(Counter(row.get('decision_reason') for row in rows)),
         maximum_selected_height_m=max((row['selected_target'][2] for row in rows if row.get('selected_target')), default=None),
+        height_diagnostics=dict(
+            preemption_samples=sum(bool(row.get('vertical_frontier', {}).get('commitment_preempted')) for row in rows),
+            reachable_new_height_samples=sum(row.get('vertical_frontier', {}).get('reachable_new_height_nodes', 0) > 0 for row in rows),
+            maximum_observed_height_m=max((row['vertical_frontier']['maximum_observed_height_m']
+                for row in rows if row.get('vertical_frontier')), default=None),
+            maximum_reachable_height_m=max((row['vertical_frontier']['maximum_reachable_height_m']
+                for row in rows if row.get('vertical_frontier')), default=None)),
         final_sampled_height_bands_m=rows[-1].get('sampled_support_height_bands_m'), decisions=decisions)
 
 

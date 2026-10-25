@@ -130,7 +130,7 @@ they are demonstrations of traversal, not a validated operating envelope.
 |---|---|
 | ![Recorded sensor-only Go2 upstairs and downstairs mission on the 8-degree mezzanine, approximately 33-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded pose-graph estimate versus independent evaluator, with estimated and true height and moving detector windows](docs/media/dougie/onboard-fusion.gif) |
 
-**Left:** a torque-driven MuJoCo recording from the 24 October surface-normal fix, with the
+**Left:** a torque-driven MuJoCo regression recording from 25 October, with the
 radiation cloud hidden in the recording so the robot and routes remain visible.
 The geometry-aware GP still runs. **Right:** telemetry from the same mission;
 teal is the estimated pose, white the independent evaluator, and amber the moving
@@ -143,12 +143,12 @@ Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
 **0.1071 m** true home error, and zero non-foot contacts. Upper/lower witnesses
 occurred at **88.475 / 262.675 s**. This is the explicit 8° variant, not a pass for
 the original 10° mezzanine or the full-height facility. The recording uses the
-surface-normal-fix runtime without the historical calibration profile.
+vertical-goal-fix runtime in survey mode, without the historical calibration profile.
 Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
-[Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--24-october-2026) ·
-[Portable evidence](docs/results/dougie_support_alignment_20261024.json)
+[Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--25-october-2026) ·
+[Portable evidence](docs/results/dougie_vertical_preemption_20261025.json)
 
 **Navigation development — 24–25 October:** corrected LiDAR surface-side matching,
 added bounded home relocalization checkpoints and spatial keyframe retention, and
@@ -158,6 +158,13 @@ the 2.4 m upper-floor mission remains unqualified. Normal-balanced registration
 sampling is experimental: its facility and original-mezzanine trials returned
 cleanly at **419.945 s / 355.785 s**, but both failed the upper-floor witness gate.
 See the [development results and reproducible replay](docs/DOUGIE_NAVIGATION_RECOVERY.md).
+
+**Latest follow-up: 313 tests pass.** Newly observed height goals can now interrupt
+flat-floor commitment after passing admission checks. The 8° regression reproduces
+its strict pass; the facility still fails vertical completion, and the original
+10° trial encounters a disconnected ramp approach and returns at 87.115 s.
+The retained replay distinguishes actual ramp connectivity from selecting a
+different nearest ground-floor node.
 
 ### Stop-transition screening — retained failures
 
