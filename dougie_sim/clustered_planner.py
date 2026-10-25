@@ -51,6 +51,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.circuit = ObservedCircuit()
         self.circuit_tour = {}
         self.execution_admission_refinement = False
+        self.vertical_frontier = {}
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -112,6 +113,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         root = self.terrain.nearest(position)
         self.rejections = dict(distance=0, failed=0, dose=0, rate=0, return_route=0, time=0)
         self.route_forecast = {}
+        self.vertical_frontier = {}
         if self.sample is None or not -1e-9 <= stamp-self.sample.stamp_s <= 1.5:
             self.path = []
             self.state, self.last_reason = 'waiting_for_radiation', 'stale_radiation_sample'
@@ -267,6 +269,21 @@ class ClusteredDoseExplorer(DoseExplorer):
 
         previous = None if self.target is None else self.terrain.nearest(self.target)
         reached_tolerance = .2 if inspection or self.objective == 'circuit' else .4
+        keep_previous = (not self.returning and self.objective != 'circuit' and self.commitment
+            and previous is not None and math.dist(nodes[previous], self.target) < .25
+            and math.dist(position, self.target) > reached_tolerance
+            and stamp-self.goal_started < 45. and admitted(previous))
+        unseen_height = [key for key in parent if new_height(key)] if self.objective == 'vertical' else []
+        if self.objective == 'vertical':
+            self.vertical_frontier = dict(observed_nodes=len(nodes), reachable_nodes=len(parent),
+                reachable_new_height_nodes=len(unseen_height),
+                maximum_observed_height_m=max(float(p[2]) for p in nodes.values()),
+                maximum_reachable_height_m=max(float(nodes[k][2]) for k in parent),
+                admitted_height_candidates=0, commitment_preempted=False)
+        # Newly observed height must compete before the 45-second flat-goal
+        # commitment expires. Keep the old admitted goal if no vertical candidate
+        # survives the ordinary return/rate/dose/time checks below.
+        reconsider_height = bool(unseen_height) and previous is not None and not new_height(previous)
         selected = None
         if self.returning:
             selected, self.state = home, 'returning'
@@ -308,8 +325,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                     self.goal_started = stamp
                 self.state = 'exploring'
                 self.last_reason = 'observed_circuit_tour' if self.circuit_tour else 'observed_circuit_goal'
-        elif (self.commitment and previous is not None and math.dist(nodes[previous], self.target) < .25
-              and math.dist(position, self.target) > reached_tolerance and stamp-self.goal_started < 45. and admitted(previous)):
+        elif keep_previous and not reconsider_height:
             selected, self.state, self.last_reason = previous, 'exploring', 'continue_revalidated_goal'
         else:
             if self.target is not None and math.dist(position, self.target) < reached_tolerance+.1:
@@ -389,13 +405,18 @@ class ClusteredDoseExplorer(DoseExplorer):
             self.cluster_stamp = stamp
             self.representatives_scored = len(gain.cache)
             self.candidate_count = len(candidates)
-            if not candidates:
+            heights = [item for item in candidates if new_height(item[1])] if self.objective == 'vertical' else []
+            if self.objective == 'vertical':
+                self.vertical_frontier.update(admitted_height_candidates=len(heights),
+                    commitment_preempted=bool(keep_previous and heights))
+            if keep_previous and not heights:
+                selected, self.state, self.last_reason = previous, 'exploring', 'continue_revalidated_goal'
+            elif not candidates:
                 self.returning = True
                 selected, self.state, self.last_reason = home, 'returning_no_admissible_frontier', 'no_admissible_region'
             else:
                 nearby = [item for item in candidates if length[item[1]] <= 6.]
                 inspections = [item for item in candidates if self.landmark_bonus(nodes[item[1]]) > 0]
-                heights = [item for item in candidates if new_height(item[1])] if self.objective == 'vertical' else []
                 pool = heights or (inspections if self.objective == 'inspect' and inspections else nearby or candidates)
                 if inspection and self.region_scheduling == 'hierarchical' and not heights and not (self.objective == 'inspect' and inspections):
                     _, selected, _ = self.region_agenda.choose(candidates, outbound_time, stamp,
@@ -462,6 +483,8 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['observed_support_visit_fraction'] = len(self.visited.intersection(self.terrain.nodes))/max(1, len(self.terrain.nodes))
         result['known_landmarks_pending'] = sum(not o.inspected for o in self.landmarks.values())
         result['mission_objective'] = self.objective
+        if self.objective == 'vertical':
+            result['vertical_frontier'] = dict(self.vertical_frontier)
         result['region_agenda'] = self.region_agenda.metrics()
         result['utility_mode'] = self.utility_mode
         result['selected_utility'] = self.selected_utility

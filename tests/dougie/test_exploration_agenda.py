@@ -147,7 +147,8 @@ def test_newly_hot_only_return_route_is_reported_as_emergency_retreat(monkeypatc
 
 
 @pytest.mark.parametrize('blocked', [None, 'rate', 'return', 'time', 'dose'])
-def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatch, blocked):
+@pytest.mark.parametrize('committed', [False, True])
+def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatch, blocked, committed):
     root, flat, high = (0, 0, 0), (1, 0, 0), (0, 2, 1)
     nodes = {root: [0., 0., 0.], flat: [1., 0., 0.], high: [0., 2., .2]}
     edges = {root: [flat, high], flat: [root], high: [] if blocked == 'return' else [root]}
@@ -156,6 +157,9 @@ def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatc
     planner.objective, planner.region_scheduling = 'vertical', 'local'
     planner.terrain.active_viewpoints = True
     planner.terrain.acquisition_bonus = lambda key, bands: 0.
+    if committed:
+        planner.target = np.array(nodes[flat])
+        planner.goal_started = .5
     monkeypatch.setattr('dougie_sim.clustered_planner.ObservedGain', lambda terrain:
         SimpleNamespace(value=lambda key: 10. if key == flat else 0., cache={}))
     if blocked == 'time':
@@ -166,3 +170,6 @@ def test_vertical_objective_prioritizes_only_admitted_observed_height(monkeypatc
     np.testing.assert_allclose(planner.target, nodes[high if blocked is None else flat])
     if blocked is None:
         assert planner.last_reason == 'survey_observed_height_band'
+    elif committed:
+        assert planner.last_reason == 'continue_revalidated_goal'
+        assert planner.goal_started == .5
