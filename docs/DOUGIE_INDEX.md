@@ -21,6 +21,7 @@ Geoff's G1 humanoid development history.
 | Inspect pose-graph SLAM and sensor-only vertical qualification | [Graph backend, uncertainty protocol and retained vertical outcomes](DOUGIE_SLAM_QUALIFICATION.md) |
 | Inspect support replay, home checkpoints and LiDAR sampling | [Navigation recovery development and retained failed vertical trials](DOUGIE_NAVIGATION_RECOVERY.md) |
 | Inspect slope stopping, range-loss fallback and terminal stance | [Gravity-supported stance, matched facility trial and remaining recovery limits](DOUGIE_STANCE_RECOVERY.md) |
+| Inspect low-traction stopping and lateral disturbances | [Production stance screen, actual contact friction and retained failures](DOUGIE_TRACTION_SCREEN.md) |
 | Test five times the dose allowance on longer missions | [Paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) |
 | Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
 | Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |

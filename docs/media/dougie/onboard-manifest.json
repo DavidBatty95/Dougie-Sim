@@ -1,6 +1,6 @@
 {
   "renderer_sha256": "917675d87a62e72115a60bcae67a7816b5c0facfd3c8db170a15a3525c575b00",
-  "portable_sha256": "87a61d98f7d9fed72cfc26f4ccca8851cc160117d90c1d791b052f6350c308de",
+  "portable_sha256": "2bb4aceae891b7059208dedda8839568e3d29527b8c4ef2977208472b68a47f6",
   "pillow_version": "9.0.1",
   "runtime_source_sha256": {
     "dougie_sim/__init__.py": "301acfaee06290bcd16afeda5df7d1fae36b357006c18753907f89d7c141f22d",
@@ -17,7 +17,7 @@
     "dougie_sim/gp.py": "ce779f0c9695a77b4381e680e41f0489badea2ea74a836b357b5984e96e848c7",
     "dougie_sim/graphics.py": "b00b4afe34ca7fdffee20dd50d8ce2a2b5ed383350b915ab37ffe76f73e6dd54",
     "dougie_sim/landmarks.py": "f28bfa54d5e1d0e58c8325f8f309dd74dd6469890183d533800116938341ce0e",
-    "dougie_sim/layered_terrain.py": "8597719a23cdc3b74e1ba5a4d55220c52c0d8549e35ca929ce9368ea681cabee",
+    "dougie_sim/layered_terrain.py": "e7666d81793d164c37a4e47aa12b9b5759021338668f5e9189fa27a3e614c56a",
     "dougie_sim/localization_checkpoint.py": "4f26b0e296c0090adfe0b04b842fa728e9de891607efe3d98e953450938d069d",
     "dougie_sim/map_corrections.py": "0c81755cc875af2d9eca859cd02a63c167f0c092a93f628f94dfdc319d8b940b",
     "dougie_sim/mission_evaluation.py": "58c983d13845dde3cf2bde6b6718fe25b3ebd446a36f3318719f1a357187ac90",
@@ -58,7 +58,7 @@
     "dougie_sim/spatial_gp.py": "1d42421d1605d627871cb88cb09ddefd841630e27247c4aa2dc8709ade11c793",
     "dougie_sim/stance_hold.py": "897cdefda1f8910706369129bbbb62e9681fe8b40ffb182c6ab70c49c8dd0335",
     "dougie_sim/terrain.py": "6a78a8641e92406beaa84d3db24a53a292f7a9ce59599a4d14ce9be54551473a",
-    "dougie_sim/terrain_courses.py": "9a0f2633f707a2dda79a526d688e6e22fa4d6f6b253a7c78ee4bc12a98db2cc3",
+    "dougie_sim/terrain_courses.py": "fc655b312e1a46df349358dd269a2fbcb4a515dc9a571cb0e6c2173fd337f0c3",
     "dougie_sim/terrain_qualification.py": "10c76e14e22128967acdb9356560aa2c5fcbf897186b2c97697541f1f16f9538",
     "dougie_sim/training.py": "dda90fec82269c9d00806cfd91ffed618c8b18efe1e678ae7da48e3f47437470",
     "config/dougie_assets.json": "ed5f75bcf7dde8513848590a22f05c55465a55bbeefe59bf3f5278371211f783",

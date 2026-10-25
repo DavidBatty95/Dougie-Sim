@@ -5,7 +5,7 @@
 
 Latest [navigation recovery development](DOUGIE_NAVIGATION_RECOVERY.md): signed
 surface matching, bounded home checkpoints, coverage-based cloud retention and
-opt-in normal-balanced sampling are implemented; **313 tests pass**. The 8°
+opt-in normal-balanced sampling are implemented; **320 tests pass**. The 8°
 regression passes, while original 10° and full-height facility qualification
 remain open. The normal-balanced closed-loop facility and original-mezzanine
 trials both returned cleanly, but neither reached the upper landing. The subsequent
@@ -14,6 +14,13 @@ closed-loop vertical completion remains unqualified. Next isolate ramp-junction
 support/footprint rejection and continuous approach connectivity. Nearest-node
 changes alone must not count as repaired connectors. Retain strict vertical
 witnesses as the acceptance gate.
+
+Footprint diagnostics now isolate slope-limit rejection at the 10° approach and
+missing compatible footprint support at the facility frontier. The
+[24-case production stance screen](DOUGIE_TRACTION_SCREEN.md) establishes a
+separate low-traction downhill stopping failure: stance entry is refused and
+drift continues. Prioritize bounded braking/settling and supported sensing
+approaches, then repeat end-to-end qualification and frozen-runtime calibration.
 
 ## Current implementation
 

@@ -135,8 +135,9 @@ class Course:
                 self._box(body, 'top_platform', spec.end_x, spec.finish_x+2., spec.top)
                 self.required_top = (spec.end_x, spec.finish_x+2., spec.top)
         # Apply the declared traction to generated terrain as well as the floor
-        # and feet. MuJoCo otherwise gives new boxes its default friction of 1,
-        # which dominates a lower foot coefficient in the contact pair.
+        # and feet. New boxes otherwise retain MuJoCo's default friction of 1.
+        # The pinned feet have higher contact priority, so this parameter repair
+        # does not by itself imply that historical foot traction was incorrect.
         for geom in body.findall('geom'):
             geom.set('friction', f'{spec.friction} .02 .01')
         if spec.payload_kg:

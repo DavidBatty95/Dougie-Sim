@@ -1,0 +1,36 @@
+{
+  "scope": "Evaluator-only check of foot/terrain friction mixing in the pinned robot model.",
+  "mujoco_version": "3.3.6",
+  "script_sha256": "ccca595eee8e9963735e191ebc9563e2c8624a73c8899b5cf14c42c082fca389",
+  "policy": {
+    "name": "go2-robot-lab-baseline",
+    "schema": "go2-proprio-45-v1",
+    "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+    "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+    "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+  },
+  "results": [
+    {
+      "foot_friction": 0.25,
+      "terrain_friction": 0.25,
+      "observed_priority_and_effective_friction": [
+        [
+          1,
+          0,
+          0.25
+        ]
+      ]
+    },
+    {
+      "foot_friction": 0.25,
+      "terrain_friction": 1.0,
+      "observed_priority_and_effective_friction": [
+        [
+          1,
+          0,
+          0.25
+        ]
+      ]
+    }
+  ]
+}

@@ -143,12 +143,12 @@ Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
 **0.1071 m** true home error, and zero non-foot contacts. Upper/lower witnesses
 occurred at **88.475 / 262.675 s**. This is the explicit 8° variant, not a pass for
 the original 10° mezzanine or the full-height facility. The recording uses the
-vertical-goal-fix runtime in survey mode, without the historical calibration profile.
+footprint-diagnostic runtime in survey mode, without the historical calibration profile.
 Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
 [Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--25-october-2026) ·
-[Portable evidence](docs/results/dougie_vertical_preemption_20261025.json)
+[Portable evidence](docs/results/dougie_footprint_regression_20261025.json)
 
 **Navigation development — 24–25 October:** corrected LiDAR surface-side matching,
 added bounded home relocalization checkpoints and spatial keyframe retention, and
@@ -159,12 +159,17 @@ sampling is experimental: its facility and original-mezzanine trials returned
 cleanly at **419.945 s / 355.785 s**, but both failed the upper-floor witness gate.
 See the [development results and reproducible replay](docs/DOUGIE_NAVIGATION_RECOVERY.md).
 
-**Latest follow-up: 313 tests pass.** Newly observed height goals can now interrupt
+**Latest follow-up: 320 tests pass.** Newly observed height goals can now interrupt
 flat-floor commitment after passing admission checks. The 8° regression reproduces
 its strict pass; the facility still fails vertical completion, and the original
 10° trial encounters a disconnected ramp approach and returns at 87.115 s.
 The retained replay distinguishes actual ramp connectivity from selecting a
 different nearest ground-floor node.
+
+**Traction and disturbance follow-up:** the production terminal-stance controller
+passed **12/12** cases at effective friction .4, including 15 N lateral pushes,
+but only **6/12** at .25. Low-traction downhill cases failed quiet entry and drifted
+about **1.63 m**. [Protocol, contact-friction verification and retained failures](docs/DOUGIE_TRACTION_SCREEN.md).
 
 ### Stop-transition screening — retained failures
 

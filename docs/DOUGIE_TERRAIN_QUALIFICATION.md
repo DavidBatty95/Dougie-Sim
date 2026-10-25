@@ -18,6 +18,13 @@ The four earlier pilot runs remain locally available outside these cohorts.
 
 ## Scope and protocol
 
+**25 October fixture follow-up:** generated terrain friction parameters are now
+set explicitly alongside feet and floor. The pinned feet have higher contact
+priority; a [contact-level probe](DOUGIE_TRACTION_SCREEN.md#terrain-parameter-correction-and-contact-priority)
+confirms that the previous terrain parameter default did not override requested
+foot friction. Historical results and hashes remain unchanged. The new production
+stance screen measures effective contact friction in every trial.
+
 This qualifies the pinned `robot_lab` Go2 policy in MuJoCo 3.3.6 with a fixed
 20 ms policy period, nominal 5 ms physics timestep and the documented PD/torque
 limits. Robot geometry, model/policy downloads, code, scene XML and traces are

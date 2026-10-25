@@ -131,6 +131,32 @@ Remaining priorities, in order:
 
 ## Portable identical-observation replay
 
+### Footprint diagnosis follow-up
+
+New capture-time diagnostics retain the first missing compatible footprint cell
+or incompatible adjacent support pair, including the responsible local fit
+rejection. Cached rebuilds preserve this explanation; a missing-support regression
+checks that diagnostics do not fill holes or change admitted nodes.
+
+The [10° frozen replay](results/dougie_junction_footprint_20261025.json) still
+reconstructs exactly 432 maximum-fusion nodes. At the failed approach, neighboring
+fits have slope .176768/.176619, above the existing `tan(10°)+.0001` threshold
+(approximately .176427). Their rejection propagates through the full footprint.
+This is a boundary/noise limitation, not evidence permitting a higher slope limit.
+
+The [facility frontier replay](results/dougie_facility_frontier_diagnosis_20261025.json)
+locates its highest connected support at approximately (2.9, 6.9, .2983) m.
+The next candidate at (3.1, 6.9, .3283) lacks compatible footprint support near
+(3.5, 6.5). Other adjacent candidates are body-blocked. More supported observations
+are needed; selecting a high goal alone cannot certify the missing footprint.
+
+The [fresh 8° regression](results/dougie_footprint_regression_20261025.json) retains
+strict completion at 275.585 s and .274697 µSv. **320 tests pass.** The separate
+[production stance traction screen](DOUGIE_TRACTION_SCREEN.md) advances the
+disturbance workstream while retaining its low-friction failures.
+
+### Archived inputs
+
 The committed input archive contains the first support failure: 54 scans, map
 revision zero, and the correction journal. The replay reconstructs 1714 nodes
 and compares both fusion modes from exactly the same observations.

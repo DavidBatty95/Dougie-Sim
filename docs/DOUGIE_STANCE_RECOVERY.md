@@ -4,6 +4,12 @@
 
 ## Implemented controller
 
+**25 October follow-up:** the [24-case production-controller traction and push
+screen](DOUGIE_TRACTION_SCREEN.md) passed 12/12 at effective friction .4 and 6/12
+at .25. Low-friction downhill entry failed, with about 1.63 m continued drift.
+These results extend the original screens below; contact-clean refusal is not a
+stationary stop.
+
 `dougie_sim/stance_hold.py` adds an experimental quasi-static load-support model.
 It receives measured joint angles and estimated body-frame gravity, plus the
 constant mass of the pinned Go2 model. Leg kinematics provide foot positions and
