@@ -75,7 +75,36 @@ def test_no_return_carves_free_space_but_hit_does_not_clear_behind_wall():
 
 def cloud(height):
     return np.array([[x, y, height(x)] for x in np.arange(-1.5, 1.51, .05)
-                     for y in np.arange(-1., 1.01, .05)])
+                      for y in np.arange(-1., 1.01, .05)])
+
+
+def test_missing_footprint_support_diagnosis_survives_cached_rebuild():
+    terrain = LayeredSurfaceMap()
+    points = cloud(lambda x: 0.)
+    points = points[(points[:, 0] < .2) | (points[:, 0] >= .6)]
+    terrain.update(np.empty((0, 3)), points)
+    terrain.build_graph()
+    assert terrain.footprint_rejections
+    rejected = dict(terrain.footprint_rejections)
+    nodes = set(terrain.nodes)
+    assert any(item['reason'] == 'missing_compatible_support' for item in rejected.values())
+    assert not any(.2 <= p[0] < .6 for p in terrain.nodes.values())
+    terrain.build_graph()
+    assert set(terrain.nodes) == nodes
+    assert terrain.footprint_rejections == rejected
+    assert terrain.footprints_checked == 0
+
+
+@pytest.mark.parametrize('kind', ['flat', 'ramp', 'stairs', 'tiles', 'ridges', 'legacy'])
+def test_course_friction_applies_to_generated_contact_surfaces(kind):
+    from dougie_sim.terrain_courses import Course, CourseSpec
+    course = Course(CourseSpec(name='traction', kind=kind, friction=.25), 0)
+    model = mujoco.MjModel.from_xml_string(course.xml)
+    surfaces = [i for i in range(model.ngeom) if model.geom_bodyid[i] == 0 and model.geom_contype[i] != 0]
+    assert surfaces
+    np.testing.assert_allclose(model.geom_friction[surfaces, 0], .25)
+    for name in ('FR', 'FL', 'RR', 'RL'):
+        assert model.geom_friction[model.geom(name).id, 0] == .25
 
 
 @pytest.mark.parametrize('fusion', ['maximum', 'bounded-mean'])

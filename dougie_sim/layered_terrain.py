@@ -111,6 +111,7 @@ class LayeredSurfaceMap(SurfaceMap):
         self._supported_keys = set()
         self.footprints_checked = 0
         self.fit_rejections = {}
+        self.footprint_rejections = {}
 
     def observe_packet(self, packet):
         if self.last_scan_stamp is not None and packet.stamp_s < self.last_scan_stamp:
@@ -293,6 +294,7 @@ class LayeredSurfaceMap(SurfaceMap):
         affected = {(x-dx, y-dy) for x, y in changed for dx, dy in footprint}
         self.footprints_checked = 0
         nodes = {}
+        footprint_rejections = {}
         def compatible(a, b):
             delta = candidates[b]-candidates[a]
             return (abs(delta[2]) <= self.max_slope*np.linalg.norm(delta[:2])+.003
@@ -307,6 +309,8 @@ class LayeredSurfaceMap(SurfaceMap):
             if key[:2] not in affected:
                 if key in self._supported_keys:
                     nodes[key] = p
+                elif key in self.footprint_rejections:
+                    footprint_rejections[key] = self.footprint_rejections[key]
                 continue
             self.footprints_checked += 1
             selected = {}
@@ -315,16 +319,28 @@ class LayeredSurfaceMap(SurfaceMap):
                 choices = [k for k in by_column.get(xy, [])
                            if abs(candidates[k][2]-p[2]) <= self.max_slope*math.hypot(dx, dy)*self.resolution+.015]
                 if not choices:
+                    footprint_rejections[key] = dict(reason='missing_compatible_support',
+                        xy=((np.asarray(xy)+.5)*self.resolution).tolist(),
+                        fit_rejections=self.fit_rejections.get(xy, []))
                     break
                 predicted = p[2]+planes[key][:2]@np.array([dx, dy])*self.resolution
                 selected[dx, dy] = key if (dx, dy) == (0, 0) else min(choices, key=lambda k: abs(candidates[k][2]-predicted))
             # Piecewise-continuous support permits a measured floor/ramp join.
             # Every adjacent pair must agree, so an abrupt ledge cannot become
             # admissible merely because its two sides connect elsewhere.
-            if len(selected) == len(footprint) and all(
-                    compatible(k, selected[other]) for (dx, dy), k in selected.items()
-                    for other in ((dx+1, dy), (dx, dy+1)) if other in selected):
-                nodes[key] = p
+            if len(selected) == len(footprint):
+                bad = next(((k, selected[other]) for (dx, dy), k in selected.items()
+                    for other in ((dx+1, dy), (dx, dy+1)) if other in selected
+                    and not compatible(k, selected[other])), None)
+                if bad is None:
+                    nodes[key] = p
+                else:
+                    a, b = bad
+                    delta = candidates[b]-candidates[a]
+                    footprint_rejections[key] = dict(reason='incompatible_adjacent_support',
+                        points=[candidates[a].tolist(), candidates[b].tolist()],
+                        plane_residuals_m=[float(abs(delta[2]-planes[k][:2]@delta[:2])) for k in bad])
+        self.footprint_rejections = footprint_rejections
         self._footprint_candidates, self._footprint_planes = candidates, planes
         self._supported_keys = set(nodes)
         graph = {key: [] for key in nodes}
@@ -371,7 +387,8 @@ class LayeredSurfaceMap(SurfaceMap):
             result.append(dict(xy=((np.asarray(column)+.5)*self.resolution).tolist(), observed_layers=count,
                 rejections=self.fit_rejections.get(column, []),
                 candidates=[dict(height_m=float(point[2]), admission='body_blocked' if blocked else
-                    'admitted' if key in self.nodes else 'footprint_rejected') for key, point, plane, blocked in entries]))
+                    'admitted' if key in self.nodes else 'footprint_rejected',
+                    footprint_rejection=self.footprint_rejections.get(key)) for key, point, plane, blocked in entries]))
         return dict(position=np.asarray(position).tolist(), columns=result)
 
     def metrics(self):

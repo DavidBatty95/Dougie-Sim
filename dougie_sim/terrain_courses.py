@@ -134,6 +134,11 @@ class Course:
             else:
                 self._box(body, 'top_platform', spec.end_x, spec.finish_x+2., spec.top)
                 self.required_top = (spec.end_x, spec.finish_x+2., spec.top)
+        # Apply the declared traction to generated terrain as well as the floor
+        # and feet. MuJoCo otherwise gives new boxes its default friction of 1,
+        # which dominates a lower foot coefficient in the contact pair.
+        for geom in body.findall('geom'):
+            geom.set('friction', f'{spec.friction} .02 .01')
         if spec.payload_kg:
             payload = ET.SubElement(body.find("body[@name='base_link']"), 'body', name='qualification_payload', pos='0 0 .13')
             box(payload, 'qualification_payload_geom', (0, 0, 0), (.12, .09, .04), '.8 .6 .1 1', mass=str(spec.payload_kg))
