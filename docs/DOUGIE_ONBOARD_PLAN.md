@@ -1,11 +1,11 @@
 # Onboard mission plan — 26 October 2026
 
 [Project home](../README.md) · [Implemented methods](DOUGIE_ONBOARD_MISSION.md) ·
-[Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#navigation-refresh--25-october-2026)
+[Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#navigation-refresh--26-october-2026)
 
 Latest [navigation recovery development](DOUGIE_NAVIGATION_RECOVERY.md): signed
 surface matching, bounded home checkpoints, coverage-based cloud retention and
-opt-in normal-balanced sampling are implemented; **324 tests pass**. The 8°
+opt-in normal-balanced sampling are implemented; **338 tests pass**. The 8°
 regression passes, while original 10° and full-height facility qualification
 remain open. The normal-balanced closed-loop facility and original-mezzanine
 trials both returned cleanly, but neither reached the upper landing. The subsequent
@@ -28,6 +28,12 @@ seeds reached only 19/24 versus 17/24 for step stopping, including a regression.
 It remains an anticipatory harness experiment; reactive low-traction stabilization
 is still an open controller task.
 
+Measured-yaw feedback with an estimated-downhill posture gate has now been
+screened on development, retained-failure and fresh seeds. Fresh low-friction
+worst drift dropped to .069365 m, but push-gate failures and development
+regressions prevent mission integration. See the
+[full feedback comparison](DOUGIE_PLANNED_STOP.md#measured-yaw-feedback-follow-up).
+
 The existing third home-checkpoint allowance now has a fresh facility result:
 sampled intermediate-landing witness at 583.700 s, clean return at 794.880 s,
 .248470 µSv and no non-foot contacts. Its first 8,398 physical samples exactly
@@ -35,6 +41,14 @@ match the shorter two-checkpoint run. Full-height completion still fails.
 Next investigate localization/observability reserve on the upper ramp using the
 retained [checkpoint evidence](DOUGIE_NAVIGATION_RECOVERY.md#third-home-checkpoint--26-october),
 while retaining the unchanged uncertainty and strict-witness gates.
+
+The current 3 m anchor-search comparator exhausted 16 correction slots and became
+stranded. The opt-in `--loop-correction-capacity 32` trial used 21 corrections and
+returned cleanly at 887.110 s, but explored less and missed the intermediate
+landing. The [matched capacity audit](DOUGIE_NAVIGATION_RECOVERY.md#upper-ramp-reserve-and-bounded-correction-history)
+preserves the identical physical prefix and this trade-off. Next prioritize
+root-connected observability and calibrated factor uncertainty, rather than
+assuming more loop events or a wider search guarantees upper-floor progress.
 
 ## Current implementation
 

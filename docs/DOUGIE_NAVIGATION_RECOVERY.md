@@ -157,7 +157,61 @@ Reproduce using the facility command above with `--localization-checkpoints 3`
 and a new output directory. [Native footage and provenance](DOUGIE_MEDIA.md#facility-intermediate-return--26-october-2026)
 show this longer exploration and clean return.
 
-## Footprint diagnosis follow-up
+## Upper-ramp reserve and bounded correction history
+
+The [reserve/entry diagnosis](results/dougie_reserve_entry_20261026.json) separates
+two limits. In the 1.25 m-radius third-checkpoint run, return began at 612.425 s:
+position uncertainty reached .180168 m and there was no eligible older anchor
+inside the radius. Only ten map corrections had been used at that point, so the
+16-event history limit was not the cause of that return.
+
+The current-runtime 3 m-radius comparator retained full-rank registration and
+confirmation gates, but exhausted all 16 corrections at 691.800 s. It later
+stopped at 1059.445 s with `return_route_disconnected`. Physics and exposure
+continued through 2400 s: .485695 µSv total, including .190428 µSv after the stop,
+with zero non-foot contacts. It did not return cleanly or complete the vertical
+mission. [Retained baseline report](results/dougie_loop_budget_baseline_20261026.json)
+and [trigger diagnostics](results/dougie_wide_reserve_entry_20261026.json) preserve
+the failed outcome. The historical earlier wide-radius failure remains separate.
+
+`129b739` adds an opt-in **`--loop-correction-capacity 32`** alongside the historical
+default of 16. This changes the bounded correction-history allowance, not the
+registration/confirmation gates, 512-pose graph, 64-cloud retention or 1500-point
+sampling cap. Loop diagnostics now explicitly report correction-capacity,
+cooldown, cadence or disabled inhibition instead of leaving a stale last match
+as the only explanation. The option is source/domain-pinned in uncertainty
+profiles and requires robust fused localization. Tests exercise both history
+limits, confirmation beyond event 16, rejection of rank-deficient matches and
+the unchanged graph capacity. **338 tests pass.**
+
+The fresh default-capacity 8° regression again passes at 275.585 s and
+.274697 µSv, reproducing both GIF checksums exactly. The 32-event facility
+experiment used the same 3 m search, three checkpoints and original mission
+budget/deadline. It returned cleanly at **887.110 s**, **.226458 µSv**, with
+**.036828 m** position p95 and zero non-foot contacts. It used **21 corrections**
+and 284 graph poses, within the unchanged 512-pose cap.
+
+The [capacity-pair audit](results/dougie_loop_capacity_pair_20261026.json) confirms
+matching configuration except the declared history allowance and source identity,
+and **13,836 identical pre-capacity physical samples**. The first physical
+difference occurs at **724.250 s**, after the 16-event comparator exhausted its
+history at 691.800 s. Five additional corrections were accepted with the same
+registration and confirmation gates.
+
+The [physical witness comparison](results/dougie_loop_capacity_witness_20261026.json)
+retains the trade-off: the stranded 16-event run reached the intermediate landing
+at 843.300 s, whereas the clean-return 32-event run did not. Both failed full-height
+completion. The [complete report](results/dougie_loop_capacity_20261026.json) and
+[decision history](results/dougie_loop_capacity_decisions_20261026.json) preserve
+that distinction; fewer stranded seconds or lower dose do not establish greater
+completed exploration. Search radius 1.25 m and history capacity 16 remain defaults.
+
+To reproduce this bounded-resource experiment, use the facility command above
+with `--localization-checkpoints 3 --loop-search-radius 3 --loop-correction-capacity 32`
+and a fresh output directory. Historical uncertainty calibration does not apply
+to the new runtime/domain.
+
+## Footprint rejection details
 
 New capture-time diagnostics retain the first missing compatible footprint cell
 or incompatible adjacent support pair, including the responsible local fit

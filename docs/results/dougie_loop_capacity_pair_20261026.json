@@ -1,0 +1,38 @@
+{
+  "scope": "Audit bounded correction histories and matched pre-capacity physical samples.",
+  "runs": [
+    {
+      "run": "facility_current_wide_anchor",
+      "capacity": 16,
+      "corrections": 16,
+      "graph_nodes": 439,
+      "clean_return": false,
+      "strict_round_trip_completed": false,
+      "input_sha256": {
+        "run_config.json": "9b7dc00e2220e0d70fb25bda7f62ab044e2680f84efdbd5bd9a00b4c15d074a6",
+        "radiation_summary.json": "1ac3adc52ffd70fd999d0072cd439aa49dd73e185e7a32084c89fa1559e50840",
+        "map_corrections.jsonl": "5ad736fb1b4a6b3439055378263bb7b07caef7c24fd6bc31fe97abab1551ce99",
+        "motion_trace.npz": "fcf8a280306dd01312673a31f846d53ce4c75604b0aaea0adb08ae43443442f7"
+      }
+    },
+    {
+      "run": "facility_wide_cap32",
+      "capacity": 32,
+      "corrections": 21,
+      "graph_nodes": 284,
+      "clean_return": true,
+      "strict_round_trip_completed": false,
+      "input_sha256": {
+        "run_config.json": "0a6b51026d685cfe22af1416d129da381303f0e5f85909639d1eb26834a4342a",
+        "radiation_summary.json": "9444a770cecdd826db3ffa00c2426569ba24434f40e77106c10711fb9ced5c08",
+        "map_corrections.jsonl": "6485325665a5ca07133048297d86c3468461b9fb66c70add6130d1c88454036c",
+        "motion_trace.npz": "6affb332ed34e624dbd556baf602c90702d1b9cb62199b4cb729cb013db4c575"
+      }
+    }
+  ],
+  "matched_pre_capacity_samples": 13836,
+  "baseline_capacity_reached_s": 691.7999999994433,
+  "first_physical_difference_s": 724.2499999994138,
+  "extra_corrections": 5,
+  "script_sha256": "69979ddd8ec59e58654d9c79d7377ad4aae053561d0cb5c32880a51f576eb51c"
+}

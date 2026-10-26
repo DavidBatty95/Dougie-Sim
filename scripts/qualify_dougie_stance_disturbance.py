@@ -166,7 +166,7 @@ def main():
         sensor_seeds=args.sensor_seeds,
         settling_yaw_gain=args.settling_yaw_gain, settling_yaw_limit_rad_s=.2, settling_yaw_slew_rad_s2=.5,
         settling_yaw_mode=args.settling_yaw_mode,
-        braking_scope='timed planned stop; no motion after terminal request'), expected_cases=len(cases),
+        braking_scope='timed planned stop; zero velocity commands after terminal request'), expected_cases=len(cases),
         source_sha256=core_fingerprint(),
         fixture_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/terrain_courses.py').read_bytes()).hexdigest(),
         software_versions=dict(python=platform.python_version(), numpy=np.__version__, mujoco=mujoco.__version__, torch=torch.__version__),

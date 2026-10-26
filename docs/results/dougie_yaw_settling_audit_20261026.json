@@ -1,0 +1,146 @@
+{
+  "scope": "complete matched simulation screen; no reliability or mission qualification",
+  "report_sha256": "69c75e878bdcef85c6e550cbe44b1f5ad05af37e29b604afac43ef54f45f419c",
+  "cases": 24,
+  "brake_seconds": 2.0,
+  "settling_yaw_gain": 1.0,
+  "sensor_seeds": [
+    0,
+    1
+  ],
+  "groups": [
+    {
+      "friction": 0.4,
+      "force_n": 0.0,
+      "cases": 6,
+      "passed": 6,
+      "failure_counts": {},
+      "maximum_horizontal_drift_m": 0.016309042855148528
+    },
+    {
+      "friction": 0.4,
+      "force_n": 15.0,
+      "cases": 6,
+      "passed": 5,
+      "failure_counts": {
+        "stance_not_retained": 1,
+        "drift_above_5cm": 1
+      },
+      "maximum_horizontal_drift_m": 0.5073912732394599
+    },
+    {
+      "friction": 0.25,
+      "force_n": 0.0,
+      "cases": 6,
+      "passed": 5,
+      "failure_counts": {
+        "drift_above_5cm": 1
+      },
+      "maximum_horizontal_drift_m": 0.056369364760953174
+    },
+    {
+      "friction": 0.25,
+      "force_n": 15.0,
+      "cases": 6,
+      "passed": 4,
+      "failure_counts": {
+        "drift_above_5cm": 2,
+        "stance_not_retained": 1
+      },
+      "maximum_horizontal_drift_m": 1.1832865784007383
+    }
+  ],
+  "failed_cases": [
+    {
+      "angle_deg": 8.53,
+      "direction": "up",
+      "friction": 0.4,
+      "force_n": 15.0,
+      "sensor_seed": 0,
+      "max_horizontal_drift_m": 0.5073912732394599,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance lost fresh quiet four-foot support",
+        "requested_s": 13.000000000000632,
+        "started_s": 13.700000000000742,
+        "maximum_support_torque_nm": 7.1341818404375195,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "up",
+      "friction": 0.25,
+      "force_n": 0.0,
+      "sensor_seed": 1,
+      "max_horizontal_drift_m": 0.056369364760953174,
+      "stance": {
+        "phase": "holding",
+        "reason": null,
+        "requested_s": 13.000000000000632,
+        "started_s": 14.170000000000815,
+        "maximum_support_torque_nm": 6.290914226681179,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "up",
+      "friction": 0.25,
+      "force_n": 15.0,
+      "sensor_seed": 0,
+      "max_horizontal_drift_m": 0.05189713896353455,
+      "stance": {
+        "phase": "holding",
+        "reason": null,
+        "requested_s": 13.000000000000632,
+        "started_s": 13.700000000000742,
+        "maximum_support_torque_nm": 6.9765138399397095,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "up",
+      "friction": 0.25,
+      "force_n": 15.0,
+      "sensor_seed": 1,
+      "max_horizontal_drift_m": 1.1832865784007383,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance lost fresh quiet four-foot support",
+        "requested_s": 13.000000000000632,
+        "started_s": 14.170000000000815,
+        "maximum_support_torque_nm": 6.772320314882176,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    }
+  ],
+  "verified": [
+    "cohort completeness",
+    "actual contact friction",
+    "applied impulse",
+    "motor torque limit",
+    "full-duration scoring",
+    "matched pre-push physical samples",
+    "failure scoring"
+  ]
+}

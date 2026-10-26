@@ -1,0 +1,40 @@
+{
+  "scope": "Evaluator-only sampled intermediate-landing witness; never a full-height pass.",
+  "sampling": "20 Hz foot-pose replay, >=.2 s sampled dwell; no contact-force witness",
+  "script_sha256": "46655d8ea9c8f3b5aa67744bf7f1df64b8c29787897b1720767a2b79663f5d63",
+  "runs": [
+    {
+      "run": "facility_current_wide_anchor",
+      "sampled_intermediate_witness_s": 843.2999999993056,
+      "longest_sampled_dwell_s": 32.89999999997008,
+      "maximum_sampled_base_height_m": 1.618417722529673,
+      "clean_return": false,
+      "strict_round_trip_completed": false,
+      "input_sha256": {
+        "scene.xml": "2cec8c30a24f9af8a48cf46857e028d2f78fa538b713875022f24a15187a489c",
+        "motion_trace.npz": "fcf8a280306dd01312673a31f846d53ce4c75604b0aaea0adb08ae43443442f7",
+        "run_config.json": "9b7dc00e2220e0d70fb25bda7f62ab044e2680f84efdbd5bd9a00b4c15d074a6",
+        "radiation_summary.json": "1ac3adc52ffd70fd999d0072cd439aa49dd73e185e7a32084c89fa1559e50840"
+      }
+    },
+    {
+      "run": "facility_wide_cap32",
+      "sampled_intermediate_witness_s": null,
+      "longest_sampled_dwell_s": 0.0,
+      "maximum_sampled_base_height_m": 1.1512469507949104,
+      "clean_return": true,
+      "strict_round_trip_completed": false,
+      "input_sha256": {
+        "scene.xml": "2cec8c30a24f9af8a48cf46857e028d2f78fa538b713875022f24a15187a489c",
+        "motion_trace.npz": "6affb332ed34e624dbd556baf602c90702d1b9cb62199b4cb729cb013db4c575",
+        "run_config.json": "0a6b51026d685cfe22af1416d129da381303f0e5f85909639d1eb26834a4342a",
+        "radiation_summary.json": "9444a770cecdd826db3ffa00c2426569ba24434f40e77106c10711fb9ced5c08"
+      }
+    }
+  ],
+  "shared_physical_prefix": {
+    "compared_samples": 17742,
+    "all_equal": false,
+    "first_difference_s": 724.2499999994138
+  }
+}

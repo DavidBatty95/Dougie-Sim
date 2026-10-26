@@ -130,7 +130,7 @@ they are demonstrations of traversal, not a validated operating envelope.
 |---|---|
 | ![Recorded sensor-only Go2 upstairs and downstairs mission on the 8-degree mezzanine, approximately 33-times playback](docs/media/dougie/onboard-mission.gif) | ![Recorded pose-graph estimate versus independent evaluator, with estimated and true height and moving detector windows](docs/media/dougie/onboard-fusion.gif) |
 
-**Left:** a torque-driven MuJoCo regression recording from 25 October, with the
+**Left:** a torque-driven MuJoCo regression recording from 26 October, with the
 radiation cloud hidden in the recording so the robot and routes remain visible.
 The geometry-aware GP still runs. **Right:** telemetry from the same mission;
 teal is the estimated pose, white the independent evaluator, and amber the moving
@@ -143,12 +143,13 @@ Detector seed 3 / sensor seed 0: strict upstairs/downstairs/home completion at
 **0.1071 m** true home error, and zero non-foot contacts. Upper/lower witnesses
 occurred at **88.475 / 262.675 s**. This is the explicit 8° variant, not a pass for
 the original 10° mezzanine or the full-height facility. The recording uses the
-footprint-diagnostic runtime in survey mode, without the historical calibration profile.
+loop-history-option runtime in survey mode with the default 16-event capacity,
+without the historical calibration profile.
 Hidden pose and field truth are used
 for sensor generation, diagnostic rendering and scoring—not mission decisions.
 [Static mission](docs/media/dougie/onboard-mission.png) · [Static telemetry](docs/media/dougie/onboard-fusion.png) ·
-[Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--25-october-2026) ·
-[Portable evidence](docs/results/dougie_footprint_regression_20261025.json)
+[Provenance and regeneration](docs/DOUGIE_MEDIA.md#navigation-refresh--26-october-2026) ·
+[Portable evidence](docs/results/dougie_loop_budget_baseline_20261026.json)
 
 **Navigation development — 24–25 October:** corrected LiDAR surface-side matching,
 added bounded home relocalization checkpoints and spatial keyframe retention, and
@@ -159,7 +160,7 @@ sampling is experimental: its facility and original-mezzanine trials returned
 cleanly at **419.945 s / 355.785 s**, but both failed the upper-floor witness gate.
 See the [development results and reproducible replay](docs/DOUGIE_NAVIGATION_RECOVERY.md).
 
-**Latest follow-up: 324 tests pass.** Newly observed height goals can now interrupt
+**Latest follow-up: 338 tests pass.** Newly observed height goals can now interrupt
 flat-floor commitment after passing admission checks. The 8° regression reproduces
 its strict pass; the facility still fails vertical completion, and the original
 10° trial encounters a disconnected ramp approach and returns at 87.115 s.
@@ -175,6 +176,17 @@ about **1.63 m**. [Protocol, contact-friction verification and retained failures
 The two-second taper improved fresh-seed passes from **17/24 to 19/24**, but
 introduced one regression and did not solve low-traction downhill entry.
 [Matched comparisons and retained failures](docs/DOUGIE_PLANNED_STOP.md).
+
+**Feedback follow-up:** estimated-posture-gated yaw damping reduced worst
+low-friction drift on fresh seeds from **1.64 m to 6.94 cm**, but pushed cases still
+failed the 5 cm gate and development-seed regressions remain. It is an experimental
+pre-terminal settling strategy, not a mission-controller default.
+
+**Localization-budget follow-up:** an opt-in 32-event correction history enabled
+a clean facility return at **887.110 s**, where the matched 16-event/3 m-search
+comparator became stranded. It returned before the intermediate landing, so this
+is a return-outcome improvement with less exploration, not a vertical mission pass.
+[Bounded-resource experiment and physical-prefix audit](docs/DOUGIE_NAVIGATION_RECOVERY.md#upper-ramp-reserve-and-bounded-correction-history).
 
 ### Facility intermediate landing and clean return — full-height mission still failed
 

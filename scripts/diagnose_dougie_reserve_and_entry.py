@@ -33,6 +33,7 @@ def main():
                 'maximum_joint_speed_rad_s', 'estimated_velocity')} for sample in result['trace']
                 if 13. <= sample['time_s'] <= 16.01]))
     report = dict(scope=__doc__, reserve_triggers=triggers, low_traction_downhill_entry=entry,
+        final_record={key: rows[-1].get(key) for key in ('time_s', 'state', 'decision_reason', 'terminal_stop', 'localization')},
         input_sha256={key: hashlib.sha256(path.read_bytes()).hexdigest()
                       for key, path in (('navigation', args.navigation), ('stance', args.stance))})
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')

@@ -22,10 +22,10 @@ python3 scripts/publish_dougie_terminal_hold.py \
   --run results/dougie/facility_third_checkpoint --probe vertical-frontier
 ```
 
-### Navigation refresh — 25 October 2026
+### Navigation refresh — 26 October 2026
 
 The current `onboard-mission.gif` and `onboard-fusion.gif` use
-`mezzanine_8_footprint_regression`: the strict 8° survey regression after footprint diagnostics,
+`mezzanine_8_loop_budget_regression`: the strict 8° survey regression with the default correction-history capacity,
 275.585 s, .274697 µSv, zero non-foot contacts. Native MuJoCo footage and
 estimated-pose/detector-window telemetry show the same mission. The telemetry
 contains 100 frames at 100 ms/frame; both images are 640 × 490.
@@ -42,7 +42,7 @@ retains the native recording identity. See the
 [navigation development report](DOUGIE_NAVIGATION_RECOVERY.md) for negative results.
 
 ```bash
-python3 scripts/render_dougie_onboard.py --run results/dougie/mezzanine_8_footprint_regression
+python3 scripts/render_dougie_onboard.py --run results/dougie/mezzanine_8_loop_budget_regression
 python3 scripts/check_dougie_onboard_media.py
 ```
 
