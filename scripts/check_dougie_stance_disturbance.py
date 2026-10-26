@@ -17,9 +17,11 @@ def main():
     raw = args.report.read_bytes()
     data = json.loads(raw)
     rows, protocol = data['results'], data['protocol']
+    seeds = protocol.get('sensor_seeds', [0, 1])
+    assert seeds and len(seeds) == len(set(seeds)) and all(isinstance(seed, int) and seed >= 0 for seed in seeds)
     expected = {(angle, direction, friction, force, seed)
         for (angle, direction), friction, force, seed in itertools.product(
-            ((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), (0, 1))}
+            ((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), seeds)}
     key = lambda row: tuple(row[name] for name in ('angle_deg', 'direction', 'friction', 'force_n', 'sensor_seed'))
     assert len(rows) == data['expected_cases'] == len(expected)
     assert {key(row) for row in rows} == expected, 'missing/duplicate disturbance cases'
@@ -67,7 +69,7 @@ def main():
             maximum_horizontal_drift_m=max(row['max_horizontal_drift_m'] for row in group)))
     result = dict(scope='complete matched simulation screen; no reliability or mission qualification',
         report_sha256=hashlib.sha256(raw).hexdigest(), cases=len(rows),
-        brake_seconds=protocol.get('brake_seconds', 0.), groups=groups,
+        brake_seconds=protocol.get('brake_seconds', 0.), sensor_seeds=seeds, groups=groups,
         failed_cases=[{name: row[name] for name in ('angle_deg', 'direction', 'friction', 'force_n',
             'sensor_seed', 'max_horizontal_drift_m', 'stance', 'failures')} for row in rows if not row['passed']],
         verified=['cohort completeness', 'actual contact friction', 'applied impulse', 'motor torque limit',

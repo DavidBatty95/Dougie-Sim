@@ -122,16 +122,20 @@ def main():
     parser.add_argument('--duration', type=float, default=45.)
     parser.add_argument('--brake-seconds', type=float, default=0.,
                         help='planned linear command taper before the stop request, 0..3 seconds')
+    parser.add_argument('--sensor-seeds', type=int, nargs='+', default=[0, 1])
     args = parser.parse_args()
     if args.output.exists() or not np.isfinite(args.duration) or args.duration < 20.:
         parser.error('output must be new and post-stop duration at least 20 seconds')
     if not np.isfinite(args.brake_seconds) or not 0 <= args.brake_seconds <= 3.:
         parser.error('brake seconds must be finite and between 0 and 3')
-    cases = list(itertools.product(((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), (0, 1)))
+    if any(seed < 0 for seed in args.sensor_seeds) or len(args.sensor_seeds) != len(set(args.sensor_seeds)):
+        parser.error('sensor seeds must be distinct and nonnegative')
+    cases = list(itertools.product(((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), args.sensor_seeds))
     report = dict(scope=__doc__, protocol=dict(stop_s=13., approach_s=8., push_start_s=23.,
         push_duration_s=.5, post_stop_duration_s=args.duration, drift_limit_m=.05,
         nonfoot_impulse_limit_ns=.1, nonfoot_peak_force_limit_n=20., force_axis='world +Y',
         controller='production GravityStanceHold; no LiDAR', brake_seconds=args.brake_seconds,
+        sensor_seeds=args.sensor_seeds,
         braking_scope='timed planned stop; no motion after terminal request'), expected_cases=len(cases),
         source_sha256=core_fingerprint(),
         fixture_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/terrain_courses.py').read_bytes()).hexdigest(),
