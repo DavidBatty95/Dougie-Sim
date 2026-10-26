@@ -48,3 +48,11 @@ def test_settling_yaw_withholds_motion_on_invalid_measurements(fault):
     else:
         measured.gyro[0] = np.nan
     assert settling_yaw_command(measured, 12., 13., 2., 1., -.1, .005) == 0.
+
+
+@pytest.mark.parametrize('up,enabled', [([-.15, 0., .99], True), ([.15, 0., .99], False),
+                                      ([0., 0., 1.], False), ([np.nan, 0., 1.], False)])
+def test_settling_posture_gate_uses_estimated_gravity(up, enabled):
+    measured = SimpleNamespace(stamp_s=12., gyro=np.array([0., 0., .15]), foot_force=np.full(4, 30.))
+    command = settling_yaw_command(measured, 12., 13., 2., 1., 0., .005, 'downhill', up)
+    assert (command < 0.) == enabled

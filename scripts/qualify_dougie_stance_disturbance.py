@@ -31,17 +31,23 @@ def approach_velocity(stamp, stop, brake_seconds):
     return .15 if brake_seconds == 0 else .15*min(1., (stop-stamp)/brake_seconds)
 
 
-def settling_yaw_command(measured, stamp, stop, seconds, gain, previous, dt):
+def settling_yaw_command(measured, stamp, stop, seconds, gain, previous, dt, mode='all', body_up=None):
     """Bounded measured-yaw damping during the declared pre-terminal taper only."""
     if (gain == 0 or not stop-seconds <= stamp < stop or not 0 <= stamp-measured.stamp_s <= .05
             or not np.isfinite(measured.gyro).all() or not np.isfinite(measured.foot_force).all()
             or np.any(measured.foot_force <= 5.) or np.linalg.norm(measured.gyro) > .3):
         return 0.
+    if mode == 'downhill':
+        up = np.asarray(body_up, dtype=float)
+        if up.shape != (3,) or not np.isfinite(up).all() or np.linalg.norm(up) < .5:
+            return 0.
+        if up[0]/np.linalg.norm(up) >= -.05:
+            return 0.
     desired = float(np.clip(-gain*measured.gyro[2], -.2, .2))
     return float(previous+np.clip(desired-previous, -.5*dt, .5*dt))
 
 
-def trial(angle, direction, friction, force, seed, duration, brake_seconds=0., settling_yaw_gain=0.):
+def trial(angle, direction, friction, force, seed, duration, brake_seconds=0., settling_yaw_gain=0., settling_yaw_mode='all'):
     course = Course(CourseSpec(name='stance_disturbance', kind='flat' if angle == 0 else 'ramp',
         slope_deg=angle or 8., direction=direction, length=8., width=3., friction=friction), seed)
     sim = Simulation(model_xml=course.xml)
@@ -73,7 +79,8 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0., s
         sim.data.xfrc_applied[sim.base, :] = 0.
         sim.data.xfrc_applied[sim.base, 1] = applied
         yaw_command = settling_yaw_command(measured, stamp, stop, brake_seconds,
-            settling_yaw_gain, yaw_command, sim.model.opt.timestep)
+            settling_yaw_gain, yaw_command, sim.model.opt.timestep, settling_yaw_mode,
+            odometry.rotation.T@np.array([0., 0., 1.]))
         try:
             sim.step((approach_velocity(stamp, stop, brake_seconds), 0., yaw_command))
         except RuntimeError as exc:
@@ -122,7 +129,7 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0., s
     if friction_range is None or not np.allclose(friction_range, friction):
         failures.append('contact_friction_mismatch')
     return dict(angle_deg=angle, direction=direction, friction=friction, force_n=force, sensor_seed=seed,
-        brake_seconds=brake_seconds, settling_yaw_gain=settling_yaw_gain,
+        brake_seconds=brake_seconds, settling_yaw_gain=settling_yaw_gain, settling_yaw_mode=settling_yaw_mode,
         simulated_time_s=float(sim.data.time), applied_impulse_ns=applied_impulse, error=error,
         max_horizontal_drift_m=drift, max_post_push_drift_m=post_push_drift,
         nonfoot_impulse_ns=impulse, nonfoot_peak_force_n=peak_force, peak_motor_torque_nm=peak_torque,
@@ -139,6 +146,8 @@ def main():
     parser.add_argument('--sensor-seeds', type=int, nargs='+', default=[0, 1])
     parser.add_argument('--settling-yaw-gain', type=float, default=0.,
                         help='experimental gyro yaw damping during the pre-terminal taper, 0..2')
+    parser.add_argument('--settling-yaw-mode', choices=('all', 'downhill'), default='all',
+                        help='optional estimated-gravity posture gate; no fixture direction input')
     args = parser.parse_args()
     if args.output.exists() or not np.isfinite(args.duration) or args.duration < 20.:
         parser.error('output must be new and post-stop duration at least 20 seconds')
@@ -156,6 +165,7 @@ def main():
         controller='production GravityStanceHold; no LiDAR', brake_seconds=args.brake_seconds,
         sensor_seeds=args.sensor_seeds,
         settling_yaw_gain=args.settling_yaw_gain, settling_yaw_limit_rad_s=.2, settling_yaw_slew_rad_s2=.5,
+        settling_yaw_mode=args.settling_yaw_mode,
         braking_scope='timed planned stop; no motion after terminal request'), expected_cases=len(cases),
         source_sha256=core_fingerprint(),
         fixture_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/terrain_courses.py').read_bytes()).hexdigest(),
@@ -163,7 +173,8 @@ def main():
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     for (angle, direction), friction, force, seed in cases:
         with threadpool_limits(limits=1):
-            result = trial(angle, direction, friction, force, seed, args.duration, args.brake_seconds, args.settling_yaw_gain)
+            result = trial(angle, direction, friction, force, seed, args.duration, args.brake_seconds,
+                           args.settling_yaw_gain, args.settling_yaw_mode)
         report['results'].append(result)
         args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
         print(json.dumps({key: result[key] for key in ('angle_deg', 'direction', 'friction', 'force_n',
