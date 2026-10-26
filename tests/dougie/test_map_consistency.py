@@ -157,6 +157,33 @@ def test_invalid_loop_search_radius_is_rejected():
             FusedOdometry(loop_search_radius=radius)
 
 
+@pytest.mark.parametrize('capacity,used,weak,accepted', [(16, 16, False, False),
+    (32, 16, False, True), (32, 16, True, False), (32, 32, False, False)])
+def test_bounded_correction_capacity_preserves_confirmation_and_rank_gates(capacity, used, weak, accepted):
+    points, normals = corner_cloud()
+    if weak:
+        points, normals = points[-441:], normals[-441:]
+    odometry = FusedOdometry(loop_correction_capacity=capacity)
+    odometry.corrections = [MapCorrection(i+1, 0., 1., (0., 0., 0.), (0., 0., 0.)) for i in range(used)]
+    odometry.keyframes = [Keyframe(i*5., np.zeros(3), np.eye(3), points, normals, .001) for i in range(6)]
+    odometry.position = np.array([.08, 0., 0.])
+    odometry._try_loop(points, normals, 60.)
+    assert odometry.map_revision == used
+    odometry._try_loop(points, normals, 62.)
+    assert odometry.map_revision == used+int(accepted)
+    if used == capacity:
+        assert odometry.loop_search['inhibited_reason'] == 'correction_capacity'
+    elif weak:
+        assert odometry.loop_search['last_reason'] == 'registration_quality_rejected'
+
+
+def test_correction_history_capacity_is_discrete_and_does_not_expand_pose_graph():
+    for capacity in (0, 8, 64, 16., True, None):
+        with pytest.raises(ValueError, match='loop correction capacity'):
+            FusedOdometry(loop_correction_capacity=capacity)
+    assert FusedOdometry(slam_backend='pose-graph', loop_correction_capacity=32).pose_graph.capacity == 512
+
+
 @pytest.mark.parametrize('retention,keeps_remote', [('recent', False), ('coverage', True)])
 def test_cloud_retention_keeps_coverage_without_discarding_graph_constraints(retention, keeps_remote):
     odometry = FusedOdometry(slam_backend='pose-graph', keyframe_retention=retention)

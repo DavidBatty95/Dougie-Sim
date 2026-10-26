@@ -88,6 +88,7 @@ def main():
     radiation.add_argument('--localization-checkpoints', type=int, default=0)
     radiation.add_argument('--keyframe-retention', choices=('recent', 'coverage'), default='recent')
     radiation.add_argument('--registration-sampling', choices=('spatial', 'normal-balanced'), default='spatial')
+    radiation.add_argument('--loop-correction-capacity', type=int, choices=(16, 32), default=16)
     radiation.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'))
     radiation.add_argument('--support-fusion', choices=('maximum', 'bounded-mean'))
     radiation.add_argument('--record-support', action='store_true')
@@ -216,6 +217,8 @@ def main():
             command += ['--keyframe-retention', args.keyframe_retention]
         if args.registration_sampling != 'spatial':
             command += ['--registration-sampling', args.registration_sampling]
+        if args.loop_correction_capacity != 16:
+            command += ['--loop-correction-capacity', str(args.loop_correction_capacity)]
         if args.terminal_hold:
             command += ['--terminal-hold', args.terminal_hold]
         if args.support_fusion:

@@ -51,7 +51,7 @@ def leg_kinematics(joints, velocities):
 
 class FusedOdometry:
     def __init__(self, map_capacity=20000, robust=True, slam_backend='distributed', loop_search_radius=1.25,
-                 keyframe_retention='recent', registration_sampling='spatial'):
+                 keyframe_retention='recent', registration_sampling='spatial', loop_correction_capacity=16):
         if slam_backend not in ('distributed', 'pose-graph') or (not robust and slam_backend != 'distributed'):
             raise ValueError('pose-graph localization requires the robust navigation profile')
         if not math.isfinite(loop_search_radius) or not .5 <= loop_search_radius <= 3.:
@@ -64,6 +64,9 @@ class FusedOdometry:
         if registration_sampling not in ('spatial', 'normal-balanced'):
             raise ValueError('unknown registration sampling policy')
         self.registration_sampling = registration_sampling
+        if not isinstance(loop_correction_capacity, int) or loop_correction_capacity not in (16, 32):
+            raise ValueError('loop correction capacity must be 16 or 32')
+        self.loop_correction_capacity = loop_correction_capacity
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
         self.rotation = np.eye(3)
@@ -328,7 +331,12 @@ class FusedOdometry:
     def _try_loop(self, points, normals, stamp):
         from .registration import register
         from .map_corrections import MapCorrection
-        if not self.loop_closure_enabled or len(self.corrections) >= 16 or stamp-self.last_loop_stamp < 30. or stamp-self.last_loop_attempt < 2.:
+        inhibited = ('disabled' if not self.loop_closure_enabled else
+            'correction_capacity' if len(self.corrections) >= self.loop_correction_capacity else
+            'cooldown' if stamp-self.last_loop_stamp < 30. else
+            'attempt_cadence' if stamp-self.last_loop_attempt < 2. else None)
+        self.loop_search['inhibited_reason'] = inhibited
+        if inhibited is not None:
             return
         self.last_loop_attempt = stamp
         self.loop_search['attempts'] += 1
@@ -424,6 +432,7 @@ class FusedOdometry:
             loop_search_radius_m=self.loop_search_radius, loop_search=dict(self.loop_search),
             keyframe_retention=self.keyframe_retention, keyframe_evictions=self.keyframe_evictions,
             registration_sampling=self.registration_sampling,
+            loop_correction_capacity=self.loop_correction_capacity,
             slam_backend=self.slam_backend, pose_graph=self.pose_graph.metrics() if self.pose_graph is not None else None,
             registration_status=self.registration_status, observable_rank=self.registration_rank,
             inlier_fraction=self.inlier_fraction, rejection_streak=self.rejection_streak, slipping_legs=self.slipping_legs,

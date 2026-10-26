@@ -65,6 +65,8 @@ def main():
                         help='bounded cloud retention: recent history or spatial coverage')
     parser.add_argument('--registration-sampling', choices=('spatial', 'normal-balanced'), default='spatial',
                         help='experimental normal-aware retention within the 1500-point registration cap')
+    parser.add_argument('--loop-correction-capacity', type=int, choices=(16, 32), default=16,
+                        help='bounded map-correction history; 32 is an experimental long-mission allowance')
     parser.add_argument('--uncertainty-profile', type=Path, help='pinned offline episode-calibration artifact; only inflates pose uncertainty')
     parser.add_argument('--terminal-hold', choices=('zero-policy', 'gravity'), default='zero-policy',
                         help='experimental gravity-supported stance after terminal stop; default retains zero-command policy')
@@ -130,6 +132,8 @@ def main():
         parser.error('coverage keyframes require robust fused localization')
     if args.registration_sampling != 'spatial' and (args.localization != 'fused' or args.navigation_profile != 'robust'):
         parser.error('normal-balanced sampling requires robust fused localization')
+    if args.loop_correction_capacity != 16 and (args.localization != 'fused' or args.navigation_profile != 'robust'):
+        parser.error('expanded correction history requires robust fused localization')
     if args.uncertainty_profile and (args.localization != 'fused' or args.navigation_profile != 'robust'):
         parser.error('--uncertainty-profile requires robust fused localization')
     if args.terminal_hold == 'gravity' and (args.localization != 'fused' or args.navigation_profile != 'robust'):
@@ -213,7 +217,8 @@ def main():
         from .onboard_sensors import OnboardSensors
         odometry = FusedOdometry(robust=args.navigation_profile == 'robust', slam_backend=args.slam_backend,
                                 loop_search_radius=args.loop_search_radius, keyframe_retention=args.keyframe_retention,
-                                registration_sampling=args.registration_sampling)
+                                registration_sampling=args.registration_sampling,
+                                loop_correction_capacity=args.loop_correction_capacity)
         sensors = OnboardSensors(args.sensor_seed, args.lidar_dropout_after)
     true_home = sim.data.qpos[:3].copy()  # evaluator only, never a planning goal
     pose_errors = []
