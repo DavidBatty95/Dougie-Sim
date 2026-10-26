@@ -34,6 +34,11 @@ def main():
         assert row['contact_friction_range'] and all(abs(v-row['friction']) < 1e-9 for v in row['contact_friction_range'])
         assert abs(row['applied_impulse_ns']-row['force_n']*protocol['push_duration_s']) < .08
         assert row['peak_motor_torque_nm'] <= 23.5+1e-6
+        if 'brake_seconds' in protocol:
+            assert row['brake_seconds'] == protocol['brake_seconds']
+            assert 0 <= row['brake_seconds'] <= 3.
+            assert all(sample['command'] == [0., 0., 0.] for sample in row['trace']
+                       if sample['time_s'] >= protocol['stop_s']+.03)
         failures = []
         if row['stance'] is None or row['stance']['phase'] != 'holding':
             failures.append('stance_not_retained')
@@ -61,7 +66,8 @@ def main():
             failure_counts=dict(Counter(failure for row in group for failure in row['failures'])),
             maximum_horizontal_drift_m=max(row['max_horizontal_drift_m'] for row in group)))
     result = dict(scope='complete matched simulation screen; no reliability or mission qualification',
-        report_sha256=hashlib.sha256(raw).hexdigest(), cases=len(rows), groups=groups,
+        report_sha256=hashlib.sha256(raw).hexdigest(), cases=len(rows),
+        brake_seconds=protocol.get('brake_seconds', 0.), groups=groups,
         failed_cases=[{name: row[name] for name in ('angle_deg', 'direction', 'friction', 'force_n',
             'sensor_seed', 'max_horizontal_drift_m', 'stance', 'failures')} for row in rows if not row['passed']],
         verified=['cohort completeness', 'actual contact friction', 'applied impulse', 'motor torque limit',

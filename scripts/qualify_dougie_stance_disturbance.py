@@ -24,7 +24,14 @@ from dougie_sim.simulation import Simulation
 from dougie_sim.terrain_courses import Course, CourseSpec
 
 
-def trial(angle, direction, friction, force, seed, duration):
+def approach_velocity(stamp, stop, brake_seconds):
+    """Anticipatory timed deceleration on the fixture's approach, not emergency motion."""
+    if not 5. <= stamp < stop:
+        return 0.
+    return .15 if brake_seconds == 0 else .15*min(1., (stop-stamp)/brake_seconds)
+
+
+def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
     course = Course(CourseSpec(name='stance_disturbance', kind='flat' if angle == 0 else 'ramp',
         slope_deg=angle or 8., direction=direction, length=8., width=3., friction=friction), seed)
     sim = Simulation(model_xml=course.xml)
@@ -55,7 +62,7 @@ def trial(angle, direction, friction, force, seed, duration):
         sim.data.xfrc_applied[sim.base, :] = 0.
         sim.data.xfrc_applied[sim.base, 1] = applied
         try:
-            sim.step((.15 if 5. <= stamp < stop else 0., 0., 0.))
+            sim.step((approach_velocity(stamp, stop, brake_seconds), 0., 0.))
         except RuntimeError as exc:
             error = str(exc)
             break
@@ -77,7 +84,12 @@ def trial(angle, direction, friction, force, seed, duration):
                     peak_force = max(peak_force, abs(float(wrench[0])))
         if sim.counter % 200 == 0:
             trace.append(dict(time_s=float(sim.data.time), evaluator_position=sim.data.qpos[:3].tolist(),
-                force_n=applied, stance=None if sim.terminal_stance is None else sim.terminal_stance.metrics()))
+                force_n=applied, command=sim.last_command.tolist(),
+                minimum_foot_force_n=float(np.min(measured.foot_force)),
+                gyro_norm_rad_s=float(np.linalg.norm(measured.gyro)),
+                maximum_joint_speed_rad_s=float(np.max(np.abs(measured.joint_velocity))),
+                estimated_velocity=odometry.velocity.tolist(),
+                stance=None if sim.terminal_stance is None else sim.terminal_stance.metrics()))
     stance = None if sim.terminal_stance is None else sim.terminal_stance.metrics()
     failures = []
     if error:
@@ -96,6 +108,7 @@ def trial(angle, direction, friction, force, seed, duration):
     if friction_range is None or not np.allclose(friction_range, friction):
         failures.append('contact_friction_mismatch')
     return dict(angle_deg=angle, direction=direction, friction=friction, force_n=force, sensor_seed=seed,
+        brake_seconds=brake_seconds,
         simulated_time_s=float(sim.data.time), applied_impulse_ns=applied_impulse, error=error,
         max_horizontal_drift_m=drift, max_post_push_drift_m=post_push_drift,
         nonfoot_impulse_ns=impulse, nonfoot_peak_force_n=peak_force, peak_motor_torque_nm=peak_torque,
@@ -107,21 +120,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--duration', type=float, default=45.)
+    parser.add_argument('--brake-seconds', type=float, default=0.,
+                        help='planned linear command taper before the stop request, 0..3 seconds')
     args = parser.parse_args()
     if args.output.exists() or not np.isfinite(args.duration) or args.duration < 20.:
         parser.error('output must be new and post-stop duration at least 20 seconds')
+    if not np.isfinite(args.brake_seconds) or not 0 <= args.brake_seconds <= 3.:
+        parser.error('brake seconds must be finite and between 0 and 3')
     cases = list(itertools.product(((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), (0, 1)))
     report = dict(scope=__doc__, protocol=dict(stop_s=13., approach_s=8., push_start_s=23.,
         push_duration_s=.5, post_stop_duration_s=args.duration, drift_limit_m=.05,
         nonfoot_impulse_limit_ns=.1, nonfoot_peak_force_limit_n=20., force_axis='world +Y',
-        controller='production GravityStanceHold; no LiDAR'), expected_cases=len(cases),
+        controller='production GravityStanceHold; no LiDAR', brake_seconds=args.brake_seconds,
+        braking_scope='timed planned stop; no motion after terminal request'), expected_cases=len(cases),
         source_sha256=core_fingerprint(),
         fixture_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/terrain_courses.py').read_bytes()).hexdigest(),
         software_versions=dict(python=platform.python_version(), numpy=np.__version__, mujoco=mujoco.__version__, torch=torch.__version__),
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     for (angle, direction), friction, force, seed in cases:
         with threadpool_limits(limits=1):
-            result = trial(angle, direction, friction, force, seed, args.duration)
+            result = trial(angle, direction, friction, force, seed, args.duration, args.brake_seconds)
         report['results'].append(result)
         args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
         print(json.dumps({key: result[key] for key in ('angle_deg', 'direction', 'friction', 'force_n',
