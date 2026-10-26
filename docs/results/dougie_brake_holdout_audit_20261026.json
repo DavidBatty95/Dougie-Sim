@@ -1,0 +1,169 @@
+{
+  "scope": "complete matched simulation screen; no reliability or mission qualification",
+  "report_sha256": "903d957dc1d4b92e6a1a70c22b94d0a7eab9dac50ef9065da1e95138007ee5ec",
+  "cases": 24,
+  "brake_seconds": 2.0,
+  "sensor_seeds": [
+    2,
+    3
+  ],
+  "groups": [
+    {
+      "friction": 0.4,
+      "force_n": 0.0,
+      "cases": 6,
+      "passed": 6,
+      "failure_counts": {},
+      "maximum_horizontal_drift_m": 0.01469608934901866
+    },
+    {
+      "friction": 0.4,
+      "force_n": 15.0,
+      "cases": 6,
+      "passed": 5,
+      "failure_counts": {
+        "stance_not_retained": 1,
+        "drift_above_5cm": 1
+      },
+      "maximum_horizontal_drift_m": 0.45159613489365397
+    },
+    {
+      "friction": 0.25,
+      "force_n": 0.0,
+      "cases": 6,
+      "passed": 4,
+      "failure_counts": {
+        "stance_not_retained": 2,
+        "drift_above_5cm": 2
+      },
+      "maximum_horizontal_drift_m": 1.6251408071112992
+    },
+    {
+      "friction": 0.25,
+      "force_n": 15.0,
+      "cases": 6,
+      "passed": 4,
+      "failure_counts": {
+        "stance_not_retained": 2,
+        "drift_above_5cm": 2
+      },
+      "maximum_horizontal_drift_m": 1.588337045508621
+    }
+  ],
+  "failed_cases": [
+    {
+      "angle_deg": 8.53,
+      "direction": "up",
+      "friction": 0.4,
+      "force_n": 15.0,
+      "sensor_seed": 3,
+      "max_horizontal_drift_m": 0.45159613489365397,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance lost fresh quiet four-foot support",
+        "requested_s": 13.000000000000632,
+        "started_s": 13.700000000000742,
+        "maximum_support_torque_nm": 7.360739358233532,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "friction": 0.25,
+      "force_n": 0.0,
+      "sensor_seed": 2,
+      "max_horizontal_drift_m": 1.6251408071112992,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "friction": 0.25,
+      "force_n": 0.0,
+      "sensor_seed": 3,
+      "max_horizontal_drift_m": 1.617849676663756,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "friction": 0.25,
+      "force_n": 15.0,
+      "sensor_seed": 2,
+      "max_horizontal_drift_m": 1.588337045508621,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    },
+    {
+      "angle_deg": 8.53,
+      "direction": "down",
+      "friction": 0.25,
+      "force_n": 15.0,
+      "sensor_seed": 3,
+      "max_horizontal_drift_m": 1.5646391591378717,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "failures": [
+        "stance_not_retained",
+        "drift_above_5cm"
+      ]
+    }
+  ],
+  "verified": [
+    "cohort completeness",
+    "actual contact friction",
+    "applied impulse",
+    "motor torque limit",
+    "full-duration scoring",
+    "matched pre-push physical samples",
+    "failure scoring"
+  ]
+}

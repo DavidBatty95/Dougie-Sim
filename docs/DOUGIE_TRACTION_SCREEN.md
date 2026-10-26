@@ -8,6 +8,11 @@ unqualified: quiet entry failed and physical drift continued after refusal.
 
 ## Protocol and results
 
+**26 October follow-up:** [planned-stop command tapers](DOUGIE_PLANNED_STOP.md)
+were screened in 96 additional trials. A promising two-second development result
+did not generalize cleanly: fresh-seed passes improved from 17/24 to 19/24 but
+included one regression. Low-traction downhill stopping remains open.
+
 The [complete 24-case report](results/dougie_stance_disturbance_20261025.json)
 uses flat, 8.53° uphill and 8.53° downhill fixtures; friction .4 and .25; two noisy
 sensor seeds; and matched zero-force / 15 N lateral-force cases. After 5 s settling

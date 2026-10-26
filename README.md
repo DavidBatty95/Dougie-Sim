@@ -159,7 +159,7 @@ sampling is experimental: its facility and original-mezzanine trials returned
 cleanly at **419.945 s / 355.785 s**, but both failed the upper-floor witness gate.
 See the [development results and reproducible replay](docs/DOUGIE_NAVIGATION_RECOVERY.md).
 
-**Latest follow-up: 320 tests pass.** Newly observed height goals can now interrupt
+**Latest follow-up: 324 tests pass.** Newly observed height goals can now interrupt
 flat-floor commitment after passing admission checks. The 8° regression reproduces
 its strict pass; the facility still fails vertical completion, and the original
 10° trial encounters a disconnected ramp approach and returns at 87.115 s.
@@ -170,6 +170,23 @@ different nearest ground-floor node.
 passed **12/12** cases at effective friction .4, including 15 N lateral pushes,
 but only **6/12** at .25. Low-traction downhill cases failed quiet entry and drifted
 about **1.63 m**. [Protocol, contact-friction verification and retained failures](docs/DOUGIE_TRACTION_SCREEN.md).
+
+**Planned-stop follow-up:** 96 additional trials tested bounded command tapers.
+The two-second taper improved fresh-seed passes from **17/24 to 19/24**, but
+introduced one regression and did not solve low-traction downhill entry.
+[Matched comparisons and retained failures](docs/DOUGIE_PLANNED_STOP.md).
+
+### Facility intermediate landing and clean return — full-height mission still failed
+
+![Actual facility run reaching the intermediate landing and returning home, approximately 130-times playback; full-height completion failed](docs/media/dougie/facility-frontier-return.gif)
+
+An additional bounded home checkpoint enabled traversal to the **1.2 m intermediate
+landing**, independently witnessed at **583.700 s**, followed by clean home return
+at **794.880 s**, **0.248470 µSv**, with zero non-foot contacts. The **2.4 m upper
+floor was not reached**. All 8,398 physical samples of the earlier, shorter
+two-checkpoint run match this run's prefix exactly.
+[Evidence and limits](docs/DOUGIE_NAVIGATION_RECOVERY.md#third-home-checkpoint--26-october) ·
+[Media provenance](docs/DOUGIE_MEDIA.md#facility-intermediate-return--26-october-2026).
 
 ### Stop-transition screening — retained failures
 

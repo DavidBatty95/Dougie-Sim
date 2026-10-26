@@ -1,11 +1,11 @@
-# Onboard mission plan — 25 October 2026
+# Onboard mission plan — 26 October 2026
 
 [Project home](../README.md) · [Implemented methods](DOUGIE_ONBOARD_MISSION.md) ·
 [Pose-graph evidence](DOUGIE_SLAM_QUALIFICATION.md) · [Current GIF provenance](DOUGIE_MEDIA.md#navigation-refresh--25-october-2026)
 
 Latest [navigation recovery development](DOUGIE_NAVIGATION_RECOVERY.md): signed
 surface matching, bounded home checkpoints, coverage-based cloud retention and
-opt-in normal-balanced sampling are implemented; **320 tests pass**. The 8°
+opt-in normal-balanced sampling are implemented; **324 tests pass**. The 8°
 regression passes, while original 10° and full-height facility qualification
 remain open. The normal-balanced closed-loop facility and original-mezzanine
 trials both returned cleanly, but neither reached the upper landing. The subsequent
@@ -21,6 +21,20 @@ missing compatible footprint support at the facility frontier. The
 separate low-traction downhill stopping failure: stance entry is refused and
 drift continues. Prioritize bounded braking/settling and supported sensing
 approaches, then repeat end-to-end qualification and frozen-runtime calibration.
+
+The [planned-stop taper experiments](DOUGIE_PLANNED_STOP.md) now retain 96 new
+trials. The two-second taper improved development passes to 22/24, but fresh
+seeds reached only 19/24 versus 17/24 for step stopping, including a regression.
+It remains an anticipatory harness experiment; reactive low-traction stabilization
+is still an open controller task.
+
+The existing third home-checkpoint allowance now has a fresh facility result:
+sampled intermediate-landing witness at 583.700 s, clean return at 794.880 s,
+.248470 µSv and no non-foot contacts. Its first 8,398 physical samples exactly
+match the shorter two-checkpoint run. Full-height completion still fails.
+Next investigate localization/observability reserve on the upper ramp using the
+retained [checkpoint evidence](DOUGIE_NAVIGATION_RECOVERY.md#third-home-checkpoint--26-october),
+while retaining the unchanged uncertainty and strict-witness gates.
 
 ## Current implementation
 

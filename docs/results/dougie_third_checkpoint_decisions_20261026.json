@@ -1,0 +1,4568 @@
+{
+  "scope": "Summarize recorded onboard vertical decisions; no simulator truth enters planning.",
+  "runs": [
+    {
+      "run": "facility_third_checkpoint",
+      "trace_sha256": "9d058d706e6d5001f09fe55fa206762d8f7edd97eb72d0072f640f9c3a477b25",
+      "reason_samples": {
+        "best_connected_region": 26,
+        "continue_revalidated_goal": 179,
+        "localization_return_reserve": 170,
+        "checkpoint_revalidated": 3,
+        "route_tracking_lost": 4,
+        "survey_observed_height_band": 15
+      },
+      "maximum_selected_height_m": 1.313556274119299,
+      "height_diagnostics": {
+        "preemption_samples": 6,
+        "reachable_new_height_samples": 247,
+        "maximum_observed_height_m": 1.4360057783893594,
+        "maximum_reachable_height_m": 1.4360057783893594
+      },
+      "final_sampled_height_bands_m": [
+        0.0,
+        0.2,
+        0.4,
+        0.6000000000000001,
+        0.8,
+        1.0,
+        1.2000000000000002
+      ],
+      "decisions": [
+        {
+          "time_s": 1.0000000000000007,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -1.1,
+            -0.1,
+            0.01358952291343778
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 0.0,
+            "return_upper_dose_usv": 0.0,
+            "return_peak_rate_usv_h": 2.0652160461215847,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.666686134284973,
+            "outbound_upper_dose_usv": 0.03215489714026915,
+            "goal_return_duration_s": 16.666686134284973,
+            "goal_return_upper_dose_usv": 0.03215489714026915,
+            "goal_return_peak_rate_usv_h": 11.930021330660303
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1035,
+            "reachable_nodes": 1035,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.013714559296957836,
+            "maximum_reachable_height_m": 0.013714559296957836,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 3.009999999999958,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -1.1,
+            -0.1,
+            0.013555019144637205
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 0.0,
+            "return_upper_dose_usv": 0.0,
+            "return_peak_rate_usv_h": 4.183789399971511,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 35.64264640921451,
+            "outbound_upper_dose_usv": 0.0773167653166821,
+            "goal_return_duration_s": 35.64264640921451,
+            "goal_return_upper_dose_usv": 0.0773167653166821,
+            "goal_return_peak_rate_usv_h": 12.207297023132282
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1003,
+            "reachable_nodes": 1003,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.013823117652653006,
+            "maximum_reachable_height_m": 0.013823117652653006,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 17.0200000000009,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.9,
+            -1.3,
+            0.013488816597829344
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 23.85135711296967,
+            "return_upper_dose_usv": 0.007308701924635506,
+            "return_peak_rate_usv_h": 1.2783661492673788,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 13.333340417993139,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.000006121407583,
+            "outbound_upper_dose_usv": 0.03796557323194457,
+            "goal_return_duration_s": 37.82133604452899,
+            "goal_return_upper_dose_usv": 0.04307702617893941,
+            "goal_return_peak_rate_usv_h": 14.436059854400598
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1043,
+            "reachable_nodes": 1043,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01492124409014507,
+            "maximum_reachable_height_m": 0.01492124409014507,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 19.0250000000005,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.9,
+            -1.3,
+            0.0135066686109955
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 22.214826521193125,
+            "return_upper_dose_usv": 0.006866514606987177,
+            "return_peak_rate_usv_h": 1.3172835791177446,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 16.666676299368515,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 27.82133224909252,
+            "outbound_upper_dose_usv": 0.043545593321025304,
+            "goal_return_duration_s": 37.821336752363266,
+            "goal_return_upper_dose_usv": 0.04581444185760565,
+            "goal_return_peak_rate_usv_h": 15.52161320618077
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1043,
+            "reachable_nodes": 1043,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.014937418353318565,
+            "maximum_reachable_height_m": 0.014937418353318565,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 25.039999999999303,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            0.1,
+            -1.1,
+            0.013875418895971471
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 28.962240264374056,
+            "return_upper_dose_usv": 0.015531779702982374,
+            "return_peak_rate_usv_h": 2.3613350831856708,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 34.48799934409474,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.666666835721365,
+            "outbound_upper_dose_usv": 0.028245432992434934,
+            "goal_return_duration_s": 24.487996523709835,
+            "goal_return_upper_dose_usv": 0.0299724742398347,
+            "goal_return_peak_rate_usv_h": 10.025694919626565
+          },
+          "vertical_frontier": {
+            "observed_nodes": 988,
+            "reachable_nodes": 988,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.014958126044239723,
+            "maximum_reachable_height_m": 0.014958126044239723,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 27.044999999998904,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            0.1,
+            -1.1,
+            0.01387782361078768
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 27.230384092372205,
+            "return_upper_dose_usv": 0.01192168719665167,
+            "return_peak_rate_usv_h": 1.9754892570760236,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 37.82133342621754,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 24.48799043117797,
+            "outbound_upper_dose_usv": 0.021487233680791036,
+            "goal_return_duration_s": 24.487996564993228,
+            "goal_return_upper_dose_usv": 0.0248251816906321,
+            "goal_return_peak_rate_usv_h": 7.224392060859618
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1043,
+            "reachable_nodes": 1043,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.014958126044239727,
+            "maximum_reachable_height_m": 0.014958126044239727,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 33.05499999999846,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            0.7000000000000001,
+            -1.5,
+            0.013883425386027782
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 21.039741939519754,
+            "return_upper_dose_usv": 0.010046540574846047,
+            "return_peak_rate_usv_h": 2.0423268780806167,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 24.487992620960377,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154658436667486,
+            "outbound_upper_dose_usv": 0.03090168288887451,
+            "goal_return_duration_s": 41.15466145139213,
+            "goal_return_upper_dose_usv": 0.03887682039540125,
+            "goal_return_peak_rate_usv_h": 11.930044019914755
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1042,
+            "reachable_nodes": 1042,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015138252794517915,
+            "maximum_reachable_height_m": 0.015138252794517915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 35.05499999999948,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            0.7000000000000001,
+            -1.5,
+            0.013903890614189767
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 23.947145393538904,
+            "return_upper_dose_usv": 0.010646233957024576,
+            "return_peak_rate_usv_h": 1.8586549033919375,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 24.487992274323588,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.15465901502596,
+            "outbound_upper_dose_usv": 0.023880202720149263,
+            "goal_return_duration_s": 50.130641146439785,
+            "goal_return_upper_dose_usv": 0.035356251698687086,
+            "goal_return_peak_rate_usv_h": 9.46085205801548
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1042,
+            "reachable_nodes": 1042,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015144146573248134,
+            "maximum_reachable_height_m": 0.015144146573248134,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 39.05500000000153,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            4.9,
+            0.9,
+            0.013040953345146855
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 32.68238321583131,
+            "return_upper_dose_usv": 0.017408350215030677,
+            "return_peak_rate_usv_h": 2.1879166103672896,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 50.130639181311686,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 114.48799591744262,
+            "outbound_upper_dose_usv": 0.7732186346142718,
+            "goal_return_duration_s": 131.41593740975654,
+            "goal_return_upper_dose_usv": 0.753469484359492,
+            "goal_return_peak_rate_usv_h": 40.16432474827628
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1042,
+            "reachable_nodes": 1042,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015149343779127886,
+            "maximum_reachable_height_m": 0.015149343779127886,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 41.05500000000255,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            4.9,
+            0.9,
+            0.013040953345146853
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 30.22909429144352,
+            "return_upper_dose_usv": 0.016448050775692277,
+            "return_peak_rate_usv_h": 2.2783437784075704,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 50.13063924158257,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 114.48799603615271,
+            "outbound_upper_dose_usv": 0.7662636970615774,
+            "goal_return_duration_s": 131.4159374120727,
+            "goal_return_upper_dose_usv": 0.7487418521790677,
+            "goal_return_peak_rate_usv_h": 40.163253429757866
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1041,
+            "reachable_nodes": 1041,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015149343779127888,
+            "maximum_reachable_height_m": 0.015149343779127888,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 79.09500000000055,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            4.9,
+            -0.1,
+            0.012696761790673571
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 93.6863837824336,
+            "return_upper_dose_usv": 0.06498040993510304,
+            "return_peak_rate_usv_h": 4.8222008034599115,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 141.54657065522107,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 28.975988511937775,
+            "outbound_upper_dose_usv": 0.10712377961210043,
+            "goal_return_duration_s": 175.01054867228711,
+            "goal_return_upper_dose_usv": 0.19152629125281873,
+            "goal_return_peak_rate_usv_h": 30.14294098672894
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1739,
+            "reachable_nodes": 1712,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427913,
+            "maximum_reachable_height_m": 0.015156904512427913,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 81.09999999999873,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            4.9,
+            -0.1,
+            0.012755413653709557
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 93.16934930028727,
+            "return_upper_dose_usv": 0.06375094850025322,
+            "return_peak_rate_usv_h": 4.823014857466531,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 141.54656925687834,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 28.975990638520933,
+            "outbound_upper_dose_usv": 0.10382909553908022,
+            "goal_return_duration_s": 175.01054940052754,
+            "goal_return_upper_dose_usv": 0.18772657381350488,
+            "goal_return_peak_rate_usv_h": 29.42227280309532
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1737,
+            "reachable_nodes": 1710,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427924,
+            "maximum_reachable_height_m": 0.015156904512427924,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 87.11499999999326,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            6.1000000000000005,
+            -0.1,
+            0.012504310593779005
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 111.51540454235143,
+            "return_upper_dose_usv": 0.09267068268960255,
+            "return_peak_rate_usv_h": 7.078783131769685,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 175.01054670459203,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.00000252086273,
+            "outbound_upper_dose_usv": 0.12396429807603812,
+            "goal_return_duration_s": 208.47451777653765,
+            "goal_return_upper_dose_usv": 0.2786035845739715,
+            "goal_return_peak_rate_usv_h": 34.293090500553426
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1745,
+            "reachable_nodes": 1718,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427918,
+            "maximum_reachable_height_m": 0.015156904512427918,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 89.11999999999144,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.1000000000000005,
+            -0.1,
+            0.01257136104034112
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 110.56664558322447,
+            "return_upper_dose_usv": 0.08836176559452133,
+            "return_peak_rate_usv_h": 6.3819446003402165,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 175.01054589471715,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.000003082162774,
+            "outbound_upper_dose_usv": 0.11924017391502276,
+            "goal_return_duration_s": 199.49853848200829,
+            "goal_return_upper_dose_usv": 0.2519271313027436,
+            "goal_return_peak_rate_usv_h": 33.49184844258446
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1732,
+            "reachable_nodes": 1718,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427918,
+            "maximum_reachable_height_m": 0.015156904512427918,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 95.13499999998596,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            6.7,
+            0.1,
+            0.012428584907956753
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 119.75801879533749,
+            "return_upper_dose_usv": 0.1269623879934945,
+            "return_peak_rate_usv_h": 9.764849256968322,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 205.14118195505475,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154661820045995,
+            "outbound_upper_dose_usv": 0.09015876267149965,
+            "goal_return_duration_s": 206.16520588490715,
+            "goal_return_upper_dose_usv": 0.22586198165352467,
+            "goal_return_peak_rate_usv_h": 27.504032989317757
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1853,
+            "reachable_nodes": 1838,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 97.13999999998414,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.7,
+            0.1,
+            0.012565553011037648
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 122.6437928481545,
+            "return_upper_dose_usv": 0.12601583013550616,
+            "return_peak_rate_usv_h": 9.524746396667751,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 208.47451583117717,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.82132559015387,
+            "outbound_upper_dose_usv": 0.04044905775559754,
+            "goal_return_duration_s": 206.16520412944212,
+            "goal_return_upper_dose_usv": 0.1886263374871236,
+            "goal_return_peak_rate_usv_h": 12.250378094605667
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1892,
+            "reachable_nodes": 1867,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 99.14499999998232,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            7.5,
+            0.1,
+            0.012253191878077399
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 125.75457516080444,
+            "return_upper_dose_usv": 0.14844009367996314,
+            "return_peak_rate_usv_h": 12.280732217050009,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 202.83186868245784,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.666670274667947,
+            "outbound_upper_dose_usv": 0.0787814812022413,
+            "goal_return_duration_s": 219.49853895712573,
+            "goal_return_upper_dose_usv": 0.2534281956023182,
+            "goal_return_peak_rate_usv_h": 26.892865009231873
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1918,
+            "reachable_nodes": 1893,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 101.1499999999805,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            7.5,
+            0.1,
+            0.012340480736039171
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 133.91957553563898,
+            "return_upper_dose_usv": 0.16387890621489348,
+            "return_peak_rate_usv_h": 11.035391728446138,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 206.1652011567052,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 13.333337149789873,
+            "outbound_upper_dose_usv": 0.0748723451026238,
+            "goal_return_duration_s": 219.49853830649513,
+            "goal_return_upper_dose_usv": 0.25642507619003696,
+            "goal_return_peak_rate_usv_h": 28.825908354429643
+          },
+          "vertical_frontier": {
+            "observed_nodes": 1954,
+            "reachable_nodes": 1924,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 105.15999999997685,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            7.5,
+            0.9,
+            0.012683570702397043
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 150.6835219046591,
+            "return_upper_dose_usv": 0.15824355542057983,
+            "return_peak_rate_usv_h": 7.469386261342572,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 216.16520348076543,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.15465880398844,
+            "outbound_upper_dose_usv": 0.08310064772832126,
+            "goal_return_duration_s": 188.2132448613973,
+            "goal_return_upper_dose_usv": 0.386449500391614,
+            "goal_return_peak_rate_usv_h": 30.34420918074249
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2016,
+            "reachable_nodes": 1986,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 107.16499999997502,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            7.5,
+            0.9,
+            0.012730197267817964
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 144.8855780153432,
+            "return_upper_dose_usv": 0.15669591070860278,
+            "return_peak_rate_usv_h": 7.796188367993059,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 219.49853644472788,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 13.333338867179808,
+            "outbound_upper_dose_usv": 0.06318314417418658,
+            "goal_return_duration_s": 188.21324447883958,
+            "goal_return_upper_dose_usv": 0.3825111292851121,
+            "goal_return_peak_rate_usv_h": 30.051125861535745
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2053,
+            "reachable_nodes": 2007,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 111.17499999997138,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            7.300000000000001,
+            1.5,
+            0.01285860186045612
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 136.86642965487175,
+            "return_upper_dose_usv": 0.23126766776056543,
+            "return_peak_rate_usv_h": 19.84173033890973,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 200.52255443829247,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.15465817408569,
+            "outbound_upper_dose_usv": 0.06894706294965636,
+            "goal_return_duration_s": 199.3679000968376,
+            "goal_return_upper_dose_usv": 0.3401667988756074,
+            "goal_return_peak_rate_usv_h": 24.58891469925339
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2133,
+            "reachable_nodes": 2062,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 113.17999999996955,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            7.300000000000001,
+            1.5,
+            0.012953664976350747
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 133.0201458175763,
+            "return_upper_dose_usv": 0.23116537245626426,
+            "return_peak_rate_usv_h": 21.888791096860718,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 188.21324313842157,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.821323336176967,
+            "outbound_upper_dose_usv": 0.03314386683503178,
+            "goal_return_duration_s": 199.36789980742026,
+            "goal_return_upper_dose_usv": 0.29197949800792833,
+            "goal_return_peak_rate_usv_h": 21.429188199746886
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2148,
+            "reachable_nodes": 2070,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 115.18499999996773,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            6.5,
+            1.1,
+            0.013147865902552458
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 133.55329870377972,
+            "return_upper_dose_usv": 0.27893923994256825,
+            "return_peak_rate_usv_h": 27.45562748159329,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 196.03456623562644,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.15465680844344,
+            "outbound_upper_dose_usv": 0.07165590181933854,
+            "goal_return_duration_s": 179.36789925664118,
+            "goal_return_upper_dose_usv": 0.28110140124368765,
+            "goal_return_peak_rate_usv_h": 24.719620358114533
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2181,
+            "reachable_nodes": 2097,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 117.1899999999659,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.5,
+            1.1,
+            0.013177483235833159
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 130.69146085026014,
+            "return_upper_dose_usv": 0.25506999651750417,
+            "return_peak_rate_usv_h": 24.840837415800525,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 199.3678999264695,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 24.487991079577306,
+            "outbound_upper_dose_usv": 0.06912255923080783,
+            "goal_return_duration_s": 179.36789909235307,
+            "goal_return_upper_dose_usv": 0.26904189057779554,
+            "goal_return_peak_rate_usv_h": 23.19373448572387
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2188,
+            "reachable_nodes": 2104,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 121.19999999996226,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            6.1000000000000005,
+            1.5,
+            0.013230039306963667
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 117.48431182197339,
+            "return_upper_dose_usv": 0.15863501271025718,
+            "return_peak_rate_usv_h": 16.292625304558527,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 187.18922168215985,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154656929696348,
+            "outbound_upper_dose_usv": 0.05109920155138874,
+            "goal_return_duration_s": 188.3438770683489,
+            "goal_return_upper_dose_usv": 0.23628228615621677,
+            "goal_return_peak_rate_usv_h": 16.469950720124782
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2199,
+            "reachable_nodes": 2197,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 123.20499999996044,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.1000000000000005,
+            1.5,
+            0.01326991847353781
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 116.07675853331747,
+            "return_upper_dose_usv": 0.1617031864484137,
+            "return_peak_rate_usv_h": 17.225022103742685,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 179.3678980756055,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.821323388550006,
+            "outbound_upper_dose_usv": 0.05239196097895129,
+            "goal_return_duration_s": 188.34387642835455,
+            "goal_return_upper_dose_usv": 0.24301496358113955,
+            "goal_return_peak_rate_usv_h": 17.32788661681024
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2195,
+            "reachable_nodes": 2193,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427915,
+            "maximum_reachable_height_m": 0.015156904512427915,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 127.21499999995679,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            6.5,
+            2.1,
+            0.013260039522910886
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 113.00792997217467,
+            "return_upper_dose_usv": 0.12350545040789172,
+            "return_peak_rate_usv_h": 12.569589566490222,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 188.3438757409188,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154658830589483,
+            "outbound_upper_dose_usv": 0.044629556956841704,
+            "goal_return_duration_s": 213.986523728362,
+            "goal_return_upper_dose_usv": 0.24341967607072088,
+            "goal_return_peak_rate_usv_h": 14.446410379998289
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2244,
+            "reachable_nodes": 2242,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427924,
+            "maximum_reachable_height_m": 0.015156904512427924,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 129.21999999995498,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.5,
+            2.1,
+            0.013281153374975872
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 115.4596994503823,
+            "return_upper_dose_usv": 0.12742053508008516,
+            "return_peak_rate_usv_h": 12.818914296642289,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 200.65318795975278,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.82132489789577,
+            "outbound_upper_dose_usv": 0.040611564341235945,
+            "goal_return_duration_s": 213.98652370134377,
+            "goal_return_upper_dose_usv": 0.24632435573894773,
+            "goal_return_peak_rate_usv_h": 14.90431372104888
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2231,
+            "reachable_nodes": 2229,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427924,
+            "maximum_reachable_height_m": 0.015156904512427924,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 133.22999999995133,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            10.9,
+            4.3,
+            0.012394928980408346
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 125.38887666752791,
+            "return_upper_dose_usv": 0.1646603948623713,
+            "return_peak_rate_usv_h": 13.990374301337079,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 210.65318968397565,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 140.2612765753963,
+            "outbound_upper_dose_usv": 1.2500273878561625,
+            "goal_return_duration_s": 373.35441318464734,
+            "goal_return_upper_dose_usv": 1.513970370304829,
+            "goal_return_peak_rate_usv_h": 40.95261409086044
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2251,
+            "reachable_nodes": 2249,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427924,
+            "maximum_reachable_height_m": 0.015156904512427924,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 135.2349999999495,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            10.9,
+            4.3,
+            0.012422099377634043
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 128.8498678843312,
+            "return_upper_dose_usv": 0.1541383431186561,
+            "return_peak_rate_usv_h": 13.112139010320186,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 213.98652342566734,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 127.95196404616352,
+            "outbound_upper_dose_usv": 1.187905349882268,
+            "goal_return_duration_s": 364.37843447470505,
+            "goal_return_upper_dose_usv": 1.4715035203557894,
+            "goal_return_peak_rate_usv_h": 41.270395411750506
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2251,
+            "reachable_nodes": 2249,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015156904512427924,
+            "maximum_reachable_height_m": 0.015156904512427924,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 141.24999999994404,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.015032892857596482
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 142.80273595951238,
+            "return_upper_dose_usv": 0.16205677460740556,
+            "return_peak_rate_usv_h": 12.511316595041098,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 231.80784847130232,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2344,
+            "reachable_nodes": 2342,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01515687892264794,
+            "maximum_reachable_height_m": 0.01515687892264794,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 191.37499999989845,
+          "state": "returning_checkpoint",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.07475921186553168,
+            -4.5060710069060786e-05,
+            0.014995420283669883
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 2.474692935663341,
+            "return_upper_dose_usv": 0.0007062877659884619,
+            "return_peak_rate_usv_h": 1.0506895460664707,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.3333335000622717,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2351,
+            "reachable_nodes": 2351,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015181796582680082,
+            "maximum_reachable_height_m": 0.015181796582680082,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 211.4249999998802,
+          "state": "checkpoint_revalidated",
+          "decision_reason": "checkpoint_revalidated",
+          "selected_target": null,
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {},
+          "vertical_frontier": {
+            "observed_nodes": 2366,
+            "reachable_nodes": 2366,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01568914278531438,
+            "maximum_reachable_height_m": 0.01568914278531438,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 213.4299999998784,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.1,
+            0.9,
+            0.014638302399927305
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 11.595677071828595,
+            "return_upper_dose_usv": 0.003186901129137859,
+            "return_peak_rate_usv_h": 1.0067168404799574,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.3333337085740884,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 28.975993045356084,
+            "outbound_upper_dose_usv": 0.02131427221494793,
+            "goal_return_duration_s": 16.66668146136491,
+            "goal_return_upper_dose_usv": 0.017996802363592457,
+            "goal_return_peak_rate_usv_h": 8.96756281826887
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2366,
+            "reachable_nodes": 2366,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01571625950606523,
+            "maximum_reachable_height_m": 0.01571625950606523,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 215.43499999987657,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.1,
+            0.9,
+            0.014638302399927309
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 11.74123454689405,
+            "return_upper_dose_usv": 0.0032537765033783983,
+            "return_peak_rate_usv_h": 1.031231745686104,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.333334042487013,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 28.97599312843155,
+            "outbound_upper_dose_usv": 0.021261193721717152,
+            "goal_return_duration_s": 16.666681518349794,
+            "goal_return_upper_dose_usv": 0.017928522651937374,
+            "goal_return_peak_rate_usv_h": 8.921450606786186
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2367,
+            "reachable_nodes": 2367,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015717854651587836,
+            "maximum_reachable_height_m": 0.015717854651587836,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 221.4499999998711,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.30000000000000004,
+            1.5,
+            0.014365208190249841
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 22.53360531709683,
+            "return_upper_dose_usv": 0.005897379466477352,
+            "return_peak_rate_usv_h": 1.1464794939790917,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 13.333345083962454,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154660499525463,
+            "outbound_upper_dose_usv": 0.026298483243817346,
+            "goal_return_duration_s": 38.975995088616195,
+            "goal_return_upper_dose_usv": 0.030729990795674653,
+            "goal_return_peak_rate_usv_h": 11.976160101181568
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2387,
+            "reachable_nodes": 2387,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01577894314379066,
+            "maximum_reachable_height_m": 0.01577894314379066,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 223.45499999986927,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.30000000000000004,
+            1.5,
+            0.014439328942993985
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 25.985363048954866,
+            "return_upper_dose_usv": 0.011005229849496645,
+            "return_peak_rate_usv_h": 2.523235189166459,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 16.66667954854971,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.821324262024504,
+            "outbound_upper_dose_usv": 0.03475164324946327,
+            "goal_return_duration_s": 38.97599302416473,
+            "goal_return_upper_dose_usv": 0.03927803399036446,
+            "goal_return_peak_rate_usv_h": 16.64845643747722
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2395,
+            "reachable_nodes": 2395,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015778943143790667,
+            "maximum_reachable_height_m": 0.015778943143790667,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 225.45999999986745,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -1.1,
+            1.1,
+            0.014305084879928478
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 32.11349802371857,
+            "return_upper_dose_usv": 0.011347263798304816,
+            "return_peak_rate_usv_h": 2.0111018558006544,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 35.64265977649071,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154657762289514,
+            "outbound_upper_dose_usv": 0.021035169829789604,
+            "goal_return_duration_s": 41.15467164217438,
+            "goal_return_upper_dose_usv": 0.025041748313881958,
+            "goal_return_peak_rate_usv_h": 7.910408454829595
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2280,
+            "reachable_nodes": 2280,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015778943143790664,
+            "maximum_reachable_height_m": 0.015778943143790664,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 227.46499999986563,
+          "state": "recovery_resensing",
+          "decision_reason": "route_tracking_lost",
+          "selected_target": [
+            -1.1,
+            1.1,
+            0.014341758453504347
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 32.87457858603839,
+            "return_upper_dose_usv": 0.01037373717432625,
+            "return_peak_rate_usv_h": 1.643941028951073,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 38.97599154122495,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 24.48799139806401,
+            "outbound_upper_dose_usv": 0.019111564090591296,
+            "goal_return_duration_s": 41.154670256902165,
+            "goal_return_upper_dose_usv": 0.02174821011274964,
+            "goal_return_peak_rate_usv_h": 6.878187136880938
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2412,
+            "reachable_nodes": 2412,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01577894314379067,
+            "maximum_reachable_height_m": 0.01577894314379067,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 231.47499999986198,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -1.1,
+            1.1,
+            0.014361990288136506
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 31.443553911435387,
+            "return_upper_dose_usv": 0.008585532949893893,
+            "return_peak_rate_usv_h": 1.1480416678292695,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 38.97599035996078,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 24.48799230704254,
+            "outbound_upper_dose_usv": 0.016840851889453366,
+            "goal_return_duration_s": 41.15467002419304,
+            "goal_return_upper_dose_usv": 0.02006778512506017,
+            "goal_return_peak_rate_usv_h": 6.234365661761251
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2288,
+            "reachable_nodes": 2288,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015778943143790664,
+            "maximum_reachable_height_m": 0.015778943143790664,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 237.4899999998565,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.7000000000000001,
+            3.3000000000000003,
+            0.014422449536996973
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 30.00719972857921,
+            "return_upper_dose_usv": 0.012908878607898907,
+            "return_peak_rate_usv_h": 1.9828374815406693,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 37.821333948083975,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 44.48799274489816,
+            "outbound_upper_dose_usv": 0.1389338968116164,
+            "goal_return_duration_s": 84.61863676766363,
+            "goal_return_upper_dose_usv": 0.1472027678659899,
+            "goal_return_peak_rate_usv_h": 32.886785500891094
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2426,
+            "reachable_nodes": 2426,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.015778943143790667,
+            "maximum_reachable_height_m": 0.015778943143790667,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 239.49499999985468,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.7000000000000001,
+            3.3000000000000003,
+            0.014422449536996966
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 26.936607700430336,
+            "return_upper_dose_usv": 0.009970594025714754,
+            "return_peak_rate_usv_h": 1.668458570818266,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 37.82133296708413,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 44.48799212776923,
+            "outbound_upper_dose_usv": 0.14259097697887868,
+            "goal_return_duration_s": 84.61863693622054,
+            "goal_return_upper_dose_usv": 0.15136816829923688,
+            "goal_return_peak_rate_usv_h": 33.187248592663494
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2429,
+            "reachable_nodes": 2429,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.018444755011012177,
+            "maximum_reachable_height_m": 0.018444755011012177,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 243.50499999985104,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.9,
+            3.1,
+            0.014451711350484855
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 26.35556305790304,
+            "return_upper_dose_usv": 0.008447293342258128,
+            "return_peak_rate_usv_h": 1.461223164602215,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 34.487996196975324,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 45.642649536794416,
+            "outbound_upper_dose_usv": 0.11886694509291304,
+            "goal_return_duration_s": 84.61863527095983,
+            "goal_return_upper_dose_usv": 0.12773038493787897,
+            "goal_return_peak_rate_usv_h": 30.36250931554567
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2429,
+            "reachable_nodes": 2429,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01815565751283237,
+            "maximum_reachable_height_m": 0.01815565751283237,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 245.5099999998492,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.9,
+            3.1,
+            0.014451711350484859
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 29.346888546294633,
+            "return_upper_dose_usv": 0.00871792207735116,
+            "return_peak_rate_usv_h": 1.3987261954960493,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 34.487996035466054,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 45.64265029879073,
+            "outbound_upper_dose_usv": 0.11862326107562894,
+            "goal_return_duration_s": 84.61863585844519,
+            "goal_return_upper_dose_usv": 0.12747991809429876,
+            "goal_return_peak_rate_usv_h": 30.339792137003457
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2429,
+            "reachable_nodes": 2429,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.01815565751283238,
+            "maximum_reachable_height_m": 0.01815565751283238,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 257.5399999998383,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            -0.7000000000000001,
+            3.7,
+            0.014493727903239741
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 62.50827812953262,
+            "return_upper_dose_usv": 0.01691028796048982,
+            "return_peak_rate_usv_h": 1.277486748808427,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 90.26128253245979,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154656414189617,
+            "outbound_upper_dose_usv": 0.02628191709280959,
+            "goal_return_duration_s": 91.28530488501478,
+            "goal_return_upper_dose_usv": 0.04180116571296487,
+            "goal_return_peak_rate_usv_h": 11.751303252368004
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2477,
+            "reachable_nodes": 2477,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.018071856565235044,
+            "maximum_reachable_height_m": 0.018071856565235044,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 259.5449999998365,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            -0.7000000000000001,
+            3.5,
+            0.014486915735296875
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 64.10448487919142,
+            "return_upper_dose_usv": 0.016162491838667425,
+            "return_peak_rate_usv_h": 1.180892501043505,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 93.59461583214359,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 14.487989786810536,
+            "outbound_upper_dose_usv": 0.005673564460258209,
+            "goal_return_duration_s": 87.95197164148222,
+            "goal_return_upper_dose_usv": 0.022102656513284177,
+            "goal_return_peak_rate_usv_h": 2.426309112386722
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2461,
+            "reachable_nodes": 2458,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.2676787035627001,
+            "maximum_reachable_height_m": 0.018063629702565517,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 261.54999999983465,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            0.1,
+            3.3000000000000003,
+            0.014412762716598975
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 67.39653414454719,
+            "return_upper_dose_usv": 0.021506677248586018,
+            "return_peak_rate_usv_h": 1.5034173693398116,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 87.95197121116568,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.15465676499154,
+            "outbound_upper_dose_usv": 0.043720511391757824,
+            "goal_return_duration_s": 64.48799985059128,
+            "goal_return_upper_dose_usv": 0.10068338292136902,
+            "goal_return_peak_rate_usv_h": 20.56701367166871
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2481,
+            "reachable_nodes": 2479,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.26767870356270007,
+            "maximum_reachable_height_m": 0.05786190202658163,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 263.55499999983283,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            0.1,
+            3.3000000000000003,
+            0.014412878607648026
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 64.89958484878512,
+            "return_upper_dose_usv": 0.0201560069028026,
+            "return_peak_rate_usv_h": 1.511484311535725,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 84.61863808692691,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 13.333334240909018,
+            "outbound_upper_dose_usv": 0.036021018394494383,
+            "goal_return_duration_s": 64.48799986316666,
+            "goal_return_upper_dose_usv": 0.0950345821762692,
+            "goal_return_peak_rate_usv_h": 19.098140981121077
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2482,
+            "reachable_nodes": 2480,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.26767870356270007,
+            "maximum_reachable_height_m": 0.05785288637292411,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 267.5649999998292,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            0.7000000000000001,
+            3.1,
+            0.014422951052166394
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 61.2123920183555,
+            "return_upper_dose_usv": 0.032724985382418754,
+            "return_peak_rate_usv_h": 3.9409847579076014,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 56.666676992758156,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.154656316307914,
+            "outbound_upper_dose_usv": 0.02470208881874717,
+            "goal_return_duration_s": 71.15466648414007,
+            "goal_return_upper_dose_usv": 0.053408754240030124,
+            "goal_return_peak_rate_usv_h": 9.920289667286022
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2578,
+            "reachable_nodes": 2576,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.2676787035627001,
+            "maximum_reachable_height_m": 0.057769635514359624,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 269.56999999982736,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            0.7000000000000001,
+            3.1,
+            0.014440556560215728
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 75.63265738564446,
+            "return_upper_dose_usv": 0.03860008010827696,
+            "return_peak_rate_usv_h": 3.698243805089758,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 64.48800003172325,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.82132287636226,
+            "outbound_upper_dose_usv": 0.018525917008455538,
+            "goal_return_duration_s": 71.15466648504147,
+            "goal_return_upper_dose_usv": 0.04796969130740398,
+            "goal_return_peak_rate_usv_h": 8.372798315996372
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2578,
+            "reachable_nodes": 2576,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.2676787035627,
+            "maximum_reachable_height_m": 0.0577537931107199,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 273.5799999998237,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            0.30000000000000004,
+            8.700000000000001,
+            0.011773674664541274
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 77.9954555128019,
+            "return_upper_dose_usv": 0.03506674631953645,
+            "return_peak_rate_usv_h": 3.327237145255287,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 67.82133362847067,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 101.15468641824303,
+            "outbound_upper_dose_usv": 0.7649453419424166,
+            "goal_return_duration_s": 162.30935284310945,
+            "goal_return_upper_dose_usv": 0.7953827139725926,
+            "goal_return_peak_rate_usv_h": 40.075887790418236
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2578,
+            "reachable_nodes": 2576,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.26767870356270007,
+            "maximum_reachable_height_m": 0.05769682242889081,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 275.5849999998219,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            0.30000000000000004,
+            8.700000000000001,
+            0.011773674664541274
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 76.85233495911797,
+            "return_upper_dose_usv": 0.03566248739031782,
+            "return_peak_rate_usv_h": 3.4163013698933655,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 67.82133397883449,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 101.15468683064404,
+            "outbound_upper_dose_usv": 0.7656177424978685,
+            "goal_return_duration_s": 162.30935329494667,
+            "goal_return_upper_dose_usv": 0.7964380545404979,
+            "goal_return_peak_rate_usv_h": 40.07693165237243
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2578,
+            "reachable_nodes": 2576,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 0.2676787035627,
+            "maximum_reachable_height_m": 0.057689171852728996,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 285.60999999981277,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            2.1,
+            6.300000000000001,
+            0.17689784817905102
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 74.02051179162022,
+            "return_upper_dose_usv": 0.04119710279686092,
+            "return_peak_rate_usv_h": 5.547859576819291,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 78.97599076190825,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 91.46929957817477,
+            "outbound_upper_dose_usv": 0.7460940651743806,
+            "goal_return_duration_s": 170.44529034008303,
+            "goal_return_upper_dose_usv": 0.7858866112208591,
+            "goal_return_peak_rate_usv_h": 38.093748937553066
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2655,
+            "reachable_nodes": 2655,
+            "reachable_new_height_nodes": 23,
+            "maximum_observed_height_m": 0.26717220873273917,
+            "maximum_reachable_height_m": 0.26717220873273917,
+            "admitted_height_candidates": 2,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 289.6199999998091,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            2.1,
+            6.300000000000001,
+            0.17696631300028237
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 80.88658946383224,
+            "return_upper_dose_usv": 0.03996615088331619,
+            "return_peak_rate_usv_h": 4.612535281373284,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 85.64265724565702,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 84.80234049633219,
+            "outbound_upper_dose_usv": 0.6238607082648142,
+            "goal_return_duration_s": 170.44499774198914,
+            "goal_return_upper_dose_usv": 0.6643677058453338,
+            "goal_return_peak_rate_usv_h": 37.70956155171388
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2671,
+            "reachable_nodes": 2671,
+            "reachable_new_height_nodes": 26,
+            "maximum_observed_height_m": 0.2670811229649901,
+            "maximum_reachable_height_m": 0.2670811229649901,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 295.63499999980365,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.015648205719484793
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 98.35661707008306,
+            "return_upper_dose_usv": 0.04922814973489287,
+            "return_peak_rate_usv_h": 5.304122602260042,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 105.64265756928624,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2753,
+            "reachable_nodes": 2743,
+            "reachable_new_height_nodes": 28,
+            "maximum_observed_height_m": 0.26702048484072277,
+            "maximum_reachable_height_m": 0.26702048484072277,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 297.63999999980183,
+          "state": "recovery_resensing",
+          "decision_reason": "route_tracking_lost",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.0156482057194848
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 115.97273391207122,
+            "return_upper_dose_usv": 0.04801522391401272,
+            "return_peak_rate_usv_h": 4.170343756157468,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 105.64265753789458,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2803,
+            "reachable_nodes": 2787,
+            "reachable_new_height_nodes": 29,
+            "maximum_observed_height_m": 0.2669212498862586,
+            "maximum_reachable_height_m": 0.2669212498862586,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 301.6499999997982,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.015648205719484793
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 116.3006124547114,
+            "return_upper_dose_usv": 0.04784686977479008,
+            "return_peak_rate_usv_h": 4.171135202420633,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 105.64265755912454,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2814,
+            "reachable_nodes": 2797,
+            "reachable_new_height_nodes": 33,
+            "maximum_observed_height_m": 0.2669602675801326,
+            "maximum_reachable_height_m": 0.2669602675801326,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 343.7549999997599,
+          "state": "returning_checkpoint",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.07475424141697737,
+            -5.306569157979236e-05,
+            0.014993567813920666
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 3.4657522868973096,
+            "return_upper_dose_usv": 0.0008949713055644334,
+            "return_peak_rate_usv_h": 0.9461962985998658,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.3333344122815003,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2842,
+            "reachable_nodes": 2842,
+            "reachable_new_height_nodes": 34,
+            "maximum_observed_height_m": 0.267500510446854,
+            "maximum_reachable_height_m": 0.267500510446854,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 351.7749999997526,
+          "state": "checkpoint_revalidated",
+          "decision_reason": "checkpoint_revalidated",
+          "selected_target": null,
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {},
+          "vertical_frontier": {
+            "observed_nodes": 2846,
+            "reachable_nodes": 2846,
+            "reachable_new_height_nodes": 34,
+            "maximum_observed_height_m": 0.26796725458747817,
+            "maximum_reachable_height_m": 0.26796725458747817,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 353.77999999975077,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            2.7,
+            6.1000000000000005,
+            0.2678181054786423
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 7.041291765844509,
+            "return_upper_dose_usv": 0.0016185021471822947,
+            "return_peak_rate_usv_h": 0.9231721096864496,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.3333337255996156,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 169.40165127337926,
+            "outbound_upper_dose_usv": 0.40167364202579775,
+            "goal_return_duration_s": 172.73498499897886,
+            "goal_return_upper_dose_usv": 0.4025339143014059,
+            "goal_return_peak_rate_usv_h": 38.07368846141378
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2846,
+            "reachable_nodes": 2846,
+            "reachable_new_height_nodes": 34,
+            "maximum_observed_height_m": 0.26796725458747817,
+            "maximum_reachable_height_m": 0.26796725458747817,
+            "admitted_height_candidates": 3,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 355.78499999974895,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            2.7,
+            6.1000000000000005,
+            0.2678181054786423
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 10.758782747972358,
+            "return_upper_dose_usv": 0.0023100576302689446,
+            "return_peak_rate_usv_h": 0.9080323941104279,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 11.154656582747327,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 166.06832156019627,
+            "outbound_upper_dose_usv": 0.40896791930317694,
+            "goal_return_duration_s": 172.73498521152715,
+            "goal_return_upper_dose_usv": 0.40244939899559723,
+            "goal_return_peak_rate_usv_h": 38.07352453269538
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2846,
+            "reachable_nodes": 2846,
+            "reachable_new_height_nodes": 34,
+            "maximum_observed_height_m": 0.26796725458747817,
+            "maximum_reachable_height_m": 0.26796725458747817,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 385.8599999997216,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.015996558686724636
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 91.33910211005406,
+            "return_upper_dose_usv": 0.02169761375017409,
+            "return_peak_rate_usv_h": 1.3183520352770264,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 98.97598995256244,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2848,
+            "reachable_nodes": 2848,
+            "reachable_new_height_nodes": 34,
+            "maximum_observed_height_m": 0.2679817593525112,
+            "maximum_reachable_height_m": 0.2679817593525112,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 419.9449999996906,
+          "state": "checkpoint_revalidated",
+          "decision_reason": "checkpoint_revalidated",
+          "selected_target": null,
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {},
+          "vertical_frontier": {
+            "observed_nodes": 2832,
+            "reachable_nodes": 2832,
+            "reachable_new_height_nodes": 36,
+            "maximum_observed_height_m": 0.29832227302861297,
+            "maximum_reachable_height_m": 0.29832227302861297,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 421.94999999968877,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            2.7,
+            6.300000000000001,
+            0.26828187907168943
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 2.66501667799138,
+            "return_upper_dose_usv": 0.0006241148876846012,
+            "return_peak_rate_usv_h": 0.8833877769244528,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.333333717125616,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 181.71182885311646,
+            "outbound_upper_dose_usv": 0.44456911281408273,
+            "goal_return_duration_s": 185.04516257024204,
+            "goal_return_upper_dose_usv": 0.44538706455356014,
+            "goal_return_peak_rate_usv_h": 38.03604492227892
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2832,
+            "reachable_nodes": 2832,
+            "reachable_new_height_nodes": 36,
+            "maximum_observed_height_m": 0.29832227302861297,
+            "maximum_reachable_height_m": 0.29832227302861297,
+            "admitted_height_candidates": 2,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 423.95499999968695,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            2.7,
+            6.300000000000001,
+            0.26828187907168943
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 0.0,
+            "return_upper_dose_usv": 0.0,
+            "return_peak_rate_usv_h": 0.8697970653089608,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 185.04516261433548,
+            "outbound_upper_dose_usv": 0.44535000550109854,
+            "goal_return_duration_s": 185.04516261433548,
+            "goal_return_upper_dose_usv": 0.44535000550109854,
+            "goal_return_peak_rate_usv_h": 38.03604360971252
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2832,
+            "reachable_nodes": 2832,
+            "reachable_new_height_nodes": 36,
+            "maximum_observed_height_m": 0.29832227302861297,
+            "maximum_reachable_height_m": 0.29832227302861297,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 439.99499999967236,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            2.7,
+            6.5,
+            0.26824307860559193
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 50.59415498385379,
+            "return_upper_dose_usv": 0.012115186644049918,
+            "return_peak_rate_usv_h": 1.0062472904939213,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 47.82132868876168,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 145.0454830408837,
+            "outbound_upper_dose_usv": 0.47375599268516555,
+            "goal_return_duration_s": 197.35480013069844,
+            "goal_return_upper_dose_usv": 0.48399308277775155,
+            "goal_return_peak_rate_usv_h": 38.24946599662727
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2698,
+            "reachable_nodes": 2694,
+            "reachable_new_height_nodes": 32,
+            "maximum_observed_height_m": 0.2682853012306993,
+            "maximum_reachable_height_m": 0.2682853012306993,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 468.06499999964683,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            2.7,
+            6.1000000000000005,
+            0.26804067436943224
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 115.63558536708736,
+            "return_upper_dose_usv": 0.02506378998152856,
+            "return_peak_rate_usv_h": 1.2306289862079731,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 135.77329895826216,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 36.96139791757679,
+            "outbound_upper_dose_usv": 0.2877980997336851,
+            "goal_return_duration_s": 172.73469687583895,
+            "goal_return_upper_dose_usv": 0.31613317339352087,
+            "goal_return_peak_rate_usv_h": 37.35637655038591
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2920,
+            "reachable_nodes": 2920,
+            "reachable_new_height_nodes": 39,
+            "maximum_observed_height_m": 0.29818637681242594,
+            "maximum_reachable_height_m": 0.29818637681242594,
+            "admitted_height_candidates": 3,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 470.069999999645,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            2.7,
+            6.1000000000000005,
+            0.2680502647487646
+          ],
+          "sampled_support_height_bands_m": [
+            0.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 124.64165930025126,
+            "return_upper_dose_usv": 0.029281967116742004,
+            "return_peak_rate_usv_h": 1.7988741060120996,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 148.0826114307381,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 33.628071278155886,
+            "outbound_upper_dose_usv": 0.20620478331817577,
+            "goal_return_duration_s": 181.71068270889393,
+            "goal_return_upper_dose_usv": 0.23700984743923542,
+            "goal_return_peak_rate_usv_h": 34.20282298054656
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2937,
+            "reachable_nodes": 2937,
+            "reachable_new_height_nodes": 39,
+            "maximum_observed_height_m": 0.2981863768124261,
+            "maximum_reachable_height_m": 0.2981863768124261,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 480.0949999996359,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            3.1,
+            6.1000000000000005,
+            0.3273044667952208
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 144.95460705366787,
+            "return_upper_dose_usv": 0.03759543109445622,
+            "return_peak_rate_usv_h": 2.46753933767916,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 168.22933834917103,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.220550423433306,
+            "outbound_upper_dose_usv": 0.10313330967349568,
+            "goal_return_duration_s": 188.44988877260428,
+            "goal_return_upper_dose_usv": 0.14068747421538622,
+            "goal_return_peak_rate_usv_h": 28.703749108745775
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3001,
+            "reachable_nodes": 3001,
+            "reachable_new_height_nodes": 52,
+            "maximum_observed_height_m": 0.5968850089732816,
+            "maximum_reachable_height_m": 0.5968850089732816,
+            "admitted_height_candidates": 3,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 482.09999999963406,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            3.1,
+            6.1000000000000005,
+            0.32736119089637783
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 147.84144572397352,
+            "return_upper_dose_usv": 0.04087250480180186,
+            "return_peak_rate_usv_h": 3.234867676177205,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 171.59936547334655,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.850662451350125,
+            "outbound_upper_dose_usv": 0.09032000452338856,
+            "goal_return_duration_s": 188.4500279246966,
+            "goal_return_upper_dose_usv": 0.12970155707252512,
+            "goal_return_peak_rate_usv_h": 30.191254536135954
+          },
+          "vertical_frontier": {
+            "observed_nodes": 2998,
+            "reachable_nodes": 2992,
+            "reachable_new_height_nodes": 52,
+            "maximum_observed_height_m": 0.5968631484566441,
+            "maximum_reachable_height_m": 0.5968631484566441,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 492.12499999962495,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            3.5,
+            6.5,
+            0.3875243931730257
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 161.73822072506465,
+            "return_upper_dose_usv": 0.04009733167313209,
+            "return_peak_rate_usv_h": 2.058604160879136,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 185.08087121748852,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.265078524084103,
+            "outbound_upper_dose_usv": 0.04245332194045877,
+            "goal_return_duration_s": 210.83393924670074,
+            "goal_return_upper_dose_usv": 0.08541972684794133,
+            "goal_return_peak_rate_usv_h": 17.34393603510886
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3054,
+            "reachable_nodes": 3048,
+            "reachable_new_height_nodes": 94,
+            "maximum_observed_height_m": 0.7762972467937604,
+            "maximum_reachable_height_m": 0.7762972467937604,
+            "admitted_height_candidates": 8,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 494.1299999996231,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            4.3,
+            6.300000000000001,
+            0.5070826158982525
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 162.51338216789057,
+            "return_upper_dose_usv": 0.0415202649795256,
+            "return_peak_rate_usv_h": 2.428597279768923,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 200.7604312038767,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.22150163268944,
+            "outbound_upper_dose_usv": 0.1325474458676991,
+            "goal_return_duration_s": 220.98193283656602,
+            "goal_return_upper_dose_usv": 0.18123966893682883,
+            "goal_return_peak_rate_usv_h": 37.742625571345954
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3055,
+            "reachable_nodes": 3049,
+            "reachable_new_height_nodes": 60,
+            "maximum_observed_height_m": 0.7764396559420217,
+            "maximum_reachable_height_m": 0.7764396559420217,
+            "admitted_height_candidates": 2,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 496.1349999996213,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            4.3,
+            6.300000000000001,
+            0.5071184565082694
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 167.03741478201005,
+            "return_upper_dose_usv": 0.04265624927538574,
+            "return_peak_rate_usv_h": 2.1745704730667668,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 204.13173583177826,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.850650142699813,
+            "outbound_upper_dose_usv": 0.07125019869899354,
+            "goal_return_duration_s": 220.98238597447803,
+            "goal_return_upper_dose_usv": 0.11969739303912269,
+            "goal_return_peak_rate_usv_h": 24.71353628697714
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3061,
+            "reachable_nodes": 3055,
+            "reachable_new_height_nodes": 60,
+            "maximum_observed_height_m": 0.7763944995349075,
+            "maximum_reachable_height_m": 0.7763944995349075,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 506.1599999996122,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            4.9,
+            6.1000000000000005,
+            0.5967502682412018
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 182.24042278370752,
+            "return_upper_dose_usv": 0.04823814915648933,
+            "return_peak_rate_usv_h": 2.5950684994695146,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 217.61304355364044,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.302143310826096,
+            "outbound_upper_dose_usv": 0.05222063283795392,
+            "goal_return_duration_s": 218.78414775853858,
+            "goal_return_upper_dose_usv": 0.09617050541273496,
+            "goal_return_peak_rate_usv_h": 20.33605084712433
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3093,
+            "reachable_nodes": 3086,
+            "reachable_new_height_nodes": 85,
+            "maximum_observed_height_m": 0.9258369546664618,
+            "maximum_reachable_height_m": 0.9258369546664618,
+            "admitted_height_candidates": 11,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 508.16499999961036,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            4.9,
+            6.1000000000000005,
+            0.5968292734268996
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 183.33950114995608,
+            "return_upper_dose_usv": 0.04716044760343002,
+            "return_peak_rate_usv_h": 2.1021552211265053,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 220.98343817250853,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.9318408216008,
+            "outbound_upper_dose_usv": 0.0315975161909665,
+            "goal_return_duration_s": 218.78434120446067,
+            "goal_return_upper_dose_usv": 0.07778644230825497,
+            "goal_return_peak_rate_usv_h": 13.03095542582915
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3098,
+            "reachable_nodes": 3091,
+            "reachable_new_height_nodes": 89,
+            "maximum_observed_height_m": 0.926088762916608,
+            "maximum_reachable_height_m": 0.926088762916608,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 510.16999999960854,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            5.7,
+            6.1000000000000005,
+            0.7163671440455395
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 186.99843737353146,
+            "return_upper_dose_usv": 0.04842507080138409,
+            "return_peak_rate_usv_h": 1.7830100982781159,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 212.04406758639772,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.221633145116563,
+            "outbound_upper_dose_usv": 0.05514345215489567,
+            "goal_return_duration_s": 232.26570073151427,
+            "goal_return_upper_dose_usv": 0.10847238577864449,
+            "goal_return_peak_rate_usv_h": 18.121549653096185
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3104,
+            "reachable_nodes": 3097,
+            "reachable_new_height_nodes": 52,
+            "maximum_observed_height_m": 0.9558584788345093,
+            "maximum_reachable_height_m": 0.9558584788345093,
+            "admitted_height_candidates": 4,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 512.1749999996067,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            5.7,
+            6.1000000000000005,
+            0.7164176802929583
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 191.31510917188635,
+            "return_upper_dose_usv": 0.05415402588813825,
+            "return_peak_rate_usv_h": 2.747547279744276,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 215.4142621725849,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.851563729464754,
+            "outbound_upper_dose_usv": 0.06096685238211635,
+            "goal_return_duration_s": 232.26582590204964,
+            "goal_return_upper_dose_usv": 0.11676334526432927,
+            "goal_return_peak_rate_usv_h": 22.78142913019432
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3118,
+            "reachable_nodes": 3111,
+            "reachable_new_height_nodes": 65,
+            "maximum_observed_height_m": 1.015609871105984,
+            "maximum_reachable_height_m": 1.015609871105984,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 534.2299999995867,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            6.300000000000001,
+            6.300000000000001,
+            0.8065201330137215
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 205.60575565090892,
+            "return_upper_dose_usv": 0.06344662458012651,
+            "return_peak_rate_usv_h": 2.968833965868553,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 228.89665965886965,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.30227874382777,
+            "outbound_upper_dose_usv": 0.041924711866224235,
+            "goal_return_duration_s": 254.68688118535877,
+            "goal_return_upper_dose_usv": 0.10086854104393987,
+            "goal_return_peak_rate_usv_h": 14.50830108434085
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3135,
+            "reachable_nodes": 3129,
+            "reachable_new_height_nodes": 95,
+            "maximum_observed_height_m": 1.135439754043346,
+            "maximum_reachable_height_m": 1.135439754043346,
+            "admitted_height_candidates": 16,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 536.2349999995848,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            6.300000000000001,
+            6.300000000000001,
+            0.8066056563491071
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 207.91303116835425,
+            "return_upper_dose_usv": 0.06471680481641033,
+            "return_peak_rate_usv_h": 3.08416803786522,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 232.2672633953257,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 17.931656173660112,
+            "outbound_upper_dose_usv": 0.02960106441993708,
+            "goal_return_duration_s": 254.68709228065535,
+            "goal_return_upper_dose_usv": 0.09105741737365339,
+            "goal_return_peak_rate_usv_h": 10.904857894266577
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3135,
+            "reachable_nodes": 3129,
+            "reachable_new_height_nodes": 95,
+            "maximum_observed_height_m": 1.1353556564078255,
+            "maximum_reachable_height_m": 1.1353556564078255,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 538.239999999583,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            7.300000000000001,
+            6.300000000000001,
+            0.9557837431301996
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 212.074763635108,
+            "return_upper_dose_usv": 0.06819914932006493,
+            "return_peak_rate_usv_h": 3.674335261625037,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 247.94687909848366,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 23.591312154047234,
+            "outbound_upper_dose_usv": 0.10646160477114161,
+            "goal_return_duration_s": 271.5381912525308,
+            "goal_return_upper_dose_usv": 0.17812767217601955,
+            "goal_return_peak_rate_usv_h": 27.836055627213984
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3135,
+            "reachable_nodes": 3129,
+            "reachable_new_height_nodes": 53,
+            "maximum_observed_height_m": 1.1353790117528135,
+            "maximum_reachable_height_m": 1.1353790117528135,
+            "admitted_height_candidates": 4,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 540.2449999995812,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            7.300000000000001,
+            6.300000000000001,
+            0.9558032229600281
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 216.99237664288322,
+            "return_upper_dose_usv": 0.07165909874155413,
+            "return_peak_rate_usv_h": 3.5145055272018473,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 254.68752117939277,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.850717574723973,
+            "outbound_upper_dose_usv": 0.0721937379050359,
+            "goal_return_duration_s": 271.5382387541166,
+            "goal_return_upper_dose_usv": 0.14970277538565768,
+            "goal_return_peak_rate_usv_h": 24.223559212627308
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3134,
+            "reachable_nodes": 3128,
+            "reachable_new_height_nodes": 53,
+            "maximum_observed_height_m": 1.1354599502478542,
+            "maximum_reachable_height_m": 1.1354599502478542,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 552.2749999995702,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            8.3,
+            6.300000000000001,
+            1.1054689094101253
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 233.10075554615207,
+            "return_upper_dose_usv": 0.08088949422834443,
+            "return_peak_rate_usv_h": 2.9469185491899,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 268.1692980022735,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 20.22118923303785,
+            "outbound_upper_dose_usv": 0.07296645904007477,
+            "goal_return_duration_s": 288.39048723531124,
+            "goal_return_upper_dose_usv": 0.15641214383667346,
+            "goal_return_peak_rate_usv_h": 23.468971330071952
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3147,
+            "reachable_nodes": 3137,
+            "reachable_new_height_nodes": 28,
+            "maximum_observed_height_m": 1.209825097094189,
+            "maximum_reachable_height_m": 1.209825097094189,
+            "admitted_height_candidates": 3,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 554.2799999995684,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            8.3,
+            6.300000000000001,
+            1.1055100061891743
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 236.27562266607652,
+            "return_upper_dose_usv": 0.08706416922859993,
+            "return_peak_rate_usv_h": 4.142674481908392,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 271.5401912542872,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 16.8503984013051,
+            "outbound_upper_dose_usv": 0.06309805831133553,
+            "goal_return_duration_s": 288.39058965559224,
+            "goal_return_upper_dose_usv": 0.1495848755527009,
+            "goal_return_peak_rate_usv_h": 21.749192603389815
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3187,
+            "reachable_nodes": 3173,
+            "reachable_new_height_nodes": 63,
+            "maximum_observed_height_m": 1.2098832891603346,
+            "maximum_reachable_height_m": 1.2098832891603346,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 564.3049999995593,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            8.700000000000001,
+            6.7,
+            1.1658953897823232
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 249.05872512323887,
+            "return_upper_dose_usv": 0.08547333144652638,
+            "return_peak_rate_usv_h": 2.8126077926544335,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 285.02157418207696,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 30.24146000391031,
+            "outbound_upper_dose_usv": 0.03797929873978046,
+            "goal_return_duration_s": 319.7510236911154,
+            "goal_return_upper_dose_usv": 0.13163050222160647,
+            "goal_return_peak_rate_usv_h": 7.829932122740543
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3295,
+            "reachable_nodes": 3288,
+            "reachable_new_height_nodes": 183,
+            "maximum_observed_height_m": 1.2298329864622377,
+            "maximum_reachable_height_m": 1.2298329864622377,
+            "admitted_height_candidates": 13,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 566.3099999995575,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            8.700000000000001,
+            6.7,
+            1.1660674282312367
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 250.24687661524464,
+            "return_upper_dose_usv": 0.08741592849111471,
+            "return_peak_rate_usv_h": 2.8128385084651257,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 288.39220637806244,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 26.871361331081573,
+            "outbound_upper_dose_usv": 0.03500004672068226,
+            "goal_return_duration_s": 319.75155721427217,
+            "goal_return_upper_dose_usv": 0.13108759611082388,
+            "goal_return_peak_rate_usv_h": 7.690148049269033
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3338,
+            "reachable_nodes": 3331,
+            "reachable_new_height_nodes": 227,
+            "maximum_observed_height_m": 1.2838046647263233,
+            "maximum_reachable_height_m": 1.2838046647263233,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 570.3199999995538,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            8.9,
+            5.9,
+            1.192261838811983
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 257.3113978564098,
+            "return_upper_dose_usv": 0.09409374842325972,
+            "return_peak_rate_usv_h": 2.8159927752149327,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 319.7517851656495,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.184494523540195,
+            "outbound_upper_dose_usv": 0.03569019835094186,
+            "goal_return_duration_s": 298.4958844142456,
+            "goal_return_upper_dose_usv": 0.13681381223362554,
+            "goal_return_peak_rate_usv_h": 9.47268140671109
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3384,
+            "reachable_nodes": 3378,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 1.2834656573144239,
+            "maximum_reachable_height_m": 1.2834656573144239,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 572.324999999552,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            8.9,
+            5.9,
+            1.1923959864872482
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 257.34723730831337,
+            "return_upper_dose_usv": 0.09216865320737914,
+            "return_peak_rate_usv_h": 2.816215768568654,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 319.75198245784514,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 21.18478660008531,
+            "outbound_upper_dose_usv": 0.035392020905561476,
+            "goal_return_duration_s": 298.4961983814465,
+            "goal_return_upper_dose_usv": 0.13700165319394844,
+            "goal_return_peak_rate_usv_h": 9.541766462204112
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3429,
+            "reachable_nodes": 3423,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 1.2834707268207939,
+            "maximum_reachable_height_m": 1.2834707268207939,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 578.3399999995465,
+          "state": "exploring",
+          "decision_reason": "best_connected_region",
+          "selected_target": [
+            10.5,
+            6.1000000000000005,
+            1.2105371079104825
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 258.40107616412814,
+            "return_upper_dose_usv": 0.09906638723739943,
+            "return_peak_rate_usv_h": 3.078791315741153,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 294.0098846859904,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 34.49687901873133,
+            "outbound_upper_dose_usv": 0.12673052779635924,
+            "goal_return_duration_s": 312.8640930406276,
+            "goal_return_upper_dose_usv": 0.22305510162616754,
+            "goal_return_peak_rate_usv_h": 29.633036565443252
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3444,
+            "reachable_nodes": 3438,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 1.2835376971390466,
+            "maximum_reachable_height_m": 1.2835376971390466,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 580.3449999995447,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            10.5,
+            6.1000000000000005,
+            1.2106755959480768
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 262.67310575584315,
+            "return_upper_dose_usv": 0.10108678017681631,
+            "return_peak_rate_usv_h": 3.0824690440052107,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 298.49774125858147,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 34.49742503715183,
+            "outbound_upper_dose_usv": 0.12384749447710773,
+            "goal_return_duration_s": 312.86397224167507,
+            "goal_return_upper_dose_usv": 0.22083365726385912,
+            "goal_return_peak_rate_usv_h": 29.648685424733365
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3450,
+            "reachable_nodes": 3444,
+            "reachable_new_height_nodes": 0,
+            "maximum_observed_height_m": 1.2836259112352304,
+            "maximum_reachable_height_m": 1.2836259112352304,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 584.3549999995411,
+          "state": "exploring",
+          "decision_reason": "survey_observed_height_band",
+          "selected_target": [
+            8.3,
+            9.1,
+            1.3134523034360075
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 269.56633820212505,
+            "return_upper_dose_usv": 0.1197528280939718,
+            "return_peak_rate_usv_h": 6.9249842234736105,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 296.1972542984107,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 99.21514922928905,
+            "outbound_upper_dose_usv": 0.8774050463746526,
+            "goal_return_duration_s": 426.8274793399013,
+            "goal_return_upper_dose_usv": 1.008585240120846,
+            "goal_return_peak_rate_usv_h": 41.337844415604586
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3452,
+            "reachable_nodes": 3446,
+            "reachable_new_height_nodes": 1,
+            "maximum_observed_height_m": 1.3134523034360075,
+            "maximum_reachable_height_m": 1.3134523034360075,
+            "admitted_height_candidates": 1,
+            "commitment_preempted": true
+          }
+        },
+        {
+          "time_s": 586.3599999995392,
+          "state": "exploring",
+          "decision_reason": "continue_revalidated_goal",
+          "selected_target": [
+            8.3,
+            9.1,
+            1.3134421431802143
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 270.9363258153105,
+            "return_upper_dose_usv": 0.12691818165888769,
+            "return_peak_rate_usv_h": 8.801018417744073,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 296.19735365971945,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0,
+            "outbound_duration_s": 99.21526748639963,
+            "outbound_upper_dose_usv": 0.8675999864847412,
+            "goal_return_duration_s": 426.8277214415185,
+            "goal_return_upper_dose_usv": 0.9981617301897812,
+            "goal_return_peak_rate_usv_h": 41.081556671385954
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3458,
+            "reachable_nodes": 3452,
+            "reachable_new_height_nodes": 1,
+            "maximum_observed_height_m": 1.3134421431802143,
+            "maximum_reachable_height_m": 1.3134421431802143,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 612.4249999995155,
+          "state": "returning",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.1,
+            -0.1,
+            0.016215908213198953
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 316.93781365359564,
+            "return_upper_dose_usv": 0.5332722119635284,
+            "return_peak_rate_usv_h": 38.370218357104726,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 402.23139570467816,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0,
+            "checked_inspection_candidates": 0,
+            "checked_execution_candidates": 0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3486,
+            "reachable_nodes": 3480,
+            "reachable_new_height_nodes": 25,
+            "maximum_observed_height_m": 1.403493386521312,
+            "maximum_reachable_height_m": 1.403493386521312,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        },
+        {
+          "time_s": 794.8799999993496,
+          "state": "returned",
+          "decision_reason": "localization_return_reserve",
+          "selected_target": [
+            -0.07475534469691418,
+            -5.943840593904912e-05,
+            0.014995357832729265
+          ],
+          "sampled_support_height_bands_m": [
+            0.0,
+            0.2,
+            0.4,
+            0.6000000000000001,
+            0.8,
+            1.0,
+            1.2000000000000002
+          ],
+          "rejection_counts": {
+            "distance": 0,
+            "failed": 0,
+            "dose": 0,
+            "rate": 0,
+            "return_route": 0,
+            "time": 0
+          },
+          "route_forecast": {
+            "return_duration_s": 4.6644851982988085,
+            "return_upper_dose_usv": 0.0010746633257029817,
+            "return_peak_rate_usv_h": 0.8546024730544266,
+            "emergency_rate_override": false,
+            "wait_allowance_s": 3.0,
+            "speed_m_s": 0.06,
+            "yaw_rate_rad_s": 0.35,
+            "return_grid_duration_s": 3.3333343015811194,
+            "return_forecast_geometry": "support_checked_smooth",
+            "recovery_reserve_s": 3.0
+          },
+          "vertical_frontier": {
+            "observed_nodes": 3496,
+            "reachable_nodes": 3489,
+            "reachable_new_height_nodes": 24,
+            "maximum_observed_height_m": 1.4351403665990392,
+            "maximum_reachable_height_m": 1.4351403665990392,
+            "admitted_height_candidates": 0,
+            "commitment_preempted": false
+          }
+        }
+      ]
+    }
+  ]
+}

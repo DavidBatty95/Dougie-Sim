@@ -19,7 +19,7 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', type=Path, required=True)
-    parser.add_argument('--probe', choices=('terminal-hold', 'support-fusion'), default='terminal-hold')
+    parser.add_argument('--probe', choices=('terminal-hold', 'support-fusion', 'vertical-frontier'), default='terminal-hold')
     args = parser.parse_args()
     config = json.loads((args.run/'run_config.json').read_text())
     summary = json.loads((args.run/'radiation_summary.json').read_text())
@@ -31,11 +31,17 @@ def main():
             raise ValueError('expected the terminal-gravity experiment')
         prefix = 'facility-terminal-hold'
         scope = 'native MuJoCo terminal-stance experiment; failed vertical mission, not successful recovery'
-    else:
+    elif args.probe == 'support-fusion':
         if config.get('support_fusion') != 'bounded-mean' or summary.get('clean_return') is not True or summary.get('error') is not None:
             raise ValueError('expected a clean-return bounded-fusion probe that failed vertical completion')
         prefix = 'support-fusion-return'
         scope = 'native bounded-fusion probe; clean home return, failed vertical completion'
+    else:
+        if (config.get('world') != 'facility' or config.get('mission_objective') != 'vertical'
+                or summary.get('clean_return') is not True or summary.get('error') is not None):
+            raise ValueError('expected a clean-return facility vertical survey with failed full-height completion')
+        prefix = 'facility-frontier-return'
+        scope = 'native facility exploration and clean return; failed full-height vertical mission'
     if digest(args.run/'demo.gif') != capture['sha256']:
         raise ValueError('native capture checksum mismatch')
     destination = MEDIA/(prefix+'.gif')
@@ -56,7 +62,8 @@ def main():
         runtime_source_sha256=config['source_sha256'],
         outcomes={key: summary.get(key) for key in ('end_state', 'error', 'round_trip_completed',
             'round_trip_failures', 'clean_return', 'physical_witness', 'terminal_stop', 'true_dose_usv', 'post_stop_true_dose_usv', 'nonfoot_contacts')},
-        configuration={key: config.get(key) for key in ('world', 'duration', 'seed', 'sensor_seed', 'support_fusion', 'loop_search_radius', 'terminal_hold')},
+        configuration={key: config.get(key) for key in ('world', 'duration', 'seed', 'sensor_seed', 'support_fusion', 'loop_search_radius', 'terminal_hold',
+            'mission_objective', 'localization_checkpoints', 'keyframe_retention', 'registration_sampling')},
         terminal_stance=summary['simulation'].get('terminal_stance'))
     (MEDIA/(prefix+'.json')).write_text(json.dumps(manifest, indent=2, allow_nan=False)+'\n')
     print(f'Verified and published {len(capture["frame_times_s"])} native frames: {destination}')

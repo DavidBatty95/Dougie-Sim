@@ -129,9 +129,35 @@ Remaining priorities, in order:
    remain inapplicable. Broader stance disturbance/traction screens and radiation
    calibration/latency qualification remain separate open workstreams.
 
-## Portable identical-observation replay
+## Third home checkpoint — 26 October
 
-### Footprint diagnosis follow-up
+The existing `--localization-checkpoints 3` option allows one additional bounded
+home revalidation within the original 2400 s / 10 µSv caps. With detector seed 4,
+sensor seed 1, normal-balanced sampling, coverage retention and the vertical
+objective, `facility_third_checkpoint` reached the intermediate landing and
+returned cleanly at **794.880 s**, **.248470 µSv**, with **.020579 m** position p95,
+**.132937 m** true home error and no non-foot contacts. There was no terminal stop.
+
+The [independent sampled witness](results/dougie_third_checkpoint_witness_20261026.json)
+replays recorded physical joint/base poses in the archived scene. All four feet
+satisfy the intermediate slab's positional bounds for at least .2 s at
+**583.700 s**; the longest sampled dwell is **34.5 s**. This is 20 Hz foot-pose
+evidence, not a contact-force or continuous-time guarantee. The earlier two-
+checkpoint run has no intermediate witness. All **8,398** physical samples of
+that shorter run match the new run's prefix exactly, including commands.
+
+The [navigation report](results/dougie_third_checkpoint_20261026.json) retains
+both trials, and [decision diagnostics](results/dougie_third_checkpoint_decisions_20261026.json)
+show supported reachable heights extending to 1.436 m. The strict **2.4 m
+upper/lower/home mission still fails**; intermediate traversal is not promoted
+to full-height completion. The third checkpoint is an existing opt-in allowance,
+not a changed default or a weakened uncertainty/return gate.
+
+Reproduce using the facility command above with `--localization-checkpoints 3`
+and a new output directory. [Native footage and provenance](DOUGIE_MEDIA.md#facility-intermediate-return--26-october-2026)
+show this longer exploration and clean return.
+
+## Footprint diagnosis follow-up
 
 New capture-time diagnostics retain the first missing compatible footprint cell
 or incompatible adjacent support pair, including the responsible local fit
@@ -155,7 +181,7 @@ strict completion at 275.585 s and .274697 µSv. **320 tests pass.** The separat
 [production stance traction screen](DOUGIE_TRACTION_SCREEN.md) advances the
 disturbance workstream while retaining its low-friction failures.
 
-### Archived inputs
+## Portable identical-observation replay
 
 The committed input archive contains the first support failure: 54 scans, map
 revision zero, and the correction journal. The replay reconstructs 1714 nodes

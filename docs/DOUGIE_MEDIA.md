@@ -4,6 +4,24 @@
 
 ## Gallery provenance
 
+### Facility intermediate return — 26 October 2026
+
+[Native GIF](media/dougie/facility-frontier-return.gif) ·
+[Final frame](media/dougie/facility-frontier-return.png) ·
+[Manifest](media/dougie/facility-frontier-return.json)
+
+`facility_third_checkpoint` reaches the 1.2 m intermediate landing and returns
+cleanly in 794.880 s. The strict 2.4 m vertical mission **fails**. The
+[sampled physical witness](results/dougie_third_checkpoint_witness_20261026.json)
+is independent of the navigation estimate. This is actual MuJoCo capture,
+61 frames, 640 × 490, 100 ms/frame, approximately 130× playback. The publisher
+verifies the original capture checksum and decodes every frame before copying.
+
+```bash
+python3 scripts/publish_dougie_terminal_hold.py \
+  --run results/dougie/facility_third_checkpoint --probe vertical-frontier
+```
+
 ### Navigation refresh — 25 October 2026
 
 The current `onboard-mission.gif` and `onboard-fusion.gif` use
