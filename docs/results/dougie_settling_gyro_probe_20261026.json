@@ -1,0 +1,6974 @@
+{
+  "scope": "Replay one retained stopping fixture and record onboard gyro components at entry.",
+  "result": {
+    "angle_deg": 8.53,
+    "direction": "down",
+    "friction": 0.25,
+    "force_n": 0.0,
+    "sensor_seed": 2,
+    "brake_seconds": 2.0,
+    "simulated_time_s": 33.00499999999843,
+    "applied_impulse_ns": 0.0,
+    "error": null,
+    "max_horizontal_drift_m": 0.7145524157391367,
+    "max_post_push_drift_m": 0.3224996329588425,
+    "nonfoot_impulse_ns": 0.0,
+    "nonfoot_peak_force_n": 0.0,
+    "peak_motor_torque_nm": 18.473233720241865,
+    "stance": {
+      "phase": "refused",
+      "reason": "stance_entry_deadline",
+      "requested_s": 13.000000000000632,
+      "started_s": null,
+      "maximum_support_torque_nm": 0.0,
+      "robot_model_mass_kg": 15.206408000000001,
+      "scope": "experimental proprioceptive gravity stance; no position feedback"
+    },
+    "contact_friction_range": [
+      0.25,
+      0.25
+    ],
+    "failures": [
+      "stance_not_retained",
+      "drift_above_5cm"
+    ],
+    "passed": false,
+    "policy": {
+      "name": "go2-robot-lab-baseline",
+      "schema": "go2-proprio-45-v1",
+      "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+      "manifest_sha256": "4d3d1287d763e52199a449461a9e0c9af163b24dd916fdf98055f309903a35ea",
+      "qualification": "docs/DOUGIE_TERRAIN_QUALIFICATION.md; industrial stairs NOT qualified"
+    },
+    "scene_sha256": "f89c46a742402cd0a36b6f744e4b407b1fba7301b27654ee4945716cc5658d86",
+    "trace": [
+      {
+        "time_s": 1.0000000000000007,
+        "evaluator_position": [
+          4.087200948843697,
+          -0.009092276982229138,
+          1.0608639334877183
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 19.204412492588318,
+        "gyro_norm_rad_s": 0.021544594246217113,
+        "maximum_joint_speed_rad_s": 0.04102179213070094,
+        "estimated_velocity": [
+          -0.012784587882312484,
+          -0.004089972598054607,
+          2.859265103056705e-05
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 1.9999999999999793,
+        "evaluator_position": [
+          4.071795317129068,
+          -0.002766014806330768,
+          1.0614602070531933
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 27.299196908435338,
+        "gyro_norm_rad_s": 0.060251166771401694,
+        "maximum_joint_speed_rad_s": 0.08262003388991591,
+        "estimated_velocity": [
+          -0.005276790663659209,
+          0.0026169699910009846,
+          0.005461567281787673
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 2.9999999999999583,
+        "evaluator_position": [
+          4.0804396413541335,
+          0.0033405392467950232,
+          1.0617273134585898
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 17.66140981784835,
+        "gyro_norm_rad_s": 0.08319174992050854,
+        "maximum_joint_speed_rad_s": 0.08196601055433436,
+        "estimated_velocity": [
+          -0.0009465720214807837,
+          0.00944600241430292,
+          -0.0005896418562692605
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 3.999999999999937,
+        "evaluator_position": [
+          4.087996001731221,
+          0.005300465447671758,
+          1.0601982161621162
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 22.356931725646668,
+        "gyro_norm_rad_s": 0.06186454513642221,
+        "maximum_joint_speed_rad_s": 0.08008349495295032,
+        "estimated_velocity": [
+          -0.0002468533681970127,
+          -0.006642591563173978,
+          0.0016123468031786685
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 4.999999999999916,
+        "evaluator_position": [
+          4.099776110824476,
+          0.007716943816595056,
+          1.0597788306561364
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 15.97831731441119,
+        "gyro_norm_rad_s": 0.10542109817345693,
+        "maximum_joint_speed_rad_s": 0.11367340529634949,
+        "estimated_velocity": [
+          -0.0009409069498738349,
+          0.010201898343706866,
+          -0.0013325610758628417
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 5.999999999999894,
+        "evaluator_position": [
+          4.222186115624959,
+          0.044755954686250043,
+          1.0201824682555523
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 22.4441948747562,
+        "gyro_norm_rad_s": 0.217605781851319,
+        "maximum_joint_speed_rad_s": 0.6214718559617445,
+        "estimated_velocity": [
+          0.045201743287922966,
+          0.06627711135042455,
+          -0.03718369651518582
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 6.999999999999873,
+        "evaluator_position": [
+          4.336565719334936,
+          0.08403921842566826,
+          1.0005243769418146
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 0.11475802058244218,
+        "gyro_norm_rad_s": 0.1360527751936005,
+        "maximum_joint_speed_rad_s": 3.0443078797029393,
+        "estimated_velocity": [
+          0.04897494745728441,
+          0.022356084117142263,
+          -0.05230590527415447
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 7.999999999999852,
+        "evaluator_position": [
+          4.445453127047784,
+          0.12658129208965277,
+          0.9818345592765394
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 17.83310238876391,
+        "gyro_norm_rad_s": 0.35833757515404974,
+        "maximum_joint_speed_rad_s": 0.49080775244632746,
+        "estimated_velocity": [
+          0.0482358383541676,
+          0.05212927085575962,
+          0.01291306944302777
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 9.000000000000007,
+        "evaluator_position": [
+          4.520056852130048,
+          0.15894216883119683,
+          0.9783989156169459
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 29.49719308447305,
+        "gyro_norm_rad_s": 0.12141433622314789,
+        "maximum_joint_speed_rad_s": 0.4372394317844124,
+        "estimated_velocity": [
+          0.09835020183135104,
+          0.04749455236028638,
+          0.009773031321747646
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 10.000000000000163,
+        "evaluator_position": [
+          4.6147580563021275,
+          0.20324449789145352,
+          0.9600865413785841
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 11.084995886162698,
+        "gyro_norm_rad_s": 0.286958968533561,
+        "maximum_joint_speed_rad_s": 0.4908841650213124,
+        "estimated_velocity": [
+          0.05954725656438037,
+          0.0726543683106324,
+          -0.015849227711137757
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 11.00000000000032,
+        "evaluator_position": [
+          4.725751229453954,
+          0.26245092458689484,
+          0.9452482925465808
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.15,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 13.735849024389868,
+        "gyro_norm_rad_s": 0.21875090784867013,
+        "maximum_joint_speed_rad_s": 0.7518968997137319,
+        "estimated_velocity": [
+          -0.014257662359480493,
+          0.02399716145082229,
+          -0.05654444143718475
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 12.000000000000476,
+        "evaluator_position": [
+          4.7907616451166435,
+          0.3051851160314401,
+          0.945830134366792
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.07649999999996453,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 25.315605338950718,
+        "gyro_norm_rad_s": 0.05094143779133861,
+        "maximum_joint_speed_rad_s": 0.27461009144229753,
+        "estimated_velocity": [
+          0.007233112727246181,
+          0.0034151315137454716,
+          0.032255808757358354
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 13.000000000000632,
+        "evaluator_position": [
+          4.791338338332882,
+          0.30340448071954873,
+          0.9536944309276276
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0014999999999528058,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 20.83127881280898,
+        "gyro_norm_rad_s": 0.16246881426514614,
+        "maximum_joint_speed_rad_s": 0.17204404681881408,
+        "estimated_velocity": [
+          -0.025851402790087987,
+          -0.004222061281758989,
+          -0.009478617004451151
+        ],
+        "stance": null
+      },
+      {
+        "time_s": 14.000000000000789,
+        "evaluator_position": [
+          4.8060847292773845,
+          0.30275385363623736,
+          0.9530574844466402
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 16.69463380580696,
+        "gyro_norm_rad_s": 0.168142340218001,
+        "maximum_joint_speed_rad_s": 0.19421807178788478,
+        "estimated_velocity": [
+          0.00027385221068788353,
+          -0.00012674334382108303,
+          -0.004108816124313114
+        ],
+        "stance": {
+          "phase": "waiting",
+          "reason": null,
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 15.000000000000945,
+        "evaluator_position": [
+          4.838998323499263,
+          0.30355427731212564,
+          0.949333046503233
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 18.329563462969823,
+        "gyro_norm_rad_s": 0.15346506053961353,
+        "maximum_joint_speed_rad_s": 0.2160431523603729,
+        "estimated_velocity": [
+          -0.000576129424078892,
+          -0.007094890718341395,
+          -0.01024838002794414
+        ],
+        "stance": {
+          "phase": "waiting",
+          "reason": null,
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 16.0000000000011,
+        "evaluator_position": [
+          4.877356945856955,
+          0.3045995208286952,
+          0.9449925312024805
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 18.00263151463686,
+        "gyro_norm_rad_s": 0.16784630692320845,
+        "maximum_joint_speed_rad_s": 0.23444269740242346,
+        "estimated_velocity": [
+          -0.0050396347046165815,
+          -0.006440588919529001,
+          -0.020613186776265106
+        ],
+        "stance": {
+          "phase": "waiting",
+          "reason": null,
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 17.000000000000902,
+        "evaluator_position": [
+          4.916556909323146,
+          0.30775321652931326,
+          0.9382930095156045
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 18.214469220193674,
+        "gyro_norm_rad_s": 0.16149018273096408,
+        "maximum_joint_speed_rad_s": 0.2430713575475061,
+        "estimated_velocity": [
+          -4.377924382224933e-05,
+          0.0034997953991960074,
+          -0.021737848996305268
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 18.000000000000703,
+        "evaluator_position": [
+          4.959316747811297,
+          0.31576424759957905,
+          0.9302330371854378
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 18.207468798476384,
+        "gyro_norm_rad_s": 0.18383789184227659,
+        "maximum_joint_speed_rad_s": 0.2772184201629425,
+        "estimated_velocity": [
+          0.0074805419175021405,
+          0.013926931981260705,
+          -0.009730478064363822
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 19.000000000000504,
+        "evaluator_position": [
+          5.004605430384034,
+          0.3280469753094526,
+          0.9208456783496817
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 26.681193952561046,
+        "gyro_norm_rad_s": 0.17608266785493565,
+        "maximum_joint_speed_rad_s": 0.25654442566508406,
+        "estimated_velocity": [
+          0.010241733291222911,
+          0.008683763296939482,
+          -0.0031192840514797098
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 20.000000000000306,
+        "evaluator_position": [
+          5.042244939359422,
+          0.3440018842803966,
+          0.9177797712680882
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 15.59271090009135,
+        "gyro_norm_rad_s": 0.19215993596797143,
+        "maximum_joint_speed_rad_s": 0.42105271532432886,
+        "estimated_velocity": [
+          -0.0024214145060795955,
+          0.03407365855529308,
+          -0.012007886708745872
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 21.000000000000107,
+        "evaluator_position": [
+          5.086767029255364,
+          0.364001022455412,
+          0.9124471086243229
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 20.577351594993285,
+        "gyro_norm_rad_s": 0.1801198777657257,
+        "maximum_joint_speed_rad_s": 0.3145660829408832,
+        "estimated_velocity": [
+          0.013869277149995628,
+          0.00849782629747681,
+          0.01568383390135025
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 21.999999999999908,
+        "evaluator_position": [
+          5.1273379100684116,
+          0.38888701380066615,
+          0.9034545823948108
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 0.0,
+        "gyro_norm_rad_s": 0.25473183175016595,
+        "maximum_joint_speed_rad_s": 4.058919927946914,
+        "estimated_velocity": [
+          0.021200380582458198,
+          0.003383022909996243,
+          0.03581523405884595
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 22.99999999999971,
+        "evaluator_position": [
+          5.16676251721666,
+          0.41584319497696437,
+          0.8966810182527937
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 29.367129496933263,
+        "gyro_norm_rad_s": 0.1324859991572606,
+        "maximum_joint_speed_rad_s": 0.39228520415920315,
+        "estimated_velocity": [
+          0.019407177012377323,
+          0.01607240964393965,
+          0.0026759344407723254
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 23.99999999999951,
+        "evaluator_position": [
+          5.204019081063433,
+          0.4412907999720836,
+          0.8918468746859743
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 20.45845818511578,
+        "gyro_norm_rad_s": 0.18402648405460628,
+        "maximum_joint_speed_rad_s": 0.3140837871193484,
+        "estimated_velocity": [
+          -0.003084030462042651,
+          0.018432841976346207,
+          -0.013494727696553877
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 24.99999999999931,
+        "evaluator_position": [
+          5.241303923589515,
+          0.46455192752039115,
+          0.8898069404541593
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 0.2144932512544537,
+        "gyro_norm_rad_s": 0.20783409291279598,
+        "maximum_joint_speed_rad_s": 0.4066908719331215,
+        "estimated_velocity": [
+          0.018905737709810567,
+          0.049864411501923736,
+          -0.020775114469397688
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 25.999999999999112,
+        "evaluator_position": [
+          5.275158467844477,
+          0.48633864909734736,
+          0.8853561224160191
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 21.33194471475434,
+        "gyro_norm_rad_s": 0.3739537127351359,
+        "maximum_joint_speed_rad_s": 0.6404435809716219,
+        "estimated_velocity": [
+          -0.004176940461953288,
+          0.0036742657324701695,
+          0.0013034261268275204
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 26.999999999998913,
+        "evaluator_position": [
+          5.308680984771534,
+          0.5047473914045618,
+          0.8813290870951954
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 14.764065299250765,
+        "gyro_norm_rad_s": 0.17227967807643918,
+        "maximum_joint_speed_rad_s": 0.1903307573873525,
+        "estimated_velocity": [
+          -0.005692527103166437,
+          0.021229298302282477,
+          -0.01574235331327612
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 27.999999999998714,
+        "evaluator_position": [
+          5.337581153263895,
+          0.5168828543313472,
+          0.8759574155325679
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 11.48646516912992,
+        "gyro_norm_rad_s": 0.21870714069334327,
+        "maximum_joint_speed_rad_s": 0.2899324153588964,
+        "estimated_velocity": [
+          -0.01181516766841377,
+          0.016440741788482448,
+          -0.0066773062091628425
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 28.999999999998515,
+        "evaluator_position": [
+          5.3688992781371505,
+          0.5197821204848025,
+          0.8721684714932469
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 13.01464998013332,
+        "gyro_norm_rad_s": 0.19858362921373765,
+        "maximum_joint_speed_rad_s": 0.1846978954661699,
+        "estimated_velocity": [
+          0.003460579470628918,
+          -0.005948735740015419,
+          -0.009636237576551522
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 29.999999999998316,
+        "evaluator_position": [
+          5.402505483687577,
+          0.5177089116870138,
+          0.8688788160698788
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 12.730384871149797,
+        "gyro_norm_rad_s": 0.16026425402492647,
+        "maximum_joint_speed_rad_s": 0.1569677643489139,
+        "estimated_velocity": [
+          -0.00677982112746337,
+          -0.0101117144127096,
+          -0.002725157056539053
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 30.999999999998117,
+        "evaluator_position": [
+          5.429702896502978,
+          0.5173961784386025,
+          0.8645306064170645
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 26.948535868679144,
+        "gyro_norm_rad_s": 0.1381025097915269,
+        "maximum_joint_speed_rad_s": 0.36375078953533757,
+        "estimated_velocity": [
+          0.013800814971385402,
+          -0.005242599682343888,
+          -0.05881865603330149
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 31.999999999997918,
+        "evaluator_position": [
+          5.453821042392352,
+          0.5103499548783067,
+          0.856815885288361
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 16.79889937581945,
+        "gyro_norm_rad_s": 0.1594731333680387,
+        "maximum_joint_speed_rad_s": 0.19819732200566767,
+        "estimated_velocity": [
+          0.012656264945598262,
+          0.013780855649568168,
+          -0.009243454246435997
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      },
+      {
+        "time_s": 32.99999999999843,
+        "evaluator_position": [
+          5.476650445122928,
+          0.5053138279077986,
+          0.8562586423426132
+        ],
+        "force_n": 0.0,
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "minimum_foot_force_n": 15.049289000867187,
+        "gyro_norm_rad_s": 0.13471524086890482,
+        "maximum_joint_speed_rad_s": 0.12625366962939938,
+        "estimated_velocity": [
+          0.005795761849632072,
+          -0.0023361521741544454,
+          -0.0063685923383839434
+        ],
+        "stance": {
+          "phase": "refused",
+          "reason": "stance_entry_deadline",
+          "requested_s": 13.000000000000632,
+          "started_s": null,
+          "maximum_support_torque_nm": 0.0,
+          "robot_model_mass_kg": 15.206408000000001,
+          "scope": "experimental proprioceptive gravity stance; no position feedback"
+        }
+      }
+    ]
+  },
+  "entry_measurements": [
+    {
+      "time_s": 13.000000000000632,
+      "gyro": [
+        0.016486929962618732,
+        -0.022754437998089162,
+        0.16573916774248804
+      ],
+      "minimum_foot_force_n": 20.610982992466507,
+      "maximum_joint_speed_rad_s": 0.16924932383120414
+    },
+    {
+      "time_s": 13.005000000000633,
+      "gyro": [
+        0.017861736774695706,
+        -0.024028562239440304,
+        0.16401014786287094
+      ],
+      "minimum_foot_force_n": 20.04653723421711,
+      "maximum_joint_speed_rad_s": 0.17146368239231696
+    },
+    {
+      "time_s": 13.010000000000634,
+      "gyro": [
+        0.014973533811125138,
+        -0.021129314726051854,
+        0.1668154215029488
+      ],
+      "minimum_foot_force_n": 20.26264694632159,
+      "maximum_joint_speed_rad_s": 0.17649112929564545
+    },
+    {
+      "time_s": 13.015000000000635,
+      "gyro": [
+        0.013738041323205377,
+        -0.017869823791291862,
+        0.1669159668195505
+      ],
+      "minimum_foot_force_n": 20.303207243570597,
+      "maximum_joint_speed_rad_s": 0.1777063690233619
+    },
+    {
+      "time_s": 13.020000000000636,
+      "gyro": [
+        0.010539589842654335,
+        -0.018156678930812034,
+        0.16749060645113195
+      ],
+      "minimum_foot_force_n": 20.565241657740742,
+      "maximum_joint_speed_rad_s": 0.17975222417028555
+    },
+    {
+      "time_s": 13.025000000000636,
+      "gyro": [
+        0.007908185709907672,
+        -0.0157466466771581,
+        0.1644763074016715
+      ],
+      "minimum_foot_force_n": 20.523603265284088,
+      "maximum_joint_speed_rad_s": 0.1744584026019336
+    },
+    {
+      "time_s": 13.030000000000637,
+      "gyro": [
+        0.007675317081329594,
+        -0.016994081140300543,
+        0.16602477000820096
+      ],
+      "minimum_foot_force_n": 20.086456279439172,
+      "maximum_joint_speed_rad_s": 0.17524054223757243
+    },
+    {
+      "time_s": 13.035000000000638,
+      "gyro": [
+        0.008344990049511612,
+        -0.01574989092349419,
+        0.16529775390844598
+      ],
+      "minimum_foot_force_n": 20.145033992597842,
+      "maximum_joint_speed_rad_s": 0.17368096079258666
+    },
+    {
+      "time_s": 13.040000000000639,
+      "gyro": [
+        0.008222541573274372,
+        -0.016150514521625272,
+        0.16162186083585833
+      ],
+      "minimum_foot_force_n": 20.95767819509051,
+      "maximum_joint_speed_rad_s": 0.1781490459174121
+    },
+    {
+      "time_s": 13.04500000000064,
+      "gyro": [
+        0.004848947629900249,
+        -0.016090461412694913,
+        0.16178694643391367
+      ],
+      "minimum_foot_force_n": 20.665536903035616,
+      "maximum_joint_speed_rad_s": 0.17495976494926738
+    },
+    {
+      "time_s": 13.05000000000064,
+      "gyro": [
+        0.005477778192318574,
+        -0.015709523555882853,
+        0.16181872505852252
+      ],
+      "minimum_foot_force_n": 19.973570666047966,
+      "maximum_joint_speed_rad_s": 0.1793326322427438
+    },
+    {
+      "time_s": 13.055000000000641,
+      "gyro": [
+        0.006409508891170364,
+        -0.016739651873382104,
+        0.16079038907889975
+      ],
+      "minimum_foot_force_n": 21.17559714711112,
+      "maximum_joint_speed_rad_s": 0.17675685714107253
+    },
+    {
+      "time_s": 13.060000000000642,
+      "gyro": [
+        0.0050204662122870685,
+        -0.017504342758557726,
+        0.16068301513460187
+      ],
+      "minimum_foot_force_n": 20.67416882781258,
+      "maximum_joint_speed_rad_s": 0.17768307033654424
+    },
+    {
+      "time_s": 13.065000000000643,
+      "gyro": [
+        0.0037637543129040245,
+        -0.020352719642882492,
+        0.16152400995366453
+      ],
+      "minimum_foot_force_n": 20.005295300961592,
+      "maximum_joint_speed_rad_s": 0.1757768295063819
+    },
+    {
+      "time_s": 13.070000000000643,
+      "gyro": [
+        0.005510354479913466,
+        -0.020551729003815983,
+        0.16360566412649805
+      ],
+      "minimum_foot_force_n": 19.813768365428256,
+      "maximum_joint_speed_rad_s": 0.17833478070167136
+    },
+    {
+      "time_s": 13.075000000000644,
+      "gyro": [
+        0.0046381002993178926,
+        -0.02044845471498389,
+        0.16308619187458234
+      ],
+      "minimum_foot_force_n": 20.409434414334697,
+      "maximum_joint_speed_rad_s": 0.1795483872270876
+    },
+    {
+      "time_s": 13.080000000000645,
+      "gyro": [
+        0.0022537465919678376,
+        -0.021669555747627526,
+        0.16461716782906696
+      ],
+      "minimum_foot_force_n": 20.23234689022068,
+      "maximum_joint_speed_rad_s": 0.18162565055937852
+    },
+    {
+      "time_s": 13.085000000000646,
+      "gyro": [
+        0.0037392690827020647,
+        -0.023473933508543775,
+        0.1664251001054757
+      ],
+      "minimum_foot_force_n": 19.938871098741096,
+      "maximum_joint_speed_rad_s": 0.1807645431381651
+    },
+    {
+      "time_s": 13.090000000000646,
+      "gyro": [
+        0.003023141729395482,
+        -0.022618438417107128,
+        0.167231620099448
+      ],
+      "minimum_foot_force_n": 19.91449370440983,
+      "maximum_joint_speed_rad_s": 0.18356281210047515
+    },
+    {
+      "time_s": 13.095000000000647,
+      "gyro": [
+        0.006081144975236721,
+        -0.01867620522319442,
+        0.17183277812708714
+      ],
+      "minimum_foot_force_n": 19.983867228414336,
+      "maximum_joint_speed_rad_s": 0.1888495559721539
+    },
+    {
+      "time_s": 13.100000000000648,
+      "gyro": [
+        0.005745247496087513,
+        -0.02058145363521053,
+        0.1700128658107203
+      ],
+      "minimum_foot_force_n": 19.985147947475166,
+      "maximum_joint_speed_rad_s": 0.18822344769571034
+    },
+    {
+      "time_s": 13.105000000000649,
+      "gyro": [
+        0.003122906619086742,
+        -0.019837525806655033,
+        0.17122027619771338
+      ],
+      "minimum_foot_force_n": 19.48179096405293,
+      "maximum_joint_speed_rad_s": 0.19255682263020854
+    },
+    {
+      "time_s": 13.11000000000065,
+      "gyro": [
+        0.006510447020422067,
+        -0.017793060160050417,
+        0.17498262919861557
+      ],
+      "minimum_foot_force_n": 19.52861506682118,
+      "maximum_joint_speed_rad_s": 0.19823035903437733
+    },
+    {
+      "time_s": 13.11500000000065,
+      "gyro": [
+        0.0068942515036931155,
+        -0.017799368273826294,
+        0.17633137079753233
+      ],
+      "minimum_foot_force_n": 19.521870066274705,
+      "maximum_joint_speed_rad_s": 0.2055033585361712
+    },
+    {
+      "time_s": 13.120000000000651,
+      "gyro": [
+        0.007260229816240129,
+        -0.012542269161916395,
+        0.17772068218886453
+      ],
+      "minimum_foot_force_n": 19.742725930172423,
+      "maximum_joint_speed_rad_s": 0.20662644740887828
+    },
+    {
+      "time_s": 13.125000000000652,
+      "gyro": [
+        0.008624600736238677,
+        -0.013106494350880292,
+        0.1797865050253479
+      ],
+      "minimum_foot_force_n": 20.16989586535549,
+      "maximum_joint_speed_rad_s": 0.2070625108901174
+    },
+    {
+      "time_s": 13.130000000000653,
+      "gyro": [
+        0.009785208869995548,
+        -0.009900864036949633,
+        0.18007219929787122
+      ],
+      "minimum_foot_force_n": 19.454693281769952,
+      "maximum_joint_speed_rad_s": 0.20614394020996699
+    },
+    {
+      "time_s": 13.135000000000653,
+      "gyro": [
+        0.009388177645232174,
+        -0.010772148782745076,
+        0.17728596946298247
+      ],
+      "minimum_foot_force_n": 19.49041322188432,
+      "maximum_joint_speed_rad_s": 0.21036289874234035
+    },
+    {
+      "time_s": 13.140000000000654,
+      "gyro": [
+        0.008394206722343369,
+        -0.010765725267974384,
+        0.17845630273509175
+      ],
+      "minimum_foot_force_n": 19.512611484570385,
+      "maximum_joint_speed_rad_s": 0.20873488203087312
+    },
+    {
+      "time_s": 13.145000000000655,
+      "gyro": [
+        0.007703628947497069,
+        -0.009756663574057377,
+        0.1780988191401452
+      ],
+      "minimum_foot_force_n": 19.633469665215134,
+      "maximum_joint_speed_rad_s": 0.20556087250106791
+    },
+    {
+      "time_s": 13.150000000000656,
+      "gyro": [
+        0.00933239528543791,
+        -0.007572007953351838,
+        0.17731106173324973
+      ],
+      "minimum_foot_force_n": 19.724935529899877,
+      "maximum_joint_speed_rad_s": 0.2081245693290269
+    },
+    {
+      "time_s": 13.155000000000657,
+      "gyro": [
+        0.009209668404893609,
+        -0.006704808332761382,
+        0.17424222471767215
+      ],
+      "minimum_foot_force_n": 20.00299925944847,
+      "maximum_joint_speed_rad_s": 0.2076937740941682
+    },
+    {
+      "time_s": 13.160000000000657,
+      "gyro": [
+        0.008263603899692516,
+        -0.00613283465838944,
+        0.17494348251680825
+      ],
+      "minimum_foot_force_n": 19.778064662063446,
+      "maximum_joint_speed_rad_s": 0.20808771902570508
+    },
+    {
+      "time_s": 13.165000000000658,
+      "gyro": [
+        0.007390029270236742,
+        -0.0056533362087022206,
+        0.17192019611649828
+      ],
+      "minimum_foot_force_n": 20.14368248390323,
+      "maximum_joint_speed_rad_s": 0.20711986645599129
+    },
+    {
+      "time_s": 13.170000000000659,
+      "gyro": [
+        0.007022759749937994,
+        -0.004542722269728818,
+        0.1740382083780467
+      ],
+      "minimum_foot_force_n": 20.073816629216967,
+      "maximum_joint_speed_rad_s": 0.20507430994034562
+    },
+    {
+      "time_s": 13.17500000000066,
+      "gyro": [
+        0.008251423004987924,
+        -0.0014480955311031492,
+        0.17312955464012064
+      ],
+      "minimum_foot_force_n": 19.95258220955767,
+      "maximum_joint_speed_rad_s": 0.20726491031309321
+    },
+    {
+      "time_s": 13.18000000000066,
+      "gyro": [
+        0.006354280593826061,
+        -0.004709873025073117,
+        0.17338115835627022
+      ],
+      "minimum_foot_force_n": 20.258182102888192,
+      "maximum_joint_speed_rad_s": 0.20831845528715978
+    },
+    {
+      "time_s": 13.185000000000661,
+      "gyro": [
+        0.005845001847405426,
+        -0.0037054543603960793,
+        0.17010840043725822
+      ],
+      "minimum_foot_force_n": 20.479908626510365,
+      "maximum_joint_speed_rad_s": 0.202674353144231
+    },
+    {
+      "time_s": 13.190000000000662,
+      "gyro": [
+        0.005862826520248365,
+        -0.0040884568597048315,
+        0.1716441651893956
+      ],
+      "minimum_foot_force_n": 19.591178777341536,
+      "maximum_joint_speed_rad_s": 0.20390000784585965
+    },
+    {
+      "time_s": 13.195000000000663,
+      "gyro": [
+        0.006928854478707802,
+        -0.00299932652624646,
+        0.1702937915506293
+      ],
+      "minimum_foot_force_n": 19.729307529899,
+      "maximum_joint_speed_rad_s": 0.20493040052855252
+    },
+    {
+      "time_s": 13.200000000000664,
+      "gyro": [
+        0.006439998638662628,
+        -0.0029654690128005858,
+        0.16979259213734998
+      ],
+      "minimum_foot_force_n": 19.932668681089762,
+      "maximum_joint_speed_rad_s": 0.209311746654363
+    },
+    {
+      "time_s": 13.205000000000664,
+      "gyro": [
+        0.006531630437076506,
+        -0.004103872655435098,
+        0.17095279392546395
+      ],
+      "minimum_foot_force_n": 20.22912979986413,
+      "maximum_joint_speed_rad_s": 0.20792652107127768
+    },
+    {
+      "time_s": 13.210000000000665,
+      "gyro": [
+        0.00572776076316892,
+        -0.003760813024915387,
+        0.1724731893658369
+      ],
+      "minimum_foot_force_n": 20.27912571040774,
+      "maximum_joint_speed_rad_s": 0.21042785115359205
+    },
+    {
+      "time_s": 13.215000000000666,
+      "gyro": [
+        0.009063545406914203,
+        -0.004015396756780547,
+        0.17587669221337407
+      ],
+      "minimum_foot_force_n": 20.00209350356143,
+      "maximum_joint_speed_rad_s": 0.21434095320236407
+    },
+    {
+      "time_s": 13.220000000000667,
+      "gyro": [
+        0.009309440120532288,
+        -0.005894886967078031,
+        0.17327445611979272
+      ],
+      "minimum_foot_force_n": 20.060093188198458,
+      "maximum_joint_speed_rad_s": 0.21501387701764438
+    },
+    {
+      "time_s": 13.225000000000668,
+      "gyro": [
+        0.010209870709225645,
+        -0.003975753387431437,
+        0.17572907465487797
+      ],
+      "minimum_foot_force_n": 19.700042667391426,
+      "maximum_joint_speed_rad_s": 0.21039696805330843
+    },
+    {
+      "time_s": 13.230000000000668,
+      "gyro": [
+        0.009972208637428386,
+        -0.001882421719437749,
+        0.17420820831042055
+      ],
+      "minimum_foot_force_n": 20.144822685351436,
+      "maximum_joint_speed_rad_s": 0.21951259976932463
+    },
+    {
+      "time_s": 13.23500000000067,
+      "gyro": [
+        0.011173456252339915,
+        -0.001923584063347189,
+        0.17747646509836096
+      ],
+      "minimum_foot_force_n": 20.16716717688646,
+      "maximum_joint_speed_rad_s": 0.2196612534274486
+    },
+    {
+      "time_s": 13.24000000000067,
+      "gyro": [
+        0.011537309888085044,
+        -0.0002649436196979691,
+        0.1776504539737729
+      ],
+      "minimum_foot_force_n": 20.057011648645567,
+      "maximum_joint_speed_rad_s": 0.21979644234718593
+    },
+    {
+      "time_s": 13.24500000000067,
+      "gyro": [
+        0.012523910592833337,
+        -0.0008761197090644121,
+        0.1773326809820068
+      ],
+      "minimum_foot_force_n": 20.89925940738525,
+      "maximum_joint_speed_rad_s": 0.21941213826626585
+    },
+    {
+      "time_s": 13.250000000000671,
+      "gyro": [
+        0.009656733388244918,
+        -0.0002124295532894577,
+        0.17563760730405004
+      ],
+      "minimum_foot_force_n": 20.621041636157887,
+      "maximum_joint_speed_rad_s": 0.22122637672947323
+    },
+    {
+      "time_s": 13.255000000000672,
+      "gyro": [
+        0.010557462290270488,
+        0.0008632889335239767,
+        0.1744909793589193
+      ],
+      "minimum_foot_force_n": 20.377121799490766,
+      "maximum_joint_speed_rad_s": 0.21423092400775412
+    },
+    {
+      "time_s": 13.260000000000673,
+      "gyro": [
+        0.010201447790320261,
+        0.002008611315431785,
+        0.17173950724406523
+      ],
+      "minimum_foot_force_n": 19.85141376997603,
+      "maximum_joint_speed_rad_s": 0.2122242770934804
+    },
+    {
+      "time_s": 13.265000000000674,
+      "gyro": [
+        0.006426826036154847,
+        -9.366562509075188e-05,
+        0.16967998445894492
+      ],
+      "minimum_foot_force_n": 21.142623128814144,
+      "maximum_joint_speed_rad_s": 0.2112394622025531
+    },
+    {
+      "time_s": 13.270000000000675,
+      "gyro": [
+        0.009380028751360842,
+        0.0021483939712290913,
+        0.16749981243911924
+      ],
+      "minimum_foot_force_n": 20.831415808945223,
+      "maximum_joint_speed_rad_s": 0.2072033122831453
+    },
+    {
+      "time_s": 13.275000000000675,
+      "gyro": [
+        0.011017904876084882,
+        0.0018733677937197717,
+        0.16437736696640967
+      ],
+      "minimum_foot_force_n": 21.65709083611983,
+      "maximum_joint_speed_rad_s": 0.20613952675763217
+    },
+    {
+      "time_s": 13.280000000000676,
+      "gyro": [
+        0.011388188287899349,
+        0.0018263566363077542,
+        0.1605042741485632
+      ],
+      "minimum_foot_force_n": 20.864080127822866,
+      "maximum_joint_speed_rad_s": 0.20673072188376718
+    },
+    {
+      "time_s": 13.285000000000677,
+      "gyro": [
+        0.01032786863964406,
+        0.0008466254060036471,
+        0.15817165779146572
+      ],
+      "minimum_foot_force_n": 23.698235519411277,
+      "maximum_joint_speed_rad_s": 0.2052639262847335
+    },
+    {
+      "time_s": 13.290000000000678,
+      "gyro": [
+        0.011262579247771368,
+        0.004022399991969477,
+        0.15351728666013423
+      ],
+      "minimum_foot_force_n": 23.511168499723205,
+      "maximum_joint_speed_rad_s": 0.20485689944083924
+    },
+    {
+      "time_s": 13.295000000000678,
+      "gyro": [
+        0.01287541513146646,
+        0.008926800160252721,
+        0.1478415078204913
+      ],
+      "minimum_foot_force_n": 23.26700328395507,
+      "maximum_joint_speed_rad_s": 0.20472782541785287
+    },
+    {
+      "time_s": 13.30000000000068,
+      "gyro": [
+        0.012585141533878012,
+        0.01014502303867953,
+        0.14188180913356904
+      ],
+      "minimum_foot_force_n": 22.453234019774236,
+      "maximum_joint_speed_rad_s": 0.20600232508504057
+    },
+    {
+      "time_s": 13.30500000000068,
+      "gyro": [
+        0.011889868719206697,
+        0.015465613505439001,
+        0.13564997865016573
+      ],
+      "minimum_foot_force_n": 27.1612106662622,
+      "maximum_joint_speed_rad_s": 0.20428547606182604
+    },
+    {
+      "time_s": 13.31000000000068,
+      "gyro": [
+        0.010454838888920555,
+        0.016336754292213575,
+        0.13178758020588788
+      ],
+      "minimum_foot_force_n": 27.127360435595758,
+      "maximum_joint_speed_rad_s": 0.20846649074188187
+    },
+    {
+      "time_s": 13.315000000000682,
+      "gyro": [
+        0.006224772339882563,
+        0.020250317609673506,
+        0.12585912042611852
+      ],
+      "minimum_foot_force_n": 26.82113727456562,
+      "maximum_joint_speed_rad_s": 0.20677233620892327
+    },
+    {
+      "time_s": 13.320000000000682,
+      "gyro": [
+        0.0012284492565804222,
+        0.023713674044251266,
+        0.11968940138633716
+      ],
+      "minimum_foot_force_n": 26.811137786574708,
+      "maximum_joint_speed_rad_s": 0.20818202440192124
+    },
+    {
+      "time_s": 13.325000000000683,
+      "gyro": [
+        -0.001921172386751071,
+        0.02450033662683119,
+        0.11408183059766996
+      ],
+      "minimum_foot_force_n": 32.48694676102719,
+      "maximum_joint_speed_rad_s": 0.20280314802307167
+    },
+    {
+      "time_s": 13.330000000000684,
+      "gyro": [
+        -0.012259762769126494,
+        0.03159773377250556,
+        0.10212306304363775
+      ],
+      "minimum_foot_force_n": 32.64907905903699,
+      "maximum_joint_speed_rad_s": 0.2016021262545667
+    },
+    {
+      "time_s": 13.335000000000685,
+      "gyro": [
+        -0.014015746536178434,
+        0.03645792048272442,
+        0.09468891118844336
+      ],
+      "minimum_foot_force_n": 32.5704476645479,
+      "maximum_joint_speed_rad_s": 0.19114611858340114
+    },
+    {
+      "time_s": 13.340000000000686,
+      "gyro": [
+        -0.015582953949179919,
+        0.03843296549774434,
+        0.08495270698449525
+      ],
+      "minimum_foot_force_n": 32.378866664028614,
+      "maximum_joint_speed_rad_s": 0.18645275688407822
+    },
+    {
+      "time_s": 13.345000000000686,
+      "gyro": [
+        -0.01058026275181765,
+        0.041941447884374775,
+        0.07887995335428713
+      ],
+      "minimum_foot_force_n": 32.53710946923381,
+      "maximum_joint_speed_rad_s": 0.18016186993610125
+    },
+    {
+      "time_s": 13.350000000000687,
+      "gyro": [
+        -0.005318509271092266,
+        0.04219271380933415,
+        0.06415041029537348
+      ],
+      "minimum_foot_force_n": 31.733156164680867,
+      "maximum_joint_speed_rad_s": 0.16135586696846965
+    },
+    {
+      "time_s": 13.355000000000688,
+      "gyro": [
+        0.002081651471889763,
+        0.04067596057182499,
+        0.04973100098104612
+      ],
+      "minimum_foot_force_n": 32.047313454744234,
+      "maximum_joint_speed_rad_s": 0.15889271281280107
+    },
+    {
+      "time_s": 13.360000000000689,
+      "gyro": [
+        0.0074649726924334026,
+        0.03671650762429217,
+        0.03702777611472366
+      ],
+      "minimum_foot_force_n": 31.628755434238112,
+      "maximum_joint_speed_rad_s": 0.15747754456921087
+    },
+    {
+      "time_s": 13.36500000000069,
+      "gyro": [
+        0.01247501948979903,
+        0.03497824073699712,
+        0.030223122663436484
+      ],
+      "minimum_foot_force_n": 20.368949026545035,
+      "maximum_joint_speed_rad_s": 0.15509053688373245
+    },
+    {
+      "time_s": 13.37000000000069,
+      "gyro": [
+        0.022315020439915022,
+        0.039319809992669645,
+        0.014591414571768643
+      ],
+      "minimum_foot_force_n": 19.867015219286664,
+      "maximum_joint_speed_rad_s": 0.19308610208350732
+    },
+    {
+      "time_s": 13.375000000000691,
+      "gyro": [
+        0.02789878709604984,
+        0.04501904908967912,
+        0.0014464734325220902
+      ],
+      "minimum_foot_force_n": 19.476614580276443,
+      "maximum_joint_speed_rad_s": 0.22952688082140613
+    },
+    {
+      "time_s": 13.380000000000692,
+      "gyro": [
+        0.034891032780071725,
+        0.04887438872071239,
+        -0.005849520188596713
+      ],
+      "minimum_foot_force_n": 20.134581676712443,
+      "maximum_joint_speed_rad_s": 0.297778124763333
+    },
+    {
+      "time_s": 13.385000000000693,
+      "gyro": [
+        0.04112403006583651,
+        0.05010893794984241,
+        -0.016127473639004297
+      ],
+      "minimum_foot_force_n": 3.7846634221116453,
+      "maximum_joint_speed_rad_s": 0.33605144756902955
+    },
+    {
+      "time_s": 13.390000000000693,
+      "gyro": [
+        0.05582994762504985,
+        0.060710241002023005,
+        -0.04043880514357736
+      ],
+      "minimum_foot_force_n": 3.4361838359047203,
+      "maximum_joint_speed_rad_s": 1.4320152066250387
+    },
+    {
+      "time_s": 13.395000000000694,
+      "gyro": [
+        0.06914762816799344,
+        0.0739172654526572,
+        -0.06339770780300946
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 2.4566769122490695
+    },
+    {
+      "time_s": 13.400000000000695,
+      "gyro": [
+        0.08549534245162826,
+        0.08120605211559412,
+        -0.08081540708392465
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.113901650734266
+    },
+    {
+      "time_s": 13.405000000000696,
+      "gyro": [
+        0.08492473487066676,
+        0.08429714356500434,
+        -0.09594200581458681
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.477776781237983
+    },
+    {
+      "time_s": 13.410000000000696,
+      "gyro": [
+        0.07819097363917006,
+        0.1113027706641127,
+        -0.11419091119784111
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.613186800640114
+    },
+    {
+      "time_s": 13.415000000000697,
+      "gyro": [
+        0.0675126865249657,
+        0.13353376935037656,
+        -0.12448360173499368
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.5162928796234985
+    },
+    {
+      "time_s": 13.420000000000698,
+      "gyro": [
+        0.04429912094935684,
+        0.14969994294305547,
+        -0.1281699205945714
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.020567099574016
+    },
+    {
+      "time_s": 13.425000000000699,
+      "gyro": [
+        0.012466795906696233,
+        0.16027782717666367,
+        -0.12385858274044202
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.149356931092174
+    },
+    {
+      "time_s": 13.4300000000007,
+      "gyro": [
+        0.022741383862989267,
+        0.15683903105698221,
+        -0.11145773409681052
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.3637269202345115
+    },
+    {
+      "time_s": 13.4350000000007,
+      "gyro": [
+        0.01872445416587269,
+        0.14720983857621014,
+        -0.09144713996278898
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.401620603779349
+    },
+    {
+      "time_s": 13.440000000000701,
+      "gyro": [
+        0.003202511802271788,
+        0.13278700540692703,
+        -0.07395190599012187
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.5522783283374113
+    },
+    {
+      "time_s": 13.445000000000702,
+      "gyro": [
+        -0.0158853375761263,
+        0.11504534652206899,
+        -0.05223531263064474
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.4237639914440408
+    },
+    {
+      "time_s": 13.450000000000703,
+      "gyro": [
+        -0.030913293186718996,
+        0.04153343597316124,
+        -0.025434161461356564
+      ],
+      "minimum_foot_force_n": 0.055165807610901875,
+      "maximum_joint_speed_rad_s": 3.0505418599155334
+    },
+    {
+      "time_s": 13.455000000000704,
+      "gyro": [
+        0.09427037311686011,
+        0.016115403882821167,
+        0.018472427369170652
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 2.9913306526936183
+    },
+    {
+      "time_s": 13.460000000000704,
+      "gyro": [
+        0.16617571135978393,
+        -0.01089992572776321,
+        0.04645608930049099
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.068393815967723
+    },
+    {
+      "time_s": 13.465000000000705,
+      "gyro": [
+        0.23256090575276755,
+        -0.018590019155140167,
+        0.06714984729511728
+      ],
+      "minimum_foot_force_n": 0.35299539165318644,
+      "maximum_joint_speed_rad_s": 6.536840234562086
+    },
+    {
+      "time_s": 13.470000000000706,
+      "gyro": [
+        0.21142779494687636,
+        -0.006863271627530169,
+        0.06573762848220577
+      ],
+      "minimum_foot_force_n": 22.282090087632966,
+      "maximum_joint_speed_rad_s": 7.742719140514394
+    },
+    {
+      "time_s": 13.475000000000707,
+      "gyro": [
+        0.02485310276138643,
+        -0.09634956242552133,
+        0.07421593237525724
+      ],
+      "minimum_foot_force_n": 21.944590837604167,
+      "maximum_joint_speed_rad_s": 4.17021806002749
+    },
+    {
+      "time_s": 13.480000000000707,
+      "gyro": [
+        -0.0648858325496739,
+        -0.14235932227597314,
+        0.07385212848423922
+      ],
+      "minimum_foot_force_n": 21.877731725186724,
+      "maximum_joint_speed_rad_s": 2.0419857202683964
+    },
+    {
+      "time_s": 13.485000000000708,
+      "gyro": [
+        -0.1313480765551046,
+        -0.18197542866267222,
+        0.08003116846967864
+      ],
+      "minimum_foot_force_n": 23.52338560492132,
+      "maximum_joint_speed_rad_s": 0.8963530003162417
+    },
+    {
+      "time_s": 13.490000000000709,
+      "gyro": [
+        -0.18273085010433643,
+        -0.17237248678353093,
+        0.07716076869983086
+      ],
+      "minimum_foot_force_n": 23.89770619383977,
+      "maximum_joint_speed_rad_s": 0.3330449642164928
+    },
+    {
+      "time_s": 13.49500000000071,
+      "gyro": [
+        -0.22224066442442153,
+        -0.15794505944506998,
+        0.07234222709763298
+      ],
+      "minimum_foot_force_n": 24.42698916240177,
+      "maximum_joint_speed_rad_s": 0.4204240894210541
+    },
+    {
+      "time_s": 13.50000000000071,
+      "gyro": [
+        -0.24553628686563095,
+        -0.14539384031457186,
+        0.06406595381747784
+      ],
+      "minimum_foot_force_n": 24.40968851574593,
+      "maximum_joint_speed_rad_s": 0.44360490999804025
+    },
+    {
+      "time_s": 13.505000000000711,
+      "gyro": [
+        -0.2586708593974295,
+        -0.1316097728304226,
+        0.05920992628944944
+      ],
+      "minimum_foot_force_n": 28.23917521395191,
+      "maximum_joint_speed_rad_s": 0.4670639041498443
+    },
+    {
+      "time_s": 13.510000000000712,
+      "gyro": [
+        -0.22506375049609514,
+        -0.09321563710147526,
+        0.04476298039513236
+      ],
+      "minimum_foot_force_n": 28.373691152472205,
+      "maximum_joint_speed_rad_s": 0.48777236444783745
+    },
+    {
+      "time_s": 13.515000000000713,
+      "gyro": [
+        -0.18828664776606632,
+        -0.058914945216437115,
+        0.03718913923069449
+      ],
+      "minimum_foot_force_n": 28.68894093233968,
+      "maximum_joint_speed_rad_s": 0.47864216454501407
+    },
+    {
+      "time_s": 13.520000000000714,
+      "gyro": [
+        -0.15555710026769937,
+        -0.028383327997201672,
+        0.028192313034310083
+      ],
+      "minimum_foot_force_n": 29.123322079180785,
+      "maximum_joint_speed_rad_s": 0.4530802709091107
+    },
+    {
+      "time_s": 13.525000000000714,
+      "gyro": [
+        -0.1244534963168534,
+        -0.001298863307200022,
+        0.02406003690148206
+      ],
+      "minimum_foot_force_n": 34.720727893858246,
+      "maximum_joint_speed_rad_s": 0.4261863905404212
+    },
+    {
+      "time_s": 13.530000000000715,
+      "gyro": [
+        -0.09103254694550228,
+        0.007389779294620863,
+        0.023053506905250962
+      ],
+      "minimum_foot_force_n": 34.13100956105124,
+      "maximum_joint_speed_rad_s": 0.3591374882532763
+    },
+    {
+      "time_s": 13.535000000000716,
+      "gyro": [
+        -0.0604511994142306,
+        0.0140551730418609,
+        0.021492666062057193
+      ],
+      "minimum_foot_force_n": 34.22499099883475,
+      "maximum_joint_speed_rad_s": 0.3027501458989773
+    },
+    {
+      "time_s": 13.540000000000717,
+      "gyro": [
+        -0.03519466876224078,
+        0.014338117407472309,
+        0.01923410615303721
+      ],
+      "minimum_foot_force_n": 33.73873445313246,
+      "maximum_joint_speed_rad_s": 0.25165784005816416
+    },
+    {
+      "time_s": 13.545000000000718,
+      "gyro": [
+        -0.01799480482398604,
+        0.016214121628304566,
+        0.01888961802904294
+      ],
+      "minimum_foot_force_n": 32.286489414842784,
+      "maximum_joint_speed_rad_s": 0.22036372197022136
+    },
+    {
+      "time_s": 13.550000000000718,
+      "gyro": [
+        -0.029800516278687093,
+        0.005692303476659689,
+        0.021476360787555274
+      ],
+      "minimum_foot_force_n": 32.04541893834061,
+      "maximum_joint_speed_rad_s": 0.11999470646765695
+    },
+    {
+      "time_s": 13.55500000000072,
+      "gyro": [
+        -0.04096011663258003,
+        -0.006415309545699783,
+        0.026438834192148725
+      ],
+      "minimum_foot_force_n": 32.48850426945999,
+      "maximum_joint_speed_rad_s": 0.09272887766018996
+    },
+    {
+      "time_s": 13.56000000000072,
+      "gyro": [
+        -0.047428429781898485,
+        -0.011323130532843641,
+        0.0291887646300905
+      ],
+      "minimum_foot_force_n": 32.11028264492758,
+      "maximum_joint_speed_rad_s": 0.10012627299573258
+    },
+    {
+      "time_s": 13.56500000000072,
+      "gyro": [
+        -0.04980481557302347,
+        -0.016299104277544597,
+        0.029359335505245387
+      ],
+      "minimum_foot_force_n": 27.999206547655813,
+      "maximum_joint_speed_rad_s": 0.10492802009130293
+    },
+    {
+      "time_s": 13.570000000000721,
+      "gyro": [
+        -0.06824536180814961,
+        -0.027215503961062534,
+        0.03715378398961264
+      ],
+      "minimum_foot_force_n": 28.987726918752266,
+      "maximum_joint_speed_rad_s": 0.12703398470369337
+    },
+    {
+      "time_s": 13.575000000000722,
+      "gyro": [
+        -0.07918470504372868,
+        -0.039040940544948236,
+        0.04521851449931181
+      ],
+      "minimum_foot_force_n": 28.6819949865092,
+      "maximum_joint_speed_rad_s": 0.14727680229146548
+    },
+    {
+      "time_s": 13.580000000000723,
+      "gyro": [
+        -0.08980651852106275,
+        -0.04310364479073925,
+        0.05217008350391664
+      ],
+      "minimum_foot_force_n": 28.80367034140358,
+      "maximum_joint_speed_rad_s": 0.16231186739905598
+    },
+    {
+      "time_s": 13.585000000000724,
+      "gyro": [
+        -0.09260001032130301,
+        -0.04981710394309916,
+        0.05443712055764409
+      ],
+      "minimum_foot_force_n": 24.093029201670834,
+      "maximum_joint_speed_rad_s": 0.17289987013754354
+    },
+    {
+      "time_s": 13.590000000000725,
+      "gyro": [
+        -0.09249195625586426,
+        -0.05753063788364916,
+        0.06631008098914061
+      ],
+      "minimum_foot_force_n": 23.68288063478831,
+      "maximum_joint_speed_rad_s": 0.18330554738674226
+    },
+    {
+      "time_s": 13.595000000000725,
+      "gyro": [
+        -0.08986092887751886,
+        -0.06284329160744116,
+        0.07284865898571259
+      ],
+      "minimum_foot_force_n": 24.13465773903663,
+      "maximum_joint_speed_rad_s": 0.19688678455504677
+    },
+    {
+      "time_s": 13.600000000000726,
+      "gyro": [
+        -0.08632494339046803,
+        -0.06716840433238609,
+        0.07969545394734025
+      ],
+      "minimum_foot_force_n": 24.491320255469777,
+      "maximum_joint_speed_rad_s": 0.20581002156416878
+    },
+    {
+      "time_s": 13.605000000000727,
+      "gyro": [
+        -0.08485826095713105,
+        -0.06858575323907305,
+        0.08692408878938941
+      ],
+      "minimum_foot_force_n": 19.698730316415414,
+      "maximum_joint_speed_rad_s": 0.20940507793190874
+    },
+    {
+      "time_s": 13.610000000000728,
+      "gyro": [
+        -0.07119978588756881,
+        -0.07037213971484053,
+        0.09383222808768754
+      ],
+      "minimum_foot_force_n": 19.305334929128573,
+      "maximum_joint_speed_rad_s": 0.20779569209303245
+    },
+    {
+      "time_s": 13.615000000000729,
+      "gyro": [
+        -0.0559923146370495,
+        -0.07505728607720512,
+        0.10035725826006682
+      ],
+      "minimum_foot_force_n": 19.5065818656157,
+      "maximum_joint_speed_rad_s": 0.20340341381267366
+    },
+    {
+      "time_s": 13.62000000000073,
+      "gyro": [
+        -0.04481734603958362,
+        -0.07853412419630794,
+        0.10718834798328934
+      ],
+      "minimum_foot_force_n": 19.090594646231164,
+      "maximum_joint_speed_rad_s": 0.1949118465242528
+    },
+    {
+      "time_s": 13.62500000000073,
+      "gyro": [
+        -0.03702667281138648,
+        -0.0807499628579694,
+        0.11577757854989827
+      ],
+      "minimum_foot_force_n": 16.781318902432744,
+      "maximum_joint_speed_rad_s": 0.19757464308935505
+    },
+    {
+      "time_s": 13.63000000000073,
+      "gyro": [
+        -0.03600410653415183,
+        -0.0794739425101983,
+        0.11858390160557906
+      ],
+      "minimum_foot_force_n": 17.533712290660006,
+      "maximum_joint_speed_rad_s": 0.19086960939392206
+    },
+    {
+      "time_s": 13.635000000000732,
+      "gyro": [
+        -0.036427492317389024,
+        -0.08106412168656146,
+        0.12613597472459817
+      ],
+      "minimum_foot_force_n": 17.39485234939307,
+      "maximum_joint_speed_rad_s": 0.19341283755115296
+    },
+    {
+      "time_s": 13.640000000000732,
+      "gyro": [
+        -0.03341303150157338,
+        -0.08509579923187742,
+        0.13048073789519354
+      ],
+      "minimum_foot_force_n": 17.558372831829228,
+      "maximum_joint_speed_rad_s": 0.19796814516080172
+    },
+    {
+      "time_s": 13.645000000000733,
+      "gyro": [
+        -0.033476180878209534,
+        -0.08645078336998767,
+        0.13665714541086746
+      ],
+      "minimum_foot_force_n": 17.818753413585167,
+      "maximum_joint_speed_rad_s": 0.20364177352022061
+    },
+    {
+      "time_s": 13.650000000000734,
+      "gyro": [
+        -0.03192187658958336,
+        -0.0799691097702459,
+        0.1399010369913443
+      ],
+      "minimum_foot_force_n": 18.133826781197474,
+      "maximum_joint_speed_rad_s": 0.20356617290786913
+    },
+    {
+      "time_s": 13.655000000000735,
+      "gyro": [
+        -0.03082691215631362,
+        -0.074607511511253,
+        0.14367541285207608
+      ],
+      "minimum_foot_force_n": 17.831341485306783,
+      "maximum_joint_speed_rad_s": 0.2103189914894454
+    },
+    {
+      "time_s": 13.660000000000736,
+      "gyro": [
+        -0.02958516608983089,
+        -0.06812324436980574,
+        0.14558990570770866
+      ],
+      "minimum_foot_force_n": 18.57583425292517,
+      "maximum_joint_speed_rad_s": 0.20925952934734082
+    },
+    {
+      "time_s": 13.665000000000736,
+      "gyro": [
+        -0.03041227633530616,
+        -0.06278254068573125,
+        0.14883723405741164
+      ],
+      "minimum_foot_force_n": 19.22153127321597,
+      "maximum_joint_speed_rad_s": 0.20894830859738528
+    },
+    {
+      "time_s": 13.670000000000737,
+      "gyro": [
+        -0.021567491217554496,
+        -0.05196938284663064,
+        0.14717371529998116
+      ],
+      "minimum_foot_force_n": 19.764324291610297,
+      "maximum_joint_speed_rad_s": 0.20078855948251015
+    },
+    {
+      "time_s": 13.675000000000738,
+      "gyro": [
+        -0.018179807811853355,
+        -0.045841278798019025,
+        0.14390661998239762
+      ],
+      "minimum_foot_force_n": 19.353130174530047,
+      "maximum_joint_speed_rad_s": 0.19860109960218142
+    },
+    {
+      "time_s": 13.680000000000739,
+      "gyro": [
+        -0.01257949027438187,
+        -0.03941938998036486,
+        0.141907179075135
+      ],
+      "minimum_foot_force_n": 19.764365760878448,
+      "maximum_joint_speed_rad_s": 0.1915801730349106
+    },
+    {
+      "time_s": 13.68500000000074,
+      "gyro": [
+        -0.011789648896802979,
+        -0.03527733995422457,
+        0.1376487343002087
+      ],
+      "minimum_foot_force_n": 19.564652296240386,
+      "maximum_joint_speed_rad_s": 0.19030525004604104
+    },
+    {
+      "time_s": 13.69000000000074,
+      "gyro": [
+        -0.007571034592667067,
+        -0.0325971338147297,
+        0.13433967954515535
+      ],
+      "minimum_foot_force_n": 19.965275932342823,
+      "maximum_joint_speed_rad_s": 0.18603698442068511
+    },
+    {
+      "time_s": 13.695000000000741,
+      "gyro": [
+        -0.0038496628198111064,
+        -0.03103414419805802,
+        0.1292122335514261
+      ],
+      "minimum_foot_force_n": 19.980033815942573,
+      "maximum_joint_speed_rad_s": 0.17763048584734598
+    },
+    {
+      "time_s": 13.700000000000742,
+      "gyro": [
+        -0.0006960068197703234,
+        -0.029341770822740584,
+        0.1255473909385236
+      ],
+      "minimum_foot_force_n": 19.631505582343223,
+      "maximum_joint_speed_rad_s": 0.17391577580290768
+    },
+    {
+      "time_s": 13.705000000000743,
+      "gyro": [
+        0.004516649707872278,
+        -0.026239002278116305,
+        0.12191700356729573
+      ],
+      "minimum_foot_force_n": 19.330292213759574,
+      "maximum_joint_speed_rad_s": 0.17151848504942718
+    },
+    {
+      "time_s": 13.710000000000743,
+      "gyro": [
+        0.0034070972454707787,
+        -0.025348680887827366,
+        0.12250428372909246
+      ],
+      "minimum_foot_force_n": 19.360125193052163,
+      "maximum_joint_speed_rad_s": 0.16956103851155174
+    },
+    {
+      "time_s": 13.715000000000744,
+      "gyro": [
+        0.0026501473961844666,
+        -0.028398653008170426,
+        0.12069866180484283
+      ],
+      "minimum_foot_force_n": 19.353062985139754,
+      "maximum_joint_speed_rad_s": 0.16727665253039983
+    },
+    {
+      "time_s": 13.720000000000745,
+      "gyro": [
+        0.003083067515062096,
+        -0.027935482157374146,
+        0.11928382812385549
+      ],
+      "minimum_foot_force_n": 19.303554876305355,
+      "maximum_joint_speed_rad_s": 0.16742133591820704
+    },
+    {
+      "time_s": 13.725000000000746,
+      "gyro": [
+        0.005655553373458982,
+        -0.02841282100132208,
+        0.11890903620230527
+      ],
+      "minimum_foot_force_n": 18.856105944093542,
+      "maximum_joint_speed_rad_s": 0.16774367024422251
+    },
+    {
+      "time_s": 13.730000000000746,
+      "gyro": [
+        0.00032389065621060014,
+        -0.029725852482692234,
+        0.1217345309216724
+      ],
+      "minimum_foot_force_n": 18.49880125611922,
+      "maximum_joint_speed_rad_s": 0.17024966709391656
+    },
+    {
+      "time_s": 13.735000000000747,
+      "gyro": [
+        -0.0014988360374940202,
+        -0.030067772781204885,
+        0.12579704443494116
+      ],
+      "minimum_foot_force_n": 18.46735632536909,
+      "maximum_joint_speed_rad_s": 0.17551919300754862
+    },
+    {
+      "time_s": 13.740000000000748,
+      "gyro": [
+        -0.005448710891185484,
+        -0.0301264844577254,
+        0.127135955900184
+      ],
+      "minimum_foot_force_n": 18.804512387754063,
+      "maximum_joint_speed_rad_s": 0.1772956815360859
+    },
+    {
+      "time_s": 13.745000000000749,
+      "gyro": [
+        -0.008497087431233355,
+        -0.029525332956043045,
+        0.1285496860752198
+      ],
+      "minimum_foot_force_n": 17.80967168278775,
+      "maximum_joint_speed_rad_s": 0.17845491171313346
+    },
+    {
+      "time_s": 13.75000000000075,
+      "gyro": [
+        -0.006083865217419913,
+        -0.029906704122061895,
+        0.13435540129809656
+      ],
+      "minimum_foot_force_n": 17.89465883180118,
+      "maximum_joint_speed_rad_s": 0.18666889562334538
+    },
+    {
+      "time_s": 13.75500000000075,
+      "gyro": [
+        -0.006560876375966629,
+        -0.030899206707030943,
+        0.13458906172530738
+      ],
+      "minimum_foot_force_n": 17.816881602647996,
+      "maximum_joint_speed_rad_s": 0.18376738839269757
+    },
+    {
+      "time_s": 13.760000000000751,
+      "gyro": [
+        -0.007731390456688897,
+        -0.02820792690978447,
+        0.137566605347496
+      ],
+      "minimum_foot_force_n": 18.15671917340206,
+      "maximum_joint_speed_rad_s": 0.18457722591197995
+    },
+    {
+      "time_s": 13.765000000000752,
+      "gyro": [
+        -0.007336054308107317,
+        -0.027601996357310376,
+        0.1410543786653073
+      ],
+      "minimum_foot_force_n": 17.52114141428565,
+      "maximum_joint_speed_rad_s": 0.1889269872084022
+    },
+    {
+      "time_s": 13.770000000000753,
+      "gyro": [
+        -0.003072338538202342,
+        -0.02272912526253898,
+        0.14200339490904754
+      ],
+      "minimum_foot_force_n": 17.897136775396422,
+      "maximum_joint_speed_rad_s": 0.18061211524604415
+    },
+    {
+      "time_s": 13.775000000000754,
+      "gyro": [
+        0.0018763107720321279,
+        -0.01789749607465599,
+        0.14292082644650694
+      ],
+      "minimum_foot_force_n": 18.322849859758335,
+      "maximum_joint_speed_rad_s": 0.18010054784215976
+    },
+    {
+      "time_s": 13.780000000000754,
+      "gyro": [
+        0.009275709075549655,
+        -0.015376419818492009,
+        0.14134666606195842
+      ],
+      "minimum_foot_force_n": 17.79637289340624,
+      "maximum_joint_speed_rad_s": 0.17823597250802942
+    },
+    {
+      "time_s": 13.785000000000755,
+      "gyro": [
+        0.010481745072093911,
+        -0.013390502810406919,
+        0.1430988019782345
+      ],
+      "minimum_foot_force_n": 18.36438108314442,
+      "maximum_joint_speed_rad_s": 0.17489986281149142
+    },
+    {
+      "time_s": 13.790000000000756,
+      "gyro": [
+        0.015576581795099168,
+        -0.009229054185873373,
+        0.1409845305604033
+      ],
+      "minimum_foot_force_n": 17.606848203192662,
+      "maximum_joint_speed_rad_s": 0.17678307058396042
+    },
+    {
+      "time_s": 13.795000000000757,
+      "gyro": [
+        0.019821739710122407,
+        -0.005726837201023953,
+        0.14227484507146335
+      ],
+      "minimum_foot_force_n": 18.007307511721447,
+      "maximum_joint_speed_rad_s": 0.17819897608475227
+    },
+    {
+      "time_s": 13.800000000000757,
+      "gyro": [
+        0.021128919115402735,
+        -0.005395896514902512,
+        0.1404243824368847
+      ],
+      "minimum_foot_force_n": 17.76796756704429,
+      "maximum_joint_speed_rad_s": 0.1763010404964559
+    },
+    {
+      "time_s": 13.805000000000758,
+      "gyro": [
+        0.025275013643183,
+        -0.0018464385019950499,
+        0.1398336273594398
+      ],
+      "minimum_foot_force_n": 18.025453605677704,
+      "maximum_joint_speed_rad_s": 0.17463094418677513
+    },
+    {
+      "time_s": 13.810000000000759,
+      "gyro": [
+        0.021932721346096806,
+        -0.0015028645544454865,
+        0.14088158126392328
+      ],
+      "minimum_foot_force_n": 18.146789614625387,
+      "maximum_joint_speed_rad_s": 0.16942837837733252
+    },
+    {
+      "time_s": 13.81500000000076,
+      "gyro": [
+        0.022080609179642913,
+        -0.0011492489580685232,
+        0.13934002236059734
+      ],
+      "minimum_foot_force_n": 18.517801746465476,
+      "maximum_joint_speed_rad_s": 0.17079666964956552
+    },
+    {
+      "time_s": 13.82000000000076,
+      "gyro": [
+        0.023110391163941223,
+        -0.0015482174459474961,
+        0.13885462236366994
+      ],
+      "minimum_foot_force_n": 18.132417228348224,
+      "maximum_joint_speed_rad_s": 0.1744234252710009
+    },
+    {
+      "time_s": 13.825000000000761,
+      "gyro": [
+        0.019236574959874124,
+        -0.003957209478706464,
+        0.13921890529043918
+      ],
+      "minimum_foot_force_n": 17.953107271444924,
+      "maximum_joint_speed_rad_s": 0.16947454167184847
+    },
+    {
+      "time_s": 13.830000000000762,
+      "gyro": [
+        0.01899969892202617,
+        -0.002900627805225611,
+        0.1403021542330733
+      ],
+      "minimum_foot_force_n": 17.919354751130363,
+      "maximum_joint_speed_rad_s": 0.16507268426072844
+    },
+    {
+      "time_s": 13.835000000000763,
+      "gyro": [
+        0.020017832641309165,
+        -0.0027291689225929254,
+        0.14019388691249157
+      ],
+      "minimum_foot_force_n": 17.319177303787967,
+      "maximum_joint_speed_rad_s": 0.1686820586025263
+    },
+    {
+      "time_s": 13.840000000000764,
+      "gyro": [
+        0.0173752007943582,
+        -0.00487464531070808,
+        0.1417712989153664
+      ],
+      "minimum_foot_force_n": 17.713699420685806,
+      "maximum_joint_speed_rad_s": 0.16695849937270543
+    },
+    {
+      "time_s": 13.845000000000764,
+      "gyro": [
+        0.015850631232979192,
+        -0.005245015535344513,
+        0.14331101615510142
+      ],
+      "minimum_foot_force_n": 17.13649092627475,
+      "maximum_joint_speed_rad_s": 0.16550245169146485
+    },
+    {
+      "time_s": 13.850000000000765,
+      "gyro": [
+        0.014163252711595844,
+        -0.005040253630501158,
+        0.14384901100537292
+      ],
+      "minimum_foot_force_n": 17.51469297816417,
+      "maximum_joint_speed_rad_s": 0.17008440885582818
+    },
+    {
+      "time_s": 13.855000000000766,
+      "gyro": [
+        0.012542547778729443,
+        -0.0063889134893311,
+        0.14378759089720092
+      ],
+      "minimum_foot_force_n": 17.760663772966474,
+      "maximum_joint_speed_rad_s": 0.17147850908000414
+    },
+    {
+      "time_s": 13.860000000000767,
+      "gyro": [
+        0.013688760380955543,
+        -0.008391599260068655,
+        0.14628810278888202
+      ],
+      "minimum_foot_force_n": 16.951128089751833,
+      "maximum_joint_speed_rad_s": 0.17991199003380223
+    },
+    {
+      "time_s": 13.865000000000768,
+      "gyro": [
+        0.01248243430923904,
+        -0.010311786261454528,
+        0.15095637797212955
+      ],
+      "minimum_foot_force_n": 16.94212622226208,
+      "maximum_joint_speed_rad_s": 0.17790186946869746
+    },
+    {
+      "time_s": 13.870000000000768,
+      "gyro": [
+        0.014498424619250803,
+        -0.008274413255554858,
+        0.14957343524737426
+      ],
+      "minimum_foot_force_n": 17.120692694592556,
+      "maximum_joint_speed_rad_s": 0.1818960232522122
+    },
+    {
+      "time_s": 13.87500000000077,
+      "gyro": [
+        0.013152915346153404,
+        -0.006703201687226925,
+        0.1519637481474644
+      ],
+      "minimum_foot_force_n": 17.007553586327568,
+      "maximum_joint_speed_rad_s": 0.17832192795919838
+    },
+    {
+      "time_s": 13.88000000000077,
+      "gyro": [
+        0.015574921286145287,
+        -0.006349062363368459,
+        0.1524561449708499
+      ],
+      "minimum_foot_force_n": 17.263109454720453,
+      "maximum_joint_speed_rad_s": 0.18548249939487238
+    },
+    {
+      "time_s": 13.88500000000077,
+      "gyro": [
+        0.016467889721886706,
+        -0.005069694752050344,
+        0.15519250491266484
+      ],
+      "minimum_foot_force_n": 16.765972721824134,
+      "maximum_joint_speed_rad_s": 0.1886408864070931
+    },
+    {
+      "time_s": 13.890000000000772,
+      "gyro": [
+        0.016953118403616768,
+        -0.0058162171893610705,
+        0.15544320564089636
+      ],
+      "minimum_foot_force_n": 16.729212398190313,
+      "maximum_joint_speed_rad_s": 0.1927981725252991
+    },
+    {
+      "time_s": 13.895000000000772,
+      "gyro": [
+        0.018338105370213298,
+        -0.0038582091718877055,
+        0.15517939959647073
+      ],
+      "minimum_foot_force_n": 16.816228216759097,
+      "maximum_joint_speed_rad_s": 0.19120492637559222
+    },
+    {
+      "time_s": 13.900000000000773,
+      "gyro": [
+        0.018043475158053577,
+        -0.0032849237753785564,
+        0.15621848054397075
+      ],
+      "minimum_foot_force_n": 17.141924308543434,
+      "maximum_joint_speed_rad_s": 0.19510445255177378
+    },
+    {
+      "time_s": 13.905000000000774,
+      "gyro": [
+        0.016835886296940182,
+        -0.0019105482292751659,
+        0.1554340232902603
+      ],
+      "minimum_foot_force_n": 17.395759744102357,
+      "maximum_joint_speed_rad_s": 0.19257613420316277
+    },
+    {
+      "time_s": 13.910000000000775,
+      "gyro": [
+        0.018118998758113437,
+        -0.002303042083782603,
+        0.15737809331157146
+      ],
+      "minimum_foot_force_n": 17.045727663646126,
+      "maximum_joint_speed_rad_s": 0.18936793922875986
+    },
+    {
+      "time_s": 13.915000000000775,
+      "gyro": [
+        0.018014971081257995,
+        -0.0015374265119234148,
+        0.15603433571040173
+      ],
+      "minimum_foot_force_n": 16.819850616928537,
+      "maximum_joint_speed_rad_s": 0.1879334105674028
+    },
+    {
+      "time_s": 13.920000000000776,
+      "gyro": [
+        0.01895863899582405,
+        8.993460187904818e-05,
+        0.15524621754326007
+      ],
+      "minimum_foot_force_n": 16.945566919753077,
+      "maximum_joint_speed_rad_s": 0.1823393610636671
+    },
+    {
+      "time_s": 13.925000000000777,
+      "gyro": [
+        0.018053156951789988,
+        -0.0024708819619861768,
+        0.1534341806813251
+      ],
+      "minimum_foot_force_n": 17.35000426788841,
+      "maximum_joint_speed_rad_s": 0.18475984093539424
+    },
+    {
+      "time_s": 13.930000000000778,
+      "gyro": [
+        0.017391295642447454,
+        -0.00529293888455693,
+        0.1540139720843654
+      ],
+      "minimum_foot_force_n": 17.04181298539099,
+      "maximum_joint_speed_rad_s": 0.18212248083926608
+    },
+    {
+      "time_s": 13.935000000000779,
+      "gyro": [
+        0.013923522748597015,
+        -0.005692727100457453,
+        0.15635746790399213
+      ],
+      "minimum_foot_force_n": 17.091425927911086,
+      "maximum_joint_speed_rad_s": 0.1838338970251456
+    },
+    {
+      "time_s": 13.94000000000078,
+      "gyro": [
+        0.013381240593901575,
+        -0.00658128946734339,
+        0.15591507937382618
+      ],
+      "minimum_foot_force_n": 16.87785020597874,
+      "maximum_joint_speed_rad_s": 0.18102490087871848
+    },
+    {
+      "time_s": 13.94500000000078,
+      "gyro": [
+        0.013175504258886677,
+        -0.007734056870187892,
+        0.15473597359181218
+      ],
+      "minimum_foot_force_n": 16.901574137755063,
+      "maximum_joint_speed_rad_s": 0.178119230061914
+    },
+    {
+      "time_s": 13.95000000000078,
+      "gyro": [
+        0.009383807502296199,
+        -0.008956999423275692,
+        0.1576292502360145
+      ],
+      "minimum_foot_force_n": 16.235585844381315,
+      "maximum_joint_speed_rad_s": 0.18284072945014046
+    },
+    {
+      "time_s": 13.955000000000782,
+      "gyro": [
+        0.009373180509491482,
+        -0.008957660307303113,
+        0.15667556511049704
+      ],
+      "minimum_foot_force_n": 16.867366246180726,
+      "maximum_joint_speed_rad_s": 0.18354610694543086
+    },
+    {
+      "time_s": 13.960000000000782,
+      "gyro": [
+        0.0092265348149401,
+        -0.008994143012612265,
+        0.15969298618287373
+      ],
+      "minimum_foot_force_n": 16.31391972702309,
+      "maximum_joint_speed_rad_s": 0.18264344794343065
+    },
+    {
+      "time_s": 13.965000000000783,
+      "gyro": [
+        0.008151665509294486,
+        -0.007478718832878374,
+        0.16054294802378902
+      ],
+      "minimum_foot_force_n": 16.48457592409321,
+      "maximum_joint_speed_rad_s": 0.18414755335471372
+    },
+    {
+      "time_s": 13.970000000000784,
+      "gyro": [
+        0.009240351290989138,
+        -0.006161544146239272,
+        0.1603763647903418
+      ],
+      "minimum_foot_force_n": 16.58288344460281,
+      "maximum_joint_speed_rad_s": 0.18810468476083644
+    },
+    {
+      "time_s": 13.975000000000785,
+      "gyro": [
+        0.008067614032497523,
+        -0.006997589077446293,
+        0.1619487053806951
+      ],
+      "minimum_foot_force_n": 16.47752394220862,
+      "maximum_joint_speed_rad_s": 0.18639298597332227
+    },
+    {
+      "time_s": 13.980000000000786,
+      "gyro": [
+        0.007883685002993525,
+        -0.004753181884226438,
+        0.163756768498782
+      ],
+      "minimum_foot_force_n": 15.94177485854166,
+      "maximum_joint_speed_rad_s": 0.19092325178288047
+    },
+    {
+      "time_s": 13.985000000000786,
+      "gyro": [
+        0.009004019485824195,
+        -0.006061039343078854,
+        0.16352281975577485
+      ],
+      "minimum_foot_force_n": 16.788664850311076,
+      "maximum_joint_speed_rad_s": 0.191510679808573
+    },
+    {
+      "time_s": 13.990000000000787,
+      "gyro": [
+        0.010819540823060445,
+        -0.004780503555343289,
+        0.16481444017787636
+      ],
+      "minimum_foot_force_n": 16.59228243175234,
+      "maximum_joint_speed_rad_s": 0.19161588067764165
+    },
+    {
+      "time_s": 13.995000000000788,
+      "gyro": [
+        0.012480084869473239,
+        -0.0033863299069552856,
+        0.1676443462374977
+      ],
+      "minimum_foot_force_n": 16.69463380580696,
+      "maximum_joint_speed_rad_s": 0.19421807178788478
+    },
+    {
+      "time_s": 14.000000000000789,
+      "gyro": [
+        0.013128011713116467,
+        -0.003023290722951897,
+        0.1648398326168137
+      ],
+      "minimum_foot_force_n": 16.65172261915146,
+      "maximum_joint_speed_rad_s": 0.19413573165746012
+    },
+    {
+      "time_s": 14.00500000000079,
+      "gyro": [
+        0.014427669743273034,
+        -0.0029862305520643893,
+        0.16548298911935705
+      ],
+      "minimum_foot_force_n": 16.69912735809776,
+      "maximum_joint_speed_rad_s": 0.1934630974297725
+    },
+    {
+      "time_s": 14.01000000000079,
+      "gyro": [
+        0.013828392747944455,
+        -0.00288248263340858,
+        0.1657820587416066
+      ],
+      "minimum_foot_force_n": 16.862133970265642,
+      "maximum_joint_speed_rad_s": 0.19362279566350618
+    },
+    {
+      "time_s": 14.015000000000791,
+      "gyro": [
+        0.013723205299809355,
+        -0.0027465053817103415,
+        0.16708876741061926
+      ],
+      "minimum_foot_force_n": 16.558760579961195,
+      "maximum_joint_speed_rad_s": 0.19326882069058862
+    },
+    {
+      "time_s": 14.020000000000792,
+      "gyro": [
+        0.013960079023170632,
+        -0.004359238058035355,
+        0.16707628147172665
+      ],
+      "minimum_foot_force_n": 16.43657862885753,
+      "maximum_joint_speed_rad_s": 0.19031332112193985
+    },
+    {
+      "time_s": 14.025000000000793,
+      "gyro": [
+        0.011791977135451222,
+        -0.00215987684390593,
+        0.1666596563914169
+      ],
+      "minimum_foot_force_n": 16.620663585217553,
+      "maximum_joint_speed_rad_s": 0.1888168359964343
+    },
+    {
+      "time_s": 14.030000000000793,
+      "gyro": [
+        0.012765533112649323,
+        -0.0035859574644609366,
+        0.16661629843326173
+      ],
+      "minimum_foot_force_n": 17.165213487043545,
+      "maximum_joint_speed_rad_s": 0.18797595155641234
+    },
+    {
+      "time_s": 14.035000000000794,
+      "gyro": [
+        0.010569210285648169,
+        -0.0029234775790243145,
+        0.16616460231371222
+      ],
+      "minimum_foot_force_n": 16.978981291703374,
+      "maximum_joint_speed_rad_s": 0.18717506051503702
+    },
+    {
+      "time_s": 14.040000000000795,
+      "gyro": [
+        0.008032850846957155,
+        -0.0042024789213985165,
+        0.16882133083346965
+      ],
+      "minimum_foot_force_n": 16.388965421043213,
+      "maximum_joint_speed_rad_s": 0.1854280688757643
+    },
+    {
+      "time_s": 14.045000000000796,
+      "gyro": [
+        0.00832640616004433,
+        -0.003690326634163141,
+        0.1680799283544365
+      ],
+      "minimum_foot_force_n": 16.373150783141693,
+      "maximum_joint_speed_rad_s": 0.18756365240458492
+    },
+    {
+      "time_s": 14.050000000000797,
+      "gyro": [
+        0.009658974109435775,
+        -0.005615769256068265,
+        0.16743406621597076
+      ],
+      "minimum_foot_force_n": 16.58294001791584,
+      "maximum_joint_speed_rad_s": 0.18827459234987856
+    },
+    {
+      "time_s": 14.055000000000797,
+      "gyro": [
+        0.010612263370737876,
+        -0.004638257950420416,
+        0.167662859168884
+      ],
+      "minimum_foot_force_n": 16.8436858810057,
+      "maximum_joint_speed_rad_s": 0.18559745524538476
+    },
+    {
+      "time_s": 14.060000000000798,
+      "gyro": [
+        0.006691316181238305,
+        -0.0063283139122880215,
+        0.16996794805709844
+      ],
+      "minimum_foot_force_n": 16.952676378908055,
+      "maximum_joint_speed_rad_s": 0.1844478085486875
+    },
+    {
+      "time_s": 14.065000000000799,
+      "gyro": [
+        0.007141083434985314,
+        -0.004375763009224624,
+        0.1701109268791358
+      ],
+      "minimum_foot_force_n": 16.60966286565303,
+      "maximum_joint_speed_rad_s": 0.18796174601713647
+    },
+    {
+      "time_s": 14.0700000000008,
+      "gyro": [
+        0.00954573771462999,
+        -0.004006719058837783,
+        0.17118200439440048
+      ],
+      "minimum_foot_force_n": 16.668664401108124,
+      "maximum_joint_speed_rad_s": 0.18852998063832063
+    },
+    {
+      "time_s": 14.0750000000008,
+      "gyro": [
+        0.011834024638883466,
+        -0.0034060107371406485,
+        0.17233579162203566
+      ],
+      "minimum_foot_force_n": 16.271812205863394,
+      "maximum_joint_speed_rad_s": 0.19210924708955238
+    },
+    {
+      "time_s": 14.080000000000801,
+      "gyro": [
+        0.009804563849055294,
+        -0.005583683760079496,
+        0.17357512125609062
+      ],
+      "minimum_foot_force_n": 16.81257341772804,
+      "maximum_joint_speed_rad_s": 0.19000274770828296
+    },
+    {
+      "time_s": 14.085000000000802,
+      "gyro": [
+        0.010961406214525614,
+        -0.006154728807870856,
+        0.1735481738900016
+      ],
+      "minimum_foot_force_n": 16.947893232634595,
+      "maximum_joint_speed_rad_s": 0.1884591790713941
+    },
+    {
+      "time_s": 14.090000000000803,
+      "gyro": [
+        0.010343176710286983,
+        -0.00336789841938006,
+        0.17082607896466687
+      ],
+      "minimum_foot_force_n": 16.107304022799152,
+      "maximum_joint_speed_rad_s": 0.1867255534696329
+    },
+    {
+      "time_s": 14.095000000000804,
+      "gyro": [
+        0.00984954745079259,
+        -0.0031636481717855136,
+        0.1733108605667329
+      ],
+      "minimum_foot_force_n": 15.830238218054712,
+      "maximum_joint_speed_rad_s": 0.18895533437266998
+    },
+    {
+      "time_s": 14.100000000000804,
+      "gyro": [
+        0.008458632979765119,
+        -0.006095650187132531,
+        0.17255294890430425
+      ],
+      "minimum_foot_force_n": 16.834543447370006,
+      "maximum_joint_speed_rad_s": 0.18917287369445
+    },
+    {
+      "time_s": 14.105000000000805,
+      "gyro": [
+        0.009058750511659264,
+        -0.003827281989008611,
+        0.17441750265295847
+      ],
+      "minimum_foot_force_n": 16.523140356897393,
+      "maximum_joint_speed_rad_s": 0.18771845591013758
+    },
+    {
+      "time_s": 14.110000000000806,
+      "gyro": [
+        0.008815150594380382,
+        -0.004196587913812944,
+        0.17674519461879282
+      ],
+      "minimum_foot_force_n": 16.52133249995177,
+      "maximum_joint_speed_rad_s": 0.19216943330909622
+    },
+    {
+      "time_s": 14.115000000000807,
+      "gyro": [
+        0.010696816375637743,
+        -0.002986779556486044,
+        0.1764198932094877
+      ],
+      "minimum_foot_force_n": 16.57588306326688,
+      "maximum_joint_speed_rad_s": 0.18959399144795708
+    },
+    {
+      "time_s": 14.120000000000807,
+      "gyro": [
+        0.013669405504289335,
+        -0.0019414697366573962,
+        0.17907588096393925
+      ],
+      "minimum_foot_force_n": 16.285075920997933,
+      "maximum_joint_speed_rad_s": 0.19521875064518665
+    },
+    {
+      "time_s": 14.125000000000808,
+      "gyro": [
+        0.010504066477072553,
+        -0.002202086043603303,
+        0.18024574265801455
+      ],
+      "minimum_foot_force_n": 15.918738872227358,
+      "maximum_joint_speed_rad_s": 0.1915479703481269
+    },
+    {
+      "time_s": 14.130000000000809,
+      "gyro": [
+        0.009951589331489333,
+        -0.0012777672477709782,
+        0.1784470359737969
+      ],
+      "minimum_foot_force_n": 16.634332488778348,
+      "maximum_joint_speed_rad_s": 0.19539469339089374
+    },
+    {
+      "time_s": 14.13500000000081,
+      "gyro": [
+        0.007936527851163904,
+        -0.001776757442906396,
+        0.17920531524703706
+      ],
+      "minimum_foot_force_n": 16.064494722942047,
+      "maximum_joint_speed_rad_s": 0.19368737095904354
+    },
+    {
+      "time_s": 14.14000000000081,
+      "gyro": [
+        0.00724308371232525,
+        -0.004141362788190767,
+        0.17884808413952996
+      ],
+      "minimum_foot_force_n": 16.652769283525092,
+      "maximum_joint_speed_rad_s": 0.19705432744464466
+    },
+    {
+      "time_s": 14.145000000000811,
+      "gyro": [
+        0.005527466975590175,
+        -0.005152023324264574,
+        0.18196439449589313
+      ],
+      "minimum_foot_force_n": 16.697339389948716,
+      "maximum_joint_speed_rad_s": 0.19729133121077488
+    },
+    {
+      "time_s": 14.150000000000812,
+      "gyro": [
+        0.0064939152321424045,
+        -0.005431265280610681,
+        0.178763946452732
+      ],
+      "minimum_foot_force_n": 16.645651459104098,
+      "maximum_joint_speed_rad_s": 0.19728942977065161
+    },
+    {
+      "time_s": 14.155000000000813,
+      "gyro": [
+        0.007140045712970507,
+        -0.00344757705374205,
+        0.1803762375612784
+      ],
+      "minimum_foot_force_n": 16.413710304763097,
+      "maximum_joint_speed_rad_s": 0.19827556073109673
+    },
+    {
+      "time_s": 14.160000000000814,
+      "gyro": [
+        0.0067802926981937245,
+        -0.005483504810482659,
+        0.18042929691700765
+      ],
+      "minimum_foot_force_n": 16.32677939131594,
+      "maximum_joint_speed_rad_s": 0.19984537805833252
+    },
+    {
+      "time_s": 14.165000000000814,
+      "gyro": [
+        0.006822486296866977,
+        -0.006545210646368014,
+        0.18108623631402002
+      ],
+      "minimum_foot_force_n": 16.346217771856693,
+      "maximum_joint_speed_rad_s": 0.19610370040373337
+    },
+    {
+      "time_s": 14.170000000000815,
+      "gyro": [
+        0.00562281885580265,
+        -0.004293630690428488,
+        0.183222253749802
+      ],
+      "minimum_foot_force_n": 16.66709968966499,
+      "maximum_joint_speed_rad_s": 0.19898635903752773
+    },
+    {
+      "time_s": 14.175000000000816,
+      "gyro": [
+        0.006107277165558446,
+        -0.004189045442860695,
+        0.18332088415025882
+      ],
+      "minimum_foot_force_n": 16.594620827292804,
+      "maximum_joint_speed_rad_s": 0.1986706350010217
+    },
+    {
+      "time_s": 14.180000000000817,
+      "gyro": [
+        0.009656586745805109,
+        -0.0023590785568356476,
+        0.18148901337031725
+      ],
+      "minimum_foot_force_n": 16.02421843272951,
+      "maximum_joint_speed_rad_s": 0.20149840096208885
+    },
+    {
+      "time_s": 14.185000000000818,
+      "gyro": [
+        0.005762779566199704,
+        -0.004659899797741617,
+        0.1826926594195393
+      ],
+      "minimum_foot_force_n": 15.946100170226636,
+      "maximum_joint_speed_rad_s": 0.20137651440698284
+    },
+    {
+      "time_s": 14.190000000000818,
+      "gyro": [
+        0.007730998621970183,
+        -0.004285133754416971,
+        0.1842171149659646
+      ],
+      "minimum_foot_force_n": 16.66435291298386,
+      "maximum_joint_speed_rad_s": 0.20104561303502919
+    },
+    {
+      "time_s": 14.19500000000082,
+      "gyro": [
+        0.0066383001181135205,
+        -0.003873348882214343,
+        0.18572226231455435
+      ],
+      "minimum_foot_force_n": 16.705396479344003,
+      "maximum_joint_speed_rad_s": 0.19933581016690805
+    },
+    {
+      "time_s": 14.20000000000082,
+      "gyro": [
+        0.005829736915175869,
+        -0.003363055646152981,
+        0.18489381866237267
+      ],
+      "minimum_foot_force_n": 16.75601967195905,
+      "maximum_joint_speed_rad_s": 0.20000675373551235
+    },
+    {
+      "time_s": 14.20500000000082,
+      "gyro": [
+        0.006415687936288304,
+        -0.005805678011414886,
+        0.18718902184128064
+      ],
+      "minimum_foot_force_n": 16.064724473642155,
+      "maximum_joint_speed_rad_s": 0.2019449898555432
+    },
+    {
+      "time_s": 14.210000000000822,
+      "gyro": [
+        0.005282523911646976,
+        -0.005043033157242439,
+        0.18685441637735542
+      ],
+      "minimum_foot_force_n": 16.552243117367986,
+      "maximum_joint_speed_rad_s": 0.2039059609736813
+    },
+    {
+      "time_s": 14.215000000000822,
+      "gyro": [
+        0.008140134413742717,
+        -0.004341609064904951,
+        0.18819145374767735
+      ],
+      "minimum_foot_force_n": 16.405499659832536,
+      "maximum_joint_speed_rad_s": 0.20501959819631094
+    },
+    {
+      "time_s": 14.220000000000823,
+      "gyro": [
+        0.009210506512730742,
+        -0.004496179074372386,
+        0.18723428176886334
+      ],
+      "minimum_foot_force_n": 16.525024664995925,
+      "maximum_joint_speed_rad_s": 0.19920265392648562
+    },
+    {
+      "time_s": 14.225000000000824,
+      "gyro": [
+        0.009442579648475082,
+        -0.0033339007648564667,
+        0.18671696251383935
+      ],
+      "minimum_foot_force_n": 16.873332717562423,
+      "maximum_joint_speed_rad_s": 0.20471599052351291
+    },
+    {
+      "time_s": 14.230000000000825,
+      "gyro": [
+        0.009303381888953823,
+        -0.002117721927552534,
+        0.1871977106093818
+      ],
+      "minimum_foot_force_n": 16.847163548704177,
+      "maximum_joint_speed_rad_s": 0.1973515513673624
+    },
+    {
+      "time_s": 14.235000000000825,
+      "gyro": [
+        0.006961808117243338,
+        -0.0018600632941606903,
+        0.18827405254553065
+      ],
+      "minimum_foot_force_n": 16.774646263309034,
+      "maximum_joint_speed_rad_s": 0.1978396782013983
+    },
+    {
+      "time_s": 14.240000000000826,
+      "gyro": [
+        0.009139530449978908,
+        -0.00040707210351828647,
+        0.1871463715640586
+      ],
+      "minimum_foot_force_n": 16.412971908127172,
+      "maximum_joint_speed_rad_s": 0.20400227983385333
+    },
+    {
+      "time_s": 14.245000000000827,
+      "gyro": [
+        0.007676069740498971,
+        -0.0018818709990122357,
+        0.18757226127463406
+      ],
+      "minimum_foot_force_n": 16.215193179387246,
+      "maximum_joint_speed_rad_s": 0.2021147326429197
+    },
+    {
+      "time_s": 14.250000000000828,
+      "gyro": [
+        0.008696886882772403,
+        -0.0013720496078184778,
+        0.18854502584129168
+      ],
+      "minimum_foot_force_n": 16.401875802193192,
+      "maximum_joint_speed_rad_s": 0.2055642151415302
+    },
+    {
+      "time_s": 14.255000000000829,
+      "gyro": [
+        0.007568989955247014,
+        -0.0007575438735058835,
+        0.19039735253522794
+      ],
+      "minimum_foot_force_n": 16.45230192685935,
+      "maximum_joint_speed_rad_s": 0.2031642981014229
+    },
+    {
+      "time_s": 14.26000000000083,
+      "gyro": [
+        0.006036636439924513,
+        -0.002660306465514836,
+        0.1875637683264793
+      ],
+      "minimum_foot_force_n": 16.661898537914784,
+      "maximum_joint_speed_rad_s": 0.2030778204206735
+    },
+    {
+      "time_s": 14.26500000000083,
+      "gyro": [
+        0.005815701306789785,
+        -0.003037707901175611,
+        0.1891694170733868
+      ],
+      "minimum_foot_force_n": 16.457949048684196,
+      "maximum_joint_speed_rad_s": 0.20458821845172862
+    },
+    {
+      "time_s": 14.270000000000831,
+      "gyro": [
+        0.0071400086395862206,
+        -0.0016456810445410934,
+        0.18786845650312448
+      ],
+      "minimum_foot_force_n": 16.787709789089337,
+      "maximum_joint_speed_rad_s": 0.20322730045867587
+    },
+    {
+      "time_s": 14.275000000000832,
+      "gyro": [
+        0.008773600546405351,
+        0.0005909438817727341,
+        0.18657930800731318
+      ],
+      "minimum_foot_force_n": 16.64638174724336,
+      "maximum_joint_speed_rad_s": 0.20834835256220352
+    },
+    {
+      "time_s": 14.280000000000832,
+      "gyro": [
+        0.007602190848027465,
+        -0.0017050270072387636,
+        0.1885710074188205
+      ],
+      "minimum_foot_force_n": 16.938499679936523,
+      "maximum_joint_speed_rad_s": 0.20820980731328775
+    },
+    {
+      "time_s": 14.285000000000833,
+      "gyro": [
+        0.008538623106434294,
+        0.0009533114773169844,
+        0.1893299612536311
+      ],
+      "minimum_foot_force_n": 16.505965779789097,
+      "maximum_joint_speed_rad_s": 0.20719962074284176
+    },
+    {
+      "time_s": 14.290000000000834,
+      "gyro": [
+        0.009350953185034806,
+        -0.00041392698580818016,
+        0.18811515956456748
+      ],
+      "minimum_foot_force_n": 16.7462492744428,
+      "maximum_joint_speed_rad_s": 0.204025572105844
+    },
+    {
+      "time_s": 14.295000000000835,
+      "gyro": [
+        0.010641024476171157,
+        -0.0004501472809645697,
+        0.19124881309938785
+      ],
+      "minimum_foot_force_n": 16.945495002848993,
+      "maximum_joint_speed_rad_s": 0.20669150981155998
+    },
+    {
+      "time_s": 14.300000000000836,
+      "gyro": [
+        0.006375903971739479,
+        -0.0007536982145343743,
+        0.18981906402404639
+      ],
+      "minimum_foot_force_n": 17.03684569355654,
+      "maximum_joint_speed_rad_s": 0.20571158642374698
+    },
+    {
+      "time_s": 14.305000000000836,
+      "gyro": [
+        0.009161801242394291,
+        -0.0007416932576255811,
+        0.1896315180765125
+      ],
+      "minimum_foot_force_n": 17.223197096575614,
+      "maximum_joint_speed_rad_s": 0.20674333323332347
+    },
+    {
+      "time_s": 14.310000000000837,
+      "gyro": [
+        0.007909049042659582,
+        -0.00015218401876867735,
+        0.19140678363888303
+      ],
+      "minimum_foot_force_n": 17.09613509621897,
+      "maximum_joint_speed_rad_s": 0.21017879078326748
+    },
+    {
+      "time_s": 14.315000000000838,
+      "gyro": [
+        0.008774969920263742,
+        0.0004913425502439004,
+        0.18936503097259377
+      ],
+      "minimum_foot_force_n": 17.158234334011418,
+      "maximum_joint_speed_rad_s": 0.20550421001035726
+    },
+    {
+      "time_s": 14.320000000000839,
+      "gyro": [
+        0.010613992059332123,
+        0.0010244504727475229,
+        0.19065489447130018
+      ],
+      "minimum_foot_force_n": 16.98885680305311,
+      "maximum_joint_speed_rad_s": 0.2062056130181681
+    },
+    {
+      "time_s": 14.32500000000084,
+      "gyro": [
+        0.009000076369096154,
+        -1.767622500627728e-05,
+        0.19159595266708992
+      ],
+      "minimum_foot_force_n": 17.370528093349854,
+      "maximum_joint_speed_rad_s": 0.20390846585198352
+    },
+    {
+      "time_s": 14.33000000000084,
+      "gyro": [
+        0.006862938644454939,
+        0.0010194085149928462,
+        0.19120557785849648
+      ],
+      "minimum_foot_force_n": 16.68052658544296,
+      "maximum_joint_speed_rad_s": 0.2134243085817088
+    },
+    {
+      "time_s": 14.335000000000841,
+      "gyro": [
+        0.006070366305270902,
+        0.00046153754021623436,
+        0.1942214825046633
+      ],
+      "minimum_foot_force_n": 17.03629969074998,
+      "maximum_joint_speed_rad_s": 0.21040288862780507
+    },
+    {
+      "time_s": 14.340000000000842,
+      "gyro": [
+        0.0054433622034253575,
+        0.00037976541035079925,
+        0.19294644838068495
+      ],
+      "minimum_foot_force_n": 17.014189117338525,
+      "maximum_joint_speed_rad_s": 0.21261669098620878
+    },
+    {
+      "time_s": 14.345000000000843,
+      "gyro": [
+        0.005205550087531116,
+        -0.001156566552421042,
+        0.1919847098628664
+      ],
+      "minimum_foot_force_n": 17.18252044485019,
+      "maximum_joint_speed_rad_s": 0.2120806692388719
+    },
+    {
+      "time_s": 14.350000000000843,
+      "gyro": [
+        0.0035911037237371965,
+        -0.0009926964959415356,
+        0.19186185994010926
+      ],
+      "minimum_foot_force_n": 17.162789435213423,
+      "maximum_joint_speed_rad_s": 0.21489199015207805
+    },
+    {
+      "time_s": 14.355000000000844,
+      "gyro": [
+        0.004397273748711341,
+        -0.002383107342014029,
+        0.1917258089884841
+      ],
+      "minimum_foot_force_n": 17.20810722084162,
+      "maximum_joint_speed_rad_s": 0.21431291614309889
+    },
+    {
+      "time_s": 14.360000000000845,
+      "gyro": [
+        0.0023858278158208823,
+        -0.0015933881406993507,
+        0.19416436158884207
+      ],
+      "minimum_foot_force_n": 17.44462470168694,
+      "maximum_joint_speed_rad_s": 0.2151119423818247
+    },
+    {
+      "time_s": 14.365000000000846,
+      "gyro": [
+        0.002212136732799124,
+        -0.0020656771506341017,
+        0.1936968085458023
+      ],
+      "minimum_foot_force_n": 17.380649473411747,
+      "maximum_joint_speed_rad_s": 0.21438680057941417
+    },
+    {
+      "time_s": 14.370000000000847,
+      "gyro": [
+        0.0038510544240833123,
+        -0.0020455826628365766,
+        0.19307906406027403
+      ],
+      "minimum_foot_force_n": 16.962712088041897,
+      "maximum_joint_speed_rad_s": 0.21367814140000804
+    },
+    {
+      "time_s": 14.375000000000847,
+      "gyro": [
+        0.005343871227847911,
+        -0.001448247020586873,
+        0.19380317372753691
+      ],
+      "minimum_foot_force_n": 17.903730869441198,
+      "maximum_joint_speed_rad_s": 0.21434404855067743
+    },
+    {
+      "time_s": 14.380000000000848,
+      "gyro": [
+        0.006437758045131981,
+        -0.0012755796987979889,
+        0.19251401134677665
+      ],
+      "minimum_foot_force_n": 17.484107445523588,
+      "maximum_joint_speed_rad_s": 0.21087726248984118
+    },
+    {
+      "time_s": 14.385000000000849,
+      "gyro": [
+        0.006819698827144288,
+        -0.002261706220524599,
+        0.19267474621406908
+      ],
+      "minimum_foot_force_n": 17.372290986355647,
+      "maximum_joint_speed_rad_s": 0.21252687508393728
+    },
+    {
+      "time_s": 14.39000000000085,
+      "gyro": [
+        0.007718675348806208,
+        -0.00047671241294447507,
+        0.19149039309341104
+      ],
+      "minimum_foot_force_n": 17.36389432913645,
+      "maximum_joint_speed_rad_s": 0.21272850157996104
+    },
+    {
+      "time_s": 14.39500000000085,
+      "gyro": [
+        0.008082157031854132,
+        0.0020614481807389364,
+        0.19318985518852635
+      ],
+      "minimum_foot_force_n": 17.78817233429106,
+      "maximum_joint_speed_rad_s": 0.21126676610287867
+    },
+    {
+      "time_s": 14.400000000000851,
+      "gyro": [
+        0.00872117162455625,
+        -0.0004739117991272321,
+        0.1939206089663478
+      ],
+      "minimum_foot_force_n": 17.146372937071863,
+      "maximum_joint_speed_rad_s": 0.21039153286378362
+    },
+    {
+      "time_s": 14.405000000000852,
+      "gyro": [
+        0.007286842299991545,
+        0.00237294738260411,
+        0.1946832696613771
+      ],
+      "minimum_foot_force_n": 17.914062026569354,
+      "maximum_joint_speed_rad_s": 0.21118313408306405
+    },
+    {
+      "time_s": 14.410000000000853,
+      "gyro": [
+        0.006082445995398415,
+        0.004214600740281273,
+        0.19419591650750997
+      ],
+      "minimum_foot_force_n": 17.465907888304866,
+      "maximum_joint_speed_rad_s": 0.20866978560327873
+    },
+    {
+      "time_s": 14.415000000000854,
+      "gyro": [
+        0.008915860024418382,
+        0.0030243915088976787,
+        0.1938088255917911
+      ],
+      "minimum_foot_force_n": 17.92060577099,
+      "maximum_joint_speed_rad_s": 0.21576587695943322
+    },
+    {
+      "time_s": 14.420000000000854,
+      "gyro": [
+        0.0074602232484709315,
+        0.0032397787152670713,
+        0.19199109236812853
+      ],
+      "minimum_foot_force_n": 17.546564168565148,
+      "maximum_joint_speed_rad_s": 0.21319702729729043
+    },
+    {
+      "time_s": 14.425000000000855,
+      "gyro": [
+        0.005982494866955453,
+        0.0028571357584374663,
+        0.19409126614812308
+      ],
+      "minimum_foot_force_n": 18.66772972764433,
+      "maximum_joint_speed_rad_s": 0.21343651528484348
+    },
+    {
+      "time_s": 14.430000000000856,
+      "gyro": [
+        0.005027213829113358,
+        0.0007186458651578815,
+        0.19438308125204168
+      ],
+      "minimum_foot_force_n": 18.436996661752936,
+      "maximum_joint_speed_rad_s": 0.2133360529303766
+    },
+    {
+      "time_s": 14.435000000000857,
+      "gyro": [
+        0.004849697204074659,
+        0.0032211157311076754,
+        0.19550484560311454
+      ],
+      "minimum_foot_force_n": 18.43585411311233,
+      "maximum_joint_speed_rad_s": 0.21337423559928267
+    },
+    {
+      "time_s": 14.440000000000857,
+      "gyro": [
+        0.004873320602644558,
+        0.0014948930619858288,
+        0.19553637984995956
+      ],
+      "minimum_foot_force_n": 18.54044651438773,
+      "maximum_joint_speed_rad_s": 0.2173046494611653
+    },
+    {
+      "time_s": 14.445000000000858,
+      "gyro": [
+        0.005418102663610887,
+        0.0016225444324909427,
+        0.19514381564957387
+      ],
+      "minimum_foot_force_n": 18.612540220985462,
+      "maximum_joint_speed_rad_s": 0.21344494316574664
+    },
+    {
+      "time_s": 14.450000000000859,
+      "gyro": [
+        0.005257034855216098,
+        0.0016583429129068208,
+        0.196207778717213
+      ],
+      "minimum_foot_force_n": 18.797200160278905,
+      "maximum_joint_speed_rad_s": 0.2164062125293702
+    },
+    {
+      "time_s": 14.45500000000086,
+      "gyro": [
+        0.005260631638610567,
+        0.0003347797807227074,
+        0.19555351671017454
+      ],
+      "minimum_foot_force_n": 18.775658072321683,
+      "maximum_joint_speed_rad_s": 0.2128059026597201
+    },
+    {
+      "time_s": 14.46000000000086,
+      "gyro": [
+        0.005057106272516391,
+        0.00203483007799392,
+        0.19326070422143413
+      ],
+      "minimum_foot_force_n": 19.09966103661974,
+      "maximum_joint_speed_rad_s": 0.21396968947674536
+    },
+    {
+      "time_s": 14.465000000000861,
+      "gyro": [
+        0.003945464132993852,
+        -0.00037365375755428774,
+        0.19136456153644119
+      ],
+      "minimum_foot_force_n": 19.945470423601574,
+      "maximum_joint_speed_rad_s": 0.21546359639130308
+    },
+    {
+      "time_s": 14.470000000000862,
+      "gyro": [
+        0.006002673779945701,
+        0.0012344999242650983,
+        0.18907253450717884
+      ],
+      "minimum_foot_force_n": 20.3257008965748,
+      "maximum_joint_speed_rad_s": 0.21263534421365304
+    },
+    {
+      "time_s": 14.475000000000863,
+      "gyro": [
+        0.006448329791788182,
+        0.0015539076297477453,
+        0.1865219652930906
+      ],
+      "minimum_foot_force_n": 19.668762017658498,
+      "maximum_joint_speed_rad_s": 0.20794165989206514
+    },
+    {
+      "time_s": 14.480000000000864,
+      "gyro": [
+        0.007668194685782735,
+        0.0013949292661325514,
+        0.1874026218206483
+      ],
+      "minimum_foot_force_n": 19.843512244322998,
+      "maximum_joint_speed_rad_s": 0.20716543742988935
+    },
+    {
+      "time_s": 14.485000000000865,
+      "gyro": [
+        0.007097187789711133,
+        0.0011792271448530125,
+        0.1826707468787939
+      ],
+      "minimum_foot_force_n": 20.260784491432663,
+      "maximum_joint_speed_rad_s": 0.20399397786962317
+    },
+    {
+      "time_s": 14.490000000000865,
+      "gyro": [
+        0.010339416260308841,
+        0.001902102770560031,
+        0.18096946130815333
+      ],
+      "minimum_foot_force_n": 21.15292914038733,
+      "maximum_joint_speed_rad_s": 0.19787718584740607
+    },
+    {
+      "time_s": 14.495000000000866,
+      "gyro": [
+        0.010922920994721641,
+        0.004751043572687241,
+        0.17679320816790944
+      ],
+      "minimum_foot_force_n": 20.501734925881582,
+      "maximum_joint_speed_rad_s": 0.1995277281831195
+    },
+    {
+      "time_s": 14.500000000000867,
+      "gyro": [
+        0.014489156344965858,
+        0.005311164835367772,
+        0.17653906953659343
+      ],
+      "minimum_foot_force_n": 20.636841615860945,
+      "maximum_joint_speed_rad_s": 0.1945061498913125
+    },
+    {
+      "time_s": 14.505000000000868,
+      "gyro": [
+        0.014496620823497956,
+        0.006789437492078578,
+        0.17154871306571234
+      ],
+      "minimum_foot_force_n": 21.962222780399205,
+      "maximum_joint_speed_rad_s": 0.19627509554443742
+    },
+    {
+      "time_s": 14.510000000000868,
+      "gyro": [
+        0.015830985590691203,
+        0.0060905514756268465,
+        0.16840612834687532
+      ],
+      "minimum_foot_force_n": 21.90580928476608,
+      "maximum_joint_speed_rad_s": 0.19361124820182288
+    },
+    {
+      "time_s": 14.51500000000087,
+      "gyro": [
+        0.01551795269028129,
+        0.00739867765278113,
+        0.16460897445314202
+      ],
+      "minimum_foot_force_n": 22.037628569984932,
+      "maximum_joint_speed_rad_s": 0.19771331809457637
+    },
+    {
+      "time_s": 14.52000000000087,
+      "gyro": [
+        0.01463004779379581,
+        0.007210090971587626,
+        0.162692920224154
+      ],
+      "minimum_foot_force_n": 22.778708259608102,
+      "maximum_joint_speed_rad_s": 0.19919778686694142
+    },
+    {
+      "time_s": 14.52500000000087,
+      "gyro": [
+        0.017084240323734415,
+        0.00793413958688909,
+        0.15891260267862112
+      ],
+      "minimum_foot_force_n": 25.143789980619864,
+      "maximum_joint_speed_rad_s": 0.19488692710435984
+    },
+    {
+      "time_s": 14.530000000000872,
+      "gyro": [
+        0.01752979153198724,
+        0.00927344778516186,
+        0.15293284564017007
+      ],
+      "minimum_foot_force_n": 24.876058265791425,
+      "maximum_joint_speed_rad_s": 0.19846418104326738
+    },
+    {
+      "time_s": 14.535000000000872,
+      "gyro": [
+        0.019994917880010458,
+        0.010110920100159512,
+        0.14962724228112437
+      ],
+      "minimum_foot_force_n": 25.216334467283545,
+      "maximum_joint_speed_rad_s": 0.1987766770997436
+    },
+    {
+      "time_s": 14.540000000000873,
+      "gyro": [
+        0.02375688407769566,
+        0.016022833723621017,
+        0.14566930551931245
+      ],
+      "minimum_foot_force_n": 25.420899350951277,
+      "maximum_joint_speed_rad_s": 0.20222637620360193
+    },
+    {
+      "time_s": 14.545000000000874,
+      "gyro": [
+        0.02347203625393648,
+        0.015533989426391684,
+        0.14042662231553033
+      ],
+      "minimum_foot_force_n": 28.94782753329204,
+      "maximum_joint_speed_rad_s": 0.2052962468409345
+    },
+    {
+      "time_s": 14.550000000000875,
+      "gyro": [
+        0.02030872873816233,
+        0.018987188528753186,
+        0.13308189970565942
+      ],
+      "minimum_foot_force_n": 28.56671337277057,
+      "maximum_joint_speed_rad_s": 0.20127851458361837
+    },
+    {
+      "time_s": 14.555000000000875,
+      "gyro": [
+        0.018842514351487455,
+        0.02480351271097834,
+        0.12752014478197263
+      ],
+      "minimum_foot_force_n": 28.368027524301485,
+      "maximum_joint_speed_rad_s": 0.20356716181610587
+    },
+    {
+      "time_s": 14.560000000000876,
+      "gyro": [
+        0.016162145756983447,
+        0.025404858987683545,
+        0.12428470895883059
+      ],
+      "minimum_foot_force_n": 28.020722560311608,
+      "maximum_joint_speed_rad_s": 0.19764011407114931
+    },
+    {
+      "time_s": 14.565000000000877,
+      "gyro": [
+        0.015559185812526955,
+        0.028532292682308145,
+        0.11423819870766508
+      ],
+      "minimum_foot_force_n": 34.4407062718121,
+      "maximum_joint_speed_rad_s": 0.19640677115230643
+    },
+    {
+      "time_s": 14.570000000000878,
+      "gyro": [
+        0.01376586064572186,
+        0.027150126651026615,
+        0.10485100367736362
+      ],
+      "minimum_foot_force_n": 34.45960274448674,
+      "maximum_joint_speed_rad_s": 0.17917550307343774
+    },
+    {
+      "time_s": 14.575000000000879,
+      "gyro": [
+        0.01553007995464692,
+        0.029080341735738358,
+        0.08936925170051428
+      ],
+      "minimum_foot_force_n": 34.59648853399535,
+      "maximum_joint_speed_rad_s": 0.17767563292408792
+    },
+    {
+      "time_s": 14.58000000000088,
+      "gyro": [
+        0.019320917100525328,
+        0.03165321071956114,
+        0.07924267195234515
+      ],
+      "minimum_foot_force_n": 34.56993528376255,
+      "maximum_joint_speed_rad_s": 0.16890367510417043
+    },
+    {
+      "time_s": 14.58500000000088,
+      "gyro": [
+        0.022862879597424165,
+        0.03342989577577567,
+        0.06918654717111282
+      ],
+      "minimum_foot_force_n": 22.168976628231608,
+      "maximum_joint_speed_rad_s": 0.17106370042124874
+    },
+    {
+      "time_s": 14.590000000000881,
+      "gyro": [
+        0.02906852384033915,
+        0.035618633449268654,
+        0.047671415439718735
+      ],
+      "minimum_foot_force_n": 22.568557985540792,
+      "maximum_joint_speed_rad_s": 0.1813470905491175
+    },
+    {
+      "time_s": 14.595000000000882,
+      "gyro": [
+        0.035975187337266214,
+        0.03794555944889516,
+        0.031027290813780802
+      ],
+      "minimum_foot_force_n": 22.349877149132602,
+      "maximum_joint_speed_rad_s": 0.19286104791285547
+    },
+    {
+      "time_s": 14.600000000000882,
+      "gyro": [
+        0.03899465456221377,
+        0.03868454788698857,
+        0.014360102472140833
+      ],
+      "minimum_foot_force_n": 22.519551022771598,
+      "maximum_joint_speed_rad_s": 0.19728015360132434
+    },
+    {
+      "time_s": 14.605000000000883,
+      "gyro": [
+        0.039665933721966806,
+        0.03744750279977878,
+        0.004725956012720039
+      ],
+      "minimum_foot_force_n": 8.133802411885664,
+      "maximum_joint_speed_rad_s": 0.1892463752411175
+    },
+    {
+      "time_s": 14.610000000000884,
+      "gyro": [
+        0.056977409291563294,
+        0.05222226084198041,
+        -0.022519517114847582
+      ],
+      "minimum_foot_force_n": 7.55818438495969,
+      "maximum_joint_speed_rad_s": 1.0480013080052843
+    },
+    {
+      "time_s": 14.615000000000885,
+      "gyro": [
+        0.0689522508999173,
+        0.06480135823712369,
+        -0.05197618836947764
+      ],
+      "minimum_foot_force_n": 8.092540217820622,
+      "maximum_joint_speed_rad_s": 1.9233996877497992
+    },
+    {
+      "time_s": 14.620000000000886,
+      "gyro": [
+        0.07551645881492357,
+        0.07516775851610412,
+        -0.0728713968606287
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 2.5660407279544395
+    },
+    {
+      "time_s": 14.625000000000886,
+      "gyro": [
+        0.07709875381292229,
+        0.07751166010525429,
+        -0.09283768489792724
+      ],
+      "minimum_foot_force_n": 0.004953951435849414,
+      "maximum_joint_speed_rad_s": 2.8169947539098428
+    },
+    {
+      "time_s": 14.630000000000887,
+      "gyro": [
+        0.07346908108966199,
+        0.09347676565262346,
+        -0.11594095576729649
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.26256008660161
+    },
+    {
+      "time_s": 14.635000000000888,
+      "gyro": [
+        0.06366386651035898,
+        0.10683996585147598,
+        -0.13385100159007587
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.506920695407369
+    },
+    {
+      "time_s": 14.640000000000889,
+      "gyro": [
+        0.034224418803041105,
+        0.11343727302202057,
+        -0.1424822499442816
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.296493160454762
+    },
+    {
+      "time_s": 14.64500000000089,
+      "gyro": [
+        -0.003013683370281169,
+        0.11522095274181675,
+        -0.14545153506101582
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.63847519684778
+    },
+    {
+      "time_s": 14.65000000000089,
+      "gyro": [
+        0.0012481883907748893,
+        0.10977113461849146,
+        -0.13343840696997455
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.187480685185237
+    },
+    {
+      "time_s": 14.655000000000891,
+      "gyro": [
+        0.002817488937664983,
+        0.10187451809041267,
+        -0.11569805123930885
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.49669971664651
+    },
+    {
+      "time_s": 14.660000000000892,
+      "gyro": [
+        -0.012572513342565712,
+        0.08928074363734498,
+        -0.09505426980061171
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.695949284783488
+    },
+    {
+      "time_s": 14.665000000000893,
+      "gyro": [
+        -0.04338029849937472,
+        0.06724132663655756,
+        -0.07093870163254061
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.85613613144748
+    },
+    {
+      "time_s": 14.670000000000893,
+      "gyro": [
+        -0.04538772161819836,
+        0.0029335133567821754,
+        -0.03803941434794166
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.340943585663591
+    },
+    {
+      "time_s": 14.675000000000894,
+      "gyro": [
+        0.07027388760184408,
+        -0.0306861215217667,
+        0.010980211494173102
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 2.293494446931385
+    },
+    {
+      "time_s": 14.680000000000895,
+      "gyro": [
+        0.13328817539928198,
+        -0.05597750117017608,
+        0.0495451964092628
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 2.960110182230733
+    },
+    {
+      "time_s": 14.685000000000896,
+      "gyro": [
+        0.19192378729742343,
+        -0.08046989331087168,
+        0.07363394128458482
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.3955456263800805
+    },
+    {
+      "time_s": 14.690000000000897,
+      "gyro": [
+        0.17012945164156137,
+        -0.08777350873143082,
+        0.0840185153375061
+      ],
+      "minimum_foot_force_n": 0.1518233642931511,
+      "maximum_joint_speed_rad_s": 6.050721768234176
+    },
+    {
+      "time_s": 14.695000000000897,
+      "gyro": [
+        0.1505718457106648,
+        -0.07766640148297903,
+        0.09037547770434685
+      ],
+      "minimum_foot_force_n": 0.20879847812508592,
+      "maximum_joint_speed_rad_s": 7.272368303579121
+    },
+    {
+      "time_s": 14.700000000000898,
+      "gyro": [
+        0.15364609486370848,
+        -0.053096250938618514,
+        0.09276746015541747
+      ],
+      "minimum_foot_force_n": 26.58062592001466,
+      "maximum_joint_speed_rad_s": 7.964210579125511
+    },
+    {
+      "time_s": 14.705000000000899,
+      "gyro": [
+        0.017954611083686067,
+        -0.12716247049798565,
+        0.10385455253199276
+      ],
+      "minimum_foot_force_n": 11.236095449480123,
+      "maximum_joint_speed_rad_s": 4.253059676566313
+    },
+    {
+      "time_s": 14.7100000000009,
+      "gyro": [
+        -0.13880425924457956,
+        -0.1519698546271701,
+        0.09588183432957491
+      ],
+      "minimum_foot_force_n": 11.333906301345628,
+      "maximum_joint_speed_rad_s": 2.05545171162736
+    },
+    {
+      "time_s": 14.7150000000009,
+      "gyro": [
+        -0.2761933407546478,
+        -0.17293632124665592,
+        0.09102684830001528
+      ],
+      "minimum_foot_force_n": 11.86722139794247,
+      "maximum_joint_speed_rad_s": 0.8618411635762984
+    },
+    {
+      "time_s": 14.720000000000901,
+      "gyro": [
+        -0.3917591984459737,
+        -0.18890556920447635,
+        0.08792150646561031
+      ],
+      "minimum_foot_force_n": 12.060843909206493,
+      "maximum_joint_speed_rad_s": 0.40321156813457737
+    },
+    {
+      "time_s": 14.725000000000902,
+      "gyro": [
+        -0.4926896257516109,
+        -0.20591606394127496,
+        0.08103154381784304
+      ],
+      "minimum_foot_force_n": 16.711763968645684,
+      "maximum_joint_speed_rad_s": 0.4869637612562635
+    },
+    {
+      "time_s": 14.730000000000903,
+      "gyro": [
+        -0.40300223092662507,
+        -0.155462522531859,
+        0.06875332916631316
+      ],
+      "minimum_foot_force_n": 13.802761719943705,
+      "maximum_joint_speed_rad_s": 0.41491514544178476
+    },
+    {
+      "time_s": 14.735000000000904,
+      "gyro": [
+        -0.2964725348891718,
+        -0.10561821639257858,
+        0.05406374120904658
+      ],
+      "minimum_foot_force_n": 14.054097859285791,
+      "maximum_joint_speed_rad_s": 0.5475774839823486
+    },
+    {
+      "time_s": 14.740000000000904,
+      "gyro": [
+        -0.20319030856516537,
+        -0.06340275947561655,
+        0.0444523587387958
+      ],
+      "minimum_foot_force_n": 14.124231344953149,
+      "maximum_joint_speed_rad_s": 0.6463072850529147
+    },
+    {
+      "time_s": 14.745000000000905,
+      "gyro": [
+        -0.11288029908778834,
+        -0.024616718058547146,
+        0.03555772191644938
+      ],
+      "minimum_foot_force_n": 20.64225645380637,
+      "maximum_joint_speed_rad_s": 0.6932427374113784
+    },
+    {
+      "time_s": 14.750000000000906,
+      "gyro": [
+        -0.04406086826891807,
+        0.017358143112543797,
+        0.02369850672334536
+      ],
+      "minimum_foot_force_n": 21.160199229315985,
+      "maximum_joint_speed_rad_s": 0.6920690382687902
+    },
+    {
+      "time_s": 14.755000000000907,
+      "gyro": [
+        -3.248233129346176e-05,
+        0.05609265298060257,
+        0.015526375397054036
+      ],
+      "minimum_foot_force_n": 21.93474090997458,
+      "maximum_joint_speed_rad_s": 0.6886369531782383
+    },
+    {
+      "time_s": 14.760000000000908,
+      "gyro": [
+        0.030162528034303224,
+        0.08443861523061319,
+        0.011212672837594372
+      ],
+      "minimum_foot_force_n": 22.80143275876778,
+      "maximum_joint_speed_rad_s": 0.6802244809658142
+    },
+    {
+      "time_s": 14.765000000000908,
+      "gyro": [
+        0.05183985803214782,
+        0.11015751076034568,
+        0.00906618761933377
+      ],
+      "minimum_foot_force_n": 33.00917290449529,
+      "maximum_joint_speed_rad_s": 0.6757792573303263
+    },
+    {
+      "time_s": 14.770000000000909,
+      "gyro": [
+        0.044664894367556635,
+        0.08885771990092764,
+        0.01107036627492584
+      ],
+      "minimum_foot_force_n": 32.564641120494215,
+      "maximum_joint_speed_rad_s": 0.5179130764300484
+    },
+    {
+      "time_s": 14.77500000000091,
+      "gyro": [
+        0.044493789499080436,
+        0.07213236377149561,
+        0.014181988191503373
+      ],
+      "minimum_foot_force_n": 32.76307223739151,
+      "maximum_joint_speed_rad_s": 0.40097328179213293
+    },
+    {
+      "time_s": 14.78000000000091,
+      "gyro": [
+        0.03875042916737039,
+        0.05482138567655889,
+        0.015847002701802178
+      ],
+      "minimum_foot_force_n": 32.928332071857945,
+      "maximum_joint_speed_rad_s": 0.31341701646152287
+    },
+    {
+      "time_s": 14.785000000000911,
+      "gyro": [
+        0.03548587904859546,
+        0.042682423123969096,
+        0.01729084957812295
+      ],
+      "minimum_foot_force_n": 27.78404372679551,
+      "maximum_joint_speed_rad_s": 0.2520345046017963
+    },
+    {
+      "time_s": 14.790000000000912,
+      "gyro": [
+        0.00943551731123398,
+        0.008784323387165989,
+        0.02785087293004353
+      ],
+      "minimum_foot_force_n": 28.383963016316105,
+      "maximum_joint_speed_rad_s": 0.14900611857633517
+    },
+    {
+      "time_s": 14.795000000000913,
+      "gyro": [
+        -0.017447253480787052,
+        -0.02108141825170382,
+        0.037538941795531106
+      ],
+      "minimum_foot_force_n": 28.230141577366897,
+      "maximum_joint_speed_rad_s": 0.19139208885800793
+    },
+    {
+      "time_s": 14.800000000000914,
+      "gyro": [
+        -0.04550872415472711,
+        -0.04600549578779315,
+        0.04760486044021344
+      ],
+      "minimum_foot_force_n": 28.313099371295515,
+      "maximum_joint_speed_rad_s": 0.21773333575735204
+    },
+    {
+      "time_s": 14.805000000000915,
+      "gyro": [
+        -0.07134164059992526,
+        -0.06742008984831026,
+        0.05470004130066979
+      ],
+      "minimum_foot_force_n": 22.827216048827715,
+      "maximum_joint_speed_rad_s": 0.23872182977209455
+    },
+    {
+      "time_s": 14.810000000000915,
+      "gyro": [
+        -0.08681086230761646,
+        -0.08049305126933054,
+        0.07134030135149373
+      ],
+      "minimum_foot_force_n": 23.649807872674657,
+      "maximum_joint_speed_rad_s": 0.27022687508085375
+    },
+    {
+      "time_s": 14.815000000000916,
+      "gyro": [
+        -0.0975107265994933,
+        -0.09335245031204847,
+        0.08457450885179543
+      ],
+      "minimum_foot_force_n": 23.8756566398913,
+      "maximum_joint_speed_rad_s": 0.29369669260451375
+    },
+    {
+      "time_s": 14.820000000000917,
+      "gyro": [
+        -0.10466188456323243,
+        -0.09949014797939176,
+        0.09713656640970349
+      ],
+      "minimum_foot_force_n": 24.255909632552864,
+      "maximum_joint_speed_rad_s": 0.30421625151356185
+    },
+    {
+      "time_s": 14.825000000000918,
+      "gyro": [
+        -0.10555692379749905,
+        -0.10873967979754191,
+        0.1107785348910751
+      ],
+      "minimum_foot_force_n": 17.355064854160325,
+      "maximum_joint_speed_rad_s": 0.3200275673617912
+    },
+    {
+      "time_s": 14.830000000000918,
+      "gyro": [
+        -0.07762946077917526,
+        -0.10625964866794219,
+        0.12204337512168245
+      ],
+      "minimum_foot_force_n": 17.567335077608575,
+      "maximum_joint_speed_rad_s": 0.30958906156773314
+    },
+    {
+      "time_s": 14.83500000000092,
+      "gyro": [
+        -0.04912955614142026,
+        -0.09830132748183346,
+        0.12906566353635737
+      ],
+      "minimum_foot_force_n": 17.599525678063692,
+      "maximum_joint_speed_rad_s": 0.3073579112629739
+    },
+    {
+      "time_s": 14.84000000000092,
+      "gyro": [
+        -0.028227041733347256,
+        -0.09453541100757734,
+        0.13757539920482706
+      ],
+      "minimum_foot_force_n": 18.238678109547646,
+      "maximum_joint_speed_rad_s": 0.31454606125963486
+    },
+    {
+      "time_s": 14.84500000000092,
+      "gyro": [
+        -0.016214795580859344,
+        -0.08942634457824564,
+        0.14301052376364745
+      ],
+      "minimum_foot_force_n": 15.743578045134324,
+      "maximum_joint_speed_rad_s": 0.30994404263075304
+    },
+    {
+      "time_s": 14.850000000000922,
+      "gyro": [
+        -0.003959567513056875,
+        -0.07930585227004594,
+        0.14243860067952102
+      ],
+      "minimum_foot_force_n": 16.45693163248883,
+      "maximum_joint_speed_rad_s": 0.30950112188551276
+    },
+    {
+      "time_s": 14.855000000000922,
+      "gyro": [
+        0.00224746069099291,
+        -0.06947248306168398,
+        0.14346809467092866
+      ],
+      "minimum_foot_force_n": 16.481550158886176,
+      "maximum_joint_speed_rad_s": 0.29914882059422704
+    },
+    {
+      "time_s": 14.860000000000923,
+      "gyro": [
+        0.0034212677845617133,
+        -0.058759402702764404,
+        0.1435807066058001
+      ],
+      "minimum_foot_force_n": 15.914968671067802,
+      "maximum_joint_speed_rad_s": 0.28516686539072605
+    },
+    {
+      "time_s": 14.865000000000924,
+      "gyro": [
+        0.009150661839784049,
+        -0.05222762515154382,
+        0.14714539307840596
+      ],
+      "minimum_foot_force_n": 17.08449289767411,
+      "maximum_joint_speed_rad_s": 0.2688908480465931
+    },
+    {
+      "time_s": 14.870000000000925,
+      "gyro": [
+        0.005819496511048893,
+        -0.04835823326830505,
+        0.15126911481292876
+      ],
+      "minimum_foot_force_n": 17.247704977913212,
+      "maximum_joint_speed_rad_s": 0.22883254390684585
+    },
+    {
+      "time_s": 14.875000000000925,
+      "gyro": [
+        0.005146219131402593,
+        -0.0398932153867755,
+        0.15173625934686877
+      ],
+      "minimum_foot_force_n": 16.837895936825394,
+      "maximum_joint_speed_rad_s": 0.21560279685400172
+    },
+    {
+      "time_s": 14.880000000000926,
+      "gyro": [
+        0.004018575194104556,
+        -0.037252659285073084,
+        0.15357155829390184
+      ],
+      "minimum_foot_force_n": 16.86990888824975,
+      "maximum_joint_speed_rad_s": 0.22545137926104428
+    },
+    {
+      "time_s": 14.885000000000927,
+      "gyro": [
+        0.0032868047770023266,
+        -0.03352646435992701,
+        0.15648906113059916
+      ],
+      "minimum_foot_force_n": 18.311406553886822,
+      "maximum_joint_speed_rad_s": 0.22437701014685388
+    },
+    {
+      "time_s": 14.890000000000928,
+      "gyro": [
+        0.0036856190187909495,
+        -0.03228614256535278,
+        0.155711211150407
+      ],
+      "minimum_foot_force_n": 18.986311698277184,
+      "maximum_joint_speed_rad_s": 0.22764648978335394
+    },
+    {
+      "time_s": 14.895000000000929,
+      "gyro": [
+        0.005543130108219616,
+        -0.03165079272364112,
+        0.15460108184217444
+      ],
+      "minimum_foot_force_n": 18.3371860143218,
+      "maximum_joint_speed_rad_s": 0.22486723512271692
+    },
+    {
+      "time_s": 14.90000000000093,
+      "gyro": [
+        0.007144996731237109,
+        -0.031264732845047126,
+        0.15474394569516878
+      ],
+      "minimum_foot_force_n": 18.635332945388548,
+      "maximum_joint_speed_rad_s": 0.22519871965842955
+    },
+    {
+      "time_s": 14.90500000000093,
+      "gyro": [
+        0.01025072099327077,
+        -0.031283249735109334,
+        0.15150543928341248
+      ],
+      "minimum_foot_force_n": 19.38332362014519,
+      "maximum_joint_speed_rad_s": 0.21792391560341748
+    },
+    {
+      "time_s": 14.910000000000931,
+      "gyro": [
+        0.01332081718064557,
+        -0.030112625621023896,
+        0.15028242935606959
+      ],
+      "minimum_foot_force_n": 19.527554930580276,
+      "maximum_joint_speed_rad_s": 0.21538201743606988
+    },
+    {
+      "time_s": 14.915000000000932,
+      "gyro": [
+        0.01892921604160449,
+        -0.02919568713505963,
+        0.1449604679253389
+      ],
+      "minimum_foot_force_n": 19.809864893922025,
+      "maximum_joint_speed_rad_s": 0.2076590878227449
+    },
+    {
+      "time_s": 14.920000000000933,
+      "gyro": [
+        0.02568484164411327,
+        -0.03081992968400845,
+        0.14293644923612606
+      ],
+      "minimum_foot_force_n": 19.859670183564,
+      "maximum_joint_speed_rad_s": 0.20203607515576336
+    },
+    {
+      "time_s": 14.925000000000933,
+      "gyro": [
+        0.028488168809919567,
+        -0.03209864823278834,
+        0.1384963730014463
+      ],
+      "minimum_foot_force_n": 19.427171331524086,
+      "maximum_joint_speed_rad_s": 0.19288209181949342
+    },
+    {
+      "time_s": 14.930000000000934,
+      "gyro": [
+        0.027116505645294855,
+        -0.031343054380734786,
+        0.1331074384835928
+      ],
+      "minimum_foot_force_n": 20.193671766138344,
+      "maximum_joint_speed_rad_s": 0.19427331363671313
+    },
+    {
+      "time_s": 14.935000000000935,
+      "gyro": [
+        0.02308865346767201,
+        -0.031118697939838753,
+        0.1346024715656859
+      ],
+      "minimum_foot_force_n": 19.661962986896842,
+      "maximum_joint_speed_rad_s": 0.19740919123789813
+    },
+    {
+      "time_s": 14.940000000000936,
+      "gyro": [
+        0.02092108311381156,
+        -0.030070084637976658,
+        0.13267781548713134
+      ],
+      "minimum_foot_force_n": 20.347650629223327,
+      "maximum_joint_speed_rad_s": 0.20482446424265033
+    },
+    {
+      "time_s": 14.945000000000936,
+      "gyro": [
+        0.015592483224272202,
+        -0.031007662740454515,
+        0.13052318021832973
+      ],
+      "minimum_foot_force_n": 18.83741671150964,
+      "maximum_joint_speed_rad_s": 0.20826533105027226
+    },
+    {
+      "time_s": 14.950000000000937,
+      "gyro": [
+        0.009708996914266277,
+        -0.02945201184052046,
+        0.13364543390213254
+      ],
+      "minimum_foot_force_n": 18.88127451147223,
+      "maximum_joint_speed_rad_s": 0.21620427877605264
+    },
+    {
+      "time_s": 14.955000000000938,
+      "gyro": [
+        0.003906841298306576,
+        -0.029783958123059343,
+        0.13607345448045055
+      ],
+      "minimum_foot_force_n": 19.399448729534168,
+      "maximum_joint_speed_rad_s": 0.2211125500854715
+    },
+    {
+      "time_s": 14.960000000000939,
+      "gyro": [
+        0.0007250242302966592,
+        -0.029373186258639786,
+        0.13809647271893763
+      ],
+      "minimum_foot_force_n": 18.42493583777634,
+      "maximum_joint_speed_rad_s": 0.22594478753584515
+    },
+    {
+      "time_s": 14.96500000000094,
+      "gyro": [
+        -0.0033375528945469852,
+        -0.029971485532636215,
+        0.13883665036830964
+      ],
+      "minimum_foot_force_n": 18.327513688851518,
+      "maximum_joint_speed_rad_s": 0.2243998234774508
+    },
+    {
+      "time_s": 14.97000000000094,
+      "gyro": [
+        -0.0008658107044222486,
+        -0.027892814026063466,
+        0.13984601962191548
+      ],
+      "minimum_foot_force_n": 18.184604243892984,
+      "maximum_joint_speed_rad_s": 0.22745022399868592
+    },
+    {
+      "time_s": 14.975000000000941,
+      "gyro": [
+        0.0045505899324335365,
+        -0.024879201188978184,
+        0.14670109252431865
+      ],
+      "minimum_foot_force_n": 18.46349167565553,
+      "maximum_joint_speed_rad_s": 0.2254848363324063
+    },
+    {
+      "time_s": 14.980000000000942,
+      "gyro": [
+        0.0077344629711517034,
+        -0.02279536598495483,
+        0.1470416975062935
+      ],
+      "minimum_foot_force_n": 18.738107454713347,
+      "maximum_joint_speed_rad_s": 0.21940781567957443
+    },
+    {
+      "time_s": 14.985000000000943,
+      "gyro": [
+        0.010077940278804718,
+        -0.021754984427258157,
+        0.1509747445390513
+      ],
+      "minimum_foot_force_n": 17.983745653318703,
+      "maximum_joint_speed_rad_s": 0.22221054243534938
+    },
+    {
+      "time_s": 14.990000000000943,
+      "gyro": [
+        0.014254825912756659,
+        -0.016510573867891735,
+        0.15096395630868847
+      ],
+      "minimum_foot_force_n": 18.260608145080642,
+      "maximum_joint_speed_rad_s": 0.22046797123588088
+    },
+    {
+      "time_s": 14.995000000000944,
+      "gyro": [
+        0.017255546647261904,
+        -0.01319811982705286,
+        0.15191965162335705
+      ],
+      "minimum_foot_force_n": 18.329563462969823,
+      "maximum_joint_speed_rad_s": 0.2160431523603729
+    },
+    {
+      "time_s": 15.000000000000945,
+      "gyro": [
+        0.02161524479692977,
+        -0.007674031318931624,
+        0.15221259696217523
+      ],
+      "minimum_foot_force_n": 18.741338987362017,
+      "maximum_joint_speed_rad_s": 0.21453080299146898
+    },
+    {
+      "time_s": 15.005000000000946,
+      "gyro": [
+        0.021218847984362285,
+        -0.006938997021441082,
+        0.15151142349464738
+      ],
+      "minimum_foot_force_n": 18.657714115560445,
+      "maximum_joint_speed_rad_s": 0.21072251497711392
+    },
+    {
+      "time_s": 15.010000000000947,
+      "gyro": [
+        0.0235706834053855,
+        -0.00567401278518209,
+        0.15094942806926698
+      ],
+      "minimum_foot_force_n": 18.448101414766814,
+      "maximum_joint_speed_rad_s": 0.20966871588214028
+    },
+    {
+      "time_s": 15.015000000000947,
+      "gyro": [
+        0.024339853540043963,
+        -0.004489907543536656,
+        0.1494410876806691
+      ],
+      "minimum_foot_force_n": 18.607273099117865,
+      "maximum_joint_speed_rad_s": 0.20982726018382392
+    },
+    {
+      "time_s": 15.020000000000948,
+      "gyro": [
+        0.024751135322915604,
+        -0.0022623160058278845,
+        0.1502103061193522
+      ],
+      "minimum_foot_force_n": 19.0374030581304,
+      "maximum_joint_speed_rad_s": 0.20409687928664172
+    },
+    {
+      "time_s": 15.025000000000949,
+      "gyro": [
+        0.025042151776442687,
+        -0.0020463057207504567,
+        0.14825143963449502
+      ],
+      "minimum_foot_force_n": 18.428761679233478,
+      "maximum_joint_speed_rad_s": 0.20567975702904487
+    },
+    {
+      "time_s": 15.03000000000095,
+      "gyro": [
+        0.022799145667175273,
+        -0.0012798557833981496,
+        0.15123582002986638
+      ],
+      "minimum_foot_force_n": 18.568962593287505,
+      "maximum_joint_speed_rad_s": 0.20980876275104368
+    },
+    {
+      "time_s": 15.03500000000095,
+      "gyro": [
+        0.022980051887757504,
+        -0.001759098929420887,
+        0.14987686695650948
+      ],
+      "minimum_foot_force_n": 18.452038133579016,
+      "maximum_joint_speed_rad_s": 0.20289492165144357
+    },
+    {
+      "time_s": 15.040000000000951,
+      "gyro": [
+        0.022983875939467352,
+        -0.003697940708839743,
+        0.15055405577046732
+      ],
+      "minimum_foot_force_n": 18.081970872305646,
+      "maximum_joint_speed_rad_s": 0.20725081889256688
+    },
+    {
+      "time_s": 15.045000000000952,
+      "gyro": [
+        0.021557733669878273,
+        -0.001449391904235531,
+        0.15049338095036022
+      ],
+      "minimum_foot_force_n": 18.377337441355202,
+      "maximum_joint_speed_rad_s": 0.20837369067531863
+    },
+    {
+      "time_s": 15.050000000000953,
+      "gyro": [
+        0.021524647416970775,
+        -0.004016409145847251,
+        0.15115977326604046
+      ],
+      "minimum_foot_force_n": 17.986959989064566,
+      "maximum_joint_speed_rad_s": 0.20744771375613347
+    },
+    {
+      "time_s": 15.055000000000954,
+      "gyro": [
+        0.019509456692540568,
+        -0.0017708856098998754,
+        0.15212523795029423
+      ],
+      "minimum_foot_force_n": 18.587199169616817,
+      "maximum_joint_speed_rad_s": 0.21106733089842075
+    },
+    {
+      "time_s": 15.060000000000954,
+      "gyro": [
+        0.017987665981817866,
+        -0.0035171304119166968,
+        0.15489072089450462
+      ],
+      "minimum_foot_force_n": 18.347535543223042,
+      "maximum_joint_speed_rad_s": 0.21318520022617948
+    },
+    {
+      "time_s": 15.065000000000955,
+      "gyro": [
+        0.017913801903825178,
+        -0.003788602345886798,
+        0.1552115672171434
+      ],
+      "minimum_foot_force_n": 17.943196148376106,
+      "maximum_joint_speed_rad_s": 0.21334645416527892
+    },
+    {
+      "time_s": 15.070000000000956,
+      "gyro": [
+        0.01830148397238841,
+        -0.004358879364854762,
+        0.15764264351107687
+      ],
+      "minimum_foot_force_n": 17.79717433347007,
+      "maximum_joint_speed_rad_s": 0.21847427517654627
+    },
+    {
+      "time_s": 15.075000000000957,
+      "gyro": [
+        0.016767785179179054,
+        -0.00481489564863394,
+        0.16038015516700008
+      ],
+      "minimum_foot_force_n": 17.736299018080675,
+      "maximum_joint_speed_rad_s": 0.21448426543280674
+    },
+    {
+      "time_s": 15.080000000000958,
+      "gyro": [
+        0.016129065206279852,
+        -0.004344854614366238,
+        0.15936073673877577
+      ],
+      "minimum_foot_force_n": 17.630255178461454,
+      "maximum_joint_speed_rad_s": 0.21543677992599283
+    },
+    {
+      "time_s": 15.085000000000958,
+      "gyro": [
+        0.015145772987118816,
+        -0.004552710260718442,
+        0.15984060243593218
+      ],
+      "minimum_foot_force_n": 18.0340378804149,
+      "maximum_joint_speed_rad_s": 0.22039859811982054
+    },
+    {
+      "time_s": 15.090000000000959,
+      "gyro": [
+        0.014405829630454704,
+        -0.004482070015587066,
+        0.1623925611263021
+      ],
+      "minimum_foot_force_n": 17.66430226213917,
+      "maximum_joint_speed_rad_s": 0.2172168606894527
+    },
+    {
+      "time_s": 15.09500000000096,
+      "gyro": [
+        0.015061673038857972,
+        -0.004727127039310502,
+        0.16341924305677896
+      ],
+      "minimum_foot_force_n": 17.578309514828486,
+      "maximum_joint_speed_rad_s": 0.22076460403943238
+    },
+    {
+      "time_s": 15.10000000000096,
+      "gyro": [
+        0.01570979091870973,
+        -0.0014112002232312538,
+        0.16452350078860487
+      ],
+      "minimum_foot_force_n": 17.450013015622684,
+      "maximum_joint_speed_rad_s": 0.2219821012770473
+    },
+    {
+      "time_s": 15.105000000000961,
+      "gyro": [
+        0.01569144851191497,
+        -0.001292172375647699,
+        0.16380222334499575
+      ],
+      "minimum_foot_force_n": 17.47714765809441,
+      "maximum_joint_speed_rad_s": 0.2172101905253875
+    },
+    {
+      "time_s": 15.110000000000962,
+      "gyro": [
+        0.016164277108405505,
+        -0.002772653730438696,
+        0.1646507379456913
+      ],
+      "minimum_foot_force_n": 17.22438290726879,
+      "maximum_joint_speed_rad_s": 0.2194817467812482
+    },
+    {
+      "time_s": 15.115000000000963,
+      "gyro": [
+        0.01665642734019244,
+        -0.0026181497892049386,
+        0.1644433117515521
+      ],
+      "minimum_foot_force_n": 17.70361271936635,
+      "maximum_joint_speed_rad_s": 0.2173804003707877
+    },
+    {
+      "time_s": 15.120000000000964,
+      "gyro": [
+        0.019338292930949946,
+        -0.0010698049946872364,
+        0.1642930679439712
+      ],
+      "minimum_foot_force_n": 17.68459051762639,
+      "maximum_joint_speed_rad_s": 0.22381658163179977
+    },
+    {
+      "time_s": 15.125000000000965,
+      "gyro": [
+        0.016187001540947196,
+        -0.001030343845985234,
+        0.1658299907099475
+      ],
+      "minimum_foot_force_n": 17.615625052156282,
+      "maximum_joint_speed_rad_s": 0.2190122069818958
+    },
+    {
+      "time_s": 15.130000000000965,
+      "gyro": [
+        0.017608412880014572,
+        -0.0010698503873060915,
+        0.1651541666487539
+      ],
+      "minimum_foot_force_n": 18.08942532205577,
+      "maximum_joint_speed_rad_s": 0.22148637915200597
+    },
+    {
+      "time_s": 15.135000000000966,
+      "gyro": [
+        0.017048538670399207,
+        -0.001334125973190832,
+        0.1674113703919589
+      ],
+      "minimum_foot_force_n": 17.215307069084364,
+      "maximum_joint_speed_rad_s": 0.2233475290356314
+    },
+    {
+      "time_s": 15.140000000000967,
+      "gyro": [
+        0.016420839027267667,
+        -0.000946276122072491,
+        0.1670472439242509
+      ],
+      "minimum_foot_force_n": 17.434714197435326,
+      "maximum_joint_speed_rad_s": 0.22617863448789888
+    },
+    {
+      "time_s": 15.145000000000968,
+      "gyro": [
+        0.016821221516560382,
+        -0.0035074444798664298,
+        0.16577715121458114
+      ],
+      "minimum_foot_force_n": 17.137446410962035,
+      "maximum_joint_speed_rad_s": 0.22303283658985423
+    },
+    {
+      "time_s": 15.150000000000968,
+      "gyro": [
+        0.01645946177283873,
+        0.0010603624612389728,
+        0.1691090016016836
+      ],
+      "minimum_foot_force_n": 17.570792014111664,
+      "maximum_joint_speed_rad_s": 0.22013006155418433
+    },
+    {
+      "time_s": 15.15500000000097,
+      "gyro": [
+        0.01608913423288844,
+        -0.0003978291453520817,
+        0.1694557346519051
+      ],
+      "minimum_foot_force_n": 17.510940767501832,
+      "maximum_joint_speed_rad_s": 0.22160180541012336
+    },
+    {
+      "time_s": 15.16000000000097,
+      "gyro": [
+        0.01675738779432316,
+        0.00046492742743703327,
+        0.1713420152637789
+      ],
+      "minimum_foot_force_n": 17.43104572035385,
+      "maximum_joint_speed_rad_s": 0.2258837364677858
+    },
+    {
+      "time_s": 15.16500000000097,
+      "gyro": [
+        0.017239607380926596,
+        0.0006541002752168781,
+        0.17083844929370845
+      ],
+      "minimum_foot_force_n": 17.42455525149996,
+      "maximum_joint_speed_rad_s": 0.22380462309305296
+    },
+    {
+      "time_s": 15.170000000000972,
+      "gyro": [
+        0.013976923249372119,
+        -0.0005011972688740874,
+        0.17163292093707658
+      ],
+      "minimum_foot_force_n": 17.48074696054735,
+      "maximum_joint_speed_rad_s": 0.226130061235269
+    },
+    {
+      "time_s": 15.175000000000972,
+      "gyro": [
+        0.012917124600087548,
+        0.0012465744694294596,
+        0.1725765734931895
+      ],
+      "minimum_foot_force_n": 16.97750481498639,
+      "maximum_joint_speed_rad_s": 0.22790066164614733
+    },
+    {
+      "time_s": 15.180000000000973,
+      "gyro": [
+        0.014326461674116522,
+        -0.0005381502642319775,
+        0.1737340919159395
+      ],
+      "minimum_foot_force_n": 17.28020248964838,
+      "maximum_joint_speed_rad_s": 0.22401901267476282
+    },
+    {
+      "time_s": 15.185000000000974,
+      "gyro": [
+        0.014723985994547018,
+        0.0004863522225156428,
+        0.17418752881623753
+      ],
+      "minimum_foot_force_n": 16.875947165958266,
+      "maximum_joint_speed_rad_s": 0.22591999025383075
+    },
+    {
+      "time_s": 15.190000000000975,
+      "gyro": [
+        0.016305779840545303,
+        0.0012865582190034635,
+        0.17326262474679843
+      ],
+      "minimum_foot_force_n": 17.746693709870332,
+      "maximum_joint_speed_rad_s": 0.22384403981067874
+    },
+    {
+      "time_s": 15.195000000000976,
+      "gyro": [
+        0.017012214776745044,
+        0.001407349322593197,
+        0.17318010538326342
+      ],
+      "minimum_foot_force_n": 17.570315658503866,
+      "maximum_joint_speed_rad_s": 0.22512437243045602
+    },
+    {
+      "time_s": 15.200000000000976,
+      "gyro": [
+        0.015895611239524172,
+        0.0008568187147858289,
+        0.17443117642698172
+      ],
+      "minimum_foot_force_n": 17.692374961460814,
+      "maximum_joint_speed_rad_s": 0.22697065721401558
+    },
+    {
+      "time_s": 15.205000000000977,
+      "gyro": [
+        0.018210266535319323,
+        0.0023467140713560285,
+        0.17372963836782668
+      ],
+      "minimum_foot_force_n": 17.351984568375702,
+      "maximum_joint_speed_rad_s": 0.22376535444619386
+    },
+    {
+      "time_s": 15.210000000000978,
+      "gyro": [
+        0.019216787508924478,
+        0.0036583587010171454,
+        0.17642058331395208
+      ],
+      "minimum_foot_force_n": 17.33881747951112,
+      "maximum_joint_speed_rad_s": 0.22725664658899275
+    },
+    {
+      "time_s": 15.215000000000979,
+      "gyro": [
+        0.01889744931664359,
+        0.004167278538438277,
+        0.17569191088358183
+      ],
+      "minimum_foot_force_n": 16.847363679716302,
+      "maximum_joint_speed_rad_s": 0.2285734735211402
+    },
+    {
+      "time_s": 15.22000000000098,
+      "gyro": [
+        0.01684889424870218,
+        0.0023916871416903803,
+        0.17535330886727565
+      ],
+      "minimum_foot_force_n": 17.097524161105166,
+      "maximum_joint_speed_rad_s": 0.225399527547644
+    },
+    {
+      "time_s": 15.22500000000098,
+      "gyro": [
+        0.016546784562130358,
+        0.0014413098125891982,
+        0.17480344275824092
+      ],
+      "minimum_foot_force_n": 17.77938378638357,
+      "maximum_joint_speed_rad_s": 0.2257174758786266
+    },
+    {
+      "time_s": 15.230000000000981,
+      "gyro": [
+        0.016001901367045827,
+        -0.00028978148412137626,
+        0.17939787720672476
+      ],
+      "minimum_foot_force_n": 17.01279628919921,
+      "maximum_joint_speed_rad_s": 0.23353836124817703
+    },
+    {
+      "time_s": 15.235000000000982,
+      "gyro": [
+        0.01622989753868294,
+        0.001913071280529221,
+        0.18101934380701093
+      ],
+      "minimum_foot_force_n": 17.650216718655617,
+      "maximum_joint_speed_rad_s": 0.2311588380415205
+    },
+    {
+      "time_s": 15.240000000000983,
+      "gyro": [
+        0.016661143069938728,
+        -0.0007317395128609325,
+        0.18091845601057674
+      ],
+      "minimum_foot_force_n": 16.88620015885004,
+      "maximum_joint_speed_rad_s": 0.2336916342360612
+    },
+    {
+      "time_s": 15.245000000000983,
+      "gyro": [
+        0.015818379486221376,
+        0.0003535135844885588,
+        0.1820500045931506
+      ],
+      "minimum_foot_force_n": 16.87023789344519,
+      "maximum_joint_speed_rad_s": 0.23719117317040475
+    },
+    {
+      "time_s": 15.250000000000984,
+      "gyro": [
+        0.015241726241899236,
+        0.001318145564997778,
+        0.18370193129491041
+      ],
+      "minimum_foot_force_n": 16.723314675151816,
+      "maximum_joint_speed_rad_s": 0.23241872817615075
+    },
+    {
+      "time_s": 15.255000000000985,
+      "gyro": [
+        0.014390997389233474,
+        -0.0013860480763174417,
+        0.18446430318885762
+      ],
+      "minimum_foot_force_n": 17.150522996892462,
+      "maximum_joint_speed_rad_s": 0.23537256717306895
+    },
+    {
+      "time_s": 15.260000000000986,
+      "gyro": [
+        0.016042741147479007,
+        0.0018851892024194258,
+        0.1856089866966266
+      ],
+      "minimum_foot_force_n": 17.199141995653946,
+      "maximum_joint_speed_rad_s": 0.23468566882890882
+    },
+    {
+      "time_s": 15.265000000000986,
+      "gyro": [
+        0.013902635625698188,
+        0.0004554557461092063,
+        0.1849919967494697
+      ],
+      "minimum_foot_force_n": 17.23014495284,
+      "maximum_joint_speed_rad_s": 0.23638850608533732
+    },
+    {
+      "time_s": 15.270000000000987,
+      "gyro": [
+        0.015667051067216185,
+        0.0011615758942785902,
+        0.1847293288138851
+      ],
+      "minimum_foot_force_n": 16.686147026782763,
+      "maximum_joint_speed_rad_s": 0.23749090091793945
+    },
+    {
+      "time_s": 15.275000000000988,
+      "gyro": [
+        0.012282275078038168,
+        0.0002509816367325305,
+        0.18616572462194184
+      ],
+      "minimum_foot_force_n": 16.539832686551417,
+      "maximum_joint_speed_rad_s": 0.2390642800084119
+    },
+    {
+      "time_s": 15.280000000000989,
+      "gyro": [
+        0.012273693863494944,
+        0.002515311898480619,
+        0.18505212077151517
+      ],
+      "minimum_foot_force_n": 17.215485125701402,
+      "maximum_joint_speed_rad_s": 0.23470258412109826
+    },
+    {
+      "time_s": 15.28500000000099,
+      "gyro": [
+        0.014547204591439196,
+        -6.437099762968959e-05,
+        0.18619798632768012
+      ],
+      "minimum_foot_force_n": 17.085806256171193,
+      "maximum_joint_speed_rad_s": 0.24011989026758523
+    },
+    {
+      "time_s": 15.29000000000099,
+      "gyro": [
+        0.01376821285029919,
+        0.0001880353145178779,
+        0.18750823635030325
+      ],
+      "minimum_foot_force_n": 16.74524090981278,
+      "maximum_joint_speed_rad_s": 0.23701460244090303
+    },
+    {
+      "time_s": 15.295000000000991,
+      "gyro": [
+        0.0151830072367845,
+        0.0010867052903216086,
+        0.1886294258911334
+      ],
+      "minimum_foot_force_n": 16.76793407414012,
+      "maximum_joint_speed_rad_s": 0.23752126147804967
+    },
+    {
+      "time_s": 15.300000000000992,
+      "gyro": [
+        0.016782111325942227,
+        0.000807431761163339,
+        0.18780090410988864
+      ],
+      "minimum_foot_force_n": 16.728305676263023,
+      "maximum_joint_speed_rad_s": 0.24095915991616507
+    },
+    {
+      "time_s": 15.305000000000993,
+      "gyro": [
+        0.013983057310362298,
+        -9.4985406561453e-05,
+        0.18651529186937468
+      ],
+      "minimum_foot_force_n": 17.094951074822678,
+      "maximum_joint_speed_rad_s": 0.2409859238222692
+    },
+    {
+      "time_s": 15.310000000000993,
+      "gyro": [
+        0.015548932868273817,
+        0.0005958437653820071,
+        0.18910145246867513
+      ],
+      "minimum_foot_force_n": 17.052410998384715,
+      "maximum_joint_speed_rad_s": 0.24042379067867925
+    },
+    {
+      "time_s": 15.315000000000994,
+      "gyro": [
+        0.014647858836806422,
+        0.0006144543043160879,
+        0.18802082993269495
+      ],
+      "minimum_foot_force_n": 17.08392862072696,
+      "maximum_joint_speed_rad_s": 0.24013658242572317
+    },
+    {
+      "time_s": 15.320000000000995,
+      "gyro": [
+        0.013281772843329693,
+        0.00014200170178618483,
+        0.1890734227852042
+      ],
+      "minimum_foot_force_n": 17.060864514700594,
+      "maximum_joint_speed_rad_s": 0.24177297474881898
+    },
+    {
+      "time_s": 15.325000000000996,
+      "gyro": [
+        0.012051848944521198,
+        0.0010951812794094552,
+        0.18990283722120496
+      ],
+      "minimum_foot_force_n": 17.377766949238627,
+      "maximum_joint_speed_rad_s": 0.24386944971446253
+    },
+    {
+      "time_s": 15.330000000000997,
+      "gyro": [
+        0.013603904510239878,
+        0.0007268510505860892,
+        0.19061299411398183
+      ],
+      "minimum_foot_force_n": 17.313069977618945,
+      "maximum_joint_speed_rad_s": 0.24131772452752437
+    },
+    {
+      "time_s": 15.335000000000997,
+      "gyro": [
+        0.013185689521471778,
+        0.0023691736062725183,
+        0.19129602808987098
+      ],
+      "minimum_foot_force_n": 16.97174775078156,
+      "maximum_joint_speed_rad_s": 0.24540151869368923
+    },
+    {
+      "time_s": 15.340000000000998,
+      "gyro": [
+        0.012576913180852037,
+        0.0009979411039699507,
+        0.19229917005047142
+      ],
+      "minimum_foot_force_n": 17.097977183569533,
+      "maximum_joint_speed_rad_s": 0.24507064296542666
+    },
+    {
+      "time_s": 15.345000000000999,
+      "gyro": [
+        0.014760892520923895,
+        0.0024237238007283088,
+        0.1918983368393011
+      ],
+      "minimum_foot_force_n": 17.411289551959193,
+      "maximum_joint_speed_rad_s": 0.2443241223143885
+    },
+    {
+      "time_s": 15.350000000001,
+      "gyro": [
+        0.014517248728466664,
+        0.004879200807542359,
+        0.1920651521943666
+      ],
+      "minimum_foot_force_n": 17.195474148166696,
+      "maximum_joint_speed_rad_s": 0.2428158966928064
+    },
+    {
+      "time_s": 15.355000000001,
+      "gyro": [
+        0.013913397925437644,
+        0.004719383376265122,
+        0.19135003025652314
+      ],
+      "minimum_foot_force_n": 17.945508752114918,
+      "maximum_joint_speed_rad_s": 0.24558037682770328
+    },
+    {
+      "time_s": 15.360000000001001,
+      "gyro": [
+        0.013259782233806024,
+        0.006622222451751111,
+        0.19409136187760662
+      ],
+      "minimum_foot_force_n": 16.614184780094934,
+      "maximum_joint_speed_rad_s": 0.24447185512309166
+    },
+    {
+      "time_s": 15.365000000001002,
+      "gyro": [
+        0.013693603267704796,
+        0.008065599210274105,
+        0.19305305864667854
+      ],
+      "minimum_foot_force_n": 17.02600688697863,
+      "maximum_joint_speed_rad_s": 0.2380923937098013
+    },
+    {
+      "time_s": 15.370000000001003,
+      "gyro": [
+        0.013835755104614014,
+        0.007678717322615062,
+        0.1926778620145111
+      ],
+      "minimum_foot_force_n": 17.0764982059721,
+      "maximum_joint_speed_rad_s": 0.2407173037597002
+    },
+    {
+      "time_s": 15.375000000001004,
+      "gyro": [
+        0.013185978849121772,
+        0.008120698682400066,
+        0.1929817455810165
+      ],
+      "minimum_foot_force_n": 17.230092561263202,
+      "maximum_joint_speed_rad_s": 0.2416609084058879
+    },
+    {
+      "time_s": 15.380000000001004,
+      "gyro": [
+        0.014007577173709675,
+        0.006254712469020003,
+        0.1923327359332581
+      ],
+      "minimum_foot_force_n": 17.360727272804358,
+      "maximum_joint_speed_rad_s": 0.24130237721097786
+    },
+    {
+      "time_s": 15.385000000001005,
+      "gyro": [
+        0.013040552417099062,
+        0.006644181683160526,
+        0.1918453477649572
+      ],
+      "minimum_foot_force_n": 17.186078340962588,
+      "maximum_joint_speed_rad_s": 0.24080844537817156
+    },
+    {
+      "time_s": 15.390000000001006,
+      "gyro": [
+        0.012506865098258275,
+        0.008351089438981909,
+        0.19268378450869839
+      ],
+      "minimum_foot_force_n": 17.41934721200516,
+      "maximum_joint_speed_rad_s": 0.24561957472796575
+    },
+    {
+      "time_s": 15.395000000001007,
+      "gyro": [
+        0.012699426709743866,
+        0.005736919080046122,
+        0.19357760691956663
+      ],
+      "minimum_foot_force_n": 17.124557288474726,
+      "maximum_joint_speed_rad_s": 0.24353998371120725
+    },
+    {
+      "time_s": 15.400000000001008,
+      "gyro": [
+        0.010862497479919008,
+        0.004657546568849703,
+        0.19485465607498012
+      ],
+      "minimum_foot_force_n": 17.416096241407043,
+      "maximum_joint_speed_rad_s": 0.24345690277872364
+    },
+    {
+      "time_s": 15.405000000001008,
+      "gyro": [
+        0.012464653380013988,
+        0.006424208518334579,
+        0.19751184237778147
+      ],
+      "minimum_foot_force_n": 17.500045907208364,
+      "maximum_joint_speed_rad_s": 0.24738744563746645
+    },
+    {
+      "time_s": 15.41000000000101,
+      "gyro": [
+        0.009532460564485534,
+        0.0037300682559705776,
+        0.19688609458486325
+      ],
+      "minimum_foot_force_n": 17.69106557126667,
+      "maximum_joint_speed_rad_s": 0.24573530670357788
+    },
+    {
+      "time_s": 15.41500000000101,
+      "gyro": [
+        0.010222470962206449,
+        0.005392959314499056,
+        0.19723278081245985
+      ],
+      "minimum_foot_force_n": 17.28143504131356,
+      "maximum_joint_speed_rad_s": 0.24630681130811255
+    },
+    {
+      "time_s": 15.42000000000101,
+      "gyro": [
+        0.010091266332536687,
+        0.00564930115552496,
+        0.19791108393587603
+      ],
+      "minimum_foot_force_n": 17.48426033573282,
+      "maximum_joint_speed_rad_s": 0.24467958749217203
+    },
+    {
+      "time_s": 15.425000000001011,
+      "gyro": [
+        0.009181335696983808,
+        0.003161037202871934,
+        0.19636938102084053
+      ],
+      "minimum_foot_force_n": 16.925881314364275,
+      "maximum_joint_speed_rad_s": 0.24751524926053944
+    },
+    {
+      "time_s": 15.430000000001012,
+      "gyro": [
+        0.007763085547897607,
+        0.00215712673353171,
+        0.19878879467288074
+      ],
+      "minimum_foot_force_n": 17.784888134901077,
+      "maximum_joint_speed_rad_s": 0.25132280840827187
+    },
+    {
+      "time_s": 15.435000000001013,
+      "gyro": [
+        0.009778221774069628,
+        0.0015418445310890368,
+        0.1984644415686976
+      ],
+      "minimum_foot_force_n": 17.769941919048406,
+      "maximum_joint_speed_rad_s": 0.2480420993767653
+    },
+    {
+      "time_s": 15.440000000001014,
+      "gyro": [
+        0.010519094372936858,
+        0.0017271191047922585,
+        0.2004913875092113
+      ],
+      "minimum_foot_force_n": 18.09614951371869,
+      "maximum_joint_speed_rad_s": 0.24752593420437705
+    },
+    {
+      "time_s": 15.445000000001015,
+      "gyro": [
+        0.010236480760064936,
+        -0.0003205393988934462,
+        0.19928416892578138
+      ],
+      "minimum_foot_force_n": 17.533293540372956,
+      "maximum_joint_speed_rad_s": 0.24663267709661985
+    },
+    {
+      "time_s": 15.450000000001015,
+      "gyro": [
+        0.008689527084343658,
+        -0.000293485245979994,
+        0.2003855008845394
+      ],
+      "minimum_foot_force_n": 18.098663215377393,
+      "maximum_joint_speed_rad_s": 0.24852486740311341
+    },
+    {
+      "time_s": 15.455000000001016,
+      "gyro": [
+        0.007368828743641669,
+        0.0018162020531542773,
+        0.200871274073468
+      ],
+      "minimum_foot_force_n": 17.869206708932637,
+      "maximum_joint_speed_rad_s": 0.24743065267124167
+    },
+    {
+      "time_s": 15.460000000001017,
+      "gyro": [
+        0.008977263283087651,
+        0.00014167098290778076,
+        0.19942863640713585
+      ],
+      "minimum_foot_force_n": 18.055493988890817,
+      "maximum_joint_speed_rad_s": 0.24706928349120105
+    },
+    {
+      "time_s": 15.465000000001018,
+      "gyro": [
+        0.007308554118628685,
+        0.0023336222863034064,
+        0.19893119050342073
+      ],
+      "minimum_foot_force_n": 17.893565038876627,
+      "maximum_joint_speed_rad_s": 0.24821450673589543
+    },
+    {
+      "time_s": 15.470000000001018,
+      "gyro": [
+        0.007302792922657216,
+        0.0022560199110154807,
+        0.19985789949154936
+      ],
+      "minimum_foot_force_n": 17.65225555579695,
+      "maximum_joint_speed_rad_s": 0.2466274365943064
+    },
+    {
+      "time_s": 15.47500000000102,
+      "gyro": [
+        0.005737899659922397,
+        0.008796275308142854,
+        0.20058093813080852
+      ],
+      "minimum_foot_force_n": 18.65573468383266,
+      "maximum_joint_speed_rad_s": 0.2430112330762212
+    },
+    {
+      "time_s": 15.48000000000102,
+      "gyro": [
+        0.010561098793156707,
+        0.008237872901514226,
+        0.19862110587729787
+      ],
+      "minimum_foot_force_n": 18.220555706214746,
+      "maximum_joint_speed_rad_s": 0.24312028439606914
+    },
+    {
+      "time_s": 15.48500000000102,
+      "gyro": [
+        0.010072715916802316,
+        0.008384135216800032,
+        0.19803969989893697
+      ],
+      "minimum_foot_force_n": 18.15847566971097,
+      "maximum_joint_speed_rad_s": 0.24429304538146343
+    },
+    {
+      "time_s": 15.490000000001022,
+      "gyro": [
+        0.007598140350206904,
+        0.008248034824780912,
+        0.19860790768739164
+      ],
+      "minimum_foot_force_n": 18.724835871864734,
+      "maximum_joint_speed_rad_s": 0.24652621997747945
+    },
+    {
+      "time_s": 15.495000000001022,
+      "gyro": [
+        0.00806538946232793,
+        0.010292402430696783,
+        0.19905233918441562
+      ],
+      "minimum_foot_force_n": 18.766058219403092,
+      "maximum_joint_speed_rad_s": 0.246085935657893
+    },
+    {
+      "time_s": 15.500000000001023,
+      "gyro": [
+        0.007035491705971878,
+        0.009372872047432736,
+        0.1979218308013187
+      ],
+      "minimum_foot_force_n": 18.391319893002734,
+      "maximum_joint_speed_rad_s": 0.24190724095487728
+    },
+    {
+      "time_s": 15.505000000001024,
+      "gyro": [
+        0.00635081448009234,
+        0.010181706048751231,
+        0.19690905001477188
+      ],
+      "minimum_foot_force_n": 18.475577090978074,
+      "maximum_joint_speed_rad_s": 0.24223674247476354
+    },
+    {
+      "time_s": 15.510000000001025,
+      "gyro": [
+        0.004519812857972457,
+        0.009091808777213089,
+        0.19889780769790263
+      ],
+      "minimum_foot_force_n": 18.668232419808042,
+      "maximum_joint_speed_rad_s": 0.24283260734693699
+    },
+    {
+      "time_s": 15.515000000001026,
+      "gyro": [
+        0.005254525521353181,
+        0.01075131150274992,
+        0.19693224101226298
+      ],
+      "minimum_foot_force_n": 18.879211642377363,
+      "maximum_joint_speed_rad_s": 0.24103596929215831
+    },
+    {
+      "time_s": 15.520000000001026,
+      "gyro": [
+        0.005497694296241269,
+        0.0070472505371041655,
+        0.1969607745341483
+      ],
+      "minimum_foot_force_n": 18.793319328029078,
+      "maximum_joint_speed_rad_s": 0.2430705141698822
+    },
+    {
+      "time_s": 15.525000000001027,
+      "gyro": [
+        0.006323372803337311,
+        0.007120144091355087,
+        0.1972701582595788
+      ],
+      "minimum_foot_force_n": 19.495141054450762,
+      "maximum_joint_speed_rad_s": 0.24374845124215466
+    },
+    {
+      "time_s": 15.530000000001028,
+      "gyro": [
+        0.004486319601347823,
+        0.008308037755309472,
+        0.19863109466619264
+      ],
+      "minimum_foot_force_n": 19.216507551935557,
+      "maximum_joint_speed_rad_s": 0.24034644513620476
+    },
+    {
+      "time_s": 15.535000000001029,
+      "gyro": [
+        0.00699580215429504,
+        0.005136932129434594,
+        0.19987795884559784
+      ],
+      "minimum_foot_force_n": 19.13059327480921,
+      "maximum_joint_speed_rad_s": 0.24111942119656266
+    },
+    {
+      "time_s": 15.54000000000103,
+      "gyro": [
+        0.006381239263308428,
+        0.008232217202773812,
+        0.1971786779481067
+      ],
+      "minimum_foot_force_n": 18.89755065583116,
+      "maximum_joint_speed_rad_s": 0.24214833455838397
+    },
+    {
+      "time_s": 15.54500000000103,
+      "gyro": [
+        0.003869912176522453,
+        0.004854875105050279,
+        0.1965813782804911
+      ],
+      "minimum_foot_force_n": 19.815492156644535,
+      "maximum_joint_speed_rad_s": 0.24163564667685858
+    },
+    {
+      "time_s": 15.550000000001031,
+      "gyro": [
+        0.005506282960554255,
+        0.006289743985230309,
+        0.19696061506369378
+      ],
+      "minimum_foot_force_n": 19.825880936779882,
+      "maximum_joint_speed_rad_s": 0.23705118304236686
+    },
+    {
+      "time_s": 15.555000000001032,
+      "gyro": [
+        0.006990362825420634,
+        0.004133625090340325,
+        0.19504655498936022
+      ],
+      "minimum_foot_force_n": 20.330153946435885,
+      "maximum_joint_speed_rad_s": 0.23301269098844904
+    },
+    {
+      "time_s": 15.560000000001033,
+      "gyro": [
+        0.00816726441911527,
+        0.005745350543002527,
+        0.19291206905766758
+      ],
+      "minimum_foot_force_n": 19.302423544881968,
+      "maximum_joint_speed_rad_s": 0.23540718256187182
+    },
+    {
+      "time_s": 15.565000000001033,
+      "gyro": [
+        0.008123741946657268,
+        0.0028828321377252367,
+        0.19040166994283378
+      ],
+      "minimum_foot_force_n": 21.050482479431288,
+      "maximum_joint_speed_rad_s": 0.22852175020435342
+    },
+    {
+      "time_s": 15.570000000001034,
+      "gyro": [
+        0.009363022938933726,
+        0.003947129029087704,
+        0.19064088076031183
+      ],
+      "minimum_foot_force_n": 20.5087242409946,
+      "maximum_joint_speed_rad_s": 0.22849052998463762
+    },
+    {
+      "time_s": 15.575000000001035,
+      "gyro": [
+        0.011095780715365213,
+        0.006981394744875465,
+        0.1890605284652534
+      ],
+      "minimum_foot_force_n": 20.929198774939966,
+      "maximum_joint_speed_rad_s": 0.22623763915893833
+    },
+    {
+      "time_s": 15.580000000001036,
+      "gyro": [
+        0.011724084685768998,
+        0.006977149871518553,
+        0.18586702197161867
+      ],
+      "minimum_foot_force_n": 20.9159004222576,
+      "maximum_joint_speed_rad_s": 0.2192972633860334
+    },
+    {
+      "time_s": 15.585000000001036,
+      "gyro": [
+        0.013366816876025226,
+        0.005666167213695923,
+        0.18408443529526244
+      ],
+      "minimum_foot_force_n": 22.393832059239774,
+      "maximum_joint_speed_rad_s": 0.21892710296471163
+    },
+    {
+      "time_s": 15.590000000001037,
+      "gyro": [
+        0.015756542749283817,
+        0.008061688624228864,
+        0.18021059222622876
+      ],
+      "minimum_foot_force_n": 22.716400835644595,
+      "maximum_joint_speed_rad_s": 0.21504115277439848
+    },
+    {
+      "time_s": 15.595000000001038,
+      "gyro": [
+        0.016821084190410878,
+        0.010908123777910802,
+        0.1779881433048811
+      ],
+      "minimum_foot_force_n": 23.626824774353803,
+      "maximum_joint_speed_rad_s": 0.21802089555893323
+    },
+    {
+      "time_s": 15.600000000001039,
+      "gyro": [
+        0.017857634588536387,
+        0.009291141795066975,
+        0.1744528393209454
+      ],
+      "minimum_foot_force_n": 22.417045433997586,
+      "maximum_joint_speed_rad_s": 0.20889141347229717
+    },
+    {
+      "time_s": 15.60500000000104,
+      "gyro": [
+        0.019298705294846997,
+        0.012342200258913928,
+        0.16996747391208195
+      ],
+      "minimum_foot_force_n": 26.115957602449857,
+      "maximum_joint_speed_rad_s": 0.2129135550246318
+    },
+    {
+      "time_s": 15.61000000000104,
+      "gyro": [
+        0.016342648976124835,
+        0.016909061824905564,
+        0.16571186195728432
+      ],
+      "minimum_foot_force_n": 25.86168635961437,
+      "maximum_joint_speed_rad_s": 0.21596739064220427
+    },
+    {
+      "time_s": 15.615000000001041,
+      "gyro": [
+        0.01492122095352996,
+        0.022335242660420526,
+        0.1571849087356789
+      ],
+      "minimum_foot_force_n": 25.950715016254765,
+      "maximum_joint_speed_rad_s": 0.21659330823506462
+    },
+    {
+      "time_s": 15.620000000001042,
+      "gyro": [
+        0.01405079663963327,
+        0.02373736357650556,
+        0.15221023699733838
+      ],
+      "minimum_foot_force_n": 26.24637486879821,
+      "maximum_joint_speed_rad_s": 0.22088877367836998
+    },
+    {
+      "time_s": 15.625000000001043,
+      "gyro": [
+        0.015286095046090407,
+        0.028508528190941036,
+        0.1481552028883411
+      ],
+      "minimum_foot_force_n": 29.55104507035102,
+      "maximum_joint_speed_rad_s": 0.22268887404713386
+    },
+    {
+      "time_s": 15.630000000001044,
+      "gyro": [
+        0.01312156879728809,
+        0.03249609790274968,
+        0.14125801682613232
+      ],
+      "minimum_foot_force_n": 29.149132975075332,
+      "maximum_joint_speed_rad_s": 0.2177538067969754
+    },
+    {
+      "time_s": 15.635000000001044,
+      "gyro": [
+        0.009801755836237325,
+        0.033440413139116026,
+        0.13326431797735014
+      ],
+      "minimum_foot_force_n": 29.691807744449093,
+      "maximum_joint_speed_rad_s": 0.21195176595425078
+    },
+    {
+      "time_s": 15.640000000001045,
+      "gyro": [
+        0.011715042600674245,
+        0.037607033934462755,
+        0.1249027640999942
+      ],
+      "minimum_foot_force_n": 28.788539321454447,
+      "maximum_joint_speed_rad_s": 0.21587973641708116
+    },
+    {
+      "time_s": 15.645000000001046,
+      "gyro": [
+        0.010389030582726602,
+        0.04012984226528791,
+        0.11995373839371441
+      ],
+      "minimum_foot_force_n": 31.216259803078323,
+      "maximum_joint_speed_rad_s": 0.20874067894779702
+    },
+    {
+      "time_s": 15.650000000001047,
+      "gyro": [
+        0.012867804126490768,
+        0.0396792485286589,
+        0.1051532522972534
+      ],
+      "minimum_foot_force_n": 30.78665355715281,
+      "maximum_joint_speed_rad_s": 0.188927450069681
+    },
+    {
+      "time_s": 15.655000000001047,
+      "gyro": [
+        0.015031220439723318,
+        0.041567425228178,
+        0.0901097878477937
+      ],
+      "minimum_foot_force_n": 30.698641860029788,
+      "maximum_joint_speed_rad_s": 0.18728356000556837
+    },
+    {
+      "time_s": 15.660000000001048,
+      "gyro": [
+        0.017502318041603404,
+        0.04341414717311856,
+        0.0773784126500785
+      ],
+      "minimum_foot_force_n": 30.059247703412183,
+      "maximum_joint_speed_rad_s": 0.19878563170779492
+    },
+    {
+      "time_s": 15.665000000001049,
+      "gyro": [
+        0.020658601376031392,
+        0.04301231808167318,
+        0.06485196999313034
+      ],
+      "minimum_foot_force_n": 19.03547182254817,
+      "maximum_joint_speed_rad_s": 0.20476964778487564
+    },
+    {
+      "time_s": 15.67000000000105,
+      "gyro": [
+        0.030315838105969852,
+        0.05335811337789288,
+        0.040892526220684004
+      ],
+      "minimum_foot_force_n": 18.07527807946072,
+      "maximum_joint_speed_rad_s": 0.25526276064039705
+    },
+    {
+      "time_s": 15.67500000000105,
+      "gyro": [
+        0.03510444459235456,
+        0.06683540097858487,
+        0.02165389350085062
+      ],
+      "minimum_foot_force_n": 18.784678518817497,
+      "maximum_joint_speed_rad_s": 0.29048487059379907
+    },
+    {
+      "time_s": 15.680000000001051,
+      "gyro": [
+        0.04001457217323858,
+        0.07792787017922129,
+        0.004240310965971329
+      ],
+      "minimum_foot_force_n": 18.494564926542765,
+      "maximum_joint_speed_rad_s": 0.3956689137650593
+    },
+    {
+      "time_s": 15.685000000001052,
+      "gyro": [
+        0.04449263640988576,
+        0.08728610140795644,
+        -0.008344623316450773
+      ],
+      "minimum_foot_force_n": 2.354434730090441,
+      "maximum_joint_speed_rad_s": 0.5088050316378538
+    },
+    {
+      "time_s": 15.690000000001053,
+      "gyro": [
+        0.0619104685133375,
+        0.08778741008840751,
+        -0.04228490544675074
+      ],
+      "minimum_foot_force_n": 0.16893762006641297,
+      "maximum_joint_speed_rad_s": 1.4129705734667937
+    },
+    {
+      "time_s": 15.695000000001054,
+      "gyro": [
+        0.0739850574136676,
+        0.09042663570493138,
+        -0.07617792223056728
+      ],
+      "minimum_foot_force_n": 0.1333863836758869,
+      "maximum_joint_speed_rad_s": 2.5920107429821075
+    },
+    {
+      "time_s": 15.700000000001054,
+      "gyro": [
+        0.08337765989297737,
+        0.08579942691003266,
+        -0.10072406353731839
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.3870292519258838
+    },
+    {
+      "time_s": 15.705000000001055,
+      "gyro": [
+        0.08053427143316454,
+        0.07709331608945073,
+        -0.11702692658253303
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.884258521081636
+    },
+    {
+      "time_s": 15.710000000001056,
+      "gyro": [
+        0.08525576821712041,
+        0.09068658093033405,
+        -0.13186512229731492
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.054319577207055
+    },
+    {
+      "time_s": 15.715000000001057,
+      "gyro": [
+        0.08285160119622806,
+        0.10261165542185352,
+        -0.13758579963544781
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.95294274208144
+    },
+    {
+      "time_s": 15.720000000001058,
+      "gyro": [
+        0.06364899467877007,
+        0.1079354917586334,
+        -0.1357156375225091
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.434113634240099
+    },
+    {
+      "time_s": 15.725000000001058,
+      "gyro": [
+        0.03170679897237999,
+        0.103422659450538,
+        -0.13049959295421074
+      ],
+      "minimum_foot_force_n": 0.05312327705607562,
+      "maximum_joint_speed_rad_s": 6.529446554175402
+    },
+    {
+      "time_s": 15.73000000000106,
+      "gyro": [
+        0.034603379419429134,
+        0.09389087756904066,
+        -0.10855458705590022
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 5.626230456023454
+    },
+    {
+      "time_s": 15.73500000000106,
+      "gyro": [
+        0.023014587836705694,
+        0.0783813981196078,
+        -0.08598318071778698
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.519413944782088
+    },
+    {
+      "time_s": 15.74000000000106,
+      "gyro": [
+        0.0048772350865359795,
+        0.0598391670106636,
+        -0.06193436154482012
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.5656083506603538
+    },
+    {
+      "time_s": 15.745000000001061,
+      "gyro": [
+        -0.02055151130221529,
+        0.03716891227695733,
+        -0.039864767566231266
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 3.3492035852700046
+    },
+    {
+      "time_s": 15.750000000001062,
+      "gyro": [
+        -0.04573892468915929,
+        -0.03545979478393043,
+        -0.006521415319370947
+      ],
+      "minimum_foot_force_n": 0.1761632892845094,
+      "maximum_joint_speed_rad_s": 2.8921925345787916
+    },
+    {
+      "time_s": 15.755000000001063,
+      "gyro": [
+        0.0689242005370546,
+        -0.04962870989791082,
+        0.03836616889105108
+      ],
+      "minimum_foot_force_n": 0.05579494269887722,
+      "maximum_joint_speed_rad_s": 2.777058439322028
+    },
+    {
+      "time_s": 15.760000000001064,
+      "gyro": [
+        0.12572521574703116,
+        -0.0669608902987873,
+        0.07057086738609707
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 4.7265114260931975
+    },
+    {
+      "time_s": 15.765000000001065,
+      "gyro": [
+        0.1834759696180698,
+        -0.06412506206187851,
+        0.09269818648289531
+      ],
+      "minimum_foot_force_n": 0.0,
+      "maximum_joint_speed_rad_s": 6.103175083745423
+    },
+    {
+      "time_s": 15.770000000001065,
+      "gyro": [
+        0.15198458511734564,
+        -0.04463870946779919,
+        0.09406213250238649
+      ],
+      "minimum_foot_force_n": 0.12173787070205602,
+      "maximum_joint_speed_rad_s": 7.379893120928435
+    },
+    {
+      "time_s": 15.775000000001066,
+      "gyro": [
+        0.13538714269378307,
+        -0.019059387159975006,
+        0.08810111170360686
+      ],
+      "minimum_foot_force_n": 22.541438505357224,
+      "maximum_joint_speed_rad_s": 8.193224982378522
+    },
+    {
+      "time_s": 15.780000000001067,
+      "gyro": [
+        -0.04657716792554784,
+        -0.10249749177229928,
+        0.09792061194113419
+      ],
+      "minimum_foot_force_n": 21.66758500246555,
+      "maximum_joint_speed_rad_s": 4.248121960257749
+    },
+    {
+      "time_s": 15.785000000001068,
+      "gyro": [
+        -0.12728346745218938,
+        -0.13906011039718003,
+        0.1015153257545292
+      ],
+      "minimum_foot_force_n": 15.152989544442466,
+      "maximum_joint_speed_rad_s": 1.906387209647187
+    },
+    {
+      "time_s": 15.790000000001069,
+      "gyro": [
+        -0.2136848335030771,
+        -0.14339611341375863,
+        0.09562976211881304
+      ],
+      "minimum_foot_force_n": 15.290783938161708,
+      "maximum_joint_speed_rad_s": 0.5384446756136627
+    },
+    {
+      "time_s": 15.79500000000107,
+      "gyro": [
+        -0.27787143924214064,
+        -0.14143387688256903,
+        0.08607870107492671
+      ],
+      "minimum_foot_force_n": 15.308143302466934,
+      "maximum_joint_speed_rad_s": 0.44142705683805566
+    },
+    {
+      "time_s": 15.80000000000107,
+      "gyro": [
+        -0.33395231865805836,
+        -0.1423386652134364,
+        0.07751181558483852
+      ],
+      "minimum_foot_force_n": 16.01552751612484,
+      "maximum_joint_speed_rad_s": 0.52183319720381
+    },
+    {
+      "time_s": 15.80500000000107,
+      "gyro": [
+        -0.390260080322695,
+        -0.14144269284944772,
+        0.06590252126030954
+      ],
+      "minimum_foot_force_n": 21.47086437113989,
+      "maximum_joint_speed_rad_s": 0.6508464377988946
+    },
+    {
+      "time_s": 15.810000000001072,
+      "gyro": [
+        -0.3259710892996034,
+        -0.10203093372848412,
+        0.05054223137014433
+      ],
+      "minimum_foot_force_n": 20.93061983782128,
+      "maximum_joint_speed_rad_s": 0.7467591686060421
+    },
+    {
+      "time_s": 15.815000000001072,
+      "gyro": [
+        -0.2542602289680237,
+        -0.06800849850666571,
+        0.03712604611586589
+      ],
+      "minimum_foot_force_n": 21.187024970313832,
+      "maximum_joint_speed_rad_s": 0.7754835613802535
+    },
+    {
+      "time_s": 15.820000000001073,
+      "gyro": [
+        -0.1834160954351331,
+        -0.035817233259505754,
+        0.02618550216580728
+      ],
+      "minimum_foot_force_n": 21.754663059861105,
+      "maximum_joint_speed_rad_s": 0.761585824724433
+    },
+    {
+      "time_s": 15.825000000001074,
+      "gyro": [
+        -0.11747634325884299,
+        -0.003705158844161398,
+        0.019171483993563394
+      ],
+      "minimum_foot_force_n": 27.211883322156517,
+      "maximum_joint_speed_rad_s": 0.7321622832489216
+    },
+    {
+      "time_s": 15.830000000001075,
+      "gyro": [
+        -0.06797043159775189,
+        0.01579715327267453,
+        0.018190484937988142
+      ],
+      "minimum_foot_force_n": 27.98282262436947,
+      "maximum_joint_speed_rad_s": 0.6580464612944666
+    },
+    {
+      "time_s": 15.835000000001076,
+      "gyro": [
+        -0.025803173688376174,
+        0.031106729321110357,
+        0.012089617225057563
+      ],
+      "minimum_foot_force_n": 29.404063472727543,
+      "maximum_joint_speed_rad_s": 0.6002371055121954
+    },
+    {
+      "time_s": 15.840000000001076,
+      "gyro": [
+        0.007493868926671701,
+        0.03946581742535632,
+        0.010161609550742814
+      ],
+      "minimum_foot_force_n": 29.64656687978665,
+      "maximum_joint_speed_rad_s": 0.5451695079155342
+    },
+    {
+      "time_s": 15.845000000001077,
+      "gyro": [
+        0.026197824944105375,
+        0.044846243040289425,
+        0.009077436351593011
+      ],
+      "minimum_foot_force_n": 32.78272757296439,
+      "maximum_joint_speed_rad_s": 0.49845435801408283
+    },
+    {
+      "time_s": 15.850000000001078,
+      "gyro": [
+        0.008078731655952076,
+        0.03066035996870728,
+        0.012304760665223851
+      ],
+      "minimum_foot_force_n": 32.98174829069962,
+      "maximum_joint_speed_rad_s": 0.3662014252242679
+    },
+    {
+      "time_s": 15.855000000001079,
+      "gyro": [
+        -0.009139738849789822,
+        0.019015169231641888,
+        0.017099433976209603
+      ],
+      "minimum_foot_force_n": 33.083133225885724,
+      "maximum_joint_speed_rad_s": 0.2556319873808101
+    },
+    {
+      "time_s": 15.86000000000108,
+      "gyro": [
+        -0.021198256300300568,
+        0.0063938623471978245,
+        0.020878898404433337
+      ],
+      "minimum_foot_force_n": 32.68872137079625,
+      "maximum_joint_speed_rad_s": 0.17354808896612753
+    },
+    {
+      "time_s": 15.86500000000108,
+      "gyro": [
+        -0.03272704551087493,
+        -0.0030955173234000263,
+        0.022812586774340723
+      ],
+      "minimum_foot_force_n": 32.92013134411145,
+      "maximum_joint_speed_rad_s": 0.11447349019575911
+    },
+    {
+      "time_s": 15.870000000001081,
+      "gyro": [
+        -0.060590260693575176,
+        -0.017791603947396498,
+        0.026973617130813504
+      ],
+      "minimum_foot_force_n": 32.98380717549658,
+      "maximum_joint_speed_rad_s": 0.14455577610070341
+    },
+    {
+      "time_s": 15.875000000001082,
+      "gyro": [
+        -0.08587494992425133,
+        -0.03506509634512538,
+        0.03377643815881681
+      ],
+      "minimum_foot_force_n": 33.51329992599108,
+      "maximum_joint_speed_rad_s": 0.17278905844561046
+    },
+    {
+      "time_s": 15.880000000001083,
+      "gyro": [
+        -0.10838996977955458,
+        -0.043477576972216506,
+        0.040449127435005186
+      ],
+      "minimum_foot_force_n": 33.701914700061536,
+      "maximum_joint_speed_rad_s": 0.19785123590198883
+    },
+    {
+      "time_s": 15.885000000001083,
+      "gyro": [
+        -0.12551057391110174,
+        -0.05341506314939965,
+        0.04566710615846233
+      ],
+      "minimum_foot_force_n": 29.160522742765146,
+      "maximum_joint_speed_rad_s": 0.2202607024405659
+    },
+    {
+      "time_s": 15.890000000001084,
+      "gyro": [
+        -0.11984254600747424,
+        -0.05620001155074196,
+        0.05056348568043374
+      ],
+      "minimum_foot_force_n": 29.430354910551074,
+      "maximum_joint_speed_rad_s": 0.2185441289481455
+    },
+    {
+      "time_s": 15.895000000001085,
+      "gyro": [
+        -0.1084655650700389,
+        -0.056395079499779524,
+        0.056025395208124856
+      ],
+      "minimum_foot_force_n": 29.11470633670467,
+      "maximum_joint_speed_rad_s": 0.21828099870889853
+    },
+    {
+      "time_s": 15.900000000001086,
+      "gyro": [
+        -0.09811902667436916,
+        -0.05867923956970765,
+        0.06446700353432495
+      ],
+      "minimum_foot_force_n": 29.493607136672207,
+      "maximum_joint_speed_rad_s": 0.218672336754578
+    },
+    {
+      "time_s": 15.905000000001086,
+      "gyro": [
+        -0.0851809493534893,
+        -0.05648165242505301,
+        0.0699285087210911
+      ],
+      "minimum_foot_force_n": 24.7918422556996,
+      "maximum_joint_speed_rad_s": 0.20898942764151732
+    },
+    {
+      "time_s": 15.910000000001087,
+      "gyro": [
+        -0.05966964418661266,
+        -0.054473220067367566,
+        0.07217042203071802
+      ],
+      "minimum_foot_force_n": 25.66410621363471,
+      "maximum_joint_speed_rad_s": 0.21167429429856144
+    },
+    {
+      "time_s": 15.915000000001088,
+      "gyro": [
+        -0.03517606983942026,
+        -0.052345857401700426,
+        0.07634194267425766
+      ],
+      "minimum_foot_force_n": 25.658038131381865,
+      "maximum_joint_speed_rad_s": 0.2259946781040146
+    },
+    {
+      "time_s": 15.920000000001089,
+      "gyro": [
+        -0.011582692082210352,
+        -0.049909899709423826,
+        0.07719902317159484
+      ],
+      "minimum_foot_force_n": 25.482365283547363,
+      "maximum_joint_speed_rad_s": 0.221033077635872
+    },
+    {
+      "time_s": 15.92500000000109,
+      "gyro": [
+        0.005253185447408957,
+        -0.04703646527121326,
+        0.08101525689521427
+      ],
+      "minimum_foot_force_n": 21.80257670627941,
+      "maximum_joint_speed_rad_s": 0.22098081919240412
+    },
+    {
+      "time_s": 15.93000000000109,
+      "gyro": [
+        0.010866199763724122,
+        -0.0470555099109433,
+        0.08360245515361428
+      ],
+      "minimum_foot_force_n": 21.569664000658108,
+      "maximum_joint_speed_rad_s": 0.2461840764471066
+    },
+    {
+      "time_s": 15.935000000001091,
+      "gyro": [
+        0.013873053935000058,
+        -0.045935366068438406,
+        0.09126031390266309
+      ],
+      "minimum_foot_force_n": 21.591715413194812,
+      "maximum_joint_speed_rad_s": 0.2512690754356771
+    },
+    {
+      "time_s": 15.940000000001092,
+      "gyro": [
+        0.01506336875039332,
+        -0.043064210514268175,
+        0.09448031835979179
+      ],
+      "minimum_foot_force_n": 21.931942345914315,
+      "maximum_joint_speed_rad_s": 0.2560342549892402
+    },
+    {
+      "time_s": 15.945000000001093,
+      "gyro": [
+        0.017872755760043324,
+        -0.040450117282168234,
+        0.09986576791529571
+      ],
+      "minimum_foot_force_n": 17.029841312291442,
+      "maximum_joint_speed_rad_s": 0.24771215577185987
+    },
+    {
+      "time_s": 15.950000000001094,
+      "gyro": [
+        0.01140747691745622,
+        -0.04525026573455432,
+        0.10651634622555271
+      ],
+      "minimum_foot_force_n": 17.101455780241974,
+      "maximum_joint_speed_rad_s": 0.2667829768401491
+    },
+    {
+      "time_s": 15.955000000001094,
+      "gyro": [
+        0.005201807106445595,
+        -0.046903270942395145,
+        0.11722325975253205
+      ],
+      "minimum_foot_force_n": 17.0452133658387,
+      "maximum_joint_speed_rad_s": 0.27212245257582374
+    },
+    {
+      "time_s": 15.960000000001095,
+      "gyro": [
+        -0.0001872614263067775,
+        -0.050986283672942126,
+        0.12570517909305645
+      ],
+      "minimum_foot_force_n": 18.07003874447252,
+      "maximum_joint_speed_rad_s": 0.258763521027857
+    },
+    {
+      "time_s": 15.965000000001096,
+      "gyro": [
+        -0.00462209894113727,
+        -0.05359904011398199,
+        0.1343968573840555
+      ],
+      "minimum_foot_force_n": 15.86246176801637,
+      "maximum_joint_speed_rad_s": 0.25438463718262344
+    },
+    {
+      "time_s": 15.970000000001097,
+      "gyro": [
+        -0.007200293749736804,
+        -0.055339551398756244,
+        0.14255149301335007
+      ],
+      "minimum_foot_force_n": 15.37211790030844,
+      "maximum_joint_speed_rad_s": 0.24762095080694044
+    },
+    {
+      "time_s": 15.975000000001097,
+      "gyro": [
+        -0.009062892542276862,
+        -0.05510245334824812,
+        0.15149233477579588
+      ],
+      "minimum_foot_force_n": 15.576904600662449,
+      "maximum_joint_speed_rad_s": 0.251066366292597
+    },
+    {
+      "time_s": 15.980000000001098,
+      "gyro": [
+        -0.012093263234456763,
+        -0.05246439858630437,
+        0.15846692561553194
+      ],
+      "minimum_foot_force_n": 16.06612226281886,
+      "maximum_joint_speed_rad_s": 0.2625623724073862
+    },
+    {
+      "time_s": 15.985000000001099,
+      "gyro": [
+        -0.01745534674243011,
+        -0.055159237861420636,
+        0.16533384837901902
+      ],
+      "minimum_foot_force_n": 17.552669600244684,
+      "maximum_joint_speed_rad_s": 0.26925444128359727
+    },
+    {
+      "time_s": 15.9900000000011,
+      "gyro": [
+        -0.007341380839469817,
+        -0.04917290360733005,
+        0.1646198295359865
+      ],
+      "minimum_foot_force_n": 17.691068094177933,
+      "maximum_joint_speed_rad_s": 0.24841445980517882
+    },
+    {
+      "time_s": 15.9950000000011,
+      "gyro": [
+        0.0016084945176475319,
+        -0.046119241957710014,
+        0.16137785168477362
+      ],
+      "minimum_foot_force_n": 18.00263151463686,
+      "maximum_joint_speed_rad_s": 0.23444269740242346
+    }
+  ],
+  "gyro_component_rms_rad_s": [
+    0.0659083177517451,
+    0.04714281432703088,
+    0.14771252725904505
+  ],
+  "script_sha256": "eb00ae737243c1078d1ac8249d23851da878e86c08ab14acef2d2621a7a4b297"
+}

@@ -31,7 +31,17 @@ def approach_velocity(stamp, stop, brake_seconds):
     return .15 if brake_seconds == 0 else .15*min(1., (stop-stamp)/brake_seconds)
 
 
-def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
+def settling_yaw_command(measured, stamp, stop, seconds, gain, previous, dt):
+    """Bounded measured-yaw damping during the declared pre-terminal taper only."""
+    if (gain == 0 or not stop-seconds <= stamp < stop or not 0 <= stamp-measured.stamp_s <= .05
+            or not np.isfinite(measured.gyro).all() or not np.isfinite(measured.foot_force).all()
+            or np.any(measured.foot_force <= 5.) or np.linalg.norm(measured.gyro) > .3):
+        return 0.
+    desired = float(np.clip(-gain*measured.gyro[2], -.2, .2))
+    return float(previous+np.clip(desired-previous, -.5*dt, .5*dt))
+
+
+def trial(angle, direction, friction, force, seed, duration, brake_seconds=0., settling_yaw_gain=0.):
     course = Course(CourseSpec(name='stance_disturbance', kind='flat' if angle == 0 else 'ramp',
         slope_deg=angle or 8., direction=direction, length=8., width=3., friction=friction), seed)
     sim = Simulation(model_xml=course.xml)
@@ -45,6 +55,7 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
     drift = post_push_drift = impulse = peak_force = applied_impulse = peak_torque = 0.
     trace, error = [], None
     contact_friction = []
+    yaw_command = 0.
     wrench = np.zeros(6)
     while sim.data.time < stop+duration:
         stamp = float(sim.data.time)
@@ -61,8 +72,10 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
         applied = force if push_start <= stamp < push_start+push_duration else 0.
         sim.data.xfrc_applied[sim.base, :] = 0.
         sim.data.xfrc_applied[sim.base, 1] = applied
+        yaw_command = settling_yaw_command(measured, stamp, stop, brake_seconds,
+            settling_yaw_gain, yaw_command, sim.model.opt.timestep)
         try:
-            sim.step((approach_velocity(stamp, stop, brake_seconds), 0., 0.))
+            sim.step((approach_velocity(stamp, stop, brake_seconds), 0., yaw_command))
         except RuntimeError as exc:
             error = str(exc)
             break
@@ -87,6 +100,7 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
                 force_n=applied, command=sim.last_command.tolist(),
                 minimum_foot_force_n=float(np.min(measured.foot_force)),
                 gyro_norm_rad_s=float(np.linalg.norm(measured.gyro)),
+                gyro_rad_s=measured.gyro.tolist(),
                 maximum_joint_speed_rad_s=float(np.max(np.abs(measured.joint_velocity))),
                 estimated_velocity=odometry.velocity.tolist(),
                 stance=None if sim.terminal_stance is None else sim.terminal_stance.metrics()))
@@ -108,7 +122,7 @@ def trial(angle, direction, friction, force, seed, duration, brake_seconds=0.):
     if friction_range is None or not np.allclose(friction_range, friction):
         failures.append('contact_friction_mismatch')
     return dict(angle_deg=angle, direction=direction, friction=friction, force_n=force, sensor_seed=seed,
-        brake_seconds=brake_seconds,
+        brake_seconds=brake_seconds, settling_yaw_gain=settling_yaw_gain,
         simulated_time_s=float(sim.data.time), applied_impulse_ns=applied_impulse, error=error,
         max_horizontal_drift_m=drift, max_post_push_drift_m=post_push_drift,
         nonfoot_impulse_ns=impulse, nonfoot_peak_force_n=peak_force, peak_motor_torque_nm=peak_torque,
@@ -123,11 +137,16 @@ def main():
     parser.add_argument('--brake-seconds', type=float, default=0.,
                         help='planned linear command taper before the stop request, 0..3 seconds')
     parser.add_argument('--sensor-seeds', type=int, nargs='+', default=[0, 1])
+    parser.add_argument('--settling-yaw-gain', type=float, default=0.,
+                        help='experimental gyro yaw damping during the pre-terminal taper, 0..2')
     args = parser.parse_args()
     if args.output.exists() or not np.isfinite(args.duration) or args.duration < 20.:
         parser.error('output must be new and post-stop duration at least 20 seconds')
     if not np.isfinite(args.brake_seconds) or not 0 <= args.brake_seconds <= 3.:
         parser.error('brake seconds must be finite and between 0 and 3')
+    if (not np.isfinite(args.settling_yaw_gain) or not 0 <= args.settling_yaw_gain <= 2.
+            or (args.settling_yaw_gain and not args.brake_seconds)):
+        parser.error('yaw gain must be between 0 and 2 and requires a nonzero taper')
     if any(seed < 0 for seed in args.sensor_seeds) or len(args.sensor_seeds) != len(set(args.sensor_seeds)):
         parser.error('sensor seeds must be distinct and nonnegative')
     cases = list(itertools.product(((0., 'up'), (8.53, 'up'), (8.53, 'down')), (.4, .25), (0., 15.), args.sensor_seeds))
@@ -136,6 +155,7 @@ def main():
         nonfoot_impulse_limit_ns=.1, nonfoot_peak_force_limit_n=20., force_axis='world +Y',
         controller='production GravityStanceHold; no LiDAR', brake_seconds=args.brake_seconds,
         sensor_seeds=args.sensor_seeds,
+        settling_yaw_gain=args.settling_yaw_gain, settling_yaw_limit_rad_s=.2, settling_yaw_slew_rad_s2=.5,
         braking_scope='timed planned stop; no motion after terminal request'), expected_cases=len(cases),
         source_sha256=core_fingerprint(),
         fixture_sha256=hashlib.sha256(Path(__file__).resolve().parents[1].joinpath('dougie_sim/terrain_courses.py').read_bytes()).hexdigest(),
@@ -143,7 +163,7 @@ def main():
         script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), results=[])
     for (angle, direction), friction, force, seed in cases:
         with threadpool_limits(limits=1):
-            result = trial(angle, direction, friction, force, seed, args.duration, args.brake_seconds)
+            result = trial(angle, direction, friction, force, seed, args.duration, args.brake_seconds, args.settling_yaw_gain)
         report['results'].append(result)
         args.output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
         print(json.dumps({key: result[key] for key in ('angle_deg', 'direction', 'friction', 'force_n',

@@ -41,6 +41,10 @@ def main():
             assert 0 <= row['brake_seconds'] <= 3.
             assert all(sample['command'] == [0., 0., 0.] for sample in row['trace']
                        if sample['time_s'] >= protocol['stop_s']+.03)
+        if 'settling_yaw_gain' in protocol:
+            assert row['settling_yaw_gain'] == protocol['settling_yaw_gain']
+            assert 0 <= row['settling_yaw_gain'] <= 2.
+            assert all(abs(sample['command'][2]) <= .2+1e-12 for sample in row['trace'])
         failures = []
         if row['stance'] is None or row['stance']['phase'] != 'holding':
             failures.append('stance_not_retained')
@@ -69,7 +73,8 @@ def main():
             maximum_horizontal_drift_m=max(row['max_horizontal_drift_m'] for row in group)))
     result = dict(scope='complete matched simulation screen; no reliability or mission qualification',
         report_sha256=hashlib.sha256(raw).hexdigest(), cases=len(rows),
-        brake_seconds=protocol.get('brake_seconds', 0.), sensor_seeds=seeds, groups=groups,
+        brake_seconds=protocol.get('brake_seconds', 0.), settling_yaw_gain=protocol.get('settling_yaw_gain', 0.),
+        sensor_seeds=seeds, groups=groups,
         failed_cases=[{name: row[name] for name in ('angle_deg', 'direction', 'friction', 'force_n',
             'sensor_seed', 'max_horizontal_drift_m', 'stance', 'failures')} for row in rows if not row['passed']],
         verified=['cohort completeness', 'actual contact friction', 'applied impulse', 'motor torque limit',

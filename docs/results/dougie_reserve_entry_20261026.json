@@ -1,0 +1,317 @@
+{
+  "scope": "Summarize recorded reserve triggers and noisy stance-entry measurements.",
+  "reserve_triggers": [
+    {
+      "time_s": 141.24999999994404,
+      "position": [
+        7.268496891070839,
+        2.1546588316344093,
+        0.33238568091364895
+      ],
+      "position_std_m": [
+        0.4126926597945606,
+        0.4126926597945606,
+        0.4126926597945606
+      ],
+      "conditional_position_std_m": [
+        0.002684400291171021,
+        0.002684400291171021,
+        0.002684400291171021
+      ],
+      "map_revision": 2,
+      "loop_search": {
+        "attempts": 38,
+        "candidates": 5,
+        "last_reason": "map_corrected",
+        "stamp_s": 139.1999999999459,
+        "anchor_stamp_s": 115.19999999996772,
+        "anchor_distance_m": 0.7398213303121778,
+        "rank": 6,
+        "inlier_fraction": 0.9346666666666666,
+        "residual_m": 0.006206364226196806
+      },
+      "checkpoints": {
+        "limit": 3,
+        "used": 0,
+        "pending": true,
+        "started_s": null,
+        "wait_limit_s": 40.0,
+        "outcome": "return_requested"
+      }
+    },
+    {
+      "time_s": 295.63499999980365,
+      "position": [
+        0.295752100583063,
+        5.33107012143073,
+        0.31706290068441445
+      ],
+      "position_std_m": [
+        0.18054150859418117,
+        0.18054150859418117,
+        0.18054150859418117
+      ],
+      "conditional_position_std_m": [
+        0.0026752805579783423,
+        0.0026752805579783423,
+        0.0026752805579783423
+      ],
+      "map_revision": 6,
+      "loop_search": {
+        "attempts": 54,
+        "candidates": 1,
+        "last_reason": "map_corrected",
+        "stamp_s": 286.39999999981205,
+        "anchor_stamp_s": 263.5999999998328,
+        "anchor_distance_m": 1.1669180916507076,
+        "rank": 6,
+        "inlier_fraction": 0.8106666666666666,
+        "residual_m": 0.02209677077835337
+      },
+      "checkpoints": {
+        "limit": 3,
+        "used": 1,
+        "pending": true,
+        "started_s": null,
+        "wait_limit_s": 40.0,
+        "outcome": "return_requested"
+      }
+    },
+    {
+      "time_s": 301.6499999997982,
+      "position": [
+        0.2688672895650135,
+        5.375376994704795,
+        0.33813008411628276
+      ],
+      "position_std_m": [
+        0.18137434682192446,
+        0.18137434682192446,
+        0.18137434682192446
+      ],
+      "conditional_position_std_m": [
+        0.0026519785854767237,
+        0.0026519785854767237,
+        0.0026519785854767237
+      ],
+      "map_revision": 6,
+      "loop_search": {
+        "attempts": 54,
+        "candidates": 1,
+        "last_reason": "map_corrected",
+        "stamp_s": 286.39999999981205,
+        "anchor_stamp_s": 263.5999999998328,
+        "anchor_distance_m": 1.1669180916507076,
+        "rank": 6,
+        "inlier_fraction": 0.8106666666666666,
+        "residual_m": 0.02209677077835337
+      },
+      "checkpoints": {
+        "limit": 3,
+        "used": 1,
+        "pending": true,
+        "started_s": null,
+        "wait_limit_s": 40.0,
+        "outcome": "return_requested"
+      }
+    },
+    {
+      "time_s": 385.8599999997216,
+      "position": [
+        0.255982603738163,
+        4.833479092553627,
+        0.3321531841659147
+      ],
+      "position_std_m": [
+        0.180249957018068,
+        0.180249957018068,
+        0.180249957018068
+      ],
+      "conditional_position_std_m": [
+        0.002662900397954246,
+        0.002662900397954246,
+        0.002662900397954246
+      ],
+      "map_revision": 9,
+      "loop_search": {
+        "attempts": 60,
+        "candidates": 2,
+        "last_reason": "map_corrected",
+        "stamp_s": 383.59999999972365,
+        "anchor_stamp_s": 294.19999999980496,
+        "anchor_distance_m": 0.2608418476313784,
+        "rank": 6,
+        "inlier_fraction": 0.9133333333333333,
+        "residual_m": 0.009775133868379058
+      },
+      "checkpoints": {
+        "limit": 3,
+        "used": 2,
+        "pending": true,
+        "started_s": null,
+        "wait_limit_s": 40.0,
+        "outcome": "return_requested"
+      }
+    },
+    {
+      "time_s": 612.4249999995155,
+      "position": [
+        9.5083459081305,
+        9.042949253142492,
+        1.5216874231799236
+      ],
+      "position_std_m": [
+        0.18016839411540195,
+        0.18016839411540195,
+        0.18016839411540195
+      ],
+      "conditional_position_std_m": [
+        0.002592097979202152,
+        0.002592097979202152,
+        0.002592097979202152
+      ],
+      "map_revision": 10,
+      "loop_search": {
+        "attempts": 138,
+        "candidates": 0,
+        "last_reason": "no_eligible_anchor",
+        "stamp_s": 611.1999999995166,
+        "anchor_stamp_s": null,
+        "anchor_distance_m": null,
+        "rank": null,
+        "inlier_fraction": null,
+        "residual_m": null
+      },
+      "checkpoints": {
+        "limit": 3,
+        "used": 3,
+        "pending": false,
+        "started_s": null,
+        "wait_limit_s": 40.0,
+        "outcome": "resumed"
+      }
+    }
+  ],
+  "low_traction_downhill_entry": [
+    {
+      "sensor_seed": 2,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "samples": [
+        {
+          "time_s": 13.000000000000632,
+          "minimum_foot_force_n": 20.83127881280898,
+          "gyro_norm_rad_s": 0.16246881426514614,
+          "maximum_joint_speed_rad_s": 0.17204404681881408,
+          "estimated_velocity": [
+            -0.025851402790087987,
+            -0.004222061281758989,
+            -0.009478617004451151
+          ]
+        },
+        {
+          "time_s": 14.000000000000789,
+          "minimum_foot_force_n": 16.69463380580696,
+          "gyro_norm_rad_s": 0.168142340218001,
+          "maximum_joint_speed_rad_s": 0.19421807178788478,
+          "estimated_velocity": [
+            0.00027385221068788353,
+            -0.00012674334382108303,
+            -0.004108816124313114
+          ]
+        },
+        {
+          "time_s": 15.000000000000945,
+          "minimum_foot_force_n": 18.329563462969823,
+          "gyro_norm_rad_s": 0.15346506053961353,
+          "maximum_joint_speed_rad_s": 0.2160431523603729,
+          "estimated_velocity": [
+            -0.000576129424078892,
+            -0.007094890718341395,
+            -0.01024838002794414
+          ]
+        },
+        {
+          "time_s": 16.0000000000011,
+          "minimum_foot_force_n": 18.00263151463686,
+          "gyro_norm_rad_s": 0.16784630692320845,
+          "maximum_joint_speed_rad_s": 0.23444269740242346,
+          "estimated_velocity": [
+            -0.0050396347046165815,
+            -0.006440588919529001,
+            -0.020613186776265106
+          ]
+        }
+      ]
+    },
+    {
+      "sensor_seed": 3,
+      "stance": {
+        "phase": "refused",
+        "reason": "stance_entry_deadline",
+        "requested_s": 13.000000000000632,
+        "started_s": null,
+        "maximum_support_torque_nm": 0.0,
+        "robot_model_mass_kg": 15.206408000000001,
+        "scope": "experimental proprioceptive gravity stance; no position feedback"
+      },
+      "samples": [
+        {
+          "time_s": 13.000000000000632,
+          "minimum_foot_force_n": 20.205792566022666,
+          "gyro_norm_rad_s": 0.16076591025191764,
+          "maximum_joint_speed_rad_s": 0.2141889373597441,
+          "estimated_velocity": [
+            -0.010856363282985892,
+            -0.003820997378570263,
+            -0.0008879345186424877
+          ]
+        },
+        {
+          "time_s": 14.000000000000789,
+          "minimum_foot_force_n": 15.699024608817695,
+          "gyro_norm_rad_s": 0.17865765311248102,
+          "maximum_joint_speed_rad_s": 0.18868111423484374,
+          "estimated_velocity": [
+            0.00031138041239796364,
+            -0.004434038754850512,
+            -0.00553273452874125
+          ]
+        },
+        {
+          "time_s": 15.000000000000945,
+          "minimum_foot_force_n": 17.544027952237666,
+          "gyro_norm_rad_s": 0.16373819730346723,
+          "maximum_joint_speed_rad_s": 0.21031518394307167,
+          "estimated_velocity": [
+            0.004230006501856627,
+            -0.0030536037786966807,
+            -0.004874338112219834
+          ]
+        },
+        {
+          "time_s": 16.0000000000011,
+          "minimum_foot_force_n": 19.217171825648197,
+          "gyro_norm_rad_s": 0.15287157775681243,
+          "maximum_joint_speed_rad_s": 0.21330933566111931,
+          "estimated_velocity": [
+            0.002073246026012581,
+            -0.005149419324078543,
+            -0.008228820191335324
+          ]
+        }
+      ]
+    }
+  ],
+  "input_sha256": {
+    "navigation": "9d058d706e6d5001f09fe55fa206762d8f7edd97eb72d0072f640f9c3a477b25",
+    "stance": "903d957dc1d4b92e6a1a70c22b94d0a7eab9dac50ef9065da1e95138007ee5ec"
+  }
+}
