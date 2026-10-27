@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-27",
+  "scope": "Three paired development smoke runs, one pair per world, 60 s configured cap. Not full exploration or a matched-coverage dose-reduction study.",
+  "generator": "scripts/publish_dougie_comparison.py",
+  "assets": {
+    "docs/results/dougie_comparison_20261027.json": "f2ff07c7454190406c36d1b40183a5bad0c9586bae3696d4a2f04f3fa785bc78",
+    "docs/media/dougie/comparison-results.svg": "f8ff0ba2a0f346a5430ef5cae6ebd91de7f09d65cb8fcad6545f2921248b4fe7",
+    "docs/media/dougie/comparison-levels.svg": "56f45931cb075e78d9e3d74d8af5f5332a155ab8f48f5c057570232086a4c617",
+    "docs/media/dougie/comparison-preview.png": "bc6729474f291e23d77eb60c69259e1d4f8e5817665d88add07761306dd5a289"
+  }
+}

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="470" viewBox="0 0 1040 470" role="img">
+<title>Unvisited upper floors remain at zero exploration in the current 3D coverage metric</title>
+<g font-family="DejaVu Sans,Arial,sans-serif">
+<rect width="1040" height="470" rx="16" fill="#0b1724"/>
+<text x="28" y="40" fill="#e7eef5" font-size="25" text-anchor="start" font-weight="700">Exploration follows the robot into 3D.</text>
+<text x="28" y="70" fill="#b8c8d8" font-size="14" text-anchor="start" font-weight="400">Final floor-slice coverage / fresh scans from physically reached support heights</text>
+<text x="28" y="115" fill="#e7eef5" font-size="18" text-anchor="start" font-weight="700">MEZZANINE</text>
+<text x="28" y="150" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Z = 0.00 m</text>
+<rect x="28" y="158" width="390" height="13" rx="3" fill="#26374b"/>
+<rect x="28" y="158" width="198.135" height="13" rx="3" fill="#ffb454"/>
+<text x="430" y="170" fill="#ffb454" font-size="13" text-anchor="start" font-weight="400">50.8%</text>
+<rect x="28" y="180" width="390" height="13" rx="3" fill="#26374b"/>
+<rect x="28" y="180" width="197.508" height="13" rx="3" fill="#48daca"/>
+<text x="430" y="192" fill="#48daca" font-size="13" text-anchor="start" font-weight="400">50.6%</text>
+<text x="28" y="233" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Z = 0.70 m</text>
+<rect x="28" y="241" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="430" y="253" fill="#ffb454" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<rect x="28" y="263" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="430" y="275" fill="#48daca" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<text x="538" y="115" fill="#e7eef5" font-size="18" text-anchor="start" font-weight="700">FACILITY</text>
+<text x="538" y="150" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Z = 0.00 m</text>
+<rect x="538" y="158" width="390" height="13" rx="3" fill="#26374b"/>
+<rect x="538" y="158" width="97.893" height="13" rx="3" fill="#ffb454"/>
+<text x="940" y="170" fill="#ffb454" font-size="13" text-anchor="start" font-weight="400">25.1%</text>
+<rect x="538" y="180" width="390" height="13" rx="3" fill="#26374b"/>
+<rect x="538" y="180" width="90.688" height="13" rx="3" fill="#48daca"/>
+<text x="940" y="192" fill="#48daca" font-size="13" text-anchor="start" font-weight="400">23.3%</text>
+<text x="538" y="233" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Z = 1.20 m</text>
+<rect x="538" y="241" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="940" y="253" fill="#ffb454" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<rect x="538" y="263" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="940" y="275" fill="#48daca" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<text x="538" y="316" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Z = 2.40 m</text>
+<rect x="538" y="324" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="940" y="336" fill="#ffb454" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<rect x="538" y="346" width="390" height="13" rx="3" fill="#26374b"/>
+<text x="940" y="358" fill="#48daca" font-size="13" text-anchor="start" font-weight="400">0.0%</text>
+<text x="28" y="425" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Orange: blind   /   Teal: aware. Upper levels stayed at 0% because neither robot reached them in these short runs.</text>
+<text x="28" y="449" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">A floor visit enables fresh local-height observations; it never grants automatic whole-floor coverage.</text>
+</g></svg>

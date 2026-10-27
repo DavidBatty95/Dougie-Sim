@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1000" viewBox="0 0 1240 1000" role="img">
+<title>Radiation-blind and aware comparison: true dose and physically reached 3D floor coverage</title>
+<g font-family="DejaVu Sans,Arial,sans-serif">
+<rect width="1240" height="1000" rx="16" fill="#0b1724"/>
+<text x="32" y="42" fill="#e7eef5" font-size="25" text-anchor="start" font-weight="700">Two robots. Three worlds. Measured trajectories.</text>
+<text x="32" y="70" fill="#b8c8d8" font-size="14" text-anchor="start" font-weight="400">27 October 2026 / paired smoke runs / 60 s configured cap / detector 1, sensor 0, layout 0</text>
+<text x="32" y="99" fill="#ffb454" font-size="14" text-anchor="start" font-weight="400">--- Radiation-blind</text>
+<text x="230" y="99" fill="#48daca" font-size="14" text-anchor="start" font-weight="400">— Radiation-aware</text>
+<text x="32" y="150" fill="#e7eef5" font-size="17" text-anchor="start" font-weight="700">REACTOR</text>
+<text x="90" y="175" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">Cumulative true dose (µSv)</text>
+<path d="M90 360.0 H590" stroke="#2b3d50"/>
+<text x="80" y="365.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0000</text>
+<text x="90.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M90 317.5 H590" stroke="#2b3d50"/>
+<text x="80" y="322.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0202</text>
+<text x="215.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">7.5</text>
+<path d="M90 275.0 H590" stroke="#2b3d50"/>
+<text x="80" y="280.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0404</text>
+<text x="340.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">15</text>
+<path d="M90 232.5 H590" stroke="#2b3d50"/>
+<text x="80" y="237.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0607</text>
+<text x="465.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">22.5</text>
+<path d="M90 190.0 H590" stroke="#2b3d50"/>
+<text x="80" y="195.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0809</text>
+<text x="590.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">30</text>
+<text x="340.0" y="399" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="90.083,359.974 98.417,357.420 106.750,354.858 115.167,352.277 123.583,349.691 132.000,347.100 140.417,344.498 148.833,341.886 157.250,339.241 165.667,336.556 174.083,333.830 182.500,331.063 190.917,328.252 199.333,325.394 207.750,322.489 216.167,319.564 224.500,316.631 232.833,313.653 241.167,310.623 249.500,307.602 257.833,304.571 266.167,301.538 274.500,298.481 282.833,295.423 291.167,292.364 299.500,289.313 307.833,286.278 316.167,283.246 324.500,280.241 332.833,277.262 341.167,274.341 349.500,271.476 357.833,268.665 366.250,265.875 374.667,263.131 383.083,260.432 391.500,257.771 399.917,255.148 407.083,252.917" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="407.083" cy="252.917" r="3.5" fill="#ffb454"/>
+<polyline points="90.083,359.974 98.417,357.420 106.750,354.858 115.167,352.272 123.583,349.689 132.000,347.107 140.417,344.522 148.833,341.927 157.250,339.323 165.667,336.719 174.083,334.113 182.500,331.514 190.917,328.885 199.333,326.190 207.750,323.393 216.167,320.473 224.500,317.430 232.833,314.241 241.167,311.036 249.500,307.810 257.833,304.419 266.167,300.747 274.500,296.759 282.833,292.775 291.167,288.859 299.500,285.003 307.833,281.229 316.167,277.518 324.500,273.877 332.833,270.294 341.167,266.751 349.500,263.177 357.833,259.702 366.250,256.275 374.667,252.926 383.083,249.690 391.500,246.548 399.917,243.421 408.333,240.283 416.750,237.174 425.167,234.193 433.583,231.347 442.000,228.562 450.417,225.796 458.833,223.108 467.250,220.492 475.667,217.904 484.083,215.322 492.500,212.747 500.917,210.185 507.333,208.214" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="507.333" cy="208.214" r="3.5" fill="#48daca"/>
+<text x="690" y="175" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">3D floor exploration (%)</text>
+<path d="M690 360.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="365.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0</text>
+<text x="690.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M690 317.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="322.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">25</text>
+<text x="815.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">7.5</text>
+<path d="M690 275.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="280.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">50</text>
+<text x="940.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">15</text>
+<path d="M690 232.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="237.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">75</text>
+<text x="1065.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">22.5</text>
+<path d="M690 190.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="195.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">100</text>
+<text x="1190.0" y="380" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">30</text>
+<text x="940.0" y="399" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="690.083,291.128 698.417,290.648 706.750,289.786 715.167,289.546 723.583,289.450 732.000,289.402 740.417,289.402 748.833,289.402 757.250,289.211 765.667,289.211 774.083,289.067 782.500,289.019 790.917,288.971 799.333,288.923 807.750,288.923 816.167,288.923 824.500,288.875 832.833,288.875 841.167,288.827 849.500,288.827 857.833,288.827 866.167,288.827 874.500,288.827 882.833,288.827 891.167,288.588 899.500,288.588 907.833,288.588 916.167,288.492 924.500,288.492 932.833,288.444 941.167,288.444 949.500,288.444 957.833,288.444 966.250,288.444 974.667,288.444 983.083,288.444 991.500,288.396 999.917,288.348 1007.083,288.348" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="1007.083" cy="288.348" r="3.5" fill="#ffb454"/>
+<polyline points="690.083,291.128 698.417,290.648 706.750,289.786 715.167,289.594 723.583,289.450 732.000,289.402 740.417,289.067 748.833,288.779 757.250,288.492 765.667,288.444 774.083,288.396 782.500,288.396 790.917,288.300 799.333,288.108 807.750,287.821 816.167,287.485 824.500,287.198 832.833,287.102 841.167,287.054 849.500,286.958 857.833,286.718 866.167,286.670 874.500,286.287 882.833,286.191 891.167,286.095 899.500,286.095 907.833,286.095 916.167,285.952 924.500,285.952 932.833,285.952 941.167,285.952 949.500,285.952 957.833,285.952 966.250,285.952 974.667,285.952 983.083,285.952 991.500,285.952 999.917,285.952 1008.333,285.952 1016.750,285.952 1025.167,285.952 1033.583,285.952 1042.000,285.952 1050.417,285.952 1058.833,285.952 1067.250,285.952 1075.667,285.952 1084.083,285.952 1092.500,285.952 1100.917,285.904 1107.333,285.808" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="1107.333" cy="285.808" r="3.5" fill="#48daca"/>
+<text x="32" y="425" fill="#e7eef5" font-size="17" text-anchor="start" font-weight="700">MEZZANINE</text>
+<text x="90" y="450" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">Cumulative true dose (µSv)</text>
+<path d="M90 635.0 H590" stroke="#2b3d50"/>
+<text x="80" y="640.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0000</text>
+<text x="90.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M90 592.5 H590" stroke="#2b3d50"/>
+<text x="80" y="597.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0013</text>
+<text x="215.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">5</text>
+<path d="M90 550.0 H590" stroke="#2b3d50"/>
+<text x="80" y="555.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0026</text>
+<text x="340.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">10</text>
+<path d="M90 507.5 H590" stroke="#2b3d50"/>
+<text x="80" y="512.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0039</text>
+<text x="465.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">15</text>
+<path d="M90 465.0 H590" stroke="#2b3d50"/>
+<text x="80" y="470.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0052</text>
+<text x="590.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">20</text>
+<text x="340.0" y="674" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="90.125,634.957 102.625,630.654 115.125,626.319 127.750,621.959 140.375,617.636 153.000,613.334 165.625,609.027 178.250,604.686 190.875,600.274 203.500,595.857 216.125,591.443 228.750,587.025 241.375,582.548 254.000,577.987 266.625,573.337 279.250,568.642 291.750,564.004 304.250,559.370 316.750,554.739 329.250,550.115 341.750,545.479 354.250,540.829 366.750,536.176 379.250,531.532 391.750,526.904 404.250,522.299 416.750,517.712 429.250,513.153 441.750,508.622 454.250,504.174 466.750,499.843 479.250,495.588 491.750,491.347 504.375,487.053 515.500,483.214" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="515.500" cy="483.214" r="3.5" fill="#ffb454"/>
+<polyline points="90.125,634.957 102.625,630.654 115.125,626.319 127.750,621.959 140.375,617.636 153.000,613.334 165.625,609.027 178.250,604.686 190.875,600.274 203.500,595.857 216.125,591.443 228.750,587.032 241.375,582.620 254.000,578.204 266.625,573.789 279.250,569.384 291.750,565.034 304.250,560.701 316.750,556.387 329.250,552.083 341.750,547.787 354.250,543.497 366.750,539.214 379.250,534.941 391.750,530.681 404.250,526.420 415.375,522.573" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="415.375" cy="522.573" r="3.5" fill="#48daca"/>
+<text x="690" y="450" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">3D floor exploration (%)</text>
+<path d="M690 635.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="640.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0</text>
+<text x="690.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M690 592.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="597.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">25</text>
+<text x="815.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">5</text>
+<path d="M690 550.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="555.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">50</text>
+<text x="940.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">10</text>
+<path d="M690 507.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="512.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">75</text>
+<text x="1065.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">15</text>
+<path d="M690 465.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="470.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">100</text>
+<text x="1190.0" y="655" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">20</text>
+<text x="940.0" y="674" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="690.125,579.236 702.625,578.863 715.125,577.929 727.750,577.742 740.375,577.648 753.000,577.648 765.625,577.181 778.250,577.181 790.875,576.808 803.500,576.714 816.125,576.714 828.750,576.714 841.375,576.714 854.000,576.714 866.625,576.527 879.250,576.527 891.750,576.527 904.250,576.527 916.750,576.527 929.250,576.527 941.750,576.527 954.250,576.434 966.750,576.434 979.250,576.434 991.750,576.247 1004.250,576.247 1016.750,576.247 1029.250,576.247 1041.750,576.154 1054.250,576.060 1066.750,576.060 1079.250,575.967 1091.750,575.967 1104.375,575.967 1115.500,575.967" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="1115.500" cy="575.967" r="3.5" fill="#ffb454"/>
+<polyline points="690.125,579.236 702.625,578.863 715.125,577.929 727.750,577.742 740.375,577.648 753.000,577.648 765.625,577.181 778.250,577.181 790.875,576.808 803.500,576.714 816.125,576.714 828.750,576.714 841.375,576.714 854.000,576.714 866.625,576.714 879.250,576.714 891.750,576.714 904.250,576.714 916.750,576.621 929.250,576.621 941.750,576.621 954.250,576.621 966.750,576.621 979.250,576.527 991.750,576.527 1004.250,576.527 1015.375,576.154" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="1015.375" cy="576.154" r="3.5" fill="#48daca"/>
+<text x="32" y="700" fill="#e7eef5" font-size="17" text-anchor="start" font-weight="700">FACILITY</text>
+<text x="90" y="725" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">Cumulative true dose (µSv)</text>
+<path d="M90 910.0 H590" stroke="#2b3d50"/>
+<text x="80" y="915.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0000</text>
+<text x="90.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M90 867.5 H590" stroke="#2b3d50"/>
+<text x="80" y="872.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0020</text>
+<text x="215.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">12.5</text>
+<path d="M90 825.0 H590" stroke="#2b3d50"/>
+<text x="80" y="830.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0039</text>
+<text x="340.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">25</text>
+<path d="M90 782.5 H590" stroke="#2b3d50"/>
+<text x="80" y="787.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0059</text>
+<text x="465.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">37.5</text>
+<path d="M90 740.0 H590" stroke="#2b3d50"/>
+<text x="80" y="745.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0.0079</text>
+<text x="590.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">50</text>
+<text x="340.0" y="949" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="90.050,909.981 95.050,908.073 100.050,906.188 105.100,904.273 110.150,902.349 115.200,900.424 120.250,898.503 125.300,896.582 130.350,894.669 135.400,892.764 140.450,890.866 145.500,888.979 150.550,887.098 155.600,885.217 160.650,883.336 165.700,881.466 170.700,879.623 175.700,877.788 180.700,875.960 185.700,874.140 190.700,872.330 195.700,870.527 200.700,868.726 205.700,866.923 210.700,865.128 215.700,863.339 220.700,861.560 225.700,859.787 230.700,858.019 235.700,856.256 240.700,854.495 245.700,852.733 250.700,850.969 255.750,849.182 260.800,847.383 265.850,845.565 270.900,843.731 275.950,841.880 281.000,840.013 286.050,838.142 291.100,836.271 296.150,834.401 301.200,832.531 306.250,830.661 311.300,828.794 316.350,826.923 321.400,825.051 326.450,823.179 331.500,821.308 336.550,819.437 341.600,817.563 346.650,815.688 351.700,813.815 356.750,811.941 361.800,810.066 366.850,808.192 371.900,806.318 376.950,804.445 382.000,802.571 387.050,800.696 392.100,798.823 397.150,796.951 402.200,795.080 407.250,793.209 412.250,791.354 417.250,789.499 422.250,787.645 427.250,785.786 432.250,783.924 437.250,782.059 442.250,780.191 447.250,778.316 452.250,776.435 457.250,774.556 462.250,772.677 467.250,770.799 472.250,768.921 477.250,767.041 482.250,765.156 487.250,763.267 492.250,761.373 497.250,759.481 500.550,758.214" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="500.550" cy="758.214" r="3.5" fill="#ffb454"/>
+<polyline points="90.050,909.981 95.050,908.073 100.050,906.188 105.100,904.275 110.150,902.356 115.200,900.432 120.250,898.507 125.300,896.581 130.350,894.650 135.400,892.719 140.450,890.787 145.500,888.850 150.550,886.908 155.600,884.960 160.650,883.009 165.700,881.103 170.700,879.224 175.700,877.345 180.700,875.464 185.700,873.583 190.700,871.700 195.700,869.808 200.700,867.907 205.700,865.998 210.700,864.079 215.700,862.155 220.700,860.228 225.700,858.296 230.700,856.365 235.700,854.439 240.700,852.514 245.700,850.553 250.700,848.601 255.750,846.642 260.800,844.696 265.850,842.763 270.900,840.844 275.950,838.936 280.250,837.294" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="280.250" cy="837.294" r="3.5" fill="#48daca"/>
+<text x="690" y="725" fill="#e7eef5" font-size="16" text-anchor="start" font-weight="600">3D floor exploration (%)</text>
+<path d="M690 910.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="915.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">0</text>
+<text x="690.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">0</text>
+<path d="M690 867.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="872.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">25</text>
+<text x="815.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">12.5</text>
+<path d="M690 825.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="830.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">50</text>
+<text x="940.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">25</text>
+<path d="M690 782.5 H1190" stroke="#2b3d50"/>
+<text x="680" y="787.5" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">75</text>
+<text x="1065.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">37.5</text>
+<path d="M690 740.0 H1190" stroke="#2b3d50"/>
+<text x="680" y="745.0" fill="#b8c8d8" font-size="12" text-anchor="end" font-weight="400">100</text>
+<text x="1190.0" y="930" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">50</text>
+<text x="940.0" y="949" fill="#b8c8d8" font-size="12" text-anchor="middle" font-weight="400">Simulation time (s)</text>
+<polyline points="690.050,887.940 695.050,887.838 700.050,887.633 705.100,887.612 710.150,887.612 715.200,887.612 720.250,887.592 725.300,887.592 730.350,887.530 735.400,887.530 740.450,887.469 745.500,887.325 750.550,887.284 755.600,887.223 760.650,887.120 765.700,886.997 770.700,886.690 775.700,886.526 780.700,886.300 785.700,886.280 790.700,886.013 795.700,885.890 800.700,885.870 805.700,885.870 810.700,885.849 815.700,885.849 820.700,885.849 825.700,885.849 830.700,885.849 835.700,885.829 840.700,885.829 845.700,885.829 850.700,885.829 855.750,885.829 860.800,885.829 865.850,885.829 870.900,885.829 875.950,885.829 881.000,885.829 886.050,885.829 891.100,885.829 896.150,885.829 901.200,885.829 906.250,885.829 911.300,885.829 916.350,885.829 921.400,885.829 926.450,885.829 931.500,885.829 936.550,885.829 941.600,885.829 946.650,885.829 951.700,885.829 956.750,885.829 961.800,885.829 966.850,885.829 971.900,885.829 976.950,885.829 982.000,885.829 987.050,885.829 992.100,885.829 997.150,885.829 1002.200,885.829 1007.250,885.829 1012.250,885.829 1017.250,885.829 1022.250,885.829 1027.250,885.829 1032.250,885.829 1037.250,885.829 1042.250,885.829 1047.250,885.829 1052.250,885.808 1057.250,885.788 1062.250,885.767 1067.250,885.767 1072.250,885.767 1077.250,885.767 1082.250,885.767 1087.250,885.767 1092.250,885.767 1097.250,885.767 1100.550,885.767" fill="none" stroke="#ffb454" stroke-width="2.5" stroke-dasharray="7 4"/>
+<circle cx="1100.550" cy="885.767" r="3.5" fill="#ffb454"/>
+<polyline points="690.050,887.940 695.050,887.838 700.050,887.633 705.100,887.633 710.150,887.633 715.200,887.633 720.250,887.633 725.300,887.633 730.350,887.633 735.400,887.633 740.450,887.633 745.500,887.633 750.550,887.633 755.600,887.633 760.650,887.633 765.700,887.633 770.700,887.633 775.700,887.633 780.700,887.633 785.700,887.633 790.700,887.633 795.700,887.633 800.700,887.612 805.700,887.612 810.700,887.612 815.700,887.612 820.700,887.612 825.700,887.612 830.700,887.612 835.700,887.612 840.700,887.612 845.700,887.612 850.700,887.612 855.750,887.612 860.800,887.592 865.850,887.592 870.900,887.592 875.950,887.551 880.250,887.551" fill="none" stroke="#48daca" stroke-width="2.5"/>
+<circle cx="880.250" cy="887.551" r="3.5" fill="#48daca"/>
+<text x="32" y="968" fill="#b8c8d8" font-size="13" text-anchor="start" font-weight="400">Curves end at each mission endpoint. Early returns reflect the time reserve; these runs do not establish full coverage or dose savings.</text>
+</g></svg>

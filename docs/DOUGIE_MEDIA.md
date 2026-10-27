@@ -4,6 +4,29 @@
 
 ## Gallery provenance
 
+### Comparison dashboard and graphs — 27 October 2026
+
+[Paired facility preview](media/dougie/comparison-preview.png) ·
+[Dose and coverage graphs](media/dougie/comparison-results.svg) ·
+[Elevation-slice graph](media/dougie/comparison-levels.svg) ·
+[Manifest](media/dougie/comparison-manifest.json)
+
+The preview combines the actual final blind/aware facility frames; it is not a
+browser screenshot. Both SVGs use the full retained time series and final slice
+counts from the [portable three-world comparison cohort](results/dougie_comparison_20261027.json).
+All six runs are shown, with the `physically_reached_3d_floor_v2` metric, detector /
+sensor / layout seeds 1 / 0 / 0 and a 60-second configured cap. They returned
+cleanly under the time reserve; these are smoke runs, not full-survey or
+matched-coverage dose-reduction results.
+
+```bash
+docker compose run --rm -T dougie-sim python3 scripts/publish_dougie_comparison.py
+```
+
+This regenerates both graphs and the result report from portable data. Rebuilding
+the preview from source frames requires `--runs` with the three retained run
+directories listed in the [result report](DOUGIE_COMPARISON_RESULTS.md).
+
 ### Facility intermediate return — 26 October 2026
 
 [Native GIF](media/dougie/facility-frontier-return.gif) ·
