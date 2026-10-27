@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Check local links in active Dougie documentation (legacy corpus is retained)."""
+"""Check local links across the maintained Go2 documentation and entry-point guides."""
 from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-files = [ROOT/'README.md', *sorted((ROOT/'docs').glob('DOUGIE_*.md'))]
+files = [*(ROOT/name for name in ('README.md', 'CONTRIBUTING.md', 'LICENSES.md', 'SECURITY.md',
+                                 'docker/README.md', 'scripts/README.md', 'tools/README.md')),
+         *sorted((ROOT/'docs').rglob('*.md'))]
 errors = []
 for path in files:
-    for target in re.findall(r'\]\(([^)]+)\)', path.read_text()):
+    content = path.read_text()
+    targets = re.findall(r'\]\(([^)]+)\)', content)+re.findall(r'(?:src|href)="([^"]+)"', content)
+    for target in targets:
         if '://' in target:
             continue
         destination, _, fragment = target.partition('#')

@@ -1,5 +1,0 @@
-repositories:
-  grove-g1:
-    type: git
-    url: https://github.com/Adyansh04/grove-g1.git
-    version: 97bfb9ba13569a593b5e3ecfc5ed1d4208b2b681

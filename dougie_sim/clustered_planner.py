@@ -1,6 +1,6 @@
 """Connected, risk-separated region candidates with persistent revalidated goals.
 
-Research links and adaptation boundaries: docs/DOUGIE_ORI_IMPROVEMENTS.md.
+Research links and adaptation boundaries: docs/DOUGIE_PLANNING_PRIORITIES.md.
 Goal selection and dose admission use the fine observed graph, never a centroid
 shortcut. Optional execution smoothing is separately checked against observed
 support, clearance, connectivity and predicted upper-rate exposure.

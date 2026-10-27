@@ -21,6 +21,7 @@ body:
     attributes:
       label: Run type
       options:
+        - Side-by-side comparison, video feeds or 3D coverage
         - Radiation mapping and dose-constrained exploration
         - Online GP prediction or uncertainty
         - Go2 locomotion or terrain traversal

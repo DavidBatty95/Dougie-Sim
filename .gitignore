@@ -18,11 +18,6 @@ htmlcov/
 build/
 install/
 log/
-ros2_ws/build/
-ros2_ws/install/
-ros2_ws/log/
-ros2_ws/.colcon/
-ros2_ws/.verification/
 
 # Runtime logs and generated diagnostics
 /results/
@@ -34,38 +29,17 @@ docs/media/raw/
 *.bag
 *.db3
 *.mcap
-ros2_ws/src/dynamic_obstacle_benchmarks/results/
 frames.pdf
 frames_*.pdf
 frames_*.gv
-ros2_ws/frames*.pdf
-ros2_ws/frames*.gv
 MJMODEL.TXT
 MUJOCO_LOG.TXT
-ros2_ws/MJMODEL.TXT
 
-# MJ Lab / training outputs
-vendor/mjlab/.venv/
-vendor/mjlab/logs/
-vendor/mjlab/wandb/
-vendor/mjlab/runs/
-vendor/mjlab/outputs/
-vendor/mjlab/.pytest_cache/
-vendor/mjlab/.ruff_cache/
-vendor/mjlab/.mypy_cache/
-vendor/mjlab/.cache/
+# Training checkpoints (the optional environment lives under /.dougie/)
 *.pt
 *.onnx
 *.pth
 events.out.tfevents.*
-
-# Vendored binary/build artifacts
-vendor/grove-g1/
-vendor/mujoco-*/
-vendor/*.tar.gz
-vendor/*.zip
-vendor/unitree_*_build/
-vendor/unitree_*_install/
 
 # CMake/build products that may appear outside colcon build dirs
 CMakeFiles/

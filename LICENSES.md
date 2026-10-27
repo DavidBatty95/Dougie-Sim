@@ -1,35 +1,22 @@
 # Licensing inventory
 
-<!-- geoff-nav:start -->
-<p align="center">
-  <a href="README.md"><img src="docs/media/navigation/home.svg" width="132" height="44" alt="Home"></a>
-  <a href="README.md#quick-start"><img src="docs/media/navigation/start.svg" width="132" height="44" alt="Quick start"></a>
-  <a href="docs/DEMO_GUIDE.md"><img src="docs/media/navigation/demos.svg" width="132" height="44" alt="Demos"></a>
-  <a href="docs/INDEX.md"><img src="docs/media/navigation/docs.svg" width="132" height="44" alt="Docs"></a>
-  <a href="docs/REPOSITORY_GUIDE.md"><img src="docs/media/navigation/folders.svg" width="132" height="44" alt="Folders"></a>
-  <br>
-  <a href="docs/PROJECT_STATUS.md"><img src="docs/media/navigation/progress.svg" width="132" height="44" alt="Progress"></a>
-  <a href="docs/PROJECT_PLAN.md"><img src="docs/media/navigation/roadmap.svg" width="132" height="44" alt="Roadmap"></a>
-  <a href="docs/RESULTS_REVIEW.md"><img src="docs/media/navigation/results.svg" width="132" height="44" alt="Results"></a>
-  <a href="docs/literature_review/README.md"><img src="docs/media/navigation/research.svg" width="132" height="44" alt="Research"></a>
-  <a href="docs/DEVELOPMENT.md"><img src="docs/media/navigation/develop.svg" width="132" height="44" alt="Develop"></a>
-</p>
-<!-- geoff-nav:end -->
+[Project home](README.md) · [Asset manifest](config/dougie_assets.json) · [Attribution](docs/DOUGIE_SIM.md#attribution)
 
-The departing maintainer requested **preservation of existing licenses**, not
-assignment of a new blanket root license. There is intentionally no new root
-license grant for previously unlicensed original scripts or documentation.
-The incoming team should confirm that policy before broader redistribution.
+Existing licenses remain authoritative. This cleanup does not assign a new
+blanket root license or add a license grant to previously unlicensed original
+scripts or documentation.
 
 | Material | Existing declaration / authority |
-| --- | --- |
-| `unitree_g1_mujoco_bridge`, `unitree_g1_sim_bringup`, `unitree_g1_description`, `dynamic_obstacle_benchmarks`, social messages/costmap packages | Apache-2.0 in their `package.xml` files |
-| `g1_locomotion`, `g1_msgs`, manipulation/MoveIt/task-orchestration packages | BSD-3-Clause in their `package.xml` files |
-| MuJoCo, Unitree repositories and MJLab | Their own source/submodule notices and licenses |
-| Grove-G1 integration | Its integration/upstream notices; optional sources are not bundled by the setup |
-| Pedestrian meshes/textures and generated derivatives | Bundled through the simulator fork; asset redistribution provenance is not fully documented in this root repository and needs owner confirmation |
-| Downloaded policies and optional training checkpoints | Their upstream artifact terms; checksums establish identity, not redistribution permission |
+|---|---|
+| Go2 model and meshes | `unitreerobotics/unitree_mujoco`, BSD-3-Clause; pinned license downloaded with the assets |
+| Go2 walking policy and observation contract | `fan-ziqi/rl_sar`, Apache-2.0; configuration and license downloaded beside the policy |
+| MuJoCo, ROS 2, Nav2, SLAM Toolbox, NumPy, SciPy and PyTorch | Their upstream license notices |
+| Optional MJLab/CUDA training dependencies | Their pinned distributions and upstream notices |
+| Project code, documentation and generated evidence | Existing file notices; no additional blanket license grant |
 
-Keep upstream copyright/license headers when modifying files. The checked-in
-source patches do not replace their underlying licenses. Generated natural-walk
-meshes retain the licensing obligations of their input assets.
+Checksums establish artifact identity, not redistribution permission. Preserve
+upstream copyright/license headers when modifying code or publishing derivatives.
+
+The retired Geoff/G1 workspace and its package-specific notices remain together
+in the [pre-cleanup history](docs/DOUGIE_HISTORY.md). They are no longer bundled
+with the maintained Go2 checkout.

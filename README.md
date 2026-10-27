@@ -376,7 +376,7 @@ walking policy/observation contract from `fan-ziqi/rl_sar` (Apache-2.0). Upstrea
 assets and licenses are downloaded together. Existing package notices remain in force.
 
 [Attribution](docs/DOUGIE_SIM.md#attribution) · [Licensing inventory](LICENSES.md) ·
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Preserved Geoff README](README-GEOFF.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Repository history](docs/DOUGIE_HISTORY.md)
 
 For experiments and contributions, include configuration, source identity and
 measured outcomes. Historical results remain available through the documentation

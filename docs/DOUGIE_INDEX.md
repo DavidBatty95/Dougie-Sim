@@ -3,8 +3,8 @@
 [Project home](../README.md) · [Research](DOUGIE_RESEARCH.md) · [Validation](DOUGIE_VALIDATION.md)
 
 The active project is the Unitree **Go2 quadruped**. Start here for its runtime,
-research and evidence; the larger inherited documentation tree also contains
-Geoff's G1 humanoid development history.
+research and evidence. Retired humanoid material is accessible through the
+[repository history](DOUGIE_HISTORY.md).
 
 | I want to… | Start here |
 |---|---|
@@ -46,8 +46,7 @@ Geoff's G1 humanoid development history.
 
 ## Historical resources
 
-- [Preserved Geoff README](../README-GEOFF.md): G1 navigation and transport.
-- [Geoff documentation index](INDEX.md): inherited guides and experiments.
-- [Geoff literature review](literature_review/README.md): humanoid research and PDF.
-
-These historical resources retain their original robot and evidence scope.
+- [Repository history and cleanup reference](DOUGIE_HISTORY.md): immutable links
+  to the retired G1 workspace, guides, literature and experiment versions.
+- [Retained Dougie evidence](results/README.md): current and dated Go2 inputs used
+  by published results, reproduction scripts and regression tests.

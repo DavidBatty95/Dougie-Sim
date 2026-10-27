@@ -111,6 +111,6 @@ their capture-time estimates; they are not silently rewritten after a loop corre
   beside the policy.
 - MuJoCo, ROS 2, Nav2, SLAM Toolbox, NumPy, SciPy and PyTorch retain their licenses.
 
-`README-GEOFF.md`, `install-geoff.sh`, `docker-compose.geoff.yml` and
-`.github/legacy/verification-geoff.yml` preserve the historical profile. G1
-results and research have not been relabeled as Go2 evidence.
+The historical G1 runtime, launchers and CI are available through the
+[pre-cleanup history](DOUGIE_HISTORY.md). They are no longer bundled in the Go2
+checkout; their results and research have not been relabeled as Go2 evidence.

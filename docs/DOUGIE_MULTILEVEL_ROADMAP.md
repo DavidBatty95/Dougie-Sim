@@ -94,9 +94,10 @@ throughput, not an inherited 8,192-environment humanoid default. Record laptop
 power/thermal conditions; training duration cannot be estimated reliably before
 this benchmark.
 
-The current Dougie container uses CPU PyTorch, `vendor/mjlab` is unpopulated, and
-the inherited training launchers target G1. Add a separately pinned Go2 training
-environment with CUDA dependencies, leaving CPU inference lightweight.
+The Dougie runtime container uses CPU PyTorch. The separately pinned optional
+Go2 CUDA environment is now installed with `./dougie training-setup`, using
+`config/dougie_training_requirements.txt`; runtime inference stays lightweight.
+The retired humanoid training submodule is not needed by this setup.
 
 ### Existing-Go2 alternative
 

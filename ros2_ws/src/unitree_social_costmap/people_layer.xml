@@ -1,5 +1,0 @@
-<library path="unitree_social_costmap">
-  <class name="unitree_social_costmap/PeopleLayer" type="unitree_social_costmap::PeopleLayer" base_class_type="nav2_costmap_2d::Layer">
-    <description>Current typed person footprints with explicit old-footprint clearing.</description>
-  </class>
-</library>

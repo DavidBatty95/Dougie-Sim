@@ -1,6 +1,0 @@
-# Simulation actuator request; contains an identifier, never an object pose.
-string arm
-string object_id
----
-bool success
-string message
