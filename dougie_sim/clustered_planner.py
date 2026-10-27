@@ -52,6 +52,9 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.circuit_tour = {}
         self.execution_admission_refinement = False
         self.vertical_frontier = {}
+        self.survey_until_complete = False
+        self.survey_status = {}
+        self.survey_pending = 0
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -179,6 +182,12 @@ class ClusteredDoseExplorer(DoseExplorer):
         if stamp+outbound_time[home]+self.wait_allowance+15. >= self.mission_duration:
             self.returning, self.last_reason = True, 'time_return_reserve'
         self.failed = [(p, t) for p, t in self.failed if stamp-t < 60.]
+        if self.survey_until_complete:
+            from .survey_comparison import survey_admission
+            self.visited.update(key for key, distance in length.items() if distance <= .25)
+            safe_parent = self.terrain.routes(root, rates, max_rate=self.rate_limit)[3] if emergency_return else parent
+            self.survey_status = survey_admission(self, keys, root, home, rates, safe_parent, home_parent,
+                dose, home_dose, outbound_time, home_time, stamp)
         checked_inspections = set()
         visit_distance = None
         refinement_keys = set()
@@ -268,7 +277,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self.returning, self.last_reason = True, 'observed_circuit_complete'
 
         previous = None if self.target is None else self.terrain.nearest(self.target)
-        reached_tolerance = .2 if inspection or self.objective == 'circuit' else .4
+        reached_tolerance = .2 if inspection or self.objective == 'circuit' or self.survey_until_complete else .4
         keep_previous = (not self.returning and self.objective != 'circuit' and self.commitment
             and previous is not None and math.dist(nodes[previous], self.target) < .25
             and math.dist(position, self.target) > reached_tolerance
@@ -325,6 +334,33 @@ class ClusteredDoseExplorer(DoseExplorer):
                     self.goal_started = stamp
                 self.state = 'exploring'
                 self.last_reason = 'observed_circuit_tour' if self.circuit_tour else 'observed_circuit_goal'
+        elif self.survey_until_complete:
+            from .survey_comparison import AVAILABLE, RADIATION, BUDGET, TIME
+            visit_distance = distance_from_visits(nodes, graph, self.visited)
+            pending = [key for key in keys if visit_distance[key] >= .25
+                       and math.dist(nodes[key], position) >= .25]
+            self.survey_pending = len(pending)
+            candidates = [key for key in pending if self.survey_status.get(key) == AVAILABLE and admitted(key)]
+            self.candidate_count = len(candidates)
+            if keep_previous and self.survey_status.get(previous) == AVAILABLE:
+                selected, self.state, self.last_reason = previous, 'exploring', 'continue_survey_sweep'
+            elif candidates:
+                # Cover every admitted observed viewpoint rather than ending when
+                # the ordinary bounded set of cluster representatives dries up.
+                # Bounded visibility scoring keeps long surveys responsive.
+                gain = ObservedGain(self.terrain)
+                candidates.sort(key=lambda key: (length[key], key))
+                shortlist = candidates[:24]+candidates[::max(1, len(candidates)//24)]
+                selected = max(shortlist, key=lambda key: (
+                    (1.+min(visit_distance[key], 2.)+.8*gain.value(key))/(1.+.35*length[key]+5.*dose[key]), key))
+                self.state, self.last_reason = 'exploring', 'systematic_observed_survey'
+                self.goal_started = stamp
+            else:
+                blocked = {self.survey_status[key] for key in pending}
+                reason = ('radiation_frontiers_blocked' if blocked and blocked <= {RADIATION, BUDGET}
+                          else 'time_return_reserve' if TIME in blocked else 'survey_frontiers_exhausted')
+                self.returning = True
+                selected, self.state, self.last_reason = home, 'returning_survey_limit', reason
         elif keep_previous and not reconsider_height:
             selected, self.state, self.last_reason = previous, 'exploring', 'continue_revalidated_goal'
         else:
@@ -473,6 +509,13 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['cluster_stamp_s'] = self.cluster_stamp
         result['representatives_scored'] = self.representatives_scored
         result['supported_graph_nodes'] = len(self.terrain.nodes)
+        if self.survey_until_complete:
+            keys = [key for key in self.survey_status if key in self.terrain.nodes]
+            result['survey_admission'] = dict(
+                positions=[self.terrain.nodes[key].tolist() for key in keys],
+                statuses=[self.survey_status[key] for key in keys],
+                pending_viewpoints=self.survey_pending,
+                scope='observed support with predicted route/rate/dose admission; unknown space is unclassified')
         result['blocked_edges'] = [[self.terrain.nodes[a].tolist(), self.terrain.nodes[b].tolist()]
                                    for a, b in self.blocked_edges if a in self.terrain.nodes and b in self.terrain.nodes]
         result['sampled_support_height_bands_m'] = [b*.2 for b in sorted(self.sampled_height_bands)]

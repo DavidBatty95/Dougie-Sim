@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dougie radiation comparison</title>
+<style>
+body { margin: 24px; background: #0b1724; color: #e7eef5; font: 16px system-ui, sans-serif; }
+h1 { font-size: 26px; margin-bottom: 6px; } p { color: #b8c8d8; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+section { background: #152638; padding: 16px; border-radius: 10px; min-width: 0; }
+h2 { font-size: 19px; margin-top: 0; } .blind { color: #ffb454; } .aware { color: #48daca; }
+img { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #08121d; }
+.readout { line-height: 1.8; min-height: 3.6em; white-space: pre-line; font-variant-numeric: tabular-nums; }
+canvas { width: 100%; height: 280px; } .graphs { margin-top: 18px; }
+#connection { font-size: 14px; } @media(max-width: 750px) { .grid { grid-template-columns: 1fr; } }
+</style>
+<h1>Dougie — radiation awareness comparison</h1>
+<p>Independent physics simulations • matched world and seeds • <span class="blind">● Radiation-blind</span> / <span class="aware">● Radiation-aware</span></p>
+<div id="connection" role="status">Waiting for simulations…</div>
+<div class="grid">
+ <section><h2 class="blind">Radiation-blind Dougie</h2><img id="blind-frame" alt="Live radiation-blind simulation"><div class="readout" id="blind-status">Starting…</div></section>
+ <section><h2 class="aware">Radiation-aware Dougie</h2><img id="aware-frame" alt="Live radiation-aware simulation"><div class="readout" id="aware-status">Starting…</div></section>
+</div>
+<div class="grid graphs">
+ <section><h2>Cumulative radiation dose (µSv)</h2><canvas id="dose" aria-label="Cumulative radiation dose versus simulation time" role="img"></canvas></section>
+ <section><h2>World explored — observed floor (%)</h2><canvas id="coverage" aria-label="Observed floor percentage versus simulation time" role="img"></canvas></section>
+</div>
+<p>Surveys target 100% observed floor coverage. Radiation-aware Dougie returns when risk or dose prevents further survey; navigation, mapping and optional time limits are reported separately. Curves stop when each mission ends. Compare coverage and mission status alongside dose.</p>
+<p>3D exploration: a floor must be physically reached before observations there count. Fresh LiDAR returns only credit surfaces near the robot's current foot-support height; ramps fill in as it climbs. Seeing an upper floor from below does not explore it. Floors count separately against a fixed 25 cm reference. Dose: integrated simulated true field (dose-equivalent proxy, µSv).</p>
+<p>Minimaps: green = explored; blue = known admissible support; red = predicted radiation-blocked; amber = dose-budget limited; grey = unknown/unclassified. Coloured lines show actual routes; white arrows show robots. Elevation slices expand automatically around the robot's current level (Z is vertical).</p>
+<script>
+const modes = ['blind', 'aware'], colors = {blind:'#ffb454', aware:'#48daca'};
+let latest;
+function plot(id, key, fixedMax) {
+ const canvas = document.getElementById(id), ratio = window.devicePixelRatio || 1;
+ const width = canvas.clientWidth, height = canvas.clientHeight;
+ canvas.width = width*ratio; canvas.height = height*ratio;
+ const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
+ const l=64, r=20, t=15, b=45, w=width-l-r, h=height-t-b;
+ let xmax=1, ymax=fixedMax || 0.001;
+ for (const mode of modes) for (const row of latest[mode].rows) {
+  xmax=Math.max(xmax,row.time_s); if (!fixedMax) ymax=Math.max(ymax,row[key]*1.1);
+ }
+ ctx.font='12px system-ui'; ctx.lineWidth=1;
+ for (let i=0;i<=4;i++) {
+  const y=t+h-i*h/4; ctx.strokeStyle='#34485b'; ctx.beginPath(); ctx.moveTo(l,y); ctx.lineTo(l+w,y); ctx.stroke();
+  ctx.fillStyle='#b8c8d8'; ctx.textAlign='right'; ctx.fillText((ymax*i/4).toFixed(fixedMax?0:3),l-8,y+4);
+  ctx.textAlign='center'; ctx.fillText((xmax*i/4).toFixed(0),l+w*i/4,t+h+20);
+ }
+ ctx.fillText('Simulation time (s)',l+w/2,height-5);
+ for (const mode of modes) {
+  ctx.strokeStyle=colors[mode]; ctx.lineWidth=2.5; ctx.beginPath();
+  latest[mode].rows.forEach((row,i)=> { const x=l+w*row.time_s/xmax,y=t+h-h*row[key]/ymax; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); }); ctx.stroke();
+ }
+}
+function redraw() { if(latest) { plot('dose','true_dose_usv'); plot('coverage','explored_percent',100); } }
+async function refresh() {
+ try {
+  const response=await fetch('/api'); if(!response.ok)throw Error(response.status);
+  latest=await response.json();
+  document.getElementById('connection').textContent='Live connection • updated '+new Date().toLocaleTimeString();
+  for(const mode of modes) {
+   const run=latest[mode], row=run.rows.at(-1), ended=run.exit_code!==null;
+   const status=ended ? (run.exit_code===0?'Finished':'Ended with error — see '+mode+'.log') : 'Running';
+   document.getElementById(mode+'-status').textContent=row
+    ? `${status} · ${row.survey_outcome || row.state} | t = ${row.time_s.toFixed(1)} s\nDose ${row.true_dose_usv.toFixed(4)} µSv · ${row.rate_usv_h.toFixed(2)} µSv/h · explored ${(Math.floor(row.explored_percent*10)/10).toFixed(1)}%\n${row.survey_reason || row.state}`
+    : status+' · waiting for first frame';
+   if(ended && row) {
+    const image=document.getElementById(mode+'-frame');
+    if(!image.dataset.finished) { image.dataset.finished='true'; image.src='/'+mode+'/frame.jpg?t='+Date.now(); }
+   }
+  }
+  redraw();
+ } catch(error) { document.getElementById('connection').textContent='Dashboard disconnected — retrying…'; }
+ setTimeout(refresh,1000);
+}
+for(const mode of modes) {
+ const image=document.getElementById(mode+'-frame');
+ const connect=()=> { if(!image.dataset.finished)image.src='/'+mode+'/stream.mjpg?t='+Date.now(); };
+ image.onerror=()=> { if(!image.dataset.finished)setTimeout(connect,2000); };
+ connect();
+}
+window.addEventListener('resize',redraw); refresh();
+</script>
+</html>

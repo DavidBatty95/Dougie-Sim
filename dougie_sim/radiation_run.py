@@ -116,7 +116,15 @@ def main():
     parser.add_argument('--fast', action='store_true')
     parser.add_argument('--ros', action='store_true')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--radiation-awareness', choices=('aware', 'blind'), default='aware')
+    parser.add_argument('--comparison-stream', action='store_true', help='export live evaluator metrics and offscreen frames')
+    parser.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60')
+    parser.add_argument('--survey-until-complete', action='store_true', help='comparison: exhaustive observed viewpoints; duration 0 removes the time cap')
     args = parser.parse_args()
+    if args.comparison_stream and not args.headless:
+        parser.error('--comparison-stream requires --headless')
+    if args.survey_until_complete and (not args.comparison_stream or args.planner == 'baseline' or args.mission_objective != 'survey'):
+        parser.error('--survey-until-complete requires a comparison stream, clustered planner and survey objective')
     if args.mezzanine_angle is not None and (args.world != 'mezzanine' or not math.isfinite(args.mezzanine_angle) or not 6. <= args.mezzanine_angle <= 10.):
         parser.error('--mezzanine-angle requires the mezzanine world and 6..10 degrees')
     if args.world == 'mezzanine' and args.mezzanine_angle is None:
@@ -177,8 +185,11 @@ def main():
             or args.terrain_profile != 'layered' or args.planner == 'baseline' or args.mission_objective not in ('survey', 'vertical')):
         parser.error('localization checkpoints require a robust fused layered survey with a clustered planner')
     args.source_profile = args.source_profile or (args.world if args.world in ('mezzanine', 'facility') else 'hotspots-and-leaks')
-    if not math.isfinite(args.duration) or args.duration <= 0 or not 8 <= args.gp_capacity <= 512:
+    if not math.isfinite(args.duration) or args.duration < 0 or (args.duration == 0 and not args.survey_until_complete) or not 8 <= args.gp_capacity <= 512:
         parser.error('invalid duration or GP capacity (8..512)')
+    # Keep forecasts finite (the recovery interface requires it) without a demo
+    # time cap. This sentinel is over 30,000 simulated years, not a survey goal.
+    mission_duration = args.duration or 1e12
     if (not 8 <= args.gp_expert_capacity <= 128 or not 1 <= args.gp_max_experts <= 512 or
             not all(math.isfinite(v) and v > 0 for v in args.gp_cell_size)):
         parser.error('invalid spatial GP capacity, expert count or cell dimensions')
@@ -260,13 +271,15 @@ def main():
     (output/'scene.xml').write_text(sim.scene_xml)
     (output/'policy_contract.json').write_text(json.dumps(sim.policy_contract.config, indent=2)+'\n')
     detector = Detector(args.seed)
-    parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, args.duration, args.gp_likelihood)
+    parameters = (args.dose_budget, args.rate_limit, args.gp_capacity, mission_duration, args.gp_likelihood)
     planning_options = {name: getattr(args, name) for name in
                         ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion', 'localization_checkpoints')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
     planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
     planning_options['recovery_enabled'] = args.navigation_profile == 'robust'
+    planning_options['radiation_awareness'] = args.radiation_awareness
+    planning_options['survey_until_complete'] = args.survey_until_complete
     if args.record_support:
         planning_options['support_capture_path'] = str(output/'support_failure.npz')
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
@@ -330,6 +343,10 @@ def main():
     circuit_witness = CircuitWitness()
     evaluator_capture_frames = {}
     recorder = None
+    comparison = None
+    if args.comparison_stream:
+        from .comparison_stream import ComparisonStream
+        comparison = ComparisonStream(sim, output, args.world, args.feed_fps, args.radiation_awareness)
     if args.record_demo:
         from .demo_recording import DemoRecorder
         recorder = DemoRecorder(sim.model, output, args.duration, args.record_view)
@@ -372,6 +389,7 @@ def main():
     terminal_reported = False
     control_wait_start = None
     control_wait_dose = 0.
+    sensor = sim.data.qpos[:3]+[0., 0., .12]
 
     print(f'Dougie radiation mission: {output}\nSource profile: {args.source_profile} ({len(field.sources)} point sources)', flush=True)
     try:
@@ -380,7 +398,7 @@ def main():
             rviz_config = 'dougie_facility.rviz' if args.world == 'facility' else 'dougie_radiation.rviz'
             rviz = subprocess.Popen(rviz_command(ROOT/'config'/rviz_config, output/'rviz_graphics.json'),
                                     stdout=rviz_log, stderr=subprocess.STDOUT)
-        while sim.data.time < args.duration and (viewer is None or viewer.is_running()):
+        while sim.data.time < mission_duration and (viewer is None or viewer.is_running()):
             loop_started = time.perf_counter()
             if rviz is not None and rviz.poll() is not None:
                 if rviz.returncode:
@@ -396,6 +414,9 @@ def main():
                 if stamp-last_onboard_scan >= .2-1e-9:
                     lidar_started = time.perf_counter()
                     local_packet = sensors.scan(sim)
+                    if comparison:
+                        comparison.coverage.observe(local_packet.points@rotation(sim.data.qpos[3:7]).T+sim.data.qpos[:3],
+                                                    support_position=support_pose(sim))
                     revision_before = odometry.map_revision
                     odometry.observe_scan(local_packet)
                     for event in odometry.corrections[revision_before:]:
@@ -467,7 +488,11 @@ def main():
                 latest_sample = sample
                 display_history = (display_history+[sample])[-8192:]
                 highlights.observe(sample)
-                samples.append(sample)
+                if args.radiation_awareness == 'blind':
+                    from .radiation_blind import blind_sample
+                    samples.append(blind_sample(sample))
+                else:
+                    samples.append(sample)
                 measurements.write(json.dumps(asdict(sample))+'\n')
                 if radiation_pub:
                     radiation_pub.publish(String(data=json.dumps(asdict(sample))))
@@ -481,6 +506,7 @@ def main():
                 if odometry and accepted_map_revision != odometry.map_revision:
                     path, map_view, state = [], None, 'waiting_for_map_revision'
                     metrics.update(state=state, planned_path=[], path_spans=[])
+                    metrics.pop('survey_admission', None)
                 if metrics.get('recovery', {}).get('terminal') and terminal_stop is None:
                     terminal_stop = dict(time_s=stamp, reason=metrics['recovery'].get('reason'),
                         measured_dose_usv=detector.dose, evaluator_true_dose_usv=true_dose)
@@ -498,6 +524,10 @@ def main():
                     metrics['route_replan_rejections'] = follower.replan_rejections
                     metrics['follower_status'] = follower.status
                 live_metrics = metrics
+                if comparison:
+                    R_score = rotation(sim.data.qpos[3:7])@odometry.rotation.T if odometry else np.eye(3)
+                    t_score = sim.data.qpos[:3]-R_score@odometry.position if odometry else np.zeros(3)
+                    comparison.update_admission(metrics, R_score, t_score)
                 if args.mission_objective == 'circuit':
                     task = metrics.get('circuit', {})
                     circuit_witness.set_goals(task, evaluator_capture_frames.get(task.get('capture_sequence')))
@@ -536,6 +566,8 @@ def main():
             if terminal_stop is None and future is None and ready_samples and stamp-last_plan >= 2. and (odometry is None or (odometry.initialized and mapped_packet is not None)):
                 lidar_started = time.perf_counter()
                 packet = mapped_packet if odometry else sim.lidar_packet()
+                if comparison and odometry is None:
+                    comparison.coverage.observe(packet.points, support_position=support_pose(sim))
                 if args.mission_objective == 'circuit' and odometry is None:
                     evaluator_capture_frames[packet.sequence] = (np.eye(3), np.zeros(3))
                     if len(evaluator_capture_frames) > 64:
@@ -570,7 +602,7 @@ def main():
                 command[:] = 0.
                 follower.stop()
                 control_reason = 'map_revision_wait' if accepted_map_revision != odometry.map_revision else 'localization_unreliable'
-            if latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
+            if args.radiation_awareness == 'aware' and latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
                 command[:] = 0.
                 follower.stop()
                 control_reason = 'measured_radiation_requires_retreat'
@@ -578,7 +610,7 @@ def main():
                 if control_reason:
                     if control_wait_start is None:
                         control_wait_start, control_wait_dose = stamp, detector.dose
-                    if stamp-control_wait_start >= 12. or detector.dose-control_wait_dose >= .02*args.dose_budget:
+                    if stamp-control_wait_start >= 12. or (args.radiation_awareness == 'aware' and detector.dose-control_wait_dose >= .02*args.dose_budget):
                         terminal_stop = dict(time_s=stamp, reason=control_reason,
                             measured_dose_usv=detector.dose, evaluator_true_dose_usv=true_dose)
                 else:
@@ -630,6 +662,14 @@ def main():
                 raise RuntimeError('independent contact qualification failed; aborting trial')
             if recorder:
                 recorder.capture(sim, map_view, live_metrics, trail, controls, latest_sample, args.dose_budget, args.rate_limit)
+            if comparison:
+                comparison.capture(sim, true_dose, rate, state, metrics=live_metrics)
+                if args.survey_until_complete:
+                    if comparison.coverage.seen.all():
+                        state = 'survey_complete'
+                        break
+                    if terminal_stop is not None:
+                        break
             if viewer and sim.counter % 4 == 0:
                 viewer_started = time.perf_counter()
                 update_viewer(viewer, sim.data.qpos[:3], map_view, live_metrics, trail, controls,
@@ -645,6 +685,19 @@ def main():
         error = str(exc)
     finally:
         loop_wall_time = time.monotonic()-started
+        if comparison:
+            try:
+                if args.survey_until_complete and sim.data.time >= mission_duration and state != 'returned':
+                    live_metrics['decision_reason'] = 'time_limit'
+                comparison.capture(sim, true_dose, field.rate(sensor), 'failed: '+error if error else state,
+                                   force=True, metrics=live_metrics)
+            except Exception as exc:
+                error = error or str(exc)
+            finally:
+                try:
+                    comparison.close()
+                except Exception as exc:
+                    error = error or str(exc)
         try:
             if future is not None:
                 _, _, _, map_view = future.result()
@@ -691,12 +744,13 @@ def main():
                 coarse_free_voxel_size_m=2*terrain.occupancy.resolution,
                 voxel_size_m=terrain.occupancy.resolution)
         metrics = dict(**explorer.metrics(), simulation=sim.metrics(), end_state=state, error=error,
+            radiation_awareness=args.radiation_awareness,
             localization_checkpoints=getattr(explorer, 'localization_checkpoints', None),
             source_profile=args.source_profile, radiation_source_count=len(field.sources),
             source_sha256=source_hashes,
             true_dose_usv=true_dose, measured_dose_usv=detector.dose,
             sampled_height_range_m=[minimum_sensor_z, maximum_sensor_z],
-            mission_completed=bool(state == 'returned'),
+            mission_completed=bool(state in ('returned', 'survey_complete')),
             actual_budget_exceeded=bool(true_dose > args.dose_budget),
             wall_time_s=time.monotonic()-started, seed=args.seed,
             information_contract=('planner receives body-frame noisy LiDAR transformed by IMU/leg/LiDAR estimated pose and counting-detector observations only' if odometry else 'planner receives range returns, ideal pose, counting-detector samples'
@@ -717,11 +771,12 @@ def main():
             episode_control_tick_samples=evaluation_envelope_samples,
             envelope_scope='initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only')
         metrics.update(planner=args.planner, path_length_m=distance_travelled, target_switches=target_switches,
-                       world=args.world, exploration_complete=False,
+                        world=args.world, exploration_complete=bool(comparison and comparison.coverage.seen.all()),
                        gp_mode=args.gp_mode, path_mode=args.path_mode,
                        command_total_variation=command_variation.tolist(), turning_in_place_s=turning_time,
                        physical_witness=witness.metrics(),
-                       completion_scope='return outcome only; complete unknown-space coverage is not established',
+                        completion_scope=('fixed-reference observed-floor coverage; return and survey outcomes are separate' if args.survey_until_complete
+                                          else 'return outcome only; complete unknown-space coverage is not established'),
                        terrain_profile=args.terrain_profile, nonfoot_contacts=dict(nonfoot_contacts),
                        nonfoot_impulse_ns=nonfoot_impulse, nonfoot_peak_force_n=nonfoot_peak,
                         clean_return=bool(state == 'returned' and error is None and true_dose <= args.dose_budget
@@ -729,6 +784,8 @@ def main():
                                            and metrics['localization_evaluation']['true_home_distance_m'] <= .4))
         if hasattr(explorer.terrain, 'metrics'):
             metrics['terrain'] = explorer.terrain.metrics()
+        if comparison:
+            metrics['comparison_survey'] = comparison.survey_report
         from .mission_evaluation import round_trip_failures
         metrics['round_trip_failures'] = round_trip_failures(metrics)
         metrics['round_trip_completed'] = not metrics['round_trip_failures']
@@ -810,7 +867,7 @@ def main():
                 pass
             finally:
                 viewer.close()
-    if (error or true_dose > args.dose_budget or (args.require_clean and not metrics['clean_return'])
+    if (error or (args.radiation_awareness == 'aware' and true_dose > args.dose_budget) or (args.require_clean and not metrics['clean_return'])
             or (args.require_round_trip and not metrics['round_trip_completed'])
             or (args.require_circuit and not metrics.get('circuit_mission_completed'))):
         raise SystemExit(1)

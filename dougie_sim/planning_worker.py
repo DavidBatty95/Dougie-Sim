@@ -28,6 +28,7 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
     explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
     explorer.recovery_reserve_s = 3. if options.get('recovery_enabled') else 0.
+    explorer.survey_until_complete = options.get('survey_until_complete', False)
     explorer.calibration_enabled = options.get('navigation_profile') == 'robust'
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
@@ -59,6 +60,10 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         if parameters[4] != 'poisson':
             raise ValueError('observed-geometry GP requires Poisson likelihood')
         explorer.gp = GeometryPoissonGP(capacity=parameters[2])
+    if options.get('radiation_awareness') == 'blind':
+        from .radiation_blind import BlindGP
+        explorer.gp = BlindGP(parameters[2])
+        explorer.calibration_enabled = False
     return explorer
 
 

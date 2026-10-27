@@ -65,6 +65,18 @@ def main():
     qualification.add_argument('--graphics', choices=MODES, default=os.environ.get('DOUGIE_GRAPHICS', 'auto'))
     qualification.add_argument('--require-qualified', action='store_true')
     sub.add_parser('benchmark-gp', help='measure bounded 3-D GP accuracy and latency')
+    comparison = sub.add_parser('compare', help='side-by-side radiation-blind/aware simulations with live dose and exploration graphs')
+    comparison.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
+    comparison.add_argument('--duration', type=float, default=0., help='optional simulated-time cap; default 0 runs until survey completion or a reported limit')
+    comparison.add_argument('--seed', type=int, default=1)
+    comparison.add_argument('--sensor-seed', type=int, default=0)
+    comparison.add_argument('--layout-seed', type=int, default=0)
+    comparison.add_argument('--dose-budget', type=float, default=2.)
+    comparison.add_argument('--rate-limit', type=float, default=100.)
+    comparison.add_argument('--port', type=int, default=8765)
+    comparison.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60', help='target video frames per wall-clock second (default: 15)')
+    comparison.add_argument('--exit-on-complete', action='store_true')
+    comparison.add_argument('--graphics', choices=MODES, default=os.environ.get('DOUGIE_GRAPHICS', 'auto'))
     radiation = sub.add_parser('radiation', help='3-D GP radiation mapping under a dose budget')
     radiation.add_argument('--duration', type=float, default=600.)
     radiation.add_argument('--dose-budget', type=float, default=2., help='micro-sieverts')
@@ -187,6 +199,12 @@ def main():
         command = ['python3', 'scripts/benchmark_dougie_gp.py']
     elif args.command == 'shell':
         command = ['bash']
+    elif args.command == 'compare':
+        command = ['python3', '-m', 'dougie_sim.comparison']
+        for flag in ('world', 'duration', 'seed', 'sensor_seed', 'layout_seed', 'dose_budget', 'rate_limit', 'port', 'feed_fps'):
+            command += ['--'+flag.replace('_', '-'), str(getattr(args, flag))]
+        if args.exit_on_complete:
+            command.append('--exit-on-complete')
     elif args.command == 'radiation':
         command = ['python3', '-m', 'dougie_sim.radiation_run', '--duration', str(args.duration),
             '--dose-budget', str(args.dose_budget), '--rate-limit', str(args.rate_limit),
@@ -286,7 +304,7 @@ def main():
         if not args.headless and not os.environ.get('DISPLAY'):
             parser.error('DISPLAY is unset; use --headless for a non-graphical session')
     flags = [] if args.command == 'shell' else ['-T']
-    graphics_needed = (args.command in ('graphics-check', 'benchmark-rviz') or
+    graphics_needed = (args.command in ('graphics-check', 'benchmark-rviz', 'compare') or
         (args.command in ('demo', 'explore', 'radiation') and not args.headless) or
         (args.command == 'radiation' and args.record_demo) or
         (args.command == 'terrain-qualify' and args.view))
@@ -298,7 +316,7 @@ def main():
     if graphics_needed:
         print(f'Dougie graphics: {mode}', flush=True)
     flags += graphics_flags
-    if args.command == 'radiation' and args.record_demo:
+    if args.command == 'compare' or (args.command == 'radiation' and args.record_demo):
         flags += ['-e', 'MUJOCO_GL=egl']
     raise SystemExit(subprocess.call([*COMPOSE, *overlays, 'run', '--rm', *flags, 'dougie-sim', *command], cwd=ROOT))
 
