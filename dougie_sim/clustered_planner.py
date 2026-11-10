@@ -55,6 +55,12 @@ class ClusteredDoseExplorer(DoseExplorer):
         self.survey_until_complete = False
         self.survey_status = {}
         self.survey_pending = 0
+        self.frontier_count = None
+        self.admissible_frontier_count = 0
+        self.frontier_complete = False
+        self.frontier_confirmation_count = 0
+        self.last_frontier_confirmation = None
+        self.local_frontier_rescans = 0
 
     def observe_plan_delay(self, seconds):
         if math.isfinite(seconds) and seconds >= 0:
@@ -94,9 +100,9 @@ class ClusteredDoseExplorer(DoseExplorer):
 
     def observe_radiation(self, sample, replay=False):
         super().observe_radiation(sample, replay=replay)
-        if sample.rate_usv_h > self.rate_limit:
+        if self.rate_limited and sample.rate_usv_h > self.rate_limit:
             self.last_reason = 'measured_rate_limit'
-        elif sample.dose_upper_usv >= self.budget*.8:
+        elif self.budget_enabled and sample.dose_upper_usv >= self.budget*.8:
             self.last_reason = 'measured_dose_reserve'
 
     def replan(self, position, stamp):
@@ -112,7 +118,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                 graph[b].remove(a)
         if self.smooth_execution:
             from .path_motion import RouteSmoother
-            self.smoother = RouteSmoother(self.terrain, self.gp, self.rate_limit)
+            self.smoother = RouteSmoother(self.terrain, self.gp, self.smoothing_rate_limit)
         root = self.terrain.nearest(position)
         self.rejections = dict(distance=0, failed=0, dose=0, rate=0, return_route=0, time=0)
         self.route_forecast = {}
@@ -138,7 +144,8 @@ class ClusteredDoseExplorer(DoseExplorer):
         mean, sigma, upper = self.gp.predict([nodes[key]+[0, 0, .44] for key in keys])
         rates, uncertainty = dict(zip(keys, upper)), dict(zip(keys, sigma))
         means = dict(zip(keys, mean))
-        _, _, length, parent = self.terrain.routes(root, rates, max_rate=self.rate_limit)
+        ceiling = self.rate_limit if self.rate_limited else None
+        _, _, length, parent = self.terrain.routes(root, rates, max_rate=ceiling)
         emergency_return = False
         if home not in parent:
             # Do not authorize new exploration without a rate-compliant return.
@@ -156,7 +163,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             # sparse root sample every two seconds. Never cross disconnected walls.
             self.visited.update(key for key, distance in length.items() if distance <= .3)
             self.region_agenda.update(nodes, graph, root, stamp, self.visited)
-        _, _, home_length, home_parent = self.terrain.routes(home, rates, reverse=True, max_rate=self.rate_limit)
+        _, _, home_length, home_parent = self.terrain.routes(home, rates, reverse=True, max_rate=ceiling)
         if home not in parent:
             self.path = []
             self.state, self.last_reason = 'no_observed_return_route', 'return_graph_disconnected'
@@ -175,9 +182,9 @@ class ClusteredDoseExplorer(DoseExplorer):
                 return_duration_s=seconds, return_upper_dose_usv=exposure,
                 return_peak_rate_usv_h=float(np.max(return_rates)), return_forecast_geometry='support_checked_smooth')
             outbound_time[home], dose[home] = seconds, exposure
-        self.return_reserve = dose[home]+self.budget*.15+rates[root]*(self.wait_allowance+self.recovery_reserve_s)/3600.
+        self.return_reserve = dose[home]+self.budget_margin+rates[root]*(self.wait_allowance+self.recovery_reserve_s)/3600.
         self.route_forecast['recovery_reserve_s'] = self.recovery_reserve_s
-        if self.sample.dose_upper_usv+self.return_reserve >= self.budget:
+        if self.exceeds_budget(self.sample.dose_upper_usv+self.return_reserve, inclusive=True):
             self.returning, self.last_reason = True, 'dose_return_reserve'
         if stamp+outbound_time[home]+self.wait_allowance+15. >= self.mission_duration:
             self.returning, self.last_reason = True, 'time_return_reserve'
@@ -185,7 +192,7 @@ class ClusteredDoseExplorer(DoseExplorer):
         if self.survey_until_complete:
             from .survey_comparison import survey_admission
             self.visited.update(key for key, distance in length.items() if distance <= .25)
-            safe_parent = self.terrain.routes(root, rates, max_rate=self.rate_limit)[3] if emergency_return else parent
+            safe_parent = self.terrain.routes(root, rates, max_rate=ceiling)[3] if emergency_return else parent
             self.survey_status = survey_admission(self, keys, root, home, rates, safe_parent, home_parent,
                 dose, home_dose, outbound_time, home_time, stamp)
         checked_inspections = set()
@@ -222,10 +229,10 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self._remember(key, 'temporarily_blocked', stamp)
                 return False
             dwell_dose = (rates[root]*self.wait_allowance+rates[key]*(5.+self.wait_allowance+self.recovery_reserve_s))/3600.
-            total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
+            total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget_margin+dwell_dose
             deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
             if (self.smooth_execution and (self.landmark_bonus(nodes[key]) > 0 or self.objective == 'circuit' or key in refinement_keys) and key not in checked_inspections
-                    and len(checked_inspections) < 4 and (total > self.budget or deadline > self.mission_duration)):
+                    and len(checked_inspections) < 4 and (self.exceeds_budget(total) or deadline > self.mission_duration)):
                 # Grid turns can grossly overestimate a nearby inspection trip.
                 # Recheck a bounded number of promising known-target approaches
                 # on certified execution geometry before rejecting the objective.
@@ -241,13 +248,13 @@ class ClusteredDoseExplorer(DoseExplorer):
                     durations[key], doses[key] = forecast_polyline(query, prediction,
                         start_yaw=None if returning else getattr(self, 'start_yaw', None))
                     peaks[key] = float(np.max(prediction))
-                total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+dwell_dose
+                total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget_margin+dwell_dose
                 deadline = stamp+outbound_time[key]+home_time[key]+2*self.wait_allowance+15.+self.recovery_reserve_s
-            if total > self.budget:
+            if self.exceeds_budget(total):
                 self.rejections['dose'] += 1
                 self._remember(key, 'dose_limited', stamp)
                 return False
-            if max(outbound_peak[key], home_peak[key]) > self.rate_limit:
+            if self.rate_limited and max(outbound_peak[key], home_peak[key]) > self.rate_limit:
                 self.rejections['rate'] += 1
                 self._remember(key, 'rate_limited', stamp)
                 return False
@@ -263,7 +270,7 @@ class ClusteredDoseExplorer(DoseExplorer):
             detail = self.utility.score(nodes[key]+[0., 0., .44], novelty, fresh_fraction,
                 means[key], uncertainty[key], outbound_time[key], home_time[key], dose[key], home_dose[key],
                 rates[key], rates[root], self.wait_allowance, self.recovery_reserve_s,
-                self.mission_duration-stamp, self.budget-self.sample.dose_upper_usv-self.budget*.15,
+                self.mission_duration-stamp, self.remaining_budget,
                 self.sample.counts_per_usv, target_bonus, connector_bonus)
             utility_details[key] = detail
             return detail['score']
@@ -322,7 +329,7 @@ class ClusteredDoseExplorer(DoseExplorer):
                     if self.utility_mode == 'information':
                         tour = self.circuit.best_tour(self.terrain, root, home, position, self.home, rates, self.gp,
                             self.rate_limit, viable, self.mission_duration-stamp,
-                            self.budget-self.sample.dose_upper_usv-self.budget*.15, self.smoother,
+                            self.remaining_budget, self.smoother,
                             yaw=getattr(self, 'start_yaw', None), wait_s=self.wait_allowance, recovery_s=self.recovery_reserve_s)
                         if tour is not None:
                             selected = tour['first']
@@ -336,19 +343,34 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self.last_reason = 'observed_circuit_tour' if self.circuit_tour else 'observed_circuit_goal'
         elif self.survey_until_complete:
             from .survey_comparison import AVAILABLE, RADIATION, BUDGET, TIME
+            # Frontier standoffs are observed support nodes with an occlusion-
+            # aware view of unknown support. Visited nodes remain frontiers until
+            # new sensing resolves the unknown; visiting is not completion.
+            gain = ObservedGain(self.terrain)
+            pending = [key for key in keys if gain.value(key) > 0]
+            self.frontier_count = self.survey_pending = len(pending)
+            fresh_scan = getattr(self, 'last_packet_sequence', stamp)
+            if not pending:
+                if fresh_scan != self.last_frontier_confirmation:
+                    self.frontier_confirmation_count += 1
+                    self.last_frontier_confirmation = fresh_scan
+                self.frontier_complete = self.frontier_confirmation_count >= 3
+                self.path, self.target, self.candidate_count = [], None, 0
+                self.admissible_frontier_count = 0
+                self.state = 'finished' if self.frontier_complete else 'confirming_frontier_exhaustion'
+                self.last_reason = 'frontiers_exhausted' if self.frontier_complete else 'confirming_no_frontiers'
+                return
+            self.frontier_confirmation_count, self.last_frontier_confirmation = 0, None
+            self.frontier_complete = False
             visit_distance = distance_from_visits(nodes, graph, self.visited)
-            pending = [key for key in keys if visit_distance[key] >= .25
-                       and math.dist(nodes[key], position) >= .25]
-            self.survey_pending = len(pending)
-            candidates = [key for key in pending if self.survey_status.get(key) == AVAILABLE and admitted(key)]
+            candidates = [key for key in pending if math.dist(nodes[key], position) >= .25
+                          and self.survey_status.get(key) == AVAILABLE and admitted(key)]
+            self.admissible_frontier_count = len(candidates)
             self.candidate_count = len(candidates)
-            if keep_previous and self.survey_status.get(previous) == AVAILABLE:
+            if keep_previous and previous in candidates:
                 selected, self.state, self.last_reason = previous, 'exploring', 'continue_survey_sweep'
             elif candidates:
-                # Cover every admitted observed viewpoint rather than ending when
-                # the ordinary bounded set of cluster representatives dries up.
-                # Bounded visibility scoring keeps long surveys responsive.
-                gain = ObservedGain(self.terrain)
+                self.local_frontier_rescans = 0
                 candidates.sort(key=lambda key: (length[key], key))
                 shortlist = candidates[:24]+candidates[::max(1, len(candidates)//24)]
                 selected = max(shortlist, key=lambda key: (
@@ -356,9 +378,16 @@ class ClusteredDoseExplorer(DoseExplorer):
                 self.state, self.last_reason = 'exploring', 'systematic_observed_survey'
                 self.goal_started = stamp
             else:
+                local = [key for key in pending if self.survey_status.get(key) == AVAILABLE
+                         and math.dist(nodes[key], position) < .25]
+                if local and self.local_frontier_rescans < 3:
+                    self.local_frontier_rescans += 1
+                    self.path, self.target = [], None
+                    self.state, self.last_reason = 'frontier_rescan', 'resensing_local_frontier'
+                    return
                 blocked = {self.survey_status[key] for key in pending}
                 reason = ('radiation_frontiers_blocked' if blocked and blocked <= {RADIATION, BUDGET}
-                          else 'time_return_reserve' if TIME in blocked else 'survey_frontiers_exhausted')
+                          else 'time_return_reserve' if TIME in blocked else 'unresolved_frontiers')
                 self.returning = True
                 selected, self.state, self.last_reason = home, 'returning_survey_limit', reason
         elif keep_previous and not reconsider_height:
@@ -510,6 +539,11 @@ class ClusteredDoseExplorer(DoseExplorer):
         result['representatives_scored'] = self.representatives_scored
         result['supported_graph_nodes'] = len(self.terrain.nodes)
         if self.survey_until_complete:
+            result.update(frontier_count=self.frontier_count,
+                admissible_frontier_count=self.admissible_frontier_count,
+                frontier_complete=self.frontier_complete,
+                frontier_confirmation_count=self.frontier_confirmation_count,
+                completion_rule='zero observed-map frontiers on three fresh scans')
             keys = [key for key in self.survey_status if key in self.terrain.nodes]
             result['survey_admission'] = dict(
                 positions=[self.terrain.nodes[key].tolist() for key in keys],

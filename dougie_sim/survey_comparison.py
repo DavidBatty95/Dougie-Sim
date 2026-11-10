@@ -17,16 +17,17 @@ def survey_admission(explorer, keys, root, home, rates, parent, home_parent,
     for key in keys:
         if key not in physical or key not in physical_home:
             status = DISCONNECTED
-        elif key not in parent or key not in home_parent or rates[key] > explorer.rate_limit:
+        elif key not in parent or key not in home_parent or (getattr(explorer, 'rate_limited', True) and rates[key] > explorer.rate_limit):
             status = RADIATION
         elif any(math.dist(explorer.terrain.nodes[key], point) < .65 for point, _ in explorer.failed):
             status = TEMPORARY
         else:
             dwell = (rates[root]*explorer.wait_allowance+
                      rates[key]*(5.+explorer.wait_allowance+explorer.recovery_reserve_s))/3600.
-            total = explorer.sample.dose_upper_usv+dose[key]+home_dose[key]+explorer.budget*.15+dwell
+            enabled = getattr(explorer, 'budget_enabled', True)
+            total = explorer.sample.dose_upper_usv+dose[key]+home_dose[key]+(explorer.budget*.15 if enabled else 0.)+dwell
             deadline = stamp+outbound_time[key]+home_time[key]+2*explorer.wait_allowance+15.+explorer.recovery_reserve_s
-            status = BUDGET if total > explorer.budget else TIME if deadline > explorer.mission_duration else AVAILABLE
+            status = BUDGET if enabled and total > explorer.budget else TIME if deadline > explorer.mission_duration else AVAILABLE
         statuses[key] = status
     return statuses
 
@@ -35,7 +36,7 @@ def outcome(complete, state, reason, terminal=False, error=None):
     if error:
         return 'failed'
     if complete:
-        return 'survey_complete'
+        return 'frontiers_exhausted'
     if state == 'interrupted':
         return 'interrupted'
     if reason in ('time_return_reserve', 'time_limit'):
@@ -46,6 +47,8 @@ def outcome(complete, state, reason, terminal=False, error=None):
         return 'radiation_limited'
     if terminal:
         return 'navigation_stopped'
+    if reason == 'unresolved_frontiers':
+        return 'frontiers_blocked'
     if state == 'returned':
         return 'observed_frontiers_exhausted' if reason == 'survey_frontiers_exhausted' else 'incomplete_return'
     return 'surveying'

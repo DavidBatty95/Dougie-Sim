@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -e
+source /opt/ros/humble/setup.bash
+cd /workspace
+command="${1:-help}"
+if [ "$#" -gt 0 ]; then shift; fi
+case "$command" in
+    demo) exec python3 -m dougie_sim.session "$@" ;;
+    explore) exec python3 -m dougie_sim.session --explore --world office "$@" ;;
+    radiation)
+        ros=(--ros)
+        for argument in "$@"; do
+            if [ "$argument" = --fast ]; then ros=(); fi
+        done
+        exec python3 -m dougie_sim.radiation_run "${ros[@]}" "$@"
+        ;;
+    graphics-check) exec python3 -m dougie_sim.graphics "$@" ;;
+    test) exec python3 -m pytest -q tests/dougie "$@" ;;
+    shell) exec bash "$@" ;;
+    *)
+        printf '%s\n' 'Usage: dougie-desktop {demo|explore|radiation|graphics-check|test|shell} [options]'
+        if [ "$command" != help ] && [ "$command" != --help ]; then exit 2; fi
+        ;;
+esac

@@ -1,0 +1,22 @@
+{
+  "run": "comparison_20261109T224031_936791Z",
+  "scope": "One retained paired reactor development experiment; ideal-pose planning comparison, not a multi-seed or hardware validation. Both incomplete outcomes are retained.",
+  "generator": "scripts/publish_frontier_comparison.py",
+  "browser_capture": {
+    "script": "scripts/check_comparison_browser.mjs",
+    "viewport": [
+      1440,
+      1360
+    ],
+    "mode": "actual browser viewport, serving the retained terminal experiment"
+  },
+  "assets": {
+    "docs/results/dougie_frontier_comparison.json": "707cb92fc191bff9a453356e957d83e6526d227f57f3a2a003f35e94e4fd1414",
+    "docs/results/frontier_comparison_inputs.tar.gz": "222b8bf977b78a64cebc4d9c9a3898db6e921d5400d00345849080365ed26cbe",
+    "docs/DOUGIE_COMPARISON_RESULTS.md": "a3b199d4cc22159c0dc07c568b096da34523b1898be027a0020741b5cc996310",
+    "docs/media/dougie/frontier-results.svg": "8cd2cb769f79118097e994a91f19dd2a9a9559c14703f8458c49ead10398a183",
+    "docs/media/dougie/frontier-comparison.png": "772baa69d4665cc1c58633995908945470039b48b3c91356b40447550f1f3d5c",
+    "docs/media/dougie/frontier-radiation.png": "97a85f06ed08bc05c9be4f6b43cfb300e0266a28053a2789e06fc8502f639344",
+    "docs/media/dougie/frontier-dashboard.png": "f1b8568246ddcab535d4f03b5dce07c8f8a0ac51ed676cf853c6750dff88f037"
+  }
+}

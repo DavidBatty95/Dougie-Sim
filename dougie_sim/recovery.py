@@ -25,7 +25,7 @@ class BudgetedRecovery:
         self.terminal = False
 
     def step(self, reason, stamp, measured_dose, dose_upper, rate_upper, budget, reserve,
-             deadline, return_seconds=0., valid_route=False):
+             deadline, return_seconds=0., valid_route=False, budget_enabled=True):
         values = (stamp, measured_dose, dose_upper, rate_upper, budget, reserve, deadline, return_seconds)
         if not all(math.isfinite(v) for v in values) or min(measured_dose, dose_upper, rate_upper, reserve, return_seconds) < 0 or budget <= 0:
             raise ValueError('invalid recovery forecast')
@@ -48,8 +48,8 @@ class BudgetedRecovery:
             return RecoveryDecision('recovered')
         self.reason = reason or self.reason
         self.wait_upper_dose = rate_upper*self.resense_s/3600.
-        exhausted = (dose_upper+reserve+self.wait_upper_dose >= budget
-                     or measured_dose-self.started_dose >= .02*budget
+        exhausted = ((budget_enabled and (dose_upper+reserve+self.wait_upper_dose >= budget
+                     or measured_dose-self.started_dose >= .02*budget))
                      or stamp+return_seconds+self.resense_s+15. >= deadline)
         if elapsed >= self.max_episode_s or (elapsed >= self.max_wait_s and not valid_route):
             self.phase, self.terminal = 'stopped_unrecoverable', True

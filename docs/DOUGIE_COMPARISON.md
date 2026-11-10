@@ -1,5 +1,64 @@
 # Side-by-side radiation comparison
 
+## Local Mac comparison profile
+
+From your Mac, `~/Dougie-Sim/dougie-mac compare` opens
+<http://localhost:8770>. The local comparison now defaults to **no cumulative
+dose cap**, **no fixed time cap**, and matched **simulator ground-truth pose**
+for both robots. This isolates radiation-aware routing from the short fused
+localization return-reserve horizon. Select `--localization fused` when testing
+onboard localization instead. The dashboard explicitly labels the pose source.
+
+The aware robot keeps learning radiation and penalizing predicted route dose,
+while pursuing observed-map frontier viewpoints. **Finished** means the planner
+finds zero frontier nodes on three fresh LiDAR scans and declares completion.
+A frontier is an observed support node with an occlusion-aware view of unknown
+support. A visited node stays a frontier while unknown space remains visible.
+Blocked or unreachable frontiers mean an incomplete stop, not finished.
+The reference floor percentage is evaluation-only and never ends a mission.
+The default
+`--radiation-policy minimize-dose` uses predicted radiation as a route cost,
+without a peak-rate-triggered return. Optional `--radiation-policy rate-limited`
+restores hard rate exclusions. Known-route/physical constraints and bounded
+navigation recovery remain active. This is a dose-weighted exploration heuristic,
+not a claim to find the globally minimum-dose full-coverage tour. Below-100%
+terminal outcomes remain visible.
+
+An optional numeric `--dose-budget` re-enables the cumulative cap. At the raw
+mission level, `--no-dose-budget` disables cumulative admission, reserve and
+watchdog cutoffs while preserving sensing, dose accounting and the selected
+radiation policy.
+
+### Truth versus learned radiation
+
+The dashboard includes two fixed-coordinate maps: **ground-truth radiation** and
+the **aware robot's GP mean**, sharing a log colour scale and floor selector.
+The scoring floor samples are evaluated 44 cm above their support surface.
+The truth map is evaluator-only; it is never fed to navigation or GP training.
+The GP panel uses the nearest exported prediction within 35 cm in XYZ and
+18 cm vertically. Unmatched samples are grey/null, never zero or filled from
+truth. Hovering gives truth, mean, upper bound and log-rate standard deviation.
+The displayed log1p RMSE is over matched samples only, using that nearest-query
+alignment. Outlined cells show the independent observed-floor mask.
+
+The existing dose and exploration graphs are joined by actual 3D distance.
+Each aware run saves `radiation_map.json`, including exact truth query positions,
+nearest-query predictions, uncertainty, shared colour scale and alignment scope.
+
+### Polished local demonstrator
+
+The page separates matched-progress evidence, per-robot mission status, complete
+trajectories, radiation-map comparison and methods. Its headline uses the first
+recorded crossing of a shared reference-floor threshold (select 50/75/85/90%),
+not unequal final doses. A separate card interpolates both trajectories at their
+latest common simulated time. Every threshold's actual observed percentages and
+crossing times remain visible, and reductions can be negative. Both incomplete
+outcomes remain labelled as such; a clean return is not called finished.
+
+`--replay <completed-run-directory>` serves retained endpoints without launching
+new workers or modifying the experiment. On Mac:
+`./dougie-mac replay results/dougie/comparison_<timestamp>`.
+
 Launch two independent Go2 physics simulations and a live browser dashboard:
 
 ```bash
@@ -15,12 +74,11 @@ left and radiation-aware Dougie on the right, with shared graphs below:
 - A top-right minimap in **each feed** showing its actual route, explored floor,
   current pose/heading, start position and estimated surveyability.
 
-By default, both missions now **target 100% observed-floor coverage without a
-fixed time cap**. They systematically sweep remaining admitted support viewpoints
-instead of returning as soon as the ordinary cluster shortlist is empty.
-Radiation-aware Dougie can return earlier when predicted radiation or its dose
-budget excludes further survey. A completed return alone is not reported as
-100% exploration.
+By default, both missions **target confirmed frontier exhaustion without a fixed
+time cap**. Completion is the robot's own map decision, not a reference-map
+percentage. A completed return or empty admissible shortlist does not mean
+finished if frontier nodes remain. Optional hard dose/rate limits can stop a
+mission before frontier completion.
 
 The views are actual MuJoCo renders streamed continuously over MJPEG, targeting
 **15 frames per wall-clock second** by default. Graphs and readouts refresh once
@@ -49,7 +107,7 @@ the latest frame is sent, avoiding a delayed video backlog. Shadows/reflections
 are disabled in the feeds to reduce rendering cost. Each feed renders in a
 separate process from physics, using the latest actual robot pose. Graph samples retain their
 0.5 simulated-second cadence regardless of video FPS.
-`--dose-budget`, `--rate-limit`, `--layout-seed` and `--sensor-seed` configure both
+An optional `--dose-budget`, `--rate-limit`, `--layout-seed` and `--sensor-seed` configure both
 missions identically. `--exit-on-complete` closes the dashboard after both workers
 exit (useful for automated smoke runs). Otherwise final graphs and views remain
 available until **Ctrl+C**, which also stops any running simulations.
@@ -82,16 +140,17 @@ The true pose is used only to align those display annotations to the reference.
 
 The dashboard and `survey_report.json` distinguish:
 
-- `survey_complete`: all fixed reference samples have actually been observed.
+- `frontiers_exhausted`: zero observed-map frontiers on three fresh scans; the
+  planner explicitly declared `finished`.
 - `radiation_limited`: a radiation/risk/dose condition caused the return/stop.
-- `observed_frontiers_exhausted`: no remaining admitted observed viewpoints;
-  coverage is still reported honestly, even when below 100%.
+- `frontiers_blocked`: frontier nodes remain but none can currently be resolved;
+  this is not mission completion.
 - `navigation_stopped` / `incomplete_return`: localization, route recovery,
   map capacity or other navigation limits prevented further survey.
 - `time_limit`, `interrupted`, or `failed`.
 
-Both robots retain their physical/navigation constraints. The feature sets 100%
-as the goal; it does not guarantee complete coverage of inaccessible surfaces or
+Both robots retain their physical/navigation constraints. The goal is exhaustion
+of observed-map frontiers; it does not guarantee true coverage of inaccessible surfaces or
 force continued motion after an unrecoverable navigation failure. No coverage
 percentage is renormalized to make a partial survey look complete.
 
@@ -115,7 +174,7 @@ produce different observations even with matching random seeds.
 Both curves integrate the true simulated field along the actual robot trajectory,
 independently of the GP estimate. Units are the simulator's **dose-equivalent
 proxy in µSv**, not absorbed energy in gray. The survey comparison ends each
-mission at full observed coverage, a completed return, an unrecoverable stop, or
+mission at planner-declared frontier exhaustion, a completed return, an unrecoverable stop, or
 the optional time cap. Dose is integrated through that endpoint. Its curve is
 not padded with hypothetical data; a lower dose after an early failure is not
 evidence of equivalent survey work.
@@ -138,8 +197,8 @@ body or sensor height:
   on arrival. Returning downstairs also cannot add new upstairs coverage.
 
 True capture pose is used solely for scoring. Coverage is the cumulative fraction
-of these fixed samples, and the graphs, minimap shading, slice percentages and
-100% completion check all use the same mask. Saved artifacts identify the metric
+of these fixed samples. Graphs, minimap shading and slice percentages all use
+the same mask; it never determines mission completion. Saved artifacts identify the metric
 as `physically_reached_3d_floor_v2`; earlier run percentages are not recalculated.
 The reference and score are never sent to navigation.
 

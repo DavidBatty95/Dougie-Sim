@@ -245,7 +245,8 @@ class Visualization:
             evidence.action = Marker.DELETE
         self.detections.publish(MarkerArray(markers=[evidence]))
         rate = sample.rate_usv_h if sample is not None else 0.
-        fraction = dose/budget if budget > 0 else 0.
+        enabled = metrics.get('dose_budget_enabled', True)
+        fraction = dose/budget if enabled and budget > 0 else 0.
         state = metrics.get('state', 'initial_survey')
         warning = fraction >= .8 or rate > rate_limit or state.startswith('return')
         color = ColorRGBA(r=1. if warning else .3, g=.7 if warning else 1., b=.2 if warning else .9, a=1.)
@@ -253,9 +254,11 @@ class Visualization:
         text.pose.position.z = self.status_height
         text.scale.z = .18
         text.color = color
+        dose_line = (f"Measured dose {dose:.3f} / {budget:g} uSv ({fraction:.0%})" if enabled else
+                     f"Measured dose {dose:.3f} uSv / NO CAP — minimize exposure")
         text.text = (f"DOUGIE | {state.replace('_', ' ').upper()} | {self.bridge.sim.data.time:.1f} s\n"
                      f"{metrics.get('decision_reason', '').replace('_', ' ')}\n"
-                     f"Measured dose {dose:.3f} / {budget:g} uSv ({fraction:.0%})\n"
+                     f"{dose_line}\n"
                      f"Measured rate {rate:.1f} / {rate_limit:g} uSv/h\n"
                      f"Estimated return reserve {metrics.get('return_reserve_usv', 0.):.3f} uSv\n"
                       f"Observed surface proxy {metrics.get('mapped_surface_area_m2', 0.):.1f} m^2")

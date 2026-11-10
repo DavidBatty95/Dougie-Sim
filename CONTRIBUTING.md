@@ -3,7 +3,7 @@
 [Project home](README.md) · [Documentation](docs/DOUGIE_INDEX.md) · [Architecture](docs/DOUGIE_SIM.md)
 
 The maintained project is the Unitree Go2 simulation in `dougie_sim/`. Start with
-the [current milestones](README.md#research-and-design), choose a focused change,
+the [current discussion and limitations](README.md#5-discussion-and-limitations), choose a focused change,
 and describe its acceptance criterion in the issue or pull request.
 
 1. Keep simulator truth out of onboard localization, mapping and route selection.

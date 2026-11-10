@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Native Apple Silicon browser comparison and optional Ubuntu desktop.
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+desktop=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.mac.yml")
+comparison=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.compare.yml")
+ensure_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        printf 'Install Docker Desktop for Apple Silicon first.\n' >&2
+        exit 1
+    fi
+    if ! docker info >/dev/null 2>&1; then
+        printf 'Starting Docker Desktop...\n'
+        open -a Docker
+        for attempt in {1..90}; do
+            if docker info >/dev/null 2>&1; then return; fi
+            sleep 2
+        done
+        printf 'Docker did not become ready. Check Docker Desktop and retry.\n' >&2
+        exit 1
+    fi
+}
+ensure_image() {
+    if ! docker image inspect dougie-sim:mac-arm64 >/dev/null 2>&1; then
+        "${desktop[@]}" build
+    fi
+}
+command="${1:-compare}"
+if [ "$#" -gt 0 ]; then shift; fi
+case "$command" in
+    compare|replay|compare-stop|compare-logs|compare-status)
+        ensure_docker
+        case "$command" in
+            compare-stop) "${comparison[@]}" down ;;
+            compare-logs) "${comparison[@]}" logs "$@" ;;
+            compare-status) "${comparison[@]}" ps ;;
+            compare|replay)
+                if [ "$command" = replay ]; then
+                    run="${1:-}"
+                    if [[ "$run" != results/dougie/* ]] || [ ! -f "$ROOT/$run/comparison_status.json" ]; then
+                        printf 'Usage: ./dougie-mac replay results/dougie/comparison_<timestamp>\n' >&2
+                        exit 2
+                    fi
+                    export DOUGIE_COMPARE_REPLAY="/workspace/$run"
+                    shift
+                fi
+                if [ "$#" -gt 0 ]; then
+                    printf 'Use DOUGIE_COMPARE_WORLD/SEED/DURATION/LOCALIZATION/FPS/PORT environment variables.\n' >&2
+                    exit 2
+                fi
+                ensure_image
+                "${comparison[@]}" run --rm --no-deps comparison python3 -m dougie_sim.assets
+                "${comparison[@]}" up -d --wait
+                url="http://localhost:${DOUGIE_COMPARE_PORT:-8770}"
+                open "$url"
+                printf 'Radiation-blind vs radiation-aware: %s\n' "$url"
+                ;;
+        esac
+        ;;
+    setup|up|start)
+        ensure_docker
+        if [ "$command" = setup ]; then "${desktop[@]}" build; else ensure_image; fi
+        "${desktop[@]}" run --rm --no-deps --user dougie desktop python3 -m dougie_sim.assets
+        "${desktop[@]}" up -d --wait
+        if [ "$command" = start ]; then
+            mode="${1:-radiation}"
+            if [ "$#" -gt 0 ]; then shift; fi
+            case "$mode" in
+                radiation) defaults=(--no-dose-budget --radiation-policy minimize-dose --duration 3600 --localization ground-truth) ;;
+                demo) defaults=(--world room --vx 0.2 --duration 30) ;;
+                explore) defaults=(--duration 300) ;;
+                *) printf 'Choose radiation, demo or explore.\n' >&2; exit 2 ;;
+            esac
+            if ! "${desktop[@]}" exec -T --user dougie desktop pgrep -f 'python3 -m dougie_sim\.(session|radiation_run|run)( |$)' >/dev/null; then
+                "${desktop[@]}" exec -d --user dougie desktop xfce4-terminal --disable-server --hold \
+                    --title Dougie-Sim --execute dougie-desktop "$mode" "${defaults[@]}" "$@"
+            fi
+        fi
+        open "http://localhost:${DOUGIE_DESKTOP_PORT:-6080}/vnc.html?autoconnect=true&resize=scale"
+        ;;
+    open) open "http://localhost:${DOUGIE_DESKTOP_PORT:-6080}/vnc.html?autoconnect=true&resize=scale" ;;
+    down) "${desktop[@]}" down ;;
+    status) "${desktop[@]}" ps ;;
+    logs) "${desktop[@]}" logs "$@" ;;
+    shell|demo|explore|radiation|graphics-check|test)
+        "${desktop[@]}" exec --user dougie desktop dougie-desktop "$command" "$@"
+        ;;
+    help|--help)
+        printf '%s\n' './dougie-mac [compare|replay|compare-stop|compare-status|compare-logs]' \
+            './dougie-mac [setup|up|start|open|down|status|logs|shell|demo|explore|radiation|graphics-check|test]' \
+            'Default: start the browser comparison. See docs/DOUGIE_MAC.md.'
+        ;;
+    *) printf 'Unknown command: %s\n' "$command" >&2; exit 2 ;;
+esac

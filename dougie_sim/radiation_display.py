@@ -5,8 +5,8 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.stats import chi2
 
-CLOUD_ALPHA = .018
-CLOUD_RADII = np.array([.24, .24, .16])
+CLOUD_ALPHA = .2
+CLOUD_RADII = np.array([.09, .09, .06])
 CLOUD_ALPHA_LEVELS = 8
 
 

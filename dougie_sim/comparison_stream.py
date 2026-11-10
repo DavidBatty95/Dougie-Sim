@@ -11,6 +11,19 @@ from scipy.spatial import cKDTree
 
 from .comparison_minimap import ComparisonMinimap
 from .survey_comparison import outcome, project_admission, STATUS_NAMES
+from .demo_overlay import DemoControls, draw_overlay
+
+
+def planning_snapshot(metrics, rotation, translation):
+    """Align operator-only planner annotations to the evaluator render frame."""
+    def points(values):
+        return (np.asarray(values, dtype=float).reshape(-1, 3)@rotation.T+translation).tolist()
+    result = {key: points(metrics.get(key, [])[:400]) for key in ('planned_path', 'return_path')}
+    target = metrics.get('selected_target')
+    result['selected_target'] = points([target])[0] if target is not None else None
+    result['clusters'] = [dict(anchor=points([item['anchor']])[0])
+                          for item in metrics.get('clusters', [])[:8]]
+    return result
 
 
 class FloorCoverage:
@@ -100,7 +113,7 @@ class FloorCoverage:
         return float(100.*self.seen.mean())
 
 
-def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, world, start, awareness):
+def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, world, start, awareness, planning):
     """Separate OpenGL owner, using a single latest-pose slot (no frame queue)."""
     # The mission handles Ctrl+C and publishes its last pose before closing us.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -111,6 +124,8 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
     options = mujoco.MjvOption()
     options.sitegroup[5] = 0
     minimap = ComparisonMinimap(points, world, start, awareness)
+    controls = DemoControls()
+    controls.regions = True
     route_shape = (len(minimap.levels), minimap.map_height, minimap.width)
     started = time.monotonic()
     frames, render_seconds, previous = 0, 0., 0.
@@ -122,6 +137,7 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
             with snapshot.get_lock():
                 values = np.frombuffer(snapshot.get_obj()).copy()
                 map_values = np.frombuffer(map_state, dtype=np.uint8).copy()
+                plan = json.loads(planning.value or b'{}')
             tick = time.monotonic()
             if values[0] != previous:
                 previous = values[0]
@@ -137,6 +153,7 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
                     if (geom.objtype == mujoco.mjtObj.mjOBJ_GEOM and 0 <= index < model.ngeom
                             and model.geom_bodyid[index] == 0 and geom.pos[2] > data.qpos[2]+.2):
                         geom.rgba[3] = min(float(geom.rgba[3]), .08)
+                draw_overlay(renderer.scene, None, plan, [], controls, 100., reset=False)
                 temporary = output/'frame.tmp'
                 w, x, y, z = data.qpos[3:7]
                 yaw = np.arctan2(2*(w*z+x*y), 1-2*(y*y+z*z))
@@ -172,15 +189,26 @@ class ComparisonStream:
         self.next_frame = self.next_metrics = 0.
         start = np.array([*sim.data.qpos[:2], self.support_height(sim)])
         self.minimap = ComparisonMinimap(self.coverage.points, world, start, awareness)
+        self.radiation_map = None
+        if awareness == 'aware':
+            from .radiation import RadiationField
+            from .comparison_radiation import RadiationMapComparison
+            self.radiation_map = RadiationMapComparison(self.coverage.points,
+                RadiationField.from_mujoco(sim.model, sim.data), self.minimap.heights)
+            self.radiation_map.save(output, self.coverage.seen)
         self.admission = np.zeros(len(self.coverage.points), dtype=np.uint8)
         self.survey_report = {}
+        self.distance_m = 0.
+        self.last_position = sim.data.qpos[:3].copy()
+        self.display_rotation, self.display_translation = np.eye(3), np.zeros(3)
         context = multiprocessing.get_context('spawn')
         self.snapshot = context.Array('d', sim.model.nq+2)
+        self.planning = context.Array('c', 131072)
         self.map_state = context.Array('B', 2*len(self.coverage.points)+self.minimap.route_masks().size, lock=False)
         self.stop = context.Event()
         self.process = context.Process(target=render_feed,
             args=(sim.model, output, self.snapshot, self.stop, feed_fps, self.map_state,
-                  self.coverage.points, world, start, awareness), name='comparison-renderer')
+                   self.coverage.points, world, start, awareness, self.planning), name='comparison-renderer')
         self.process.start()
 
     @staticmethod
@@ -189,11 +217,20 @@ class ComparisonStream:
         return float(np.mean(sorted(feet)[:2]))
 
     def update_admission(self, metrics, rotation, translation):
+        self.display_rotation, self.display_translation = rotation.copy(), translation.copy()
         admission = metrics.get('survey_admission', {})
         self.admission = project_admission(self.coverage.points, admission.get('positions', []),
                                            admission.get('statuses', []), rotation, translation)
 
+    def update_prediction(self, volume, rotation, translation, stamp):
+        if self.radiation_map is not None:
+            self.radiation_map.update(volume, rotation, translation, stamp)
+            self.radiation_map.save(self.output, self.coverage.seen)
+
     def capture(self, sim, dose, rate, state, force=False, metrics=None):
+        self.distance_m += float(np.linalg.norm(sim.data.qpos[:3]-self.last_position))
+        self.last_position = sim.data.qpos[:3].copy()
+        metrics = metrics or {}
         support_height = self.support_height(sim)
         self.minimap.record(sim.data.qpos[:2], support_height)
         # Scoring uses simulated time; video uses wall time so slow physics does
@@ -204,8 +241,11 @@ class ComparisonStream:
             metrics = metrics or {}
             reason = metrics.get('terminal_stop', {}).get('reason') or metrics.get('decision_reason', '')
             self.survey_report = dict(
-                outcome=outcome(bool(self.coverage.seen.all()), state, reason,
+                outcome=outcome(bool(metrics.get('frontier_complete') and state == 'finished'), state, reason,
                                 state == 'stopped_unrecoverable', state if state.startswith('failed:') else None),
+                frontier_count=metrics.get('frontier_count'),
+                admissible_frontier_count=metrics.get('admissible_frontier_count', 0),
+                frontier_complete=bool(metrics.get('frontier_complete') and state == 'finished'),
                 reason=reason, explored_percent=self.coverage.percent,
                 reference_cells=len(self.coverage.points), explored_cells=int(self.coverage.seen.sum()),
                 coverage_metric=self.coverage.metric,
@@ -213,6 +253,11 @@ class ComparisonStream:
                 admission_counts={name: int((self.admission == i).sum()) for i, name in enumerate(STATUS_NAMES)},
                 scope='3D floor observations from physically reached elevations; admissibility only where known support/return routes exist')
             row = dict(time_s=float(sim.data.time), true_dose_usv=float(dose),
+                       distance_m=self.distance_m, candidate_count=metrics.get('candidate_count', 0),
+                       goal_switches=metrics.get('goal_switches', 0),
+                       frontier_count=metrics.get('frontier_count'),
+                       admissible_frontier_count=metrics.get('admissible_frontier_count', 0),
+                       frontier_complete=self.survey_report['frontier_complete'],
                        rate_usv_h=float(rate), explored_percent=self.coverage.percent, state=state,
                        survey_outcome=self.survey_report['outcome'], survey_reason=reason)
             self.log.write(json.dumps(row)+'\n')
@@ -224,6 +269,8 @@ class ComparisonStream:
         if not self.process.is_alive():
             raise RuntimeError(f'comparison renderer exited with {self.process.exitcode}')
         with self.snapshot.get_lock():
+            self.planning.value = json.dumps(planning_snapshot(
+                metrics, self.display_rotation, self.display_translation)).encode()
             values = np.frombuffer(self.snapshot.get_obj())
             values[0] += 1
             values[1] = support_height
@@ -234,6 +281,8 @@ class ComparisonStream:
             map_values[2*len(self.coverage.points):] = self.minimap.route_masks().ravel()
 
     def close(self):
+        if self.radiation_map is not None:
+            self.radiation_map.save(self.output, self.coverage.seen)
         (self.output/'survey_report.json').write_text(json.dumps(self.survey_report, indent=2)+'\n')
         np.savez_compressed(self.output/'minimap_final.npz', xyz=self.coverage.points,
                             seen=self.coverage.seen, admission=self.admission, route_masks=self.minimap.route_masks(),

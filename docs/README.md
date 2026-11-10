@@ -3,7 +3,7 @@
 Start with the [documentation index](DOUGIE_INDEX.md) for the maintained Go2
 simulation, methods, results and development guides.
 
-- [Install and run](../README.md#quick-start)
+- [Install and run](../README.md#6-reproduction-and-demo)
 - [Live blind/aware comparison](DOUGIE_COMPARISON.md)
 - [Current results and graphs](DOUGIE_COMPARISON_RESULTS.md)
 - [Architecture and information boundaries](DOUGIE_SIM.md)

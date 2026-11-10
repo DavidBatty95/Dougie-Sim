@@ -83,7 +83,7 @@ def test_radiation_measurements_and_3d_posterior_reach_ros_subscribers(tmp_path,
         assert all(len(m.points) == len(m.colors) for m in gp_markers)
         assert all(m.action == m.DELETE for m in gp_markers if not m.points)
         assert all(sum(len(m.points) for m in batch.markers if m.ns == 'gp') <= 1200 for batch in maps)
-        assert all(m.scale.x == .48 and 0 < m.color.a <= .018001
+        assert all(m.scale.x == .18 and 0 < m.color.a <= .200001
                    for batch in maps for m in batch.markers if m.ns == 'gp')
         assert any(m.ns == 'return route' for m in maps[-1].markers)
         assert any(m.ns == 'exploration target' for m in maps[-1].markers)

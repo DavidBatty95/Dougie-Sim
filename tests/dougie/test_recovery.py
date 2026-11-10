@@ -30,6 +30,16 @@ def test_wait_exposure_consumes_return_margin_and_forces_immediate_retreat():
     assert impossible.terminal
 
 
+def test_open_ended_recovery_ignores_dose_cap_but_keeps_time_and_failure_bounds():
+    recovery = BudgetedRecovery()
+    result = recovery.step('motion_stalled', 0., 500., 600., 10., 2., 1., 1e12,
+                           valid_route=True, budget_enabled=False)
+    assert result.phase == 'resensing' and not result.force_return
+    result = recovery.step('motion_stalled', 31., 501., 601., 10., 2., 1., 1e12,
+                           valid_route=False, budget_enabled=False)
+    assert result.terminal
+
+
 def test_fresh_route_recovers_and_retreat_attempts_are_bounded():
     recovery = BudgetedRecovery()
     step(recovery, 'motion_stalled', 0.)

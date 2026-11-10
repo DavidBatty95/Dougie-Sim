@@ -51,6 +51,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--duration', type=float, default=600.)
     parser.add_argument('--dose-budget', type=float, default=2., help='mission budget in micro-sieverts')
+    parser.add_argument('--no-dose-budget', action='store_true', help='monitor and penalize dose without a cumulative exposure cutoff')
+    parser.add_argument('--radiation-policy', choices=('rate-limited', 'minimize-dose'), default='rate-limited',
+                        help='hard rate exclusion or soft dose-weighted routing without radiation-triggered mission return')
     parser.add_argument('--rate-limit', type=float, default=100., help='planning threshold in micro-sieverts/hour')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
@@ -119,7 +122,7 @@ def main():
     parser.add_argument('--radiation-awareness', choices=('aware', 'blind'), default='aware')
     parser.add_argument('--comparison-stream', action='store_true', help='export live evaluator metrics and offscreen frames')
     parser.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60')
-    parser.add_argument('--survey-until-complete', action='store_true', help='comparison: exhaustive observed viewpoints; duration 0 removes the time cap')
+    parser.add_argument('--survey-until-complete', action='store_true', help='comparison: finish after confirmed observed-map frontier exhaustion; duration 0 removes the time cap')
     args = parser.parse_args()
     if args.comparison_stream and not args.headless:
         parser.error('--comparison-stream requires --headless')
@@ -275,7 +278,10 @@ def main():
     planning_options = {name: getattr(args, name) for name in
                         ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion', 'localization_checkpoints')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
-    planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros
+    planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros or args.comparison_stream
+    planning_options['no_dose_budget'] = args.no_dose_budget
+    planning_options['radiation_policy'] = args.radiation_policy
+    planning_options['comparison_map'] = args.comparison_stream
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
     planning_options['recovery_enabled'] = args.navigation_profile == 'robust'
     planning_options['radiation_awareness'] = args.radiation_awareness
@@ -467,7 +473,7 @@ def main():
                 position = support_pose(sim)
             if stamp >= next_report:
                 print(f't={stamp:.1f}s {state}: support_z={position[2]:.2f}m '
-                      f'measured_dose={detector.dose:.3f}/{args.dose_budget:g}uSv', flush=True)
+                      f'measured_dose={detector.dose:.3f}uSv cap={"none" if args.no_dose_budget else args.dose_budget}', flush=True)
                 next_report = stamp+30.
             if not trail or math.dist(position, trail[-1]) > .08:
                 trail.append(position.tolist())
@@ -528,6 +534,7 @@ def main():
                     R_score = rotation(sim.data.qpos[3:7])@odometry.rotation.T if odometry else np.eye(3)
                     t_score = sim.data.qpos[:3]-R_score@odometry.position if odometry else np.zeros(3)
                     comparison.update_admission(metrics, R_score, t_score)
+                    comparison.update_prediction(map_view, R_score, t_score, stamp)
                 if args.mission_objective == 'circuit':
                     task = metrics.get('circuit', {})
                     circuit_witness.set_goals(task, evaluator_capture_frames.get(task.get('capture_sequence')))
@@ -553,7 +560,7 @@ def main():
                 if visualization:
                     visualization.update(map_view, metrics, trail)
                     visualization.update_dashboard(metrics, latest_sample, args.dose_budget, args.rate_limit)
-                if state == 'returned':
+                if state in ('returned', 'finished'):
                     break
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
@@ -602,7 +609,7 @@ def main():
                 command[:] = 0.
                 follower.stop()
                 control_reason = 'map_revision_wait' if accepted_map_revision != odometry.map_revision else 'localization_unreliable'
-            if args.radiation_awareness == 'aware' and latest_sample is not None and (latest_sample.rate_usv_h > args.rate_limit or latest_sample.dose_upper_usv > args.dose_budget*.8) and not state.startswith('return'):
+            if args.radiation_awareness == 'aware' and latest_sample is not None and ((args.radiation_policy == 'rate-limited' and latest_sample.rate_usv_h > args.rate_limit) or (not args.no_dose_budget and latest_sample.dose_upper_usv > args.dose_budget*.8)) and not state.startswith('return'):
                 command[:] = 0.
                 follower.stop()
                 control_reason = 'measured_radiation_requires_retreat'
@@ -610,7 +617,7 @@ def main():
                 if control_reason:
                     if control_wait_start is None:
                         control_wait_start, control_wait_dose = stamp, detector.dose
-                    if stamp-control_wait_start >= 12. or (args.radiation_awareness == 'aware' and detector.dose-control_wait_dose >= .02*args.dose_budget):
+                    if stamp-control_wait_start >= 12. or (not args.no_dose_budget and args.radiation_awareness == 'aware' and detector.dose-control_wait_dose >= .02*args.dose_budget):
                         terminal_stop = dict(time_s=stamp, reason=control_reason,
                             measured_dose_usv=detector.dose, evaluator_true_dose_usv=true_dose)
                 else:
@@ -665,9 +672,6 @@ def main():
             if comparison:
                 comparison.capture(sim, true_dose, rate, state, metrics=live_metrics)
                 if args.survey_until_complete:
-                    if comparison.coverage.seen.all():
-                        state = 'survey_complete'
-                        break
                     if terminal_stop is not None:
                         break
             if viewer and sim.counter % 4 == 0:
@@ -687,7 +691,7 @@ def main():
         loop_wall_time = time.monotonic()-started
         if comparison:
             try:
-                if args.survey_until_complete and sim.data.time >= mission_duration and state != 'returned':
+                if args.survey_until_complete and sim.data.time >= mission_duration and state not in ('returned', 'finished'):
                     live_metrics['decision_reason'] = 'time_limit'
                 comparison.capture(sim, true_dose, field.rate(sensor), 'failed: '+error if error else state,
                                    force=True, metrics=live_metrics)
@@ -750,8 +754,8 @@ def main():
             source_sha256=source_hashes,
             true_dose_usv=true_dose, measured_dose_usv=detector.dose,
             sampled_height_range_m=[minimum_sensor_z, maximum_sensor_z],
-            mission_completed=bool(state in ('returned', 'survey_complete')),
-            actual_budget_exceeded=bool(true_dose > args.dose_budget),
+            mission_completed=bool(state == 'finished' and explorer.frontier_complete) if args.survey_until_complete else bool(state == 'returned'),
+            actual_budget_exceeded=bool(not args.no_dose_budget and true_dose > args.dose_budget),
             wall_time_s=time.monotonic()-started, seed=args.seed,
             information_contract=('planner receives body-frame noisy LiDAR transformed by IMU/leg/LiDAR estimated pose and counting-detector observations only' if odometry else 'planner receives range returns, ideal pose, counting-detector samples'
                                   +(', and visible landmark observations only' if args.landmark_count else ' only')))
@@ -771,15 +775,16 @@ def main():
             episode_control_tick_samples=evaluation_envelope_samples,
             envelope_scope='initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only')
         metrics.update(planner=args.planner, path_length_m=distance_travelled, target_switches=target_switches,
-                        world=args.world, exploration_complete=bool(comparison and comparison.coverage.seen.all()),
+                        world=args.world, exploration_complete=bool(args.survey_until_complete and state == 'finished' and explorer.frontier_complete),
+                        evaluator_floor_complete=bool(comparison and comparison.coverage.seen.all()),
                        gp_mode=args.gp_mode, path_mode=args.path_mode,
                        command_total_variation=command_variation.tolist(), turning_in_place_s=turning_time,
                        physical_witness=witness.metrics(),
-                        completion_scope=('fixed-reference observed-floor coverage; return and survey outcomes are separate' if args.survey_until_complete
+                         completion_scope=('planner-declared frontier exhaustion; reference floor percentage is evaluation only' if args.survey_until_complete
                                           else 'return outcome only; complete unknown-space coverage is not established'),
                        terrain_profile=args.terrain_profile, nonfoot_contacts=dict(nonfoot_contacts),
                        nonfoot_impulse_ns=nonfoot_impulse, nonfoot_peak_force_n=nonfoot_peak,
-                        clean_return=bool(state == 'returned' and error is None and true_dose <= args.dose_budget
+                        clean_return=bool(state == 'returned' and error is None and (args.no_dose_budget or true_dose <= args.dose_budget)
                                            and nonfoot_impulse <= .1 and nonfoot_peak <= 25.
                                            and metrics['localization_evaluation']['true_home_distance_m'] <= .4))
         if hasattr(explorer.terrain, 'metrics'):
@@ -867,7 +872,7 @@ def main():
                 pass
             finally:
                 viewer.close()
-    if (error or (args.radiation_awareness == 'aware' and true_dose > args.dose_budget) or (args.require_clean and not metrics['clean_return'])
+    if (error or (not args.no_dose_budget and args.radiation_awareness == 'aware' and true_dose > args.dose_budget) or (args.require_clean and not metrics['clean_return'])
             or (args.require_round_trip and not metrics['round_trip_completed'])
             or (args.require_circuit and not metrics.get('circuit_mission_completed'))):
         raise SystemExit(1)

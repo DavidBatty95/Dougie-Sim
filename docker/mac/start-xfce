@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+for attempt in {1..60}; do
+    if xdpyinfo -display "${DISPLAY:-:1}" >/dev/null 2>&1; then
+        exec dbus-run-session -- xfce4-session
+    fi
+    sleep 1
+done
+exit 1

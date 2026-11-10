@@ -2,75 +2,174 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dougie radiation comparison</title>
+<title>Dougie-Sim · The cost of exploration</title>
+<meta name="description" content="A paired physical quadruped experiment: compare radiation-aware exploration, measured exposure and frontier completion.">
 <style>
-body { margin: 24px; background: #0b1724; color: #e7eef5; font: 16px system-ui, sans-serif; }
-h1 { font-size: 26px; margin-bottom: 6px; } p { color: #b8c8d8; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-section { background: #152638; padding: 16px; border-radius: 10px; min-width: 0; }
-h2 { font-size: 19px; margin-top: 0; } .blind { color: #ffb454; } .aware { color: #48daca; }
-img { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #08121d; }
-.readout { line-height: 1.8; min-height: 3.6em; white-space: pre-line; font-variant-numeric: tabular-nums; }
-canvas { width: 100%; height: 280px; } .graphs { margin-top: 18px; }
-#connection { font-size: 14px; } @media(max-width: 750px) { .grid { grid-template-columns: 1fr; } }
+:root{color-scheme:dark;--bg:#0a1219;--surface:#111f2a;--border:#253641;--text:#edf4f6;--muted:#a4b6c1;--aware:#48daca;--blind:#ffb454}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:radial-gradient(ellipse at 85% 0%,#17312f 0,transparent 37%),var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}a:hover{color:var(--aware)}button,select{font:inherit}main,.topbar{max-width:1440px;margin:auto;padding:0 40px}.topbar{min-height:84px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);gap:20px}.brand{font-weight:800;letter-spacing:.08em;font-size:17px}.brand span{font-weight:400;color:var(--muted)}nav{display:flex;gap:28px;color:var(--muted);font-size:13px}.connection{border:1px solid var(--border);border-radius:30px;padding:6px 12px;font-size:12px;color:var(--aware)}.hero{padding:62px 0 34px;display:grid;grid-template-columns:1.5fr 1fr;gap:70px;align-items:center}.eyebrow{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:var(--aware);font-weight:700}h1{font-size:clamp(40px,4.4vw,66px);line-height:1.08;letter-spacing:-.055em;margin:14px 0 22px;font-weight:650}h1 em{font-style:normal;color:var(--aware)}p{color:var(--muted);margin:10px 0}.hero p{max-width:650px;font-size:17px}.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.tag{font-size:11px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border);border-radius:5px;padding:5px 9px;color:var(--muted)}.protocol-card{border-left:2px solid var(--aware);padding:8px 0 8px 25px}.protocol-card strong{font-size:24px;display:block;margin:8px 0}.protocol-card p{font-size:13px}.protocol-card details{font-size:12px;color:var(--muted);margin-top:14px}summary{cursor:pointer}.block{margin:30px 0 52px}.section-title{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:20px}.section-title h2{font-size:26px;letter-spacing:-.025em;margin:4px 0 0;line-height:1.3}.section-title p{font-size:13px;max-width:520px;margin:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.panel{background:linear-gradient(145deg,#13232e,#101c26);border:1px solid var(--border);padding:22px;border-radius:12px;min-width:0}.panel h3{font-size:16px;margin:0;font-weight:600}.panel p{font-size:12px}.blind{color:var(--blind)}.aware{color:var(--aware)}.legend{display:flex;gap:20px;font-size:12px;color:var(--muted)}.legend span:before{content:"";display:inline-block;width:22px;border-top:3px solid var(--aware);margin:0 6px 3px 0}.legend .blind:before{border-color:var(--blind);border-top-style:dashed}.insights{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:16px}.insight{padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px}.insight.featured{border-color:#2d7169;background:linear-gradient(125deg,#153c38,#12272b)}.insight .value{font-size:42px;letter-spacing:-.04em;line-height:1.1;margin:15px 0 10px;font-variant-numeric:tabular-nums}.insight .label{font-size:12px;color:var(--muted)}.insight p{font-size:12px;margin:8px 0 0}.caution{margin-top:15px;font-size:12px;color:var(--muted);display:flex;gap:9px}.caution strong{color:#d3e0e7}.feed{padding:0;overflow:hidden}.feed-header{display:flex;justify-content:space-between;align-items:center;padding:17px 20px}.feed-header h3{font-size:17px}.status-pill{font-size:10px;letter-spacing:.06em;text-transform:uppercase;border:1px solid #4b4840;border-radius:30px;padding:4px 9px;color:var(--blind)}.status-pill.complete{color:var(--aware);border-color:#2d7169}img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#08121d}.feed-body{padding:18px 20px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stat strong{display:block;font-size:21px;font-weight:550;letter-spacing:-.025em;font-variant-numeric:tabular-nums}.stat span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:4px}.readout{font-size:12px;color:var(--muted);padding-top:15px;border-top:1px solid var(--border);margin-top:15px;line-height:1.6}.progress-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:16px}.progress{height:3px;background:#273741;border-radius:2px;margin-top:7px}.progress div{height:100%;background:var(--aware)}.feed.blind-feed .progress div{background:var(--blind)}canvas{display:block;width:100%;height:270px;margin-top:20px}.maps canvas{height:320px}.scale{height:9px;border-radius:6px;margin:16px 0 8px;background:linear-gradient(to right,#2040d0,#00c8dc,#a0e03c,#ffe020,#ff5020,#c01030)}select{background:#142630;color:var(--text);padding:6px 10px;border:1px solid #38525e;border-radius:6px}.small{font-size:12px;color:var(--muted)}#radiation-status{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:12px 16px;border-radius:8px;margin-top:14px;font-variant-numeric:tabular-nums}.wide{grid-column:1/-1}.table-wrap{overflow-x:auto;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;text-transform:uppercase;font-size:10px;letter-spacing:.08em;font-weight:500;color:var(--muted);padding:14px;border-bottom:1px solid var(--border)}td{padding:14px;border-bottom:1px solid #21313a;font-variant-numeric:tabular-nums}td small{color:var(--muted);display:block;font-size:10px}.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}.method-grid h3{font-size:14px}.method-grid p{font-size:13px}.index{font-size:11px;color:var(--aware);letter-spacing:.1em}footer{margin-top:45px;padding:24px 0 36px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:24px;color:var(--muted);font-size:12px}.negative{color:var(--blind)!important}.positive{color:var(--aware)}
+@media(max-width:1000px){.hero{gap:30px}.stats{grid-template-columns:repeat(2,1fr)}.insights{grid-template-columns:1fr 1fr}.insight.featured{grid-column:1/-1}.topbar nav{display:none}}
+@media(max-width:700px){main,.topbar{padding-left:20px;padding-right:20px}.hero{grid-template-columns:1fr;padding-top:35px;gap:25px}.hero h1{font-size:43px}.grid,.method-grid,.insights{grid-template-columns:1fr}.section-title{display:block}.section-title p,.section-title .legend{margin-top:12px}.insight .value{font-size:36px}.stats{grid-template-columns:repeat(4,1fr);gap:7px}.stat strong{font-size:17px}.connection{font-size:10px}.maps canvas{height:260px}.panel{padding:16px}.feed{padding:0}footer{display:block}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
-<h1>Dougie — radiation awareness comparison</h1>
-<p>Independent physics simulations • matched world and seeds • <span class="blind">● Radiation-blind</span> / <span class="aware">● Radiation-aware</span></p>
-<div id="connection" role="status">Waiting for simulations…</div>
-<div class="grid">
- <section><h2 class="blind">Radiation-blind Dougie</h2><img id="blind-frame" alt="Live radiation-blind simulation"><div class="readout" id="blind-status">Starting…</div></section>
- <section><h2 class="aware">Radiation-aware Dougie</h2><img id="aware-frame" alt="Live radiation-aware simulation"><div class="readout" id="aware-status">Starting…</div></section>
-</div>
-<div class="grid graphs">
- <section><h2>Cumulative radiation dose (µSv)</h2><canvas id="dose" aria-label="Cumulative radiation dose versus simulation time" role="img"></canvas></section>
- <section><h2>World explored — observed floor (%)</h2><canvas id="coverage" aria-label="Observed floor percentage versus simulation time" role="img"></canvas></section>
-</div>
-<p>Surveys target 100% observed floor coverage. Radiation-aware Dougie returns when risk or dose prevents further survey; navigation, mapping and optional time limits are reported separately. Curves stop when each mission ends. Compare coverage and mission status alongside dose.</p>
-<p>3D exploration: a floor must be physically reached before observations there count. Fresh LiDAR returns only credit surfaces near the robot's current foot-support height; ramps fill in as it climbs. Seeing an upper floor from below does not explore it. Floors count separately against a fixed 25 cm reference. Dose: integrated simulated true field (dose-equivalent proxy, µSv).</p>
-<p>Minimaps: green = explored; blue = known admissible support; red = predicted radiation-blocked; amber = dose-budget limited; grey = unknown/unclassified. Coloured lines show actual routes; white arrows show robots. Elevation slices expand automatically around the robot's current level (Z is vertical).</p>
+<header class="topbar"><a class="brand" href="#">DOUGIE<span> / SIM</span></a><nav aria-label="Demo sections"><a href="#evidence">Evidence</a><a href="#missions">Missions</a><a href="#field">Radiation field</a><a href="#method">Method</a></nav><div class="connection" id="connection" role="status">Connecting…</div></header>
+<main>
+<div class="hero"><div><div class="eyebrow">Physical quadruped · paired experiment</div><h1>The cost of<br><em>exploration.</em></h1><p>Two robots. The same unknown environment. One learns radiation and chooses lower-exposure routes. Compare what they discover—and the dose they accumulate along the way.</p><div class="tags"><span class="tag">Unitree Go2</span><span class="tag">MuJoCo physics</span><span class="tag">Gaussian-process mapping</span><span class="tag" id="world-tag">Matched world & seeds</span></div></div><aside class="protocol-card"><div class="eyebrow">Mission objective</div><strong>No frontiers left behind.</strong><p>Completion is the planner’s decision: zero frontier nodes, confirmed on three fresh scans. A map percentage never ends a mission.</p><div class="tags"><span class="tag" id="cap-tag">Loading protocol</span><span class="tag" id="pose-tag">Pose source</span></div><details><summary>Experiment configuration</summary><p id="protocol">Loading mission settings…</p></details></aside></div>
+
+<section class="block" id="evidence"><div class="section-title"><div><div class="eyebrow">01 / The measured difference</div><h2>Compare equal progress, not just endpoints.</h2></div><p>Descriptive evidence from this paired run. Exposure is integrated from the true simulated field; the robot’s GP is not used to score it.</p></div><div class="insights">
+<article class="insight featured"><div class="label">DOSE AT THE SAME REFERENCE MILESTONE <select id="benchmark-level" aria-label="Matched reference floor milestone"><option value="50">50%</option><option value="75">75%</option><option value="85">85%</option><option value="90" selected>90%</option></select></div><div class="value positive" id="progress-effect">—</div><div id="progress-label">Waiting for both robots to reach the milestone.</div><p id="progress-detail">Milestones are evaluation thresholds, not mission completion.</p></article>
+<article class="insight"><div class="label">AT THE SAME SIMULATION TIME</div><div class="value" id="time-effect">—</div><div id="time-label">Synchronizing telemetry.</div><p id="time-detail">Curves use each robot’s own simulation clock.</p></article>
+<article class="insight"><div class="label">MISSION COMPLETION</div><div class="value" id="completion-value">—</div><div id="completion-label">Confirmed frontier exhaustion</div><p id="completion-detail">A safe return and a completed survey are distinct outcomes.</p></article>
+</div><div class="caution"><span>↳</span><span><strong>One pair, one scenario.</strong> Lower dose at a reference milestone is a within-run observation—not a multi-seed performance estimate or proof of an optimal tour.</span></div></section>
+
+<section class="block" id="missions"><div class="section-title"><div><div class="eyebrow">02 / Independent physical missions</div><h2>Watch the decisions unfold.</h2></div><div class="legend"><span class="blind">Radiation-blind</span><span class="aware">Radiation-aware</span></div></div><div class="grid">
+<article class="panel feed blind-feed"><div class="feed-header"><h3 class="blind">Radiation-blind</h3><span class="status-pill" id="blind-badge">Starting</span></div><img id="blind-frame" alt="Actual radiation-blind Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="blind-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="blind-coverage">—</strong></div><div class="progress"><div id="blind-progress" style="width:0"></div></div><div class="readout" id="blind-status">Waiting for telemetry…</div></div></article>
+<article class="panel feed"><div class="feed-header"><h3 class="aware">Radiation-aware</h3><span class="status-pill" id="aware-badge">Starting</span></div><img id="aware-frame" alt="Actual radiation-aware Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="aware-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="aware-coverage">—</strong></div><div class="progress"><div id="aware-progress" style="width:0"></div></div><div class="readout" id="aware-status">Waiting for telemetry…</div></div></article>
+</div><p class="small">Green arrows: planned route · green ring: current goal · amber: estimated return route. Each minimap retains the actual travelled path and physically observed floor slices.</p></section>
+
+<section class="block" id="plots"><div class="section-title"><div><div class="eyebrow">03 / Exposure, progress & motion</div><h2>The full trajectory behind the headline.</h2></div><div class="legend"><span class="blind">Blind / dashed</span><span class="aware">Aware / solid</span></div></div><div class="grid graphs">
+<article class="panel"><h3>Dose versus observed reference floor</h3><p>Progress-normalized view. Repeated work can add dose without adding coverage.</p><canvas id="dose-progress" aria-label="Actual dose versus independent observed floor percentage" role="img"></canvas></article>
+<article class="panel"><h3>Cumulative radiation dose <span class="small">/ µSv</span></h3><p>True-field exposure integrated along each physical trajectory.</p><canvas id="dose" aria-label="Cumulative radiation dose versus simulation time" role="img"></canvas></article>
+<article class="panel"><h3>Reference floor observed <span class="small">/ %</span></h3><p>Fixed 3D reference; independent of the finish condition.</p><canvas id="coverage" aria-label="Independent floor observation percentage; not a completion condition" role="img"></canvas></article>
+<article class="panel"><h3>Distance travelled <span class="small">/ m</span></h3><p>Actual 3D displacement integrated on every physics tick.</p><canvas id="distance" aria-label="Actual three-dimensional distance travelled versus simulation time" role="img"></canvas></article>
+<article class="panel wide"><h3>Frontier nodes remaining</h3><p>Zero is necessary for completion. A blocked frontier still counts.</p><canvas id="frontiers" aria-label="Observed-map frontier nodes remaining versus simulation time" role="img"></canvas></article>
+</div><div class="panel table-wrap"><h3>Paired reference milestones</h3><table><thead><tr><th>Threshold</th><th>Blind dose</th><th>Aware dose</th><th>Aware reduction</th><th>Crossing times · blind / aware</th></tr></thead><tbody id="milestone-table"></tbody></table><p>First recorded sample at or above each threshold (0.5 s telemetry cadence). Actual percentages are shown below each dose. Curves and milestone values end with the recorded trajectory; nothing is extrapolated.</p></div></section>
+
+<section class="block" id="field"><div class="section-title"><div><div class="eyebrow">04 / What the robot has learned</div><h2>Ground truth. Learned radiation.</h2></div><label class="small">Floor slice <select id="radiation-level" aria-label="Radiation map floor slice"></select></label></div><p class="small">Same world coordinates, shared logarithmic colour scale, sampled 0.44 m above the floor. Hover to compare the true rate with the aware robot’s GP mean, upper bound and uncertainty.</p><div class="scale"></div><div class="small" id="scale-label"></div><div class="grid maps" style="margin-top:18px"><article class="panel"><h3>Ground-truth radiation <span class="small">/ µSv/h</span></h3><p>Evaluator-only field. Never supplied to navigation or GP training.</p><canvas id="truth-map" role="img" aria-label="Evaluator-only true simulated radiation field"></canvas></article><article class="panel"><h3>GP posterior mean <span class="small">/ µSv/h</span></h3><p>Grey is an unavailable estimate, not a prediction of zero radiation.</p><canvas id="gp-map" role="img" aria-label="Radiation-aware robot GP prediction on the matching floor slice"></canvas></article></div><div id="radiation-status" role="status">Waiting for radiation predictions…</div><p class="small">Outlines mark independently observed reference cells. Nearest exported GP queries are matched within 35 cm in XYZ and 18 cm vertically. The reported error covers matched queries only, not the entire true field.</p></section>
+
+<section class="block" id="method"><div class="section-title"><div><div class="eyebrow">05 / Reading the experiment</div><h2>What this comparison means.</h2></div></div><div class="method-grid"><article><div class="index">01 / THE ABLATION</div><h3>One changed information channel.</h3><p>The two workers share world, initial state, policy and seeds. The blind planner receives zero radiation costs; its real dose is still measured. Paths and subsequent observations can diverge.</p></article><article><div class="index">02 / THE OBJECTIVE</div><h3>Finish by exhausting frontiers.</h3><p>A frontier is an observed support viewpoint with a view of unknown support. Visiting it does not remove unresolved unknown space. Blocked, tracking-limited and interrupted missions stay incomplete.</p></article><article><div class="index">03 / THE SCOPE</div><h3>Simulation evidence, not a guarantee.</h3><p>Reference-floor observation is a fixed physical-arrival-gated 3D measure. Dose is a synthetic µSv-equivalent proxy. Compare matched progress and stop reasons; multiple seeds and layouts are needed for broader conclusions.</p></article></div></section>
+<footer><span>DOUGIE / SIM · Measured motion. Explicit outcomes.</span><a href="https://github.com/DavidBatty95/Dougie-Sim/tree/improve-navigation-efficiency" target="_blank" rel="noopener">Source, methods & reproducible evidence ↗</a></footer></main>
+<script src="/comparison-metrics.js"></script>
 <script>
 const modes = ['blind', 'aware'], colors = {blind:'#ffb454', aware:'#48daca'};
 let latest;
-function plot(id, key, fixedMax) {
+let radiation, hovered;
+const stops=[[32,64,208],[0,200,220],[160,224,60],[255,224,32],[255,80,32],[192,16,48]];
+function radiationColor(rate) {
+ if(rate===null || !Number.isFinite(rate))return '#364555';
+ const lo=Math.log1p(radiation.color_min_usv_h), hi=Math.log1p(radiation.color_max_usv_h);
+ const v=Math.max(0,Math.min(1,(Math.log1p(rate)-lo)/(hi-lo)))*(stops.length-1);
+ const i=Math.min(stops.length-2,Math.floor(v)), f=v-i;
+ return `rgb(${stops[i].map((x,k)=>Math.round(x*(1-f)+stops[i+1][k]*f)).join(',')})`;
+}
+function drawRadiation() {
+ if(!radiation)return;
+ const level=Number(document.getElementById('radiation-level').value||0), pts=radiation.points;
+ const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+ const xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
+ for(const [id,key] of [['truth-map','truth_usv_h'],['gp-map','gp_mean_usv_h']]) {
+  const canvas=document.getElementById(id), ratio=window.devicePixelRatio||1, width=canvas.clientWidth, height=canvas.clientHeight;
+  canvas.width=width*ratio; canvas.height=height*ratio;
+  const ctx=canvas.getContext('2d');ctx.scale(ratio,ratio);ctx.fillStyle='#08121d';ctx.fillRect(0,0,width,height);
+  const s=Math.min((width-64)/(xmax-xmin+.25),(height-50)/(ymax-ymin+.25));
+  const ox=width/2-s*(xmax+xmin)/2, oy=height/2+s*(ymax+ymin)/2, r=Math.max(1,.125*s);
+  canvas.mapTransform={s,ox,oy,level};
+  pts.forEach((p,i)=>{
+   if(radiation.layers[i]!==level)return;
+   const x=ox+p[0]*s,y=oy-p[1]*s;
+   ctx.fillStyle=radiationColor(radiation[key][i]);ctx.fillRect(x-r,y-r,2*r,2*r);
+   if(radiation.observed[i]) {ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=.5;ctx.strokeRect(x-r,y-r,2*r,2*r);}
+   if(hovered===i){ctx.strokeStyle='white';ctx.lineWidth=2;ctx.strokeRect(x-r-1,y-r-1,2*r+2,2*r+2);}
+  });
+  ctx.fillStyle='#b8c8d8';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText('X (m) · same world coordinates',width/2,height-8);
+ }
+ document.getElementById('scale-label').textContent=`Shared logarithmic rate scale: ${radiation.color_min_usv_h.toFixed(2)} → ${radiation.color_max_usv_h.toFixed(1)} µSv/h (blue → red). Values above the scale maximum clip to red.`;
+ let detail=`GP update t = ${radiation.time_s.toFixed(1)} s · ${radiation.predicted_cells}/${radiation.reference_cells} reference cells have a nearby GP estimate`;
+ if(radiation.matched_log1p_rmse!==null)detail+=` · matched-cell log1p RMSE ${radiation.matched_log1p_rmse.toFixed(3)}`;
+ if(hovered!==undefined){const i=hovered,fmt=v=>v===null?'no estimate':v.toFixed(3);detail+=` | (${pts[i].map(v=>v.toFixed(2)).join(', ')}) m: truth ${fmt(radiation.truth_usv_h[i])}, GP ${fmt(radiation.gp_mean_usv_h[i])}, upper ${fmt(radiation.gp_upper_usv_h[i])} µSv/h; σ(log rate) ${fmt(radiation.gp_std_log_rate[i])}`;}
+ document.getElementById('radiation-status').textContent=detail;
+}
+for(const id of ['truth-map','gp-map'])document.getElementById(id).addEventListener('mousemove',event=>{
+ if(!radiation)return; const canvas=event.currentTarget,t=canvas.mapTransform;if(!t)return;
+ const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left-t.ox)/t.s,y=(t.oy-event.clientY+rect.top)/t.s;
+ let best=.35**2;hovered=undefined;
+ radiation.points.forEach((p,i)=>{const d=(p[0]-x)**2+(p[1]-y)**2;if(radiation.layers[i]===t.level&&d<best){best=d;hovered=i;}});drawRadiation();
+});
+document.getElementById('radiation-level').addEventListener('change',()=>{hovered=undefined;drawRadiation();});
+async function refreshRadiation() {
+ try {
+  const response=await fetch('/radiation');if(!response.ok)throw Error(response.status);radiation=await response.json();
+  const select=document.getElementById('radiation-level');
+  if(select.options.length!==radiation.heights.length){select.replaceChildren(...radiation.heights.map((z,i)=>new Option(`Z ${z.toFixed(2)} m`,i)));}
+  drawRadiation();
+ } catch(error) { document.getElementById('radiation-status').textContent='Waiting for radiation map…'; }
+ setTimeout(refreshRadiation,1500);
+}
+fetch('/config').then(r=>r.json()).then(c=>{
+ document.getElementById('world-tag').textContent=`${c.world} · seed ${c.seed}`;
+ document.getElementById('cap-tag').textContent=c.dose_budget===null?'NO CUMULATIVE DOSE CAP':`${c.dose_budget} µSv cap`;
+ document.getElementById('pose-tag').textContent=c.localization==='ground-truth'?'IDEAL POSE / DIAGNOSTIC':'FUSED ONBOARD POSE';
+ document.getElementById('protocol').textContent=`Objective: exhaust observed-map frontiers with dose-weighted route selection · cumulative dose cap: ${c.dose_budget===null?'NONE':c.dose_budget+' µSv'} · time cap: ${c.duration===0?'NONE':c.duration+' s'} · pose: ${c.localization==='ground-truth'?'SIMULATOR GROUND TRUTH (planning comparison)':'fused onboard estimate'} · radiation policy: ${c.radiation_policy==='minimize-dose'?'DOSE-WEIGHTED AVOIDANCE (no rate-triggered return)':c.rate_limit+' µSv/h hard rate threshold'}`;
+}).catch(()=>{document.getElementById('protocol').textContent='Configuration temporarily unavailable.';});
+function renderEvidence() {
+ if(!latest || !globalThis.DougieMetrics)return;
+ const level=Number(document.getElementById('benchmark-level').value), metrics=globalThis.DougieMetrics;
+ const progress=metrics.atCoverage(latest,level), common=metrics.atCommonTime(latest);
+ const showEffect=(id,value)=>{const node=document.getElementById(id);node.textContent=value===null?'—':Math.abs(value).toFixed(1)+'%';node.classList.toggle('negative',value!==null&&value<0);node.classList.toggle('positive',value!==null&&value>=0);};
+ showEffect('progress-effect',progress?.reduction??null);
+ document.getElementById('progress-label').textContent=progress&&progress.reduction!==null?`${progress.reduction>=0?'Less':'More'} aware dose at the ≥${level}% reference milestone`:'Waiting for both robots to reach this milestone.';
+ document.getElementById('progress-detail').textContent=progress?`Blind ${progress.blind.true_dose_usv.toFixed(3)} µSv → aware ${progress.aware.true_dose_usv.toFixed(3)} µSv. Actual floor: ${progress.blind.explored_percent.toFixed(2)}% / ${progress.aware.explored_percent.toFixed(2)}%.`:'Evaluation thresholds are not mission completion.';
+ showEffect('time-effect',common?.reduction??null);
+ document.getElementById('time-label').textContent=common&&common.reduction!==null?`${common.reduction>=0?'Less':'More'} aware dose at t = ${common.time.toFixed(1)} s`:'Synchronizing telemetry.';
+ document.getElementById('time-detail').textContent=common?`Reference floor at that time: blind ${common.blind.explored_percent.toFixed(1)}% / aware ${common.aware.explored_percent.toFixed(1)}%. Shared time, not necessarily shared work.`:'Independent simulation clocks; matched-time interpolation.';
+ const finished=modes.filter(m=>latest[m].rows.at(-1)?.frontier_complete).length,ended=modes.every(m=>latest[m].exit_code!==null);
+ document.getElementById('completion-value').textContent=`${finished} / 2`;
+ document.getElementById('completion-label').textContent='Planner-confirmed frontier completion';
+ document.getElementById('completion-detail').textContent=ended&&!finished?'Both runs ended with unresolved frontiers. A return is not a finished survey.':'Completion requires zero frontiers on three fresh scans; physical and navigation limits remain visible.';
+ document.getElementById('milestone-table').innerHTML=[50,75,85,90].map(threshold=>{
+  const pair=metrics.atCoverage(latest,threshold);
+  if(!pair)return `<tr><td>≥${threshold}%</td><td colspan="4" class="small">Waiting for both trajectories…</td></tr>`;
+  return `<tr><td>≥${threshold}%</td><td class="blind">${pair.blind.true_dose_usv.toFixed(4)} µSv<small>${pair.blind.explored_percent.toFixed(2)}% actually observed</small></td><td class="aware">${pair.aware.true_dose_usv.toFixed(4)} µSv<small>${pair.aware.explored_percent.toFixed(2)}% actually observed</small></td><td class="${pair.reduction>=0?'positive':'negative'}">${pair.reduction===null?'—':pair.reduction.toFixed(1)+'%'}</td><td>${pair.blind.time_s.toFixed(1)} / ${pair.aware.time_s.toFixed(1)} s</td></tr>`;
+ }).join('');
+}
+document.getElementById('benchmark-level').addEventListener('change',renderEvidence);
+function plot(id, key, fixedMax, xKey='time_s') {
  const canvas = document.getElementById(id), ratio = window.devicePixelRatio || 1;
  const width = canvas.clientWidth, height = canvas.clientHeight;
  canvas.width = width*ratio; canvas.height = height*ratio;
  const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
  const l=64, r=20, t=15, b=45, w=width-l-r, h=height-t-b;
- let xmax=1, ymax=fixedMax || 0.001;
- for (const mode of modes) for (const row of latest[mode].rows) {
-  xmax=Math.max(xmax,row.time_s); if (!fixedMax) ymax=Math.max(ymax,row[key]*1.1);
+  let xmax=xKey==='explored_percent'?100:1, ymax=fixedMax || 0.001;
+  for (const mode of modes) for (const row of latest[mode].rows) {
+   xmax=Math.max(xmax,row[xKey]); if (!fixedMax && Number.isFinite(row[key])) ymax=Math.max(ymax,row[key]*1.1);
  }
  ctx.font='12px system-ui'; ctx.lineWidth=1;
  for (let i=0;i<=4;i++) {
   const y=t+h-i*h/4; ctx.strokeStyle='#34485b'; ctx.beginPath(); ctx.moveTo(l,y); ctx.lineTo(l+w,y); ctx.stroke();
-  ctx.fillStyle='#b8c8d8'; ctx.textAlign='right'; ctx.fillText((ymax*i/4).toFixed(fixedMax?0:3),l-8,y+4);
+   ctx.fillStyle='#a4b6c1'; ctx.textAlign='right'; ctx.fillText((ymax*i/4).toFixed(key==='true_dose_usv'?2:0),l-8,y+4);
   ctx.textAlign='center'; ctx.fillText((xmax*i/4).toFixed(0),l+w*i/4,t+h+20);
  }
- ctx.fillText('Simulation time (s)',l+w/2,height-5);
+  ctx.fillText(xKey==='time_s'?'Simulation time (s)':'Reference floor observed (%)',l+w/2,height-5);
  for (const mode of modes) {
-  ctx.strokeStyle=colors[mode]; ctx.lineWidth=2.5; ctx.beginPath();
-  latest[mode].rows.forEach((row,i)=> { const x=l+w*row.time_s/xmax,y=t+h-h*row[key]/ymax; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); }); ctx.stroke();
+   ctx.strokeStyle=colors[mode]; ctx.lineWidth=2.5;ctx.setLineDash(mode==='blind'?[7,4]:[]);ctx.beginPath();
+   latest[mode].rows.filter(row=>Number.isFinite(row[key])).forEach((row,i)=> { const x=l+w*row[xKey]/xmax,y=t+h-h*row[key]/ymax; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); }); ctx.stroke();ctx.setLineDash([]);
  }
 }
-function redraw() { if(latest) { plot('dose','true_dose_usv'); plot('coverage','explored_percent',100); } }
+function redraw() { if(latest) { plot('dose-progress','true_dose_usv',null,'explored_percent');plot('dose','true_dose_usv'); plot('coverage','explored_percent',100); plot('distance','distance_m');plot('frontiers','frontier_count'); } }
 async function refresh() {
  try {
   const response=await fetch('/api'); if(!response.ok)throw Error(response.status);
   latest=await response.json();
-  document.getElementById('connection').textContent='Live connection • updated '+new Date().toLocaleTimeString();
+   document.getElementById('connection').textContent=(modes.every(m=>latest[m].exit_code!==null)?'Retained results':'Live experiment')+' · connected';
   for(const mode of modes) {
    const run=latest[mode], row=run.rows.at(-1), ended=run.exit_code!==null;
-   const status=ended ? (run.exit_code===0?'Finished':'Ended with error — see '+mode+'.log') : 'Running';
+    const status=ended?(run.exit_code===0?(row?.frontier_complete?'Finished':'Stopped · incomplete'):'Worker error'):'Exploring';
+    const badge=document.getElementById(mode+'-badge');badge.textContent=status;badge.classList.toggle('complete',Boolean(row?.frontier_complete));
+    if(row){
+     const fields=[[row.true_dose_usv.toFixed(3),'Dose / µSv'],[(row.distance_m||0).toFixed(1),'3D travel / m'],[row.frontier_count??'—','Frontiers left'],[row.time_s.toFixed(1),'Simulated / s']];
+     document.getElementById(mode+'-stats').innerHTML=fields.map(([value,label])=>`<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join('');
+     document.getElementById(mode+'-coverage').textContent=row.explored_percent.toFixed(2)+'%';
+     document.getElementById(mode+'-progress').style.width=Math.max(0,Math.min(100,row.explored_percent))+'%';
+    }
    document.getElementById(mode+'-status').textContent=row
-    ? `${status} · ${row.survey_outcome || row.state} | t = ${row.time_s.toFixed(1)} s\nDose ${row.true_dose_usv.toFixed(4)} µSv · ${row.rate_usv_h.toFixed(2)} µSv/h · explored ${(Math.floor(row.explored_percent*10)/10).toFixed(1)}%\n${row.survey_reason || row.state}`
+    ? `${(row.survey_reason || row.state).replaceAll('_',' ')} · ${row.admissible_frontier_count||0} admissible frontier targets · ${row.rate_usv_h.toFixed(2)} µSv/h current rate`
     : status+' · waiting for first frame';
    if(ended && row) {
     const image=document.getElementById(mode+'-frame');
     if(!image.dataset.finished) { image.dataset.finished='true'; image.src='/'+mode+'/frame.jpg?t='+Date.now(); }
    }
   }
-  redraw();
+   redraw();
+   renderEvidence();
  } catch(error) { document.getElementById('connection').textContent='Dashboard disconnected — retrying…'; }
  setTimeout(refresh,1000);
 }
@@ -80,6 +179,6 @@ for(const mode of modes) {
  image.onerror=()=> { if(!image.dataset.finished)setTimeout(connect,2000); };
  connect();
 }
-window.addEventListener('resize',redraw); refresh();
+window.addEventListener('resize',()=>{redraw();drawRadiation();}); refresh(); refreshRadiation();
 </script>
 </html>

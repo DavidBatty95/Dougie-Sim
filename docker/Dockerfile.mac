@@ -1,0 +1,26 @@
+FROM ros:humble-ros-base-jammy
+ENV DEBIAN_FRONTEND=noninteractive ROS_DISTRO=humble PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-humble-desktop ros-humble-navigation2 ros-humble-nav2-bringup \
+    ros-humble-slam-toolbox ros-humble-rmw-cyclonedds-cpp \
+    python3-pip python3-venv libglfw3 libgl1-mesa-dri libgl1-mesa-glx mesa-utils \
+    xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server \
+    novnc websockify supervisor x11-utils xfonts-base fonts-dejavu-core \
+    sudo git curl nano less ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY docker/requirements-dougie.txt /tmp/requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
+    && python3 -m pip install --no-cache-dir torch==2.6.0
+RUN useradd --create-home --shell /bin/bash dougie \
+    && usermod -aG sudo dougie \
+    && printf 'dougie ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/dougie \
+    && chmod 0440 /etc/sudoers.d/dougie \
+    && printf '\nsource /opt/ros/humble/setup.bash\ncd /workspace\n' >> /home/dougie/.bashrc
+COPY docker/mac/supervisord.conf /etc/supervisor/conf.d/desktop.conf
+COPY docker/mac/start-xfce /usr/local/bin/start-dougie-xfce
+COPY docker/mac/dougie-desktop /usr/local/bin/dougie-desktop
+RUN chmod +x /usr/local/bin/start-dougie-xfce /usr/local/bin/dougie-desktop
+WORKDIR /workspace
+EXPOSE 6080
+ENTRYPOINT []
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/desktop.conf"]

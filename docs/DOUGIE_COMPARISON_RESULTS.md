@@ -1,46 +1,52 @@
-# Current comparison results — 27 October 2026
+# Current frontier comparison results
 
-[Project home](../README.md) · [Comparison guide](DOUGIE_COMPARISON.md) · [Portable data](results/dougie_comparison_20261027.json)
+One retained paired reactor development experiment; ideal-pose planning comparison, not a multi-seed or hardware validation. Both incomplete outcomes are retained.
+
+Retained run: `comparison_20261109T224031_936791Z`. [Portable data](results/dougie_frontier_comparison.json) · [Raw inputs](results/frontier_comparison_inputs.tar.gz).
 
 ## Protocol
 
-Three paired development smoke runs, one pair per world, 60 s configured cap. Not full exploration or a matched-coverage dose-reduction study.
+Reactor; detector seed 1, sensor seed 0, layout seed 0; 0.5 s fixed simulated planning latency; simulator ground-truth pose; geometry-aware Poisson GP; no cumulative dose cap, no fixed time cap, and soft dose-weighted avoidance. CPU-rendered feeds target 5 FPS.
 
-All pairs use detector seed 1, sensor seed 0, layout seed 0, a 2 µSv dose budget, a 100 µSv/h rate limit, fused localization, and fixed 0.5 s simulated planning latency. The 60 s cap includes return reserve; runs can finish earlier.
+Finished means zero observed-map frontier nodes confirmed on three fresh scans. A return with unresolved frontiers is incomplete. The reference floor percentage is evaluation-only.
 
-Coverage uses `physically_reached_3d_floor_v2`. All six outcomes are included. No curve is extended past the end of its run. These results verify comparison integration and coverage semantics; they do not establish a radiation-awareness advantage at matched work.
+## Endpoints
 
-## Per-run results
+| Mode | Time (s) | Dose (µSv) | 3D travel (m) | Reference floor | Frontiers | Outcome / reason |
+|---|---:|---:|---:|---:|---:|---|
+| blind | 913.175 | 8.610373 | 145.068 | 90.25% | 41 | frontiers_blocked / `unresolved_frontiers` |
+| aware | 646.510 | 4.231457 | 103.637 | 90.27% | 51 | incomplete_return / `route_tracking_lost` |
 
-| World | Mode | End (s) | Dose (µSv) | Explored (%) | Path (m) | End state / survey outcome |
-|---|---|---:|---:|---:|---:|---|
-| reactor | blind | 19.025 | 0.050949 | 42.15 | 2.487 | returned / time_limit |
-| reactor | aware | 25.040 | 0.072218 | 43.64 | 2.655 | returned / time_limit |
-| mezzanine | blind | 17.020 | 0.004635 | 34.73 | 1.805 | returned / time_limit |
-| mezzanine | aware | 13.015 | 0.003433 | 34.62 | 1.256 | returned / time_limit |
-| facility | blind | 41.055 | 0.007024 | 14.25 | 2.449 | returned / time_limit |
-| facility | aware | 19.025 | 0.003365 | 13.21 | 2.065 | returned / time_limit |
+Both recorded clean physical returns with zero non-foot contact impulse, but neither completed the frontier objective. Process exit 0 is not a completion claim.
 
-![Dose and exploration traces](media/dougie/comparison-results.svg)
+## Matched exploration progress
 
-![Per-level exploration](media/dougie/comparison-levels.svg)
+First retained telemetry sample at or above each reference-floor threshold; different routes/times are retained.
 
-## Verification and provenance
+| Reference threshold | Blind dose (µSv) | Aware dose (µSv) | Relative aware dose reduction |
+|---|---:|---:|---:|
+| 50% | 0.345069 | 0.209989 | 39.1% |
+| 75% | 5.546087 | 3.150464 | 43.2% |
+| 85% | 5.676865 | 3.251870 | 42.7% |
+| 90% | 6.787557 | 3.896284 | 42.6% |
 
-`./dougie test`: **355 passed** on 27 October 2026 (full local Go2 suite). This is not a new remote-CI or field-hardware result.
+These are within-pair descriptive comparisons, not a confidence interval or general performance estimate. Coverage thresholds summarize a fixed evaluator reference, not the autonomous finish condition.
 
-The portable JSON retains time-series samples, configurations, outcomes, slice counts and SHA-256 identities of raw inputs. The media manifest records the exported JSON and image hashes. The preview is a composition of actual final renders, not a browser screenshot or a fabricated trajectory.
+![Dose, reference floor observation, distance and remaining frontiers](media/dougie/frontier-results.svg)
 
-Source comparisons:
+![Ground truth versus final GP prediction](media/dougie/frontier-radiation.png)
 
-- `comparison_20261027T164147_444153Z` — reactor
-- `comparison_20261027T153520_048381Z` — mezzanine
-- `comparison_20261027T153520_239161Z` — facility
+## Reproduction and provenance
 
-Regenerate both SVG graphs and this report from the committed portable data:
+The portable JSON retains all telemetry rows, endpoint status, per-worker configuration and source/asset hashes. The compressed archive retains the original summaries, configurations, survey reports, motion traces, floor/minimap arrays, final renders and radiation map. Figures use those inputs; they are not invented trajectories.
+
+`distance_m` integrates actual 3D base displacement on every physics tick. The historical `path_length_m` diagnostic uses displacement gating and is separately retained. The maps compare true rates at floor +44 cm against the nearest exported GP prediction within 35 cm and 18 cm vertically; missing predictions stay grey. The reported error is only over matched queries.
+
+Full local Go2 verification: **367 passed**. This is separate from remote CI.
 
 ```bash
-docker compose run --rm -T dougie-sim python3 scripts/publish_dougie_comparison.py
+python3 scripts/publish_frontier_comparison.py --check
+python3 scripts/publish_frontier_comparison.py
 ```
 
-To import fresh data and regenerate the preview, add `--runs` followed by exactly one complete comparison directory for each world. The publisher rejects old coverage metrics and mismatched protocol settings. See the script for the declared cohort.
+Import a complete new run with `--run results/dougie/comparison_<timestamp>`. All paired outcomes must be terminal. Historical six-run smoke results remain in [the October report](results/dougie_comparison_20261027.json).

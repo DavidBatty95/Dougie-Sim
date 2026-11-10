@@ -16,6 +16,18 @@ ROOT = Path(__file__).resolve().parents[1]
 MODES = ('blind', 'aware')
 
 
+class CompletedWorker:
+    """Read-only dashboard replay of retained terminal process outcomes."""
+    def __init__(self, code):
+        self.returncode = code
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+
 def mission_command(args, mode, output):
     return [sys.executable, '-u', '-m', 'dougie_sim.radiation_run',
             '--headless', '--fast', '--fixed-plan-delay', '0.5', '--comparison-stream',
@@ -23,7 +35,10 @@ def mission_command(args, mode, output):
             '--radiation-awareness', mode, '--world', args.world,
             '--duration', str(args.duration), '--seed', str(args.seed),
             '--sensor-seed', str(args.sensor_seed), '--layout-seed', str(args.layout_seed),
-            '--dose-budget', str(args.dose_budget), '--rate-limit', str(args.rate_limit),
+            *(['--no-dose-budget'] if args.dose_budget is None else ['--dose-budget', str(args.dose_budget)]),
+            '--localization', getattr(args, 'localization', 'fused'),
+            '--radiation-policy', getattr(args, 'radiation_policy', 'rate-limited'),
+            '--rate-limit', str(args.rate_limit),
             '--feed-fps', str(args.feed_fps),
             '--output', str(output/mode)]
 
@@ -55,6 +70,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if path == '/':
             payload = (ROOT/'dougie_sim/comparison.html').read_bytes()
             kind = 'text/html; charset=utf-8'
+        elif path == '/comparison-metrics.js':
+            payload = (ROOT/'dougie_sim/comparison_metrics.js').read_bytes()
+            kind = 'application/javascript; charset=utf-8'
         elif path == '/api':
             payload = json.dumps({mode: dict(
                 rows=read_rows(self.output/mode/'comparison.jsonl'),
@@ -69,6 +87,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.send_error(404, 'Waiting for first simulation frame')
                 return
             payload, kind = frame.read_bytes(), 'image/jpeg'
+        elif path == '/radiation':
+            radiation = self.output/'aware/radiation_map.json'
+            if not radiation.exists():
+                self.send_error(503, 'Waiting for radiation map')
+                return
+            payload, kind = radiation.read_bytes(), 'application/json'
+        elif path == '/config':
+            payload, kind = (self.output/'comparison_config.json').read_bytes(), 'application/json'
         else:
             self.send_error(404)
             return
@@ -144,33 +170,51 @@ def main():
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--sensor-seed', type=int, default=0)
     parser.add_argument('--layout-seed', type=int, default=0)
-    parser.add_argument('--dose-budget', type=float, default=2.)
+    parser.add_argument('--dose-budget', type=float, help='optional cumulative cap in µSv; omitted means open-ended dose minimization')
+    parser.add_argument('--localization', choices=('ground-truth', 'fused'), default='ground-truth',
+                        help='matched pose source; simulator pose isolates radiation planning from SLAM limits')
+    parser.add_argument('--radiation-policy', choices=('minimize-dose', 'rate-limited'), default='minimize-dose')
     parser.add_argument('--rate-limit', type=float, default=100.)
     parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--host', default='127.0.0.1', help='listen address; use 0.0.0.0 behind a Docker localhost port mapping')
     parser.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--replay', type=Path, default=os.environ.get('DOUGIE_COMPARE_REPLAY') or None,
+                        help='serve an existing completed comparison without rerunning physics')
     parser.add_argument('--exit-on-complete', action='store_true')
     args = parser.parse_args()
-    if not math.isfinite(args.duration) or args.duration < 0 or not all(math.isfinite(v) and v > 0 for v in (args.dose_budget, args.rate_limit)):
+    if not math.isfinite(args.duration) or args.duration < 0 or not math.isfinite(args.rate_limit) or args.rate_limit <= 0 or (args.dose_budget is not None and (not math.isfinite(args.dose_budget) or args.dose_budget <= 0)):
         parser.error('duration must be finite and nonnegative; dose budget and rate limit must be finite and positive')
     if not 1 <= args.port <= 65535 or min(args.seed, args.sensor_seed, args.layout_seed) < 0:
         parser.error('invalid port or negative seed')
-    output = args.output or ROOT/'results/dougie'/datetime.now(timezone.utc).strftime('comparison_%Y%m%dT%H%M%S_%fZ')
-    output.mkdir(parents=True, exist_ok=False)
+    output = args.replay or args.output or ROOT/'results/dougie'/datetime.now(timezone.utc).strftime('comparison_%Y%m%dT%H%M%S_%fZ')
+    if args.replay:
+        if not all((output/name).is_file() for name in ('comparison_config.json', 'comparison_status.json')):
+            parser.error('--replay requires a complete retained comparison')
+    else:
+        output.mkdir(parents=True, exist_ok=False)
     processes, logs = {}, []
-    server = ThreadingHTTPServer(('127.0.0.1', args.port),
+    server = ThreadingHTTPServer((args.host, args.port),
         partial(DashboardHandler, output=output, processes=processes, feed_fps=args.feed_fps))
     serving = False
     try:
         commands = {mode: mission_command(args, mode, output) for mode in MODES}
-        (output/'comparison_config.json').write_text(json.dumps(dict(
-            **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
-            commands=commands,
-            coverage_metric='physically_reached_3d_floor_v2',
-            coverage_definition='Fixed 25 cm floor samples within 19 cm of fresh LiDAR returns and 15 cm of capture-time foot-support height; flat elevations require physical arrival within 35 cm in 3D and 8 cm vertically. Levels counted separately.',
-            dose_definition='Integrated simulated true dose-equivalent proxy in micro-sieverts.',
-            timing='Independent simulated clocks, fixed 0.5 s planning latency; curves end at each mission end.'), indent=2)+'\n')
+        if not args.replay:
+            (output/'comparison_config.json').write_text(json.dumps(dict(
+                **{k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
+                commands=commands,
+                completion_rule='Planner declares finished after zero observed-map frontier nodes on three fresh scans. Evaluator coverage percentage never controls completion.',
+                coverage_metric='physically_reached_3d_floor_v2',
+                coverage_definition='Fixed 25 cm floor samples within 19 cm of fresh LiDAR returns and 15 cm of capture-time foot-support height; flat elevations require physical arrival within 35 cm in 3D and 8 cm vertically. Levels counted separately.',
+                dose_definition='Integrated simulated true dose-equivalent proxy in micro-sieverts.',
+                timing='Independent simulated clocks, fixed 0.5 s planning latency; curves end at each mission end.'), indent=2)+'\n')
         for mode in MODES:
+            if args.replay:
+                code = json.loads((output/'comparison_status.json').read_text())[mode]
+                if not isinstance(code, int):
+                    raise ValueError('Replay requires terminal integer exit codes')
+                processes[mode] = CompletedWorker(code)
+                continue
             log = (output/(mode+'.log')).open('w')
             logs.append(log)
             processes[mode] = subprocess.Popen(commands[mode], cwd=ROOT, stdout=log,
@@ -185,7 +229,8 @@ def main():
             finished = all(p.poll() is not None for p in processes.values())
             if finished and not reported:
                 codes = {mode: p.returncode for mode, p in processes.items()}
-                (output/'comparison_status.json').write_text(json.dumps(codes, indent=2)+'\n')
+                if not args.replay:
+                    (output/'comparison_status.json').write_text(json.dumps(codes, indent=2)+'\n')
                 print(f'Missions finished: {codes}. Dashboard retained for inspection; logs: {output}', flush=True)
                 reported = True
             if finished and args.exit_on_complete:

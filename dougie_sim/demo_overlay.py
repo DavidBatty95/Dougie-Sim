@@ -33,15 +33,16 @@ def hud_lines(metrics, sample, stamp, budget, layer, sources_visible=False):
     dose = 0. if sample is None else sample.dose_usv
     rate = 0. if sample is None else sample.rate_usv_h
     reserve = metrics.get('return_reserve_usv', 0.)
-    used = min(20, max(0, round(20*dose/budget)))
+    enabled = metrics.get('dose_budget_enabled', True)
+    used = min(20, max(0, round(20*dose/budget))) if enabled else 0
     left = '\n'.join(('DOUGIE / RADIATION SURVEY', 'Mission', 'Decision', 'Simulation time',
         'Measured rate', 'Measured dose / budget', 'Estimated return reserve', 'Dose used',
         'Observed surface proxy', 'GP dictionary', 'Region candidates', 'View',
         'Source markers', 'Known targets pending', 'Agenda tasks', 'Return forecast', 'Controls'))
     right = '\n'.join((metrics.get('planner', 'baseline'), metrics.get('state', 'initial_survey'),
         metrics.get('decision_reason', 'survey / route / return'), f'{stamp:6.1f} s',
-        f'{rate:.2f} uSv/h', f'{dose:.4f} / {budget:g} uSv', f'{reserve:.4f} uSv',
-        '['+'#'*used+'.'*(20-used)+']', f"{metrics.get('mapped_surface_area_m2', 0.):.1f} m2",
+        f'{rate:.2f} uSv/h', f'{dose:.4f} / {budget:g} uSv' if enabled else f'{dose:.4f} uSv / NO CAP', f'{reserve:.4f} uSv',
+        '['+'#'*used+'.'*(20-used)+']' if enabled else 'MONITOR / MINIMIZE', f"{metrics.get('mapped_surface_area_m2', 0.):.1f} m2",
         str(metrics.get('gp', {}).get('inducing_points', 0)), str(metrics.get('candidate_count', 0)),
         layer+' (robot visibility fade)', 'TRUTH / DIAGNOSTIC' if sources_visible else 'hidden',
         str(metrics.get('known_landmarks_pending', 0)), str(metrics.get('exploration_agenda', {}).get('size', 0)),
@@ -84,17 +85,33 @@ def draw_overlay(scene, map_view, metrics, trail, controls, rate_limit, reset=Tr
     if controls.paths:
         for edge in metrics.get('blocked_edges', []):
             lines(edge, [1., .2, .2, .9], 5.)
-        lines(metrics.get('return_path', []), [0.2, 1., .4, .85], 3.)
-        lines(metrics.get('planned_path', []), [.1, .85, 1., 1.], 5.)
+        lines(metrics.get('return_path', []), [1., .65, .1, .9], 4.)
+        plan = np.asarray(metrics.get('planned_path', []), dtype=float).reshape(-1, 3)
+        lines(plan, [.1, 1., .25, 1.], 6.)
+        # Direction chevrons spaced by route distance, rather than point density.
+        travelled = 0.
+        for first, last in zip(plan[:-1], plan[1:]):
+            delta = last-first
+            length = np.linalg.norm(delta[:2])
+            travelled += length
+            if travelled < .8 or length < 1e-6:
+                continue
+            travelled = 0.
+            forward = delta/length
+            side = np.array([-forward[1], forward[0], 0.])
+            tip = (first+last)/2
+            lines([tip-.25*forward+.12*side, tip, tip-.25*forward-.12*side], [.1, 1., .25, 1.], 5.)
         if len(trail) > 1:
             lines(trail[::max(1, len(trail)//180)], [.9, .9, .9, .6], 2.)
         target = metrics.get('selected_target')
         if target is not None:
-            sphere(np.asarray(target)+[0, 0, .2], .12, [1., .75, .05, 1.])
+            centre = np.asarray(target)+[0, 0, .12]
+            ring = [centre+[.3*np.cos(a), .3*np.sin(a), 0.] for a in np.linspace(0., 2*np.pi, 25)]
+            lines(ring, [.1, 1., .25, 1.], 5.)
+            sphere(centre, .08, [.1, 1., .25, 1.])
     if controls.regions:
-        palette = ((.2, .8, 1.), (.8, .35, 1.), (.3, 1., .6), (1., .55, .2), (.9, .35, .6))
-        for i, cluster in enumerate(metrics.get('clusters', [])[:96]):
-            sphere(np.asarray(cluster['anchor'])+[0, 0, .12], .07, [*palette[i % len(palette)], .8])
+        for cluster in metrics.get('clusters', [])[:8]:
+            sphere(np.asarray(cluster['anchor'])+[0, 0, .12], .08, [.2, .8, 1., .8])
     if map_view:
         from .radiation_display import CLOUD_RADII, fade_near_robot
         query, colors = controls.highlights.cloud(map_view, controls.field_display, controls.layer)

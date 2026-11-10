@@ -20,13 +20,18 @@ jobs:
           persist-credentials: false
       - name: Validate launch configuration
         run: |
-          bash -n dougie install.sh
+          bash -n dougie install.sh demo dougie-mac docker/mac/start-xfce docker/mac/dougie-desktop
           docker compose config --quiet
+          docker compose -f docker-compose.compare.yml config --quiet
+          docker compose -f docker-compose.mac.yml config --quiet
           python3 scripts/check_dougie_docs.py
+          node scripts/test_comparison_metrics.cjs
       - name: Download pinned public assets and build
         run: ./dougie setup
       - name: Physics and contract tests
         run: ./dougie test
+      - name: Retained comparison evidence
+        run: docker compose run --rm -T dougie-sim python3 scripts/publish_frontier_comparison.py --check
       - name: ROS interface smoke test
         run: |
           ./dougie demo --world room --headless --duration 8

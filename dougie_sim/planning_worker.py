@@ -26,6 +26,8 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     explorer = (DoseExplorer(*parameters) if planner == 'baseline' else
                  ClusteredDoseExplorer(*parameters, commitment=planner == 'clustered'))
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
+    explorer.budget_enabled = not options.get('no_dose_budget', False)
+    explorer.rate_limited = options.get('radiation_policy', 'rate-limited') == 'rate-limited'
     explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
     explorer.recovery_reserve_s = 3. if options.get('recovery_enabled') else 0.
     explorer.survey_until_complete = options.get('survey_until_complete', False)
@@ -240,8 +242,8 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             rate = sample.rate_usv_h+3.*math.sqrt(sample.variance_usv_h2) if sample else math.inf
             admissible &= (plane is not None and np.linalg.norm(plane[:2]) <= math.tan(math.radians(2.))
                 and sample is not None and 0 <= stamp-sample.stamp_s <= 1.5
-                and sample.dose_upper_usv < .8*explorer.budget and rate <= explorer.rate_limit
-                and sample.dose_upper_usv+explorer.return_reserve+rate*_checkpoints.wait_s/3600. < explorer.budget
+                and (not explorer.budget_enabled or sample.dose_upper_usv < .8*explorer.budget) and (not explorer.rate_limited or rate <= explorer.rate_limit)
+                and not explorer.exceeds_budget(sample.dose_upper_usv+explorer.return_reserve+rate*_checkpoints.wait_s/3600., inclusive=True)
                 and stamp+_checkpoints.wait_s+15. < explorer.mission_duration)
         if _checkpoints.step(stamp, localization or {}, at_home, admissible, explorer.last_reason):
             explorer.returning = False
@@ -260,7 +262,7 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             _support_captured = True
     if _journal is not None and stamp-packet.stamp_s > .75:
         explorer.path, explorer.state, explorer.last_reason = [], 'waiting_for_range', 'stale_range_packet'
-    if _recovery is not None and explorer.state != 'returned':
+    if _recovery is not None and explorer.state not in ('returned', 'finished'):
         apply_recovery(explorer, packet, position, stamp, stalled, execution_status, localization or {})
     planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
@@ -268,15 +270,17 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
     smoother = getattr(explorer, 'smoother', None)
     if _options.get('path_mode') == 'smooth' and execution_path:
         from .path_motion import RouteSmoother
-        smoother = smoother or RouteSmoother(explorer.terrain, explorer.gp, explorer.rate_limit)
+        smoother = smoother or RouteSmoother(explorer.terrain, explorer.gp, explorer.smoothing_rate_limit)
         motion = smoother([position, *execution_path], explorer.state.startswith('return'))
         execution_path = motion.points
     smoothed = time.perf_counter()
     nodes = np.asarray(list(explorer.terrain.nodes.values())).reshape(-1, 3)
     volume = None
     if len(nodes) and _options.get('display_prediction', True):
-        nodes = nodes[::max(1, math.ceil(len(nodes)/100))]
-        queries = [nodes+[0., 0., z] for z in (.25, .75, 1.5)]
+        limit = 512 if _options.get('comparison_map') else 100
+        nodes = nodes[::max(1, math.ceil(len(nodes)/limit))]
+        heights = (.44,) if _options.get('comparison_map') else (.25, .75, 1.5)
+        queries = [nodes+[0., 0., z] for z in heights]
         # Spend part of the display budget at real detector locations, including
         # strong readings, instead of losing narrow detections in a large grid.
         samples = list(explorer.display_samples.values())
@@ -334,7 +338,8 @@ def apply_recovery(explorer, packet, position, stamp, stalled, execution_status,
     valid_route = bool(explorer.path) and permitted_sensing
     forecast = getattr(explorer, 'route_forecast', {})
     decision = _recovery.step(reason, stamp, measured, upper, rate, explorer.budget,
-        explorer.return_reserve, explorer.mission_duration, forecast.get('return_duration_s', 0.), valid_route)
+        explorer.return_reserve, explorer.mission_duration, forecast.get('return_duration_s', 0.), valid_route,
+        budget_enabled=explorer.budget_enabled)
     if decision.terminal:
         explorer.path, explorer.state, explorer.last_reason = [], 'stopped_unrecoverable', _recovery.reason
     elif decision.phase == 'resensing':
@@ -356,7 +361,7 @@ def apply_recovery(explorer, packet, position, stamp, stalled, execution_status,
                     continue
                 _, _, rates = explorer.gp.predict(checked+[0., 0., .44])
                 seconds, dose = forecast_polyline(checked, rates, start_yaw=getattr(explorer, 'start_yaw', None))
-                if (float(np.max(rates)) > explorer.rate_limit or upper+dose+explorer.return_reserve >= explorer.budget
+                if ((explorer.rate_limited and float(np.max(rates)) > explorer.rate_limit) or explorer.exceeds_budget(upper+dose+explorer.return_reserve, inclusive=True)
                         or stamp+seconds+15. >= explorer.mission_duration):
                     continue
                 explorer.path, explorer.state = list(checked), 'returning_recovery'

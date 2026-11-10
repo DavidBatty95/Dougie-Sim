@@ -10,6 +10,7 @@ import numpy as np
 
 from dougie_sim.comparison import DashboardHandler, mission_command, read_rows
 from dougie_sim.comparison_stream import FloorCoverage
+from dougie_sim.comparison_stream import planning_snapshot, ComparisonStream
 from dougie_sim.planning_worker import create_explorer
 from dougie_sim.radiation import RadiationSample
 from dougie_sim.radiation_blind import blind_sample
@@ -30,6 +31,24 @@ def test_blind_ablation_ignores_exposure_but_aware_retreats():
     # No radiation information gain in previously unobserved space either.
     blind.gp.update_counts([1, 2, 3], 10**9, .5)
     assert all(np.all(value == 0.) for value in blind.gp.predict([[1, 2, 3]]))
+
+
+def test_budget_free_aware_robot_still_learns_radiation_and_avoids_high_rates():
+    parameters = (2., 100., 32, 1e12, 'poisson')
+    aware = create_explorer(parameters, 'clustered', 'conservative', {'no_dose_budget': True})
+    sample = RadiationSample(1., (0., 0., .44), 50, .5, 7.2, 1., 500., 600.)
+    aware.observe_radiation(sample)
+    assert not aware.returning and aware.metrics()['budget_usv'] is None
+    assert aware.gp.predict([[0., 0., .44]])[0][0] > 0.
+    from dataclasses import replace
+    aware.observe_radiation(replace(sample, stamp_s=2., rate_usv_h=150.))
+    assert aware.returning and aware.last_reason == 'measured_rate_limit'
+    minimizing = create_explorer(parameters, 'clustered', 'conservative', {
+        'no_dose_budget': True, 'radiation_policy': 'minimize-dose'})
+    minimizing.observe_radiation(replace(sample, rate_usv_h=150.))
+    assert not minimizing.returning
+    assert minimizing.gp.predict([[0., 0., .44]])[0][0] > 0.
+    assert minimizing.metrics()['radiation_policy'] == 'minimize-dose'
 
 
 def test_fixed_floor_denominator_obstacles_levels_and_monotonic_coverage():
@@ -67,6 +86,68 @@ def test_pair_commands_match_except_ablation_and_output(tmp_path):
     assert differences == [('blind', 'aware'), (str(tmp_path/'blind'), str(tmp_path/'aware'))]
     assert '--ros' not in blind and '--comparison-stream' in blind
     assert blind[blind.index('--feed-fps')+1] == '30'
+
+
+def test_open_ended_pair_has_no_dose_or_time_cap_and_matches_pose_source(tmp_path):
+    args = SimpleNamespace(world='reactor', duration=0., seed=1, sensor_seed=0,
+                           layout_seed=0, dose_budget=None, rate_limit=100., feed_fps=5,
+                           localization='ground-truth', radiation_policy='minimize-dose')
+    for mode in ('aware', 'blind'):
+        command = mission_command(args, mode, tmp_path)
+        assert '--no-dose-budget' in command and '--dose-budget' not in command
+        assert command[command.index('--duration')+1] == '0.0'
+        assert command[command.index('--localization')+1] == 'ground-truth'
+        assert command[command.index('--radiation-policy')+1] == 'minimize-dose'
+
+
+def test_planning_annotations_are_aligned_without_changing_planner_data():
+    metrics = dict(planned_path=[[1., 0., 0.], [2., 0., 0.]], return_path=[],
+                   selected_target=[2., 0., 0.], clusters=[dict(anchor=[3., 0., 0.])])
+    original = json.dumps(metrics)
+    rotation = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    overlay = planning_snapshot(metrics, rotation, np.array([10., 20., 1.]))
+    np.testing.assert_allclose(overlay['planned_path'], [[10., 21., 1.], [10., 22., 1.]])
+    assert overlay['selected_target'] == [10., 22., 1.]
+    assert overlay['clusters'][0]['anchor'] == [10., 23., 1.]
+    assert json.dumps(metrics) == original
+
+
+def test_distance_counts_intermediate_physics_ticks_and_vertical_motion():
+    stream = ComparisonStream.__new__(ComparisonStream)
+    stream.distance_m, stream.last_position = 0., np.zeros(3)
+    stream.support_height = lambda sim: 0.
+    stream.minimap = SimpleNamespace(record=lambda *args: None)
+    stream.next_metrics = stream.next_frame = float('inf')
+    sim = SimpleNamespace(data=SimpleNamespace(qpos=np.array([0., 0., 1.]), time=1.))
+    stream.capture(sim, 0., 0., 'exploring')
+    sim.data.qpos = np.array([3., 4., 1.])
+    stream.capture(sim, 0., 0., 'exploring')
+    # Returning to the same position must not double-count or erase distance.
+    stream.capture(sim, 0., 0., 'exploring')
+    assert stream.distance_m == 6.
+
+
+def test_reference_percentage_never_decides_mission_completion():
+    import io
+    stream = ComparisonStream.__new__(ComparisonStream)
+    stream.distance_m, stream.last_position = 0., np.zeros(3)
+    stream.support_height = lambda sim: 0.
+    stream.minimap = SimpleNamespace(record=lambda *args: None)
+    stream.next_metrics, stream.next_frame = 0., float('inf')
+    stream.coverage = SimpleNamespace(seen=np.ones(2, dtype=bool), percent=100., points=np.zeros((2, 3)),
+        metric='test_reference', level_heights=np.array([0.]), reached_levels=np.array([True]))
+    stream.admission = np.zeros(2, dtype=np.uint8)
+    stream.log = io.StringIO()
+    sim = SimpleNamespace(data=SimpleNamespace(qpos=np.zeros(3), time=1.))
+    stream.capture(sim, 0., 0., 'exploring', metrics=dict(frontier_count=4, frontier_complete=False))
+    assert stream.survey_report['outcome'] == 'surveying'
+    assert not stream.survey_report['frontier_complete']
+    # Conversely, a planner can finish with a reference score below 100%.
+    stream.coverage.percent = 40.
+    sim.data.time = 2.
+    stream.capture(sim, 0., 0., 'finished', metrics=dict(frontier_count=0, frontier_complete=True))
+    assert stream.survey_report['outcome'] == 'frontiers_exhausted'
+    assert stream.survey_report['explored_percent'] == 40.
 
 
 def test_live_api_reads_complete_samples_and_serves_two_views(tmp_path):

@@ -71,7 +71,9 @@ def main():
     comparison.add_argument('--seed', type=int, default=1)
     comparison.add_argument('--sensor-seed', type=int, default=0)
     comparison.add_argument('--layout-seed', type=int, default=0)
-    comparison.add_argument('--dose-budget', type=float, default=2.)
+    comparison.add_argument('--dose-budget', type=float, help='optional cumulative cap; omitted by default')
+    comparison.add_argument('--localization', choices=('ground-truth', 'fused'), default='ground-truth')
+    comparison.add_argument('--radiation-policy', choices=('minimize-dose', 'rate-limited'), default='minimize-dose')
     comparison.add_argument('--rate-limit', type=float, default=100.)
     comparison.add_argument('--port', type=int, default=8765)
     comparison.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60', help='target video frames per wall-clock second (default: 15)')
@@ -80,6 +82,8 @@ def main():
     radiation = sub.add_parser('radiation', help='3-D GP radiation mapping under a dose budget')
     radiation.add_argument('--duration', type=float, default=600.)
     radiation.add_argument('--dose-budget', type=float, default=2., help='micro-sieverts')
+    radiation.add_argument('--no-dose-budget', action='store_true')
+    radiation.add_argument('--radiation-policy', choices=('minimize-dose', 'rate-limited'), default='rate-limited')
     radiation.add_argument('--rate-limit', type=float, default=100., help='micro-sieverts/hour')
     radiation.add_argument('--seed', type=int, default=1)
     radiation.add_argument('--world', choices=('reactor', 'mezzanine', 'facility'), default='reactor')
@@ -201,8 +205,9 @@ def main():
         command = ['bash']
     elif args.command == 'compare':
         command = ['python3', '-m', 'dougie_sim.comparison']
-        for flag in ('world', 'duration', 'seed', 'sensor_seed', 'layout_seed', 'dose_budget', 'rate_limit', 'port', 'feed_fps'):
-            command += ['--'+flag.replace('_', '-'), str(getattr(args, flag))]
+        for flag in ('world', 'duration', 'seed', 'sensor_seed', 'layout_seed', 'dose_budget', 'rate_limit', 'port', 'feed_fps', 'localization', 'radiation_policy'):
+            if getattr(args, flag) is not None:
+                command += ['--'+flag.replace('_', '-'), str(getattr(args, flag))]
         if args.exit_on_complete:
             command.append('--exit-on-complete')
     elif args.command == 'radiation':
@@ -221,6 +226,9 @@ def main():
             '--camera', args.camera, '--map-layer', args.map_layer,
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]
+        command += ['--radiation-policy', args.radiation_policy]
+        if args.no_dose_budget:
+            command.append('--no-dose-budget')
         if args.lidar_dropout_after is not None:
             command += ['--lidar-dropout-after', str(args.lidar_dropout_after)]
         if args.utility_mode:

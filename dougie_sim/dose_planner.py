@@ -19,6 +19,8 @@ class DoseExplorer:
         self.gp = PoissonOnlineGP(capacity) if likelihood == 'poisson' else OnlineGP(capacity)
         self.terrain = SurfaceMap()
         self.budget, self.rate_limit = budget, rate_limit
+        self.budget_enabled = True
+        self.rate_limited = True
         self.mission_duration = mission_duration
         self.home = None
         self.home_stamp = 0.
@@ -59,8 +61,24 @@ class DoseExplorer:
                 self.gp.update_counts(sample.position, sample.counts, sample.integration_s, sample.counts_per_usv)
         else:
             self.gp.update(sample.position, sample.rate_usv_h, sample.variance_usv_h2)
-        if sample.dose_upper_usv >= self.budget*.8 or sample.rate_usv_h > self.rate_limit:
+        if (self.budget_enabled and sample.dose_upper_usv >= self.budget*.8) or (self.rate_limited and sample.rate_usv_h > self.rate_limit):
             self.returning = True
+
+    @property
+    def budget_margin(self):
+        return self.budget*.15 if self.budget_enabled else 0.
+
+    def exceeds_budget(self, dose, inclusive=False):
+        return self.budget_enabled and (dose >= self.budget if inclusive else dose > self.budget)
+
+    @property
+    def remaining_budget(self):
+        # In open-ended mode this is a fixed utility normalization, never a cap.
+        return self.budget-self.sample.dose_upper_usv-self.budget_margin if self.budget_enabled else 1.
+
+    @property
+    def smoothing_rate_limit(self):
+        return self.rate_limit if self.rate_limited else math.inf
 
     def observe_geometry(self, points, supports, origin=None):
         self.terrain.update(points, supports, origin)
@@ -93,9 +111,9 @@ class DoseExplorer:
             self.path = []
             self.state = 'no_observed_return_route'
             return
-        self.return_reserve = dose[home]+self.budget*.15+rates[root]*3./3600.
+        self.return_reserve = dose[home]+self.budget_margin+rates[root]*3./3600.
         time_reserve = length[home]/.06+15.
-        if self.sample.dose_upper_usv+self.return_reserve >= self.budget or stamp+time_reserve >= self.mission_duration:
+        if self.exceeds_budget(self.sample.dose_upper_usv+self.return_reserve, inclusive=True) or stamp+time_reserve >= self.mission_duration:
             self.returning = True
         if self.returning:
             selected = home
@@ -112,9 +130,9 @@ class DoseExplorer:
                     continue
                 if any(math.dist(nodes[key], p) < .65 for p, _ in self.failed):
                     continue
-                total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget*.15+rates[key]*5./3600.
+                total = self.sample.dose_upper_usv+dose[key]+home_dose[key]+self.budget_margin+rates[key]*5./3600.
                 route = self.terrain.path(parent, key)
-                if total > self.budget or max(rates[p] for p in route) > self.rate_limit:
+                if self.exceeds_budget(total) or (self.rate_limited and max(rates[p] for p in route) > self.rate_limit):
                     continue
                 novelty = self.terrain.novelty(key)
                 visited_distance = min((math.dist(nodes[key], nodes[p]) for p in self.visited if p in nodes), default=2.)
@@ -162,7 +180,9 @@ class DoseExplorer:
 
     def metrics(self):
         cells = getattr(self.terrain, 'observed_surface_cells', len(self.terrain.surfaces))
-        return dict(state=self.state, budget_usv=self.budget, rate_limit_usv_h=self.rate_limit,
+        return dict(state=self.state, budget_usv=self.budget if self.budget_enabled else None,
+            dose_budget_enabled=self.budget_enabled, rate_limit_usv_h=self.rate_limit if self.rate_limited else None,
+            radiation_policy='rate-limited' if self.rate_limited else 'minimize-dose',
             return_reserve_usv=self.return_reserve, mapped_surface_cells=cells,
             mapped_surface_area_m2=cells*self.terrain.resolution**2,
             observed_voxels=len(self.terrain.hits), visited_cells=len(self.visited),

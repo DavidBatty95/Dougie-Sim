@@ -1,0 +1,39 @@
+name: dougie-mac
+services:
+  desktop:
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mac
+    image: dougie-sim:mac-arm64
+    init: true
+    shm_size: 1gb
+    ports:
+      - '127.0.0.1:${DOUGIE_DESKTOP_PORT:-6080}:6080'
+    environment:
+      DISPLAY: :1
+      HOME: /home/dougie
+      USER: dougie
+      ROS_DOMAIN_ID: '43'
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: file:///workspace/config/dougie_cyclonedds.xml
+      PYTHONPATH: /workspace
+      PYTHONDONTWRITEBYTECODE: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      __GLX_VENDOR_LIBRARY_NAME: mesa
+      QT_X11_NO_MITSHM: '1'
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+    volumes:
+      - .:/workspace
+      - desktop-home:/home/dougie
+    working_dir: /workspace
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS http://localhost:6080/vnc.html >/dev/null && xdpyinfo -display :1 >/dev/null 2>&1']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    stop_grace_period: 20s
+volumes:
+  desktop-home:

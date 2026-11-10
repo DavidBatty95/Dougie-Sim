@@ -8,14 +8,15 @@ research and evidence. Retired humanoid material is accessible through the
 
 | I want to… | Start here |
 |---|---|
-| Install and run a first mission | [Quick start](../README.md#quick-start) |
-| See the robot and recorded mission | [Animated gallery](../README.md#recorded-demo-gallery) |
-| Set budgets, likelihood and mission duration | [Radiation runbook](../README.md#run-a-radiation-mission) |
+| Install and run a first mission | [Reproduction and demo](../README.md#6-reproduction-and-demo) |
+| Launch the Apple Silicon browser demo or Ubuntu desktop | [One-command Mac guide](DOUGIE_MAC.md) |
+| See the robot and recorded mission | [Media catalogue](DOUGIE_MEDIA.md) |
+| Set budgets, likelihood and mission duration | [Comparison runbook](DOUGIE_COMPARISON.md) |
 | Compare radiation-blind and aware Dougie side by side | [Live simulation views, dose and exploration graphs](DOUGIE_COMPARISON.md) |
-| Inspect the latest comparison results and graphs | [27 October paired smoke cohort and physical 3D coverage](DOUGIE_COMPARISON_RESULTS.md) |
+| Inspect the latest comparison results and graphs | [Uncapped frontier pair, matched progress and retained incomplete outcomes](DOUGIE_COMPARISON_RESULTS.md) |
 | Configure point-source hotspots and leaks | [Source presets, markers and configuration](DOUGIE_SOURCES.md) |
 | Keep the robot visible through the radiation estimate | [Low-opacity haze, smooth fading and before/after views](DOUGIE_RADIATION_DISPLAY.md) |
-| Drive Go2 or inspect ROS | [Walking, exploration and ROS](../README.md#walking-exploration-and-ros) |
+| Drive Go2 or inspect ROS | [Go2 runtime guide](DOUGIE_SIM.md) |
 | Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
 | Run current onboard-only radiation missions | [Fusion, geometry kernels, moving windows and evidence](DOUGIE_ONBOARD_MISSION.md) |
 | See implemented work and next acceptance gates | [Active onboard mission plan](DOUGIE_ONBOARD_PLAN.md) |
@@ -40,8 +41,8 @@ research and evidence. Retired humanoid material is accessible through the
 | Improve mission completion, return prediction and map capacity | [Planning priorities, inspection mode and measured tradeoffs](DOUGIE_PLANNING_PRIORITIES.md) |
 | Review staged navigation optimizations and their tests | [Navigation efficiency and retained regressions](DOUGIE_NAVIGATION_EFFICIENCY.md) |
 | Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
-| Find implementation files | [Repository map](../README.md#repository-map) |
-| Diagnose setup problems | [Troubleshooting](../README.md#troubleshooting) |
+| Find implementation files | [Software and documentation](../README.md#8-software-attribution-and-documentation) |
+| Diagnose setup problems | [Mac setup and graphics](DOUGIE_MAC.md) · [Performance](DOUGIE_PERFORMANCE.md) |
 | Inspect upstream asset identities | [Asset manifest](../config/dougie_assets.json) · [Attribution](DOUGIE_SIM.md#attribution) |
 
 ## Historical resources
