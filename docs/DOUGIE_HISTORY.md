@@ -42,3 +42,21 @@ Raw runs and downloaded/training assets remain local and ignored under
 `results/` and `.dougie/`. The runtime downloads its own checksum-verified assets;
 optional Go2 training installs pinned MJLab packages rather than using the retired
 humanoid submodule.
+
+## Go2 development archive
+
+The current documentation index focuses on the maintained campaign, inference,
+mapping and runbooks. Dated October 2026 Go2 plans, intermediate development
+reports and their one-off benchmark/audit scripts were removed from the working
+tree because they describe superseded configurations and repeated status updates.
+Their original contents remain at the last published pre-cleanup commit:
+
+**[Go2 tree at `db22a5ff`](https://github.com/DavidBatty95/Dougie-Sim/tree/db22a5ff01f92c74482072de9e03ac26e1416d87)** ·
+[Archived documentation](https://github.com/DavidBatty95/Dougie-Sim/tree/db22a5ff01f92c74482072de9e03ac26e1416d87/docs) ·
+[Archived scripts](https://github.com/DavidBatty95/Dougie-Sim/tree/db22a5ff01f92c74482072de9e03ac26e1416d87/scripts)
+
+This includes the planned-stop, traction, stance, localization, full-height,
+navigation-recovery and multifloor development records. Their failed trials are
+not reclassified as successes. Portable result files, current-pilot summaries and
+raw local run outputs remain retained. `git show db22a5ff:<path>` retrieves a
+tracked historical file without changing branches.

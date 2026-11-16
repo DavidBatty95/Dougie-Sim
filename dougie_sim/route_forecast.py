@@ -57,8 +57,14 @@ def forecast_tree(terrain, parent, rates, reverse=False, speed=FORECAST_SPEED, y
                 if np.linalg.norm(a)*np.linalg.norm(b) > 1e-12:
                     turn = turn_duration(a, b, yaw_rate)
             edge = terrain.edge_time(key, previous, speed) if reverse else terrain.edge_time(previous, key, speed)
+            observed_dose=0.
+            if getattr(terrain,'route_experience',None) is not None:
+                a,b=(key,previous) if reverse else (previous,key)
+                distance=float(np.linalg.norm(terrain.nodes[a]-terrain.nodes[b]))
+                observed_time,observed_dose=terrain.route_experience.bounds(terrain.nodes[a],terrain.nodes[b],distance)
+                edge=max(edge,observed_time)
             duration[key] = duration[previous]+edge+turn
-            exposure[key] = exposure[previous]+(max(rates[key], rates[previous])*edge+rates[previous]*turn)/3600.
+            exposure[key] = exposure[previous]+max(observed_dose,max(rates[key], rates[previous])*edge/3600.)+rates[previous]*turn/3600.
             peak[key] = max(peak[previous], rates[key])
         queue.extend(children[key])
     return duration, exposure, peak

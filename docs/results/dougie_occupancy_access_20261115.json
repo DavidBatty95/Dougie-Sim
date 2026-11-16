@@ -1,0 +1,114 @@
+{
+  "scope": "Read-only index construction on one retained occupancy snapshot; not end-to-end navigation or mapping throughput.",
+  "source": "results/dougie/holdout_l2_s212_baseline_retry1/aware/layered_geometry.npz",
+  "source_sha256": "7a16dd3f8cda5c908af8d3c6bfcc9a83a072bb094614bd599189ca27d76edc76",
+  "fine_cells": 124654,
+  "coarse_free_blocks": 5748,
+  "dense_shape": [
+    104,
+    93,
+    37
+  ],
+  "confirmed_free_cells": 114974,
+  "exact_equal": true,
+  "baseline": {
+    "seconds_with_tracemalloc": [
+      0.1615900420001708,
+      0.13625062501523644,
+      0.13506179198157042,
+      0.1375829580356367
+    ],
+    "median_seconds": 0.0655247499817051,
+    "untraced_seconds": [
+      0.08876137499464676,
+      0.06549387500854209,
+      0.06555562495486811,
+      0.062098458991385996
+    ],
+    "peak_traced_bytes": 18036824
+  },
+  "proposed": {
+    "seconds_with_tracemalloc": [
+      0.03046362503664568,
+      0.030524957983288914,
+      0.030286375025752932,
+      0.030661500000860542
+    ],
+    "median_seconds": 0.017503791983472183,
+    "untraced_seconds": [
+      0.01721950003411621,
+      0.017520375025924295,
+      0.017514666949864477,
+      0.01749291701707989
+    ],
+    "peak_traced_bytes": 4783924
+  },
+  "sparse_exact_equal": true,
+  "sparse_baseline": {
+    "seconds_with_tracemalloc": [
+      0.0550162079744041,
+      0.057047541020438075,
+      0.05908195802476257,
+      0.05468104197643697
+    ],
+    "median_seconds": 0.02347681249375455,
+    "untraced_seconds": [
+      0.021402708953246474,
+      0.03144858300220221,
+      0.023571250028908253,
+      0.02338237495860085
+    ],
+    "peak_traced_bytes": 10320560
+  },
+  "sparse_proposed": {
+    "seconds_with_tracemalloc": [
+      0.004415709001477808,
+      0.003967500000726432,
+      0.003963500028476119,
+      0.004117459000553936
+    ],
+    "median_seconds": 0.004236083477735519,
+    "untraced_seconds": [
+      0.004078167024999857,
+      0.0042370419832877815,
+      0.004316167032811791,
+      0.004235124972183257
+    ],
+    "peak_traced_bytes": 2621880
+  },
+  "sparse_query_count": 50000,
+  "sparse_query_baseline": {
+    "seconds_with_tracemalloc": [
+      0.04592104203766212,
+      0.04659979202551767,
+      0.04695500002708286,
+      0.04623724997509271
+    ],
+    "median_seconds": 0.021137562522199005,
+    "untraced_seconds": [
+      0.022360249946359545,
+      0.02064941596472636,
+      0.020737375016324222,
+      0.021537750028073788
+    ],
+    "peak_traced_bytes": 494416
+  },
+  "sparse_query_proposed": {
+    "seconds_with_tracemalloc": [
+      0.06049233296653256,
+      0.056132166006136686,
+      0.057947958004660904,
+      0.061265041993465275
+    ],
+    "median_seconds": 0.0245403129956685,
+    "untraced_seconds": [
+      0.025253208994399756,
+      0.023942624975461513,
+      0.02387016697321087,
+      0.02513800101587549
+    ],
+    "peak_traced_bytes": 50901
+  },
+  "time_ratio": 0.26713252608150884,
+  "peak_memory_ratio": 0.2652309519680405
+}

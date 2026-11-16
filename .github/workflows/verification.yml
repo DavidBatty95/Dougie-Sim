@@ -24,7 +24,9 @@ jobs:
           docker compose config --quiet
           docker compose -f docker-compose.compare.yml config --quiet
           docker compose -f docker-compose.mac.yml config --quiet
+          docker compose -f docker-compose.batch.yml config --quiet
           python3 scripts/check_dougie_docs.py
+          python3 scripts/render_campaign_overview.py --check
           node scripts/test_comparison_metrics.cjs
       - name: Download pinned public assets and build
         run: ./dougie setup
@@ -43,7 +45,7 @@ jobs:
             --headless --fast --duration 180 --dose-budget 0.2 --seed 3 --source-profile baseline --terrain-profile experimental --planner baseline \
             --output results/dougie/radiation-ci
           python3 scripts/check_dougie_radiation.py results/dougie/radiation-ci --require-return
-      - name: Legacy terrain demonstrations (completion only)
+      - name: Terrain smoke tests (completion only)
         run: |
           export DOUGIE_UID="$(id -u)" DOUGIE_GID="$(id -g)"
           docker compose run --rm -T dougie-sim python3 scripts/probe_dougie_terrain.py \

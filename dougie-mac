@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 desktop=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.mac.yml")
 comparison=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.compare.yml")
+batch=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.batch.yml")
 ensure_docker() {
     if ! command -v docker >/dev/null 2>&1; then
         printf 'Install Docker Desktop for Apple Silicon first.\n' >&2
@@ -28,6 +29,43 @@ ensure_image() {
 command="${1:-compare}"
 if [ "$#" -gt 0 ]; then shift; fi
 case "$command" in
+    batch|batch-stop|batch-logs|batch-status|batch-report)
+        ensure_docker
+        case "$command" in
+            batch-stop) "${batch[@]}" down ;;
+            batch-logs) "${batch[@]}" logs "$@" ;;
+            batch-status) "${batch[@]}" ps -a ;;
+            batch-report)
+                report="$ROOT/${DOUGIE_BATCH_OUTPUT:-results/dougie/facility_30_seeds}/report.html"
+                if [ ! -f "$report" ]; then
+                    printf 'Report not ready. Check ./dougie-mac batch-logs --tail 30\n' >&2
+                    exit 1
+                fi
+                open "$report"
+                ;;
+            batch)
+                if [ "$#" -gt 0 ]; then
+                    printf 'Use DOUGIE_BATCH_* environment variables; see docs/DOUGIE_SEED_STUDY.md.\n' >&2
+                    exit 2
+                fi
+                ensure_image
+                "${batch[@]}" run --rm --no-deps batch python3 -m dougie_sim.assets
+                "${batch[@]}" up -d
+                sleep 1
+                id="$("${batch[@]}" ps -a -q batch)"
+                if [ "$(docker inspect --format '{{.State.Status}}' "$id")" = exited ]; then
+                    code="$(docker inspect --format '{{.State.ExitCode}}' "$id")"
+                    if [ "$code" != 0 ]; then
+                        "${batch[@]}" logs --tail 30
+                        exit "$code"
+                    fi
+                    printf 'Seed study already complete. Use ./dougie-mac batch-report\n'
+                else
+                    printf 'Seed study started/resumed. Use ./dougie-mac batch-report and ./dougie-mac batch-logs -f\n'
+                fi
+                ;;
+        esac
+        ;;
     compare|replay|compare-stop|compare-logs|compare-status)
         ensure_docker
         case "$command" in
@@ -66,7 +104,7 @@ case "$command" in
             mode="${1:-radiation}"
             if [ "$#" -gt 0 ]; then shift; fi
             case "$mode" in
-                radiation) defaults=(--no-dose-budget --radiation-policy minimize-dose --duration 3600 --localization ground-truth) ;;
+                radiation) defaults=(--no-dose-budget --radiation-policy minimize-dose --exposure-policy responsive --gp-mode windowed --gp-max-experts 16 --duration 3600 --localization ground-truth) ;;
                 demo) defaults=(--world room --vx 0.2 --duration 30) ;;
                 explore) defaults=(--duration 300) ;;
                 *) printf 'Choose radiation, demo or explore.\n' >&2; exit 2 ;;
@@ -87,6 +125,7 @@ case "$command" in
         ;;
     help|--help)
         printf '%s\n' './dougie-mac [compare|replay|compare-stop|compare-status|compare-logs]' \
+            './dougie-mac [batch|batch-report|batch-status|batch-logs|batch-stop]' \
             './dougie-mac [setup|up|start|open|down|status|logs|shell|demo|explore|radiation|graphics-check|test]' \
             'Default: start the browser comparison. See docs/DOUGIE_MAC.md.'
         ;;

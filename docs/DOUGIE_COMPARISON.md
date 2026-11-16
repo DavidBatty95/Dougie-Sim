@@ -2,9 +2,16 @@
 
 ## Local Mac comparison profile
 
+`./demo` now defaults to the [finite-lifetime reactor campaign](DOUGIE_CAMPAIGNS.md):
+an indicative 2 µSv-equivalent physical lifetime, conservative return reserves,
+replacement at the origin, retained knowledge and collision-visible wrecks.
+The independent comparison described below remains available with
+`DOUGIE_COMPARE_CAMPAIGN=0 ./demo` and the native comparison runner.
+
 From your Mac, `~/Dougie-Sim/dougie-mac compare` opens
-<http://localhost:8770>. The local comparison now defaults to **no cumulative
-dose cap**, **no fixed time cap**, and matched **simulator ground-truth pose**
+<http://localhost:8770>. The independent comparison defaults to **no cumulative
+dose cap** and **no fixed time cap**; `./demo` instead enables the lifetime
+campaign above. Both default to matched **simulator ground-truth pose**
 for both robots. This isolates radiation-aware routing from the short fused
 localization return-reserve horizon. Select `--localization fused` when testing
 onboard localization instead. The dashboard explicitly labels the pose source.
@@ -29,17 +36,63 @@ mission level, `--no-dose-budget` disables cumulative admission, reserve and
 watchdog cutoffs while preserving sensing, dose accounting and the selected
 radiation policy.
 
+### Confidence-qualified hotspot exclusions
+
+New survey runs exclude an aware frontier or a connecting corridor when its
+**lower-confidence predicted rate exceeds 100 µSv/h**, with **95% pointwise model
+confidence**, and at least 0.25 weighted seconds of nearby detector observations.
+The threshold is independent of a cumulative dose budget; the default campaign
+also enforces its indicative physical lifetime, while the independent comparison
+is uncapped unless configured otherwise. A high mean or uncertain
+upper prediction alone is insufficient to exclude a frontier.
+
+The lower bound is computed as `exp(mu_log - sqrt(p/(1-p)) * sigma_log)` for the
+Poisson GP. Cantelli's one-sided moment bound accommodates local-expert mixture
+variance and disagreement without assuming the mixture is a single Gaussian.
+This confidence is conditional on the GP model, not measured real-world accuracy
+or a calibrated whole-mission guarantee. Unknown, unmeasured regions are not
+globally marked dangerous. Exclusions are recomputed from current beliefs at
+every replan and can reopen after new observations or map reconstruction.
+
+Both graph search and sampled execution smoothing respect exclusions. If the
+robot is already in an excluded region or its ordinary return becomes excluded,
+an explicit return/escape override remains available. If no admissible surveyed
+work remains, it returns **radiation-limited and incomplete**. Geometric and
+radiation-blocked frontiers remain distinct and stay in the unresolved count;
+they are not deleted to declare frontier exhaustion. The blind ablation has no
+radiation exclusions or hidden radiation information.
+
+The dashboard shows the threshold, confidence and separate blocked-frontier and
+execution-rejection counts. It also preserves the original survey stop reason
+when a return subsequently experiences tracking recovery. Dose totals still
+include all travel, turning, sensing and returning; a longer aware run can accrue
+more total dose than an earlier-stopped blind run.
+
+Use `--frontier-rate-limit 50 --frontier-confidence .95` with the comparison, raw
+survey or batch runner to select another threshold. `--frontier-rate-limit 0`
+disables these exclusions. For the Mac dashboard:
+
+```bash
+DOUGIE_COMPARE_FRONTIER_RATE_LIMIT=50 DOUGIE_COMPARE_FRONTIER_CONFIDENCE=0.95 ./demo
+```
+
+Start a fresh session after changing these settings. Retained earlier results
+describe their recorded configuration and are not retroactively reclassified.
+
 ### Truth versus learned radiation
 
 The dashboard includes two fixed-coordinate maps: **ground-truth radiation** and
 the **aware robot's GP mean**, sharing a log colour scale and floor selector.
 The scoring floor samples are evaluated 44 cm above their support surface.
 The truth map is evaluator-only; it is never fed to navigation or GP training.
-The GP panel uses the nearest exported prediction within 35 cm in XYZ and
-18 cm vertically. Unmatched samples are grey/null, never zero or filled from
-truth. Hovering gives truth, mean, upper bound and log-rate standard deviation.
-The displayed log1p RMSE is over matched samples only, using that nearest-query
-alignment. Outlined cells show the independent observed-floor mask.
+New runs export a dense GP field over observed support and use continuous local
+interpolation within 35 cm horizontally and 18 cm vertically. Unmatched samples
+are grey/null, never zero or filled from truth. Hovering gives truth, interpolated
+mean, upper estimate, log-rate standard deviation and contributing neighbours.
+The displayed log1p RMSE covers available interpolated cells only. Outlined cells
+show the independent observed-floor mask. Retained older runs keep their original
+nearest-query display and are labelled accordingly. See
+[continuous field details and reconstruction checks](DOUGIE_WINDOWED_GP.md#continuous-field-interpolation).
 
 The existing dose and exploration graphs are joined by actual 3D distance.
 Each aware run saves `radiation_map.json`, including exact truth query positions,
@@ -55,9 +108,48 @@ latest common simulated time. Every threshold's actual observed percentages and
 crossing times remain visible, and reductions can be negative. Both incomplete
 outcomes remain labelled as such; a clean return is not called finished.
 
-`--replay <completed-run-directory>` serves retained endpoints without launching
-new workers or modifying the experiment. On Mac:
+`--replay <completed-run-directory>` initially serves retained endpoints without
+launching new workers. Rerun controls can explicitly start fresh workers using
+the retained mission settings. On Mac:
 `./dougie-mac replay results/dougie/comparison_<timestamp>`.
+
+### Reruns and session averages
+
+**Learn planning between runs** adds bounded, matched-seed tuning of the aware
+objective, while keeping the blind baseline fixed. The learning section shows
+actual total dose/distance, tested weights, exclusions and provisional tuning
+decisions. See [learning rules, persistence and controls](DOUGIE_PLANNING_LEARNING.md).
+
+- **Rerun now** stops both current workers gracefully, retains their partial
+  telemetry and outcomes, and launches a fresh pair. Repeated clicks while a
+  restart is pending do not launch duplicate workers.
+- **Continuously rerun** waits for both workers to end, then starts another pair
+  after a short pause. Turning it off leaves the current pair running. It does
+  not add a time or dose limit: an uncapped mission can remain active for a long
+  time. Incomplete and failed attempts remain recorded.
+- In fixed mode each new pair increments the **detector seed**, shared by blind and aware.
+  World, sensor/layout seeds, pose source and mission settings remain fixed.
+  These are counting-noise repeats, not independent layouts.
+  Learning mode repeats each seed for retained and challenger settings before
+  advancing the seed panel; its per-setting trials are labelled explicitly.
+- **Average dose & distance** adds two time-aligned mean graphs alongside the
+  current-run graphs. Only ended pairs contribute; interrupted/failed attempts
+  with usable paired observations are included. Both robots must have recorded
+  data at a plotted time for that pair to contribute. Trajectories are never
+  extended after they end, and missing data is never treated as zero. Hover or
+  tap for the contributing pair count and sample standard deviation. Shared
+  simulation time is not necessarily matched exploration work.
+- The history table separates process termination from frontier completion.
+  The original pair stays in the session output directory; later pairs are
+  retained under `reruns/run_00002/`, etc. `comparison_session.json` retains
+  seeds, output locations, interruptions and worker exit codes. Replaying the
+  session directory restores the history; continuous mode starts off unless
+  explicitly enabled again. Start a new session after changing runtime code.
+
+For command-line continuous mode, use `python3 -m dougie_sim.comparison
+--continuous` inside the runtime environment. It cannot be combined with
+`--exit-on-complete`. The normalized dose-versus-coverage graph has been removed;
+all trajectory and average graphs use actual simulation time.
 
 Launch two independent Go2 physics simulations and a live browser dashboard:
 

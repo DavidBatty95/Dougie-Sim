@@ -12,7 +12,11 @@ the pinned model and policy, starts the comparison, waits for its HTTP health
 check, and opens <http://localhost:8770>. Everything lives in this checkout;
 no second repository or hard-coded user directory is required.
 
-The default comparison has no cumulative dose cap or time cap. Radiation-aware
+`./demo` now defaults to a [finite-lifetime reactor campaign](DOUGIE_CAMPAIGNS.md):
+an indicative 2 µSv-equivalent robot failure budget, conservative aware return
+reserves, fresh replacements at the origin, retained GP/maps and persistent wrecks.
+There is no fixed simulated-time cap. The independent uncapped comparison remains
+available with `DOUGIE_COMPARE_CAMPAIGN=0 ./demo`. Radiation-aware
 Dougie uses predicted dose as a route cost; the blind ablation ignores it. Both
 use simulator ground-truth pose to isolate planning from localization limits.
 The dashboard labels these settings and includes truth/GP maps. Completion is
@@ -28,7 +32,7 @@ zero observed-map frontier nodes on three fresh scans, not a coverage percentage
 ./dougie-mac replay results/dougie/comparison_<timestamp>
 # Launch a new experiment after stopping the previous one:
 DOUGIE_COMPARE_WORLD=facility DOUGIE_COMPARE_SEED=3 ./demo
-DOUGIE_COMPARE_LOCALIZATION=fused ./demo
+DOUGIE_COMPARE_CAMPAIGN=0 DOUGIE_COMPARE_LOCALIZATION=fused ./demo
 DOUGIE_COMPARE_DURATION=600 DOUGIE_COMPARE_FPS=5 ./demo
 ```
 
@@ -41,6 +45,14 @@ graphs remain available until stopped. Results are saved directly under
 For a numeric cumulative cap, run the module with `--dose-budget` through Compose
 or use the Linux `./dougie compare --dose-budget ...` command. See the
 [comparison guide](DOUGIE_COMPARISON.md).
+
+## Thirty-seed studies
+
+`./dougie-mac batch` starts/resumes 30 paired facility seeds in a separate
+background container without video. Use `batch-report`, `batch-logs -f`,
+`batch-status` and `batch-stop` for the local averaged report and lifecycle.
+See the [seed-study guide](DOUGIE_SEED_STUDY.md) for uncertainty, failure/censoring
+handling, seed axes, resources and strict resumption settings.
 
 ## Optional full Ubuntu desktop
 

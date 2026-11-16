@@ -8,7 +8,11 @@ outputs belong in the ignored root `results/dougie/` directory.
 
 | Start here | Scope |
 |---|---|
-| [Current comparison cohort](dougie_comparison_20261027.json) | All six blind/aware smoke runs, 3D coverage, configurations and source identities |
+| [Retained reactor comparison](dougie_frontier_comparison.json) | Earlier single-pair global-GP result, matched milestones and incomplete outcomes |
+| [Recent policy pilots](dougie_policy_pilots_20261110.md) | Censored and invalid revisions alongside matched milestone statistics |
+| [Campaign checks](dougie_campaign_checks_20261114.json) | Simulated lifetime, recovery and persistent-wreck checks |
+| [Multilevel holdout](dougie_holdout_20261115.json) | Retained campaigns, errors, incomplete outcomes and reference milestones |
+| [Historical smoke cohort](dougie_comparison_20261027.json) | Six earlier blind/aware smoke runs under a different protocol |
 | [Recorded mezzanine round trip](dougie_loop_budget_baseline_20261026.json) | Explicit 8° sensor-driven navigation milestone |
 | [Terrain qualification](dougie_terrain_qualification_20261007.json) | Contact-aware scored courses and repeatability |
 | [Support replay inputs](support_replay_20261024/) | Retained inputs for reproducible mapping diagnosis |

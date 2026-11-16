@@ -13,7 +13,7 @@ from .gp import PoissonOnlineGP
 
 
 class GeometryPoissonGP(PoissonOnlineGP):
-    def __init__(self, capacity=128, max_planes=16, replay_capacity=8192, strength=1.5):
+    def __init__(self, capacity=128, max_planes=16, replay_capacity=8192, strength=1.5, streaming_after_capacity=False):
         super().__init__(capacity)
         self.max_planes, self.replay_capacity = max_planes, replay_capacity
         self.strength = strength
@@ -23,6 +23,10 @@ class GeometryPoissonGP(PoissonOnlineGP):
         self.geometry_rebuilds = 0
         self.rebuild_ms = 0.
         self.saturated = False
+        self.streaming_after_capacity = streaming_after_capacity
+        self.geometry_frozen = False
+        self.streaming_updates_after_history = 0
+        self.history_loaded = True
 
     def features(self, points):
         points = np.asarray(points).reshape(-1, 3)
@@ -45,6 +49,10 @@ class GeometryPoissonGP(PoissonOnlineGP):
         return base*np.exp(-.5*squared)
 
     def observe_geometry(self, packet):
+        if not self.history_loaded:
+            raise RuntimeError('Prediction-only GP views cannot change geometry kernels')
+        if self.geometry_frozen:
+            return
         if packet.stamp_s-self.last_geometry_stamp < 10. or len(self.planes) >= self.max_planes:
             return
         self.last_geometry_stamp = packet.stamp_s
@@ -92,8 +100,18 @@ class GeometryPoissonGP(PoissonOnlineGP):
         self.update_counts_window([point], [integration_s], counts, counts_per_usv)
 
     def update_counts_window(self, points, durations, counts, counts_per_usv=50000.):
+        if not self.history_loaded:
+            raise RuntimeError('Prediction-only GP views cannot assimilate observations')
         if len(self.records) >= self.replay_capacity:
-            self.saturated = True
+            if not self.streaming_after_capacity:
+                self.saturated = True
+                return
+            # Once exact local replay fills, keep its kernel fixed and continue
+            # assimilating every count into the bounded posterior. Never rebuild
+            # from an incomplete history or treat this buffer as a dose deadline.
+            self.geometry_frozen = True
+            PoissonOnlineGP.update_counts_window(self, points, durations, counts, counts_per_usv)
+            self.streaming_updates_after_history += 1
             return
         PoissonOnlineGP.update_counts_window(self, points, durations, counts, counts_per_usv)
         self.records.append((np.array(points, dtype=float, copy=True), np.array(durations, dtype=float, copy=True), int(counts), float(counts_per_usv)))
@@ -103,10 +121,14 @@ class GeometryPoissonGP(PoissonOnlineGP):
         result.update(model='observed_geometry_gp', kernel='Matern32-ARD x RBF(observed localized plane-side features)',
             observed_planes=len(self.planes), geometry_rebuilds=self.geometry_rebuilds, last_rebuild_ms=self.rebuild_ms,
             retained_count_windows=len(self.records), replay_capacity=self.replay_capacity, saturated=self.saturated,
+            geometry_frozen=self.geometry_frozen, streaming_after_capacity=self.streaming_after_capacity,
+            streaming_updates_after_history=self.streaming_updates_after_history,
             information_contract='estimated onboard range surfaces and count windows; no material/source metadata')
         return result
 
     def save(self, path):
+        if not self.history_loaded:
+            raise RuntimeError('Prediction-only GP views cannot overwrite full checkpoints')
         lengths = [len(record[0]) for record in self.records]
         np.savez_compressed(path, model_kind='geometry', schema_version=1, likelihood='poisson',
             Z=self.Z, mean=self.mean, covariance=self.cov, cholesky=self.L,
@@ -115,6 +137,8 @@ class GeometryPoissonGP(PoissonOnlineGP):
             strength=self.strength, max_planes=self.max_planes, replay_capacity=self.replay_capacity,
             last_geometry_stamp=self.last_geometry_stamp, geometry_rebuilds=self.geometry_rebuilds,
             saturated=self.saturated, window_offsets=np.r_[0, np.cumsum(lengths)],
+            geometry_frozen=self.geometry_frozen, streaming_after_capacity=self.streaming_after_capacity,
+            streaming_updates_after_history=self.streaming_updates_after_history,
             window_positions=np.concatenate([r[0] for r in self.records]) if lengths else np.empty((0, 3)),
             window_durations=np.concatenate([r[1] for r in self.records]) if lengths else np.empty(0),
             window_counts=np.asarray([r[2] for r in self.records], dtype=np.int64),

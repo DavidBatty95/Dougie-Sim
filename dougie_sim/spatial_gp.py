@@ -15,15 +15,22 @@ from .gp import OnlineGP, PoissonOnlineGP
 _HALO_MASKS = np.asarray(list(itertools.product((0, 1), repeat=3)), dtype=np.int64)
 
 
+def smoothstep(value):
+    value = np.clip(value,0.,1.)
+    return np.clip(value**3*(value*(6.*value-15.)+10.),0.,1.)
+
+
 class SpatialGP:
-    def __init__(self, capacity=32, max_experts=128, cell_size=(4., 4., 1.5), halo=.2, likelihood='poisson'):
+    def __init__(self, capacity=32, max_experts=128, cell_size=(4., 4., 1.5), halo=.2, likelihood='poisson', blend='quintic',upper_rule='evidence'):
         self.capacity, self.max_experts = int(capacity), int(max_experts)
         self.cell_size = np.asarray(cell_size, dtype=float)
         self.halo, self.likelihood = float(halo), likelihood
+        self.blend = blend
+        self.upper_rule=upper_rule
         if (self.capacity < 1 or self.max_experts < 1 or self.cell_size.shape != (3,)
                 or not np.isfinite(self.cell_size).all() or np.any(self.cell_size <= 0)
                 or not math.isfinite(self.halo) or not 0 < self.halo < .5
-                or likelihood not in ('poisson', 'gaussian')):
+                or likelihood not in ('poisson', 'gaussian') or blend not in ('linear','quintic') or upper_rule not in ('evidence','expanded_prior')):
             raise ValueError('invalid spatial GP configuration')
         self.experts = {}
         self.prototype = self._new_expert()
@@ -51,6 +58,8 @@ class SpatialGP:
         owner = np.floor(scaled).astype(np.int64)
         fraction = scaled-owner
         primary = np.minimum(1., .5+.5*np.minimum(fraction, 1.-fraction)/self.halo)
+        if self.blend == 'quintic':
+            primary = smoothstep(primary)
         direction = np.where(fraction < .5, -1, 1)
         masks = _HALO_MASKS
         keys = owner[:, None, :]+masks[None, :, :]*direction[:, None, :]
@@ -119,13 +128,26 @@ class SpatialGP:
 
     def _rate(self, latent):
         return (np.exp(np.clip(latent, -30., 30.)) if self.likelihood == 'poisson' else
-                np.maximum(0., np.expm1(np.clip(latent, -30., 30.))))
+                 np.maximum(0., np.expm1(np.clip(latent, -30., 30.))))
+
+    def _prediction_expert(self, key):
+        return self.experts.get(key)
 
     def _predict(self, points, beta):
         points = np.asarray(points, dtype=float).reshape(-1, 3)
         keys, weights = self.assignments(points)
         mu, second, mean, envelope = (np.zeros(len(points)) for _ in range(4))
-        rows, slots = np.nonzero(weights > 0.)
+        if self.blend == 'quintic':
+            # Preserve every active expert's upper prediction without the old
+            # jump when an infinitesimal mixture weight first becomes nonzero.
+            # Upper influence fades only OUTSIDE the mean's overlap support.
+            scaled = points[:,None,:]/self.cell_size
+            outside = np.maximum(0.,np.maximum(keys-scaled,scaled-(keys+1.)))
+            extent = min(.5,2.*self.halo)
+            influence = np.prod(smoothstep((extent-outside)/(extent-self.halo)),axis=2)
+        else:
+            influence = (weights > 0.).astype(float)
+        rows, slots = np.nonzero((weights > 0.)|(influence > 0.))
         if not len(rows):
             return mu, second, mean, envelope
         assigned = keys[rows, slots]
@@ -136,7 +158,7 @@ class SpatialGP:
             key_array = ordered[start]
             assignment = order[start:end]
             indices, w = rows[assignment], weights[rows[assignment], slots[assignment]]
-            expert = self.experts.get(tuple(map(int, key_array)))
+            expert = self._prediction_expert(tuple(map(int, key_array)))
             if expert is None:
                 m, v = np.full(len(indices), self.prior), np.full(len(indices), self.variance)
             else:
@@ -146,7 +168,13 @@ class SpatialGP:
             np.add.at(mu, indices, w*m)
             np.add.at(second, indices, w*(v+m*m))
             np.add.at(mean, indices, w*rate_mean)
-            np.maximum.at(envelope, indices, upper)
+            # A nonexistent expert is only a prior component of the mixture,
+            # not a learned hotspot. Extending its full prior envelope beyond
+            # its zero-weight boundary creates an irreducible uncertainty floor
+            # even directly at well-observed detector locations.
+            upper_weight=(w if self.blend=='quintic' and self.upper_rule=='evidence' and (expert is None or getattr(expert,'updates',1)==0) else
+                influence[rows[assignment],slots[assignment]])
+            np.maximum.at(envelope, indices, upper*upper_weight)
         variance = np.maximum(1e-8, second-mu*mu)
         # Disagreement inflates uncertainty. A hotspot seen by one active expert
         # is not averaged away in the planning bound. Missing experts keep priors.
@@ -177,11 +205,11 @@ class SpatialGP:
             update_p50_ms=float(np.median(self.update_ms)) if self.update_ms else None,
             update_p95_ms=float(np.percentile(self.update_ms, 95)) if self.update_ms else None,
             kernel='Matern32-ARD', coordinates='xyz metres',
-            uncertainty='mixture variance plus expert disagreement; maximum active upper envelope')
+            blending=self.blend,upper_rule=self.upper_rule,uncertainty='mixture variance plus expert disagreement; expanded smooth upper envelope' if self.blend=='quintic' else 'mixture variance plus expert disagreement; maximum active upper envelope')
 
     def save(self, path):
         keys = sorted(self.experts)
-        data = dict(model_kind='spatial', schema_version=1, likelihood=self.likelihood,
+        data = dict(model_kind='spatial', schema_version=3, likelihood=self.likelihood,blend=self.blend,upper_rule=self.upper_rule,
                     capacity=self.capacity, max_experts=self.max_experts, cell_size=self.cell_size,
                     halo=self.halo, updates=self.updates, saturated=self.saturated,
                     lengthscales=self.lengthscales, variance=self.variance, prior_log_rate=self.prior,
@@ -194,17 +222,22 @@ class SpatialGP:
         np.savez_compressed(path, **data)
 
 
-def load_gp(path):
+def load_gp(path, include_history=True):
     """Load global (including legacy) or spatial archives without pickle."""
     with np.load(path, allow_pickle=False) as data:
         likelihood = str(data['likelihood'].item())
         kind = str(data.get('model_kind', 'global'))
-        if likelihood not in ('poisson', 'gaussian') or kind not in ('global', 'spatial', 'geometry'):
+        if likelihood not in ('poisson', 'gaussian') or kind not in ('global', 'spatial', 'geometry', 'windowed'):
             raise ValueError('unsupported GP archive')
-        if int(data.get('schema_version', 1)) != 1:
+        if int(data.get('schema_version', 1)) not in ((1,2,3) if kind in ('spatial','windowed') else (1,)):
             raise ValueError('unsupported GP archive version')
+        if kind == 'windowed':
+            from .windowed_gp import WindowedGP
+            return WindowedGP.load(path)
         if kind == 'spatial':
-            gp = SpatialGP(int(data['capacity']), int(data['max_experts']), data['cell_size'], float(data['halo']), likelihood)
+            gp = SpatialGP(int(data['capacity']), int(data['max_experts']), data['cell_size'], float(data['halo']), likelihood,
+                blend=str(data['blend'].item()) if 'blend' in data else 'linear',
+                upper_rule=str(data['upper_rule'].item()) if 'upper_rule' in data else 'expanded_prior')
             gp.lengthscales = np.asarray(data.get('lengthscales', [1.5, 1.5, .7])).copy()
             gp.variance = float(data.get('variance', 2.25))
             gp.prior = float(data.get('prior_log_rate', math.log(2.)))
@@ -225,9 +258,14 @@ def load_gp(path):
             gp.lengthscales, gp.variance, gp.prior = data['lengthscales'].copy(), float(data['variance']), float(data['prior_log_rate'])
             gp.updates, gp.saturated = int(data['updates']), bool(data['saturated'])
             gp.last_geometry_stamp, gp.geometry_rebuilds = float(data['last_geometry_stamp']), int(data['geometry_rebuilds'])
-            for i, (start, end) in enumerate(zip(data['window_offsets'][:-1], data['window_offsets'][1:])):
-                gp.records.append((data['window_positions'][start:end].copy(), data['window_durations'][start:end].copy(),
-                                   int(data['window_counts'][i]), float(data['window_sensitivity'][i])))
+            gp.streaming_after_capacity = bool(data.get('streaming_after_capacity', False))
+            gp.geometry_frozen = bool(data.get('geometry_frozen', False))
+            gp.streaming_updates_after_history = int(data.get('streaming_updates_after_history', 0))
+            gp.history_loaded = include_history
+            if include_history:
+                for i, (start, end) in enumerate(zip(data['window_offsets'][:-1], data['window_offsets'][1:])):
+                    gp.records.append((data['window_positions'][start:end].copy(), data['window_durations'][start:end].copy(),
+                                       int(data['window_counts'][i]), float(data['window_sensitivity'][i])))
         else:
             gp = (PoissonOnlineGP if likelihood == 'poisson' else OnlineGP)(int(data.get('capacity', max(1, len(data['Z'])))),
                 lengthscales=data['lengthscales'], variance=float(data['variance']))

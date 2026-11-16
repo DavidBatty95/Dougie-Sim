@@ -2,4 +2,8 @@
 # One-command browser demo on Apple Silicon; usable from any working directory.
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Fresh demos use finite robot lifetimes; retained replays keep their own mode.
+if [[ -z "${DOUGIE_COMPARE_REPLAY:-}" ]]; then
+    export DOUGIE_COMPARE_CAMPAIGN="${DOUGIE_COMPARE_CAMPAIGN:-1}"
+fi
 exec "$ROOT/dougie-mac" compare "$@"

@@ -1,0 +1,1343 @@
+{
+  "scope": "Fixed-layout/detector simulation campaigns; active or externally stopped attempts remain censored. No claims from unequal-work endpoints.",
+  "studies": [
+    {
+      "directory": "results/dougie/holdout_l1_s210_baseline",
+      "status": "halted",
+      "reason": "aware robot did not return alive; no automatic in-field dose reset",
+      "requested_sorties": 2,
+      "completed_sorties": 2,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 1.1295343307282506,
+          "total_time_s": 2059.4500000217427,
+          "total_distance_m": 280.7038156001821,
+          "robots_lost": 0,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 96.4785335262904,
+          "last_outcome": "stranded_or_interrupted",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.120598166907865,
+              "campaign_dose_usv": 0.023817020007148793,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.78630004823927,
+              "campaign_dose_usv": 0.07171668956550964,
+              "campaign_time_s": 126.84999999995712
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.012059816690794,
+              "campaign_dose_usv": 0.165089228600772,
+              "campaign_time_s": 299.5599999998001
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.00964785335263,
+              "campaign_dose_usv": 0.2171579106525779,
+              "campaign_time_s": 504.08499999961407
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.0675349734684,
+              "campaign_dose_usv": 0.2526922992953367,
+              "campaign_time_s": 606.0949999995213
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.12059816690785,
+              "campaign_dose_usv": 0.2580548064339144,
+              "campaign_time_s": 628.3149999995011
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.29425952725518,
+              "campaign_dose_usv": 0.2646973852942597,
+              "campaign_time_s": 654.0699999994777
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.00241196333816,
+              "campaign_dose_usv": 0.29197094139821705,
+              "campaign_time_s": 688.4099999994464
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.00723589001447,
+              "campaign_dose_usv": 0.3154589157511252,
+              "campaign_time_s": 752.5449999993881
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 269,
+              "upper_landing_witness_s": 596.9249999995296,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "server_interrupted",
+              "exit_code": -9,
+              "end_state": null,
+              "error": null,
+              "frontier_complete": null,
+              "frontier_confirmation_count": null,
+              "frontier_count": null,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": null,
+              "decision_reason": null,
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 0.5270644696422297,
+          "total_time_s": 1208.8149999990455,
+          "total_distance_m": 158.0840836428812,
+          "robots_lost": 0,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 87.19247467438494,
+          "last_outcome": "stranded_or_interrupted",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 27.725518572117704,
+              "campaign_dose_usv": 0.03609828475465868,
+              "campaign_time_s": 136.94999999994795
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.243608297153884,
+              "campaign_dose_usv": 0.09644420408675973,
+              "campaign_time_s": 319.25499999978217
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.988904968644476,
+              "campaign_dose_usv": 0.10828946005664472,
+              "campaign_time_s": 365.7149999997399
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 61.070911722141815,
+              "campaign_dose_usv": 0.3735685687584162,
+              "campaign_time_s": 889.7149999992852
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.24843222383019,
+              "campaign_dose_usv": 0.41993399605325454,
+              "campaign_time_s": 941.9149999992884
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.37385431741438,
+              "campaign_dose_usv": 0.44464400894190903,
+              "campaign_time_s": 983.8299999992503
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.55957549445249,
+              "campaign_dose_usv": 0.45169109297657545,
+              "campaign_time_s": 995.9499999992393
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 919,
+              "upper_landing_witness_s": 290.7199999998081,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "unresolved_frontiers",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "server_interrupted",
+              "exit_code": 0,
+              "end_state": "interrupted",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 644,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "continue_survey_sweep",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 1,
+        "sensor_seed": 0,
+        "seed": 210,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "baseline"
+      },
+      "protocol_sha256": [
+        "d2d25c8ad41eb1dca315bc9485c78aad250640e2fe7cd78e4ccd1ae475eaac65"
+      ],
+      "manifest_sha256": "08473bd21742ba240c2215e388173be9f079f3cc6ede8eaca9d2909c9969150e"
+    },
+    {
+      "directory": "results/dougie/holdout_l1_s210_agenda",
+      "status": "sortie_limit",
+      "reason": "configured mission-package sortie count reached",
+      "requested_sorties": 2,
+      "completed_sorties": 2,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 3.827793176293918,
+          "total_time_s": 4828.520000058975,
+          "total_distance_m": 635.1814960157915,
+          "robots_lost": 1,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 96.49059334298119,
+          "last_outcome": "destroyed_radiation",
+          "wrecks": 1,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.120598166907865,
+              "campaign_dose_usv": 0.023817020007148793,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.038591413410515,
+              "campaign_dose_usv": 0.05860741603396713,
+              "campaign_time_s": 120.78999999996263
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.42209358417752,
+              "campaign_dose_usv": 0.46913058796057727,
+              "campaign_time_s": 395.5099999997128
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.10612638687892,
+              "campaign_dose_usv": 0.5677431303459635,
+              "campaign_time_s": 766.6849999993752
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.03135552339604,
+              "campaign_dose_usv": 0.5969130510679195,
+              "campaign_time_s": 866.6749999992843
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.03617945007235,
+              "campaign_dose_usv": 0.6022053311504486,
+              "campaign_time_s": 890.9149999992622
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.60781476121564,
+              "campaign_dose_usv": 0.6101893928558361,
+              "campaign_time_s": 915.1549999992402
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.17124939700916,
+              "campaign_dose_usv": 0.7529110293290618,
+              "campaign_time_s": 973.2299999991874
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.0675349734684,
+              "campaign_dose_usv": 0.9153746325754775,
+              "campaign_time_s": 1163.2300000021803
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 302,
+              "upper_landing_witness_s": 848.6949999993006,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "dead_radiation",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 286,
+              "upper_landing_witness_s": 317.0449999997842,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "radiation_lifetime_exhausted",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 0.8415774317685238,
+          "total_time_s": 2065.9150000077125,
+          "total_distance_m": 268.2316728406091,
+          "robots_lost": 0,
+          "robots_recovered": 2,
+          "sorties": 2,
+          "explored_percent": 90.82247949831162,
+          "last_outcome": "recovered_for_swap",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.012059816690783,
+              "campaign_dose_usv": 0.026360283684540287,
+              "campaign_time_s": 138.9699999999461
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.038591413410515,
+              "campaign_dose_usv": 0.098086945577979,
+              "campaign_time_s": 347.53499999975645
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.1808972503618,
+              "campaign_dose_usv": 0.11005498151712317,
+              "campaign_time_s": 395.5099999997128
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.0337674867342,
+              "campaign_dose_usv": 0.1677486162220484,
+              "campaign_time_s": 455.60499999965816
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.24843222383019,
+              "campaign_dose_usv": 0.32909600492776303,
+              "campaign_time_s": 1045.2299999996046
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.0964785335263,
+              "campaign_dose_usv": 0.33457300699961406,
+              "campaign_time_s": 1075.2300000002595
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.06512301013025,
+              "campaign_dose_usv": 0.3441330110784664,
+              "campaign_time_s": 1115.2300000011326
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.08683068017366,
+              "campaign_dose_usv": 0.3884836093981201,
+              "campaign_time_s": 1181.2300000025732
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 522,
+              "upper_landing_witness_s": 333.46999999976924,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "unresolved_frontiers",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 511,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 1,
+        "sensor_seed": 0,
+        "seed": 210,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "agenda"
+      },
+      "protocol_sha256": [
+        "8599c809fb307a4b15eecb42fdbb97e90e7ca31ff6aaf4a5ccd9600f8ae11a21"
+      ],
+      "manifest_sha256": "a8c3219df01f11b44035b8f9b15e1170e6ed074effb036bd4b6d4f80f70e9a32"
+    },
+    {
+      "directory": "results/dougie/holdout_l2_s212_baseline",
+      "status": "halted",
+      "reason": "aware mission memory or result is incomplete",
+      "requested_sorties": 2,
+      "completed_sorties": 2,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 2.257070030319422,
+          "total_time_s": 2877.6300000279834,
+          "total_distance_m": 395.89944275697667,
+          "robots_lost": 0,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 96.43029425952726,
+          "last_outcome": "stranded_or_interrupted",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.723589001447177,
+              "campaign_dose_usv": 0.02468314356734566,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.291847563917024,
+              "campaign_dose_usv": 0.08546719825662893,
+              "campaign_time_s": 147.04999999993876
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.1808972503618,
+              "campaign_dose_usv": 0.19768091010910088,
+              "campaign_time_s": 367.7349999997381
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.05788712011577,
+              "campaign_dose_usv": 0.24693505758775994,
+              "campaign_time_s": 548.0199999995741
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.40520984081043,
+              "campaign_dose_usv": 0.2995148899451284,
+              "campaign_time_s": 700.5299999994354
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.24119633381574,
+              "campaign_dose_usv": 0.3050043317267777,
+              "campaign_time_s": 724.2649999994138
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.31837916063675,
+              "campaign_dose_usv": 0.31197006141675926,
+              "campaign_time_s": 752.5449999993881
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.36420646406175,
+              "campaign_dose_usv": 0.34430423227977686,
+              "campaign_time_s": 786.3799999993573
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.00723589001447,
+              "campaign_dose_usv": 0.5450577715275708,
+              "campaign_time_s": 878.7949999992733
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 237,
+              "upper_landing_witness_s": 692.164999999443,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "server_interrupted",
+              "exit_code": 0,
+              "end_state": "interrupted",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 114,
+              "upper_landing_witness_s": 281.7099999998163,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "systematic_observed_survey",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 0.988569880431455,
+          "total_time_s": 1446.9400000030912,
+          "total_distance_m": 193.43814905570372,
+          "robots_lost": 0,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 80.76459237819586,
+          "last_outcome": "stranded_or_interrupted",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.108538350217074,
+              "campaign_dose_usv": 0.023350399585938222,
+              "campaign_time_s": 48.725000000006474
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.352146647370965,
+              "campaign_dose_usv": 0.07318743262625607,
+              "campaign_time_s": 132.90999999995162
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.012059816690794,
+              "campaign_dose_usv": 0.18589307957939344,
+              "campaign_time_s": 339.4549999997638
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.00964785335263,
+              "campaign_dose_usv": 0.2366982981994423,
+              "campaign_time_s": 558.1199999995649
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.04341534008684,
+              "campaign_dose_usv": 0.28656834293385874,
+              "campaign_time_s": 696.4899999994391
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.20501688374337,
+              "campaign_dose_usv": 0.2918367382512273,
+              "campaign_time_s": 720.2249999994175
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.02894356005788,
+              "campaign_dose_usv": 0.3121599380278124,
+              "campaign_time_s": 824.7599999993224
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 269,
+              "upper_landing_witness_s": 688.0299999994468,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "radiation_frontiers_blocked",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "server_interrupted",
+              "exit_code": 1,
+              "end_state": "returned",
+              "error": "A process in the process pool was terminated abruptly while the future was running or pending.",
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": null,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "initial_survey",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 2,
+        "sensor_seed": 0,
+        "seed": 212,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "baseline"
+      },
+      "protocol_sha256": [
+        "fd8ce00c5863b6b72d80c1ed333e6a2470f4ab3feaaf5303be56080ac9408e4a"
+      ],
+      "manifest_sha256": "c8d5afae276d3670b80795d4e2d39beadf965dd2b5caedce421c9988e2c1f19d"
+    },
+    {
+      "directory": "results/dougie/holdout_l2_s212_agenda",
+      "status": "halted",
+      "reason": "blind mission memory or result is incomplete",
+      "requested_sorties": 2,
+      "completed_sorties": 1,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 2.0000163346472406,
+          "total_time_s": 2812.6100000381825,
+          "total_distance_m": 387.0410016101793,
+          "robots_lost": 1,
+          "robots_recovered": 0,
+          "sorties": 1,
+          "explored_percent": 96.45441389290883,
+          "last_outcome": "destroyed_radiation",
+          "wrecks": 1,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.723589001447177,
+              "campaign_dose_usv": 0.02468314356734566,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.02653159671973,
+              "campaign_dose_usv": 0.06619957306999727,
+              "campaign_time_s": 124.82999999995896
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.42209358417752,
+              "campaign_dose_usv": 0.1788559417694946,
+              "campaign_time_s": 319.25499999978217
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.05788712011577,
+              "campaign_dose_usv": 0.2435658928152086,
+              "campaign_time_s": 545.999999999576
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.33285094066571,
+              "campaign_dose_usv": 0.2836844270760617,
+              "campaign_time_s": 670.229999999463
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.0,
+              "campaign_dose_usv": 0.28838575844416287,
+              "campaign_time_s": 692.4499999994428
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.01688374336709,
+              "campaign_dose_usv": 0.29533443592827124,
+              "campaign_time_s": 728.3049999994101
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.19536903039074,
+              "campaign_dose_usv": 0.3217549328121078,
+              "campaign_time_s": 762.6449999993789
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.01929570670525,
+              "campaign_dose_usv": 0.3771292253776474,
+              "campaign_time_s": 836.8799999993114
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 1,
+              "end_state": "dead_radiation",
+              "error": "A process in the process pool was terminated abruptly while the future was running or pending.",
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": null,
+              "upper_landing_witness_s": 657.3249999994747,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "radiation_lifetime_exhausted",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 0.5381853568594679,
+          "total_time_s": 1003.4049999991599,
+          "total_distance_m": 128.03349059383706,
+          "robots_lost": 0,
+          "robots_recovered": 1,
+          "sorties": 1,
+          "explored_percent": 64.27882296189098,
+          "last_outcome": "recovered_for_swap",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 27.930535455861072,
+              "campaign_dose_usv": 0.045386565547473674,
+              "campaign_time_s": 167.2499999999204
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.30390738060782,
+              "campaign_dose_usv": 0.09590364416436441,
+              "campaign_time_s": 341.47499999976196
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.06029908345393,
+              "campaign_dose_usv": 0.10713463055723961,
+              "campaign_time_s": 405.60999999970363
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.250844187168354,
+              "campaign_dose_usv": 0.15633908123209944,
+              "campaign_time_s": 477.82499999963795
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 872,
+              "upper_landing_witness_s": 301.81499999979803,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "dose_return_reserve",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 2,
+        "sensor_seed": 0,
+        "seed": 212,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "agenda"
+      },
+      "protocol_sha256": [
+        "9612f7172b5ec22b4916322f79980723f1f2e6e07ef5c2deec5159852d6109aa"
+      ],
+      "manifest_sha256": "47e7b97c1c3bf55f85c7688b840f6dd9d8d367c0fc1a42237f0ae9e0f8c083bc"
+    },
+    {
+      "directory": "results/dougie/holdout_l1_s210_baseline_retry1",
+      "status": "sortie_limit",
+      "reason": "configured mission-package sortie count reached",
+      "requested_sorties": 2,
+      "completed_sorties": 2,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 3.129534412353768,
+          "total_time_s": 3947.2000000397375,
+          "total_distance_m": 535.8012778758047,
+          "robots_lost": 1,
+          "robots_recovered": 1,
+          "sorties": 2,
+          "explored_percent": 96.51471297636276,
+          "last_outcome": "destroyed_radiation",
+          "wrecks": 1,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.120598166907865,
+              "campaign_dose_usv": 0.023817020007148793,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.78630004823927,
+              "campaign_dose_usv": 0.07171668956550964,
+              "campaign_time_s": 126.84999999995712
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.012059816690794,
+              "campaign_dose_usv": 0.165089228600772,
+              "campaign_time_s": 299.5599999998001
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.00964785335263,
+              "campaign_dose_usv": 0.2171579106525779,
+              "campaign_time_s": 504.08499999961407
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.0675349734684,
+              "campaign_dose_usv": 0.2526922992953367,
+              "campaign_time_s": 606.0949999995213
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.12059816690785,
+              "campaign_dose_usv": 0.2580548064339144,
+              "campaign_time_s": 628.3149999995011
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.29425952725518,
+              "campaign_dose_usv": 0.2646973852942597,
+              "campaign_time_s": 654.0699999994777
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.00241196333816,
+              "campaign_dose_usv": 0.29197094139821705,
+              "campaign_time_s": 688.4099999994464
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.00723589001447,
+              "campaign_dose_usv": 0.3154589157511252,
+              "campaign_time_s": 752.5449999993881
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 269,
+              "upper_landing_witness_s": 596.9249999995296,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "dead_radiation",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 173,
+              "upper_landing_witness_s": 771.319999999371,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "radiation_lifetime_exhausted",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 1.0711965506635137,
+          "total_time_s": 1826.359999998484,
+          "total_distance_m": 247.8809950451822,
+          "robots_lost": 0,
+          "robots_recovered": 2,
+          "sorties": 2,
+          "explored_percent": 87.4095513748191,
+          "last_outcome": "recovered_for_swap",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 27.725518572117704,
+              "campaign_dose_usv": 0.03609828475465868,
+              "campaign_time_s": 136.94999999994795
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.243608297153884,
+              "campaign_dose_usv": 0.09644420408675973,
+              "campaign_time_s": 319.25499999978217
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.988904968644476,
+              "campaign_dose_usv": 0.10828946005664472,
+              "campaign_time_s": 365.7149999997399
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 61.070911722141815,
+              "campaign_dose_usv": 0.3735685687584162,
+              "campaign_time_s": 889.7149999992852
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.24843222383019,
+              "campaign_dose_usv": 0.41993399605325454,
+              "campaign_time_s": 941.9149999992884
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.37385431741438,
+              "campaign_dose_usv": 0.44464400894190903,
+              "campaign_time_s": 983.8299999992503
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.55957549445249,
+              "campaign_dose_usv": 0.45169109297657545,
+              "campaign_time_s": 995.9499999992393
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 919,
+              "upper_landing_witness_s": 290.7199999998081,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "unresolved_frontiers",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 546,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 1,
+        "sensor_seed": 0,
+        "seed": 210,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "baseline"
+      },
+      "protocol_sha256": [
+        "d2d25c8ad41eb1dca315bc9485c78aad250640e2fe7cd78e4ccd1ae475eaac65"
+      ],
+      "manifest_sha256": "f7719bfe8c959d03495b0ae748f282252b68a54d47890a51dd3c0eb4a409fe94"
+    },
+    {
+      "directory": "results/dougie/holdout_l2_s212_baseline_retry1",
+      "status": "sortie_limit",
+      "reason": "configured mission-package sortie count reached",
+      "requested_sorties": 2,
+      "completed_sorties": 2,
+      "censored": true,
+      "modes": {
+        "blind": {
+          "total_dose_usv": 2.5689918203748476,
+          "total_time_s": 3798.9000000365004,
+          "total_distance_m": 511.9008222917262,
+          "robots_lost": 0,
+          "robots_recovered": 2,
+          "sorties": 2,
+          "explored_percent": 96.43029425952726,
+          "last_outcome": "recovered_for_swap",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.723589001447177,
+              "campaign_dose_usv": 0.02468314356734566,
+              "campaign_time_s": 50.7250000000075
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.291847563917024,
+              "campaign_dose_usv": 0.08546719825662893,
+              "campaign_time_s": 147.04999999993876
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.1808972503618,
+              "campaign_dose_usv": 0.19768091010910088,
+              "campaign_time_s": 367.7349999997381
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.05788712011577,
+              "campaign_dose_usv": 0.24693505758775994,
+              "campaign_time_s": 548.0199999995741
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.40520984081043,
+              "campaign_dose_usv": 0.2995148899451284,
+              "campaign_time_s": 700.5299999994354
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.24119633381574,
+              "campaign_dose_usv": 0.3050043317267777,
+              "campaign_time_s": 724.2649999994138
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.31837916063675,
+              "campaign_dose_usv": 0.31197006141675926,
+              "campaign_time_s": 752.5449999993881
+            },
+            {
+              "threshold": 90.0,
+              "observed_percent": 90.36420646406175,
+              "campaign_dose_usv": 0.34430423227977686,
+              "campaign_time_s": 786.3799999993573
+            },
+            {
+              "threshold": 95.0,
+              "observed_percent": 95.00723589001447,
+              "campaign_dose_usv": 0.5450577715275708,
+              "campaign_time_s": 878.7949999992733
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 237,
+              "upper_landing_witness_s": 692.164999999443,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 236,
+              "upper_landing_witness_s": 281.7099999998163,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "frontier_progress_stalled",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        },
+        "aware": {
+          "total_dose_usv": 0.988569880431455,
+          "total_time_s": 1446.9400000030912,
+          "total_distance_m": 193.43814905570372,
+          "robots_lost": 0,
+          "robots_recovered": 2,
+          "sorties": 2,
+          "explored_percent": 80.76459237819586,
+          "last_outcome": "recovered_for_swap",
+          "wrecks": 0,
+          "milestones": [
+            {
+              "threshold": 25.0,
+              "observed_percent": 25.108538350217074,
+              "campaign_dose_usv": 0.023350399585938222,
+              "campaign_time_s": 48.725000000006474
+            },
+            {
+              "threshold": 40.0,
+              "observed_percent": 40.352146647370965,
+              "campaign_dose_usv": 0.07318743262625607,
+              "campaign_time_s": 132.90999999995162
+            },
+            {
+              "threshold": 50.0,
+              "observed_percent": 50.012059816690794,
+              "campaign_dose_usv": 0.18589307957939344,
+              "campaign_time_s": 339.4549999997638
+            },
+            {
+              "threshold": 60.0,
+              "observed_percent": 60.00964785335263,
+              "campaign_dose_usv": 0.2366982981994423,
+              "campaign_time_s": 558.1199999995649
+            },
+            {
+              "threshold": 70.0,
+              "observed_percent": 70.04341534008684,
+              "campaign_dose_usv": 0.28656834293385874,
+              "campaign_time_s": 696.4899999994391
+            },
+            {
+              "threshold": 75.0,
+              "observed_percent": 75.20501688374337,
+              "campaign_dose_usv": 0.2918367382512273,
+              "campaign_time_s": 720.2249999994175
+            },
+            {
+              "threshold": 80.0,
+              "observed_percent": 80.02894356005788,
+              "campaign_dose_usv": 0.3121599380278124,
+              "campaign_time_s": 824.7599999993224
+            }
+          ],
+          "sortie_outcomes": [
+            {
+              "id": 1,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 269,
+              "upper_landing_witness_s": 688.0299999994468,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "radiation_frontiers_blocked",
+              "probe_candidate_plans": 0,
+              "probes": []
+            },
+            {
+              "id": 2,
+              "state": "ended",
+              "exit_code": 0,
+              "end_state": "returned",
+              "error": null,
+              "frontier_complete": false,
+              "frontier_confirmation_count": 0,
+              "frontier_count": 161,
+              "upper_landing_witness_s": null,
+              "reached_heights_m": [
+                0.0,
+                1.2,
+                2.4
+              ],
+              "decision_reason": "recovery_known_return_route",
+              "probe_candidate_plans": 0,
+              "probes": []
+            }
+          ],
+          "active_sortie": null,
+          "completion_censored": true
+        }
+      },
+      "settings": {
+        "world": "facility",
+        "layout_seed": 2,
+        "sensor_seed": 0,
+        "seed": 212,
+        "duration": 0.0,
+        "campaign_sorties": 2,
+        "lifetime_dose": 2.0,
+        "survival_fraction": 0.8,
+        "localization": "ground-truth",
+        "campaign_strategy": "baseline"
+      },
+      "protocol_sha256": [
+        "fd8ce00c5863b6b72d80c1ed333e6a2470f4ab3feaaf5303be56080ac9408e4a"
+      ],
+      "manifest_sha256": "0aec5a3d591762b0f181960a28f40a4d826be1d8b36dd87854aae0d8f2148664"
+    }
+  ]
+}

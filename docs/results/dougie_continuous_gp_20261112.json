@@ -1,0 +1,35 @@
+{
+  "scope": "Read-only reconstruction of one retained posterior; not a navigation/dose-performance trial or accuracy calibration.",
+  "source": "results/dougie/comparison_20261111T214218_843825Z/aware",
+  "posterior_sha256": "bb776b72ff4f24dc4461dbcd533df43a7b79129a866ea417c92190db78ac7b0e",
+  "recorded_blending": "linear",
+  "query_count": 8192,
+  "query_build_seconds": 0.048116124991793185,
+  "prediction_seconds_cold_then_warm": [
+    0.11181587498867884,
+    0.11215516700758599
+  ],
+  "interpolation_seconds": 0.0940950829826761,
+  "reference_cells": 8292,
+  "predicted_cells": 8168,
+  "retained_display_predicted_cells": 2889,
+  "maximum_neighbours": 12,
+  "resident_training_experts_after_prediction": 0,
+  "continuity": {
+    "probes": 288,
+    "separation_m": 2e-06,
+    "max_absolute_change": {
+      "linear": {
+        "mean_usv_h": 3.624654973677366e-05,
+        "sigma_log_rate": 1.0409629441709978e-05,
+        "upper_usv_h": 16.967350606528413
+      },
+      "quintic": {
+        "mean_usv_h": 3.6753722676863276e-05,
+        "sigma_log_rate": 8.102387846264936e-06,
+        "upper_usv_h": 0.0003283202871955382
+      }
+    }
+  },
+  "all_available_predictions_finite": true
+}

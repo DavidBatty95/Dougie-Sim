@@ -1,6 +1,6 @@
 # Dougie container
 
-[Project home](../README.md) · [Reproduction and demo](../README.md#6-reproduction-and-demo) · [Graphics guide](../docs/DOUGIE_PERFORMANCE.md)
+[Project home](../README.md) · [Reproduction and demo](../README.md#reproduction-and-demo) · [Graphics guide](../docs/DOUGIE_PERFORMANCE.md)
 
 The maintained image is built from [Dockerfile.dougie](Dockerfile.dougie), a pinned
 ROS 2 Humble base plus [requirements-dougie.txt](requirements-dougie.txt) and CPU
@@ -19,6 +19,7 @@ Compose files at the project root:
 - `docker-compose.dri.yml`: DRM/DRI graphics overlay.
 - `docker-compose.compare.yml`: standalone native ARM64 browser demo.
 - `docker-compose.mac.yml`: optional Ubuntu/XFCE browser desktop.
+- `docker-compose.batch.yml`: resumable paired seed studies without rendering.
 
 On Apple Silicon, `./demo` starts the paired experiment from one checkout.
 The runtime is built with [Dockerfile.mac](Dockerfile.mac); see the

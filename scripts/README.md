@@ -7,11 +7,16 @@ exploration, testing and training commands. `dougie_cli.py` implements that entr
 
 | Script family | Purpose |
 |---|---|
-| `benchmark_dougie_*.py` | GP, sensing, planning, mission and rendering experiments |
+| `benchmark_windowed_gp.py`, `benchmark_continuous_gp.py` | Current GP working-set and field checks |
+| `benchmark_occupancy_*.py`, `compare_occupancy_missions.py` | Occupancy lookup and fixed-seed behavior checks |
+| `diagnose_dougie_exposure.py`, `inspect_exposure_peak.py` | Matched-progress exposure and incident diagnosis |
+| `report_campaign_holdout.py`, `monitor_campaign_holdout.py` | Retained campaign outcomes and live holdout reporting |
+| `report_campaign_checks.py`, `report_policy_pilots.py` | Portable campaign and policy-pilot summaries |
+| `benchmark_dougie_*.py` | Retained GP, sensing, graph and rendering checks |
 | `check_dougie_*.py` | Documentation, artifact, media and outcome verification |
 | `diagnose_dougie_*.py`, `probe_dougie_*.py` | Support geometry, registration, contacts and runtime diagnostics |
 | `qualify_dougie_*.py` | Declared uncertainty and stance/stop qualification protocols |
-| `report_dougie_*.py` | Portable evidence and mission/terrain summaries |
+| `report_dougie_*.py` | Retained navigation and terrain summaries |
 | `render_dougie_*.py`, `publish_dougie_*.py` | Figures and recorded-media publication from retained inputs |
 | `setup_dougie_training.py` | Isolated, pinned optional CUDA training environment |
 
@@ -34,6 +39,10 @@ matched metrics, both videos, rate maps, endpoint labels and mobile layout. Pass
 experiment, and `--screenshot <path>` to capture the current desktop viewport.
 Set `PLAYWRIGHT_MODULE` only if Playwright is installed outside the normal Node
 module search path. The runtime container does not require a browser dependency.
+
+For 30 paired facility seeds, use `./dougie-mac batch` or run
+`python3 -m dougie_sim.batch_comparison --seed-count 30 --world facility --output results/dougie/facility_30_seeds --resume`
+inside the runtime. [Seed-study protocol and statistics](../docs/DOUGIE_SEED_STUDY.md).
 
 Retired G1/transport/avoidance launchers and publishers are retained in
 [Git history](../docs/DOUGIE_HISTORY.md), not alongside the current Go2 tooling.

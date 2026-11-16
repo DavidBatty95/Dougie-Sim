@@ -116,3 +116,20 @@ def test_disconnected_frontiers_do_not_count_as_finished(monkeypatch):
     assert planner.frontier_count == 1 and not planner.frontier_complete
     assert planner.last_reason == 'unresolved_frontiers'
     assert outcome(False, 'returned', 'unresolved_frontiers') == 'frontiers_blocked'
+
+
+def test_known_connector_can_be_probed_without_fabricating_a_frontier(monkeypatch):
+    planner = explorer(monkeypatch)
+    planner.budget_enabled = planner.rate_limited = False
+    terrain = planner.terrain
+    terrain.nodes = {0:np.array([0.,0.,0.]),1:np.array([1.5,0.,.2]),2:np.array([3.,0.,1.])}
+    terrain.graph = {0:[1],1:[0],2:[]}
+    terrain.active_viewpoints = True
+    terrain.acquisition_bonus = lambda key,bands:6. if key == 1 else 0.
+    monkeypatch.setattr('dougie_sim.clustered_planner.ObservedGain',
+        lambda terrain:SimpleNamespace(value=lambda key:int(key==2),cache={}))
+    planner.replan(np.zeros(3),1.)
+    assert planner.frontier_count == 1 and not planner.frontier_complete
+    assert planner.admissible_frontier_count == 0 and planner.connection_probe_count == 1
+    np.testing.assert_array_equal(planner.target,[1.5,0.,.2])
+    assert planner.last_reason == 'frontier_connection_probe'

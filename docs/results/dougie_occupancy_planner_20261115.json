@@ -1,0 +1,22 @@
+{
+  "scope": "One retained multilevel map; exact old/new frontier calculation from the same reconstructed support graph. No physical mission or dose inference.",
+  "source": "results/dougie/holdout_l2_s212_baseline_retry1/aware",
+  "graph_nodes": 7483,
+  "graph_reconstruction_seconds": 2.4448033759836107,
+  "identical_gains": true,
+  "identical_unknown_witnesses": true,
+  "baseline": {
+    "setup_seconds": 0.22762054204940796,
+    "setup_peak_traced_bytes": 64690955,
+    "evaluation_seconds": 0.6892684590420686,
+    "frontiers": 190
+  },
+  "optimized": {
+    "setup_seconds": 0.10864195798058063,
+    "setup_peak_traced_bytes": 51303015,
+    "evaluation_seconds": 0.6935984580195509,
+    "frontiers": 190
+  },
+  "setup_time_ratio": 0.47729417126595935,
+  "setup_peak_memory_ratio": 0.7930477297792249
+}

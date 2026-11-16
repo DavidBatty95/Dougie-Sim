@@ -3,10 +3,11 @@ import json
 import multiprocessing
 import signal
 import time
+from pathlib import Path
 
 import mujoco
 import numpy as np
-from PIL import Image
+from PIL import Image,ImageDraw
 from scipy.spatial import cKDTree
 
 from .comparison_minimap import ComparisonMinimap
@@ -22,7 +23,8 @@ def planning_snapshot(metrics, rotation, translation):
     target = metrics.get('selected_target')
     result['selected_target'] = points([target])[0] if target is not None else None
     result['clusters'] = [dict(anchor=points([item['anchor']])[0])
-                          for item in metrics.get('clusters', [])[:8]]
+                           for item in metrics.get('clusters', [])[:8]]
+    result['robot_lifetime']=metrics.get('robot_lifetime')
     return result
 
 
@@ -108,6 +110,22 @@ class FloorCoverage:
             eligible[flat] = self.reached_levels[self.level_ids[matched[flat]]]
             self.seen[matched[eligible]] = True
 
+    @classmethod
+    def retained(cls,reference,progress):
+        value=cls.__new__(cls)
+        with np.load(reference,allow_pickle=False) as data:
+            value.points=data['xyz'].copy()
+            value.flat=data['flat'].copy()
+            value.level_ids=data['level_ids'].copy()
+            value.level_heights=data['level_heights_m'].copy()
+        with np.load(progress,allow_pickle=False) as data:
+            if not np.array_equal(data['xyz'],value.points):
+                raise ValueError('campaign floor reference changed')
+            value.seen=data['seen'].copy()
+            value.reached_levels=data['reached_levels'].copy()
+        value.tree=cKDTree(value.points)
+        return value
+
     @property
     def percent(self):
         return float(100.*self.seen.mean())
@@ -153,6 +171,8 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
                     if (geom.objtype == mujoco.mjtObj.mjOBJ_GEOM and 0 <= index < model.ngeom
                             and model.geom_bodyid[index] == 0 and geom.pos[2] > data.qpos[2]+.2):
                         geom.rgba[3] = min(float(geom.rgba[3]), .08)
+                    if (plan.get('robot_lifetime') or {}).get('alive') is False and geom.objtype==mujoco.mjtObj.mjOBJ_GEOM and 0<=index<model.ngeom and model.body_rootid[model.geom_bodyid[index]]==model.body('base_link').id:
+                        geom.rgba[:]=[.65,.12,.08,1.]
                 draw_overlay(renderer.scene, None, plan, [], controls, 100., reset=False)
                 temporary = output/'frame.tmp'
                 w, x, y, z = data.qpos[3:7]
@@ -161,6 +181,13 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
                                        data.qpos[:2], values[1], yaw, map_values[len(points):2*len(points)])
                 image = Image.fromarray(renderer.render())
                 image.paste(overlay, (image.width-overlay.width-8, 8))
+                life=plan.get('robot_lifetime')
+                if life:
+                    draw=ImageDraw.Draw(image)
+                    draw.rectangle((8,8,350,43),fill=(15,22,28))
+                    status='RADIATION FAILURE / IN SITU' if not life['alive'] else f"ROBOT {life['robot_id']} / LIFE {100*life['remaining_fraction']:.0f}%"
+                    draw.text((14,11),status,fill=(255,90,65) if not life['alive'] else (100,240,195))
+                    draw.text((14,26),f"Dose {life['absorbed_usv']:.3f} / {life['limit_usv']:.3f} uSv (indicative)",fill=(235,235,235))
                 image.save(temporary, format='JPEG', quality=85)
                 temporary.replace(output/'frame.jpg')
                 frames += 1
@@ -177,9 +204,13 @@ def render_feed(model, output, snapshot, stop, feed_fps, map_state, points, worl
 
 
 class ComparisonStream:
-    def __init__(self, sim, output, world, feed_fps=15, awareness='aware'):
+    def __init__(self, sim, output, world, feed_fps=15, awareness='aware', render_video=True,campaign=None):
         self.output = output
-        self.coverage = FloorCoverage(sim, world)
+        self.render_video = render_video
+        self.campaign=campaign
+        previous=(campaign or {}).get('previous_directory')
+        self.coverage = (FloorCoverage.retained(Path(previous)/'coverage_reference.npz',Path(previous)/'minimap_final.npz')
+            if previous else FloorCoverage(sim,world))
         np.savez_compressed(output/'coverage_reference.npz', xyz=self.coverage.points,
                             resolution_m=self.coverage.resolution, flat=self.coverage.flat,
                             level_ids=self.coverage.level_ids, level_heights_m=self.coverage.level_heights,
@@ -190,7 +221,7 @@ class ComparisonStream:
         start = np.array([*sim.data.qpos[:2], self.support_height(sim)])
         self.minimap = ComparisonMinimap(self.coverage.points, world, start, awareness)
         self.radiation_map = None
-        if awareness == 'aware':
+        if awareness == 'aware' and render_video:
             from .radiation import RadiationField
             from .comparison_radiation import RadiationMapComparison
             self.radiation_map = RadiationMapComparison(self.coverage.points,
@@ -201,6 +232,9 @@ class ComparisonStream:
         self.distance_m = 0.
         self.last_position = sim.data.qpos[:3].copy()
         self.display_rotation, self.display_translation = np.eye(3), np.zeros(3)
+        self.process = None
+        if not render_video:
+            return
         context = multiprocessing.get_context('spawn')
         self.snapshot = context.Array('d', sim.model.nq+2)
         self.planning = context.Array('c', 131072)
@@ -239,13 +273,20 @@ class ComparisonStream:
         if force or sim.data.time >= self.next_metrics:
             self.next_metrics = float(sim.data.time)+.5
             metrics = metrics or {}
-            reason = metrics.get('terminal_stop', {}).get('reason') or metrics.get('decision_reason', '')
+            reason = ('radiation_lifetime_exhausted' if state=='dead_radiation' else
+                (metrics.get('terminal_stop') or {}).get('reason') or metrics.get('decision_reason', ''))
+            campaign=getattr(self,'campaign',None)
+            completed=bool(metrics.get('frontier_complete') and (state=='finished' or metrics.get('survival_mode') and state=='returned'))
             self.survey_report = dict(
-                outcome=outcome(bool(metrics.get('frontier_complete') and state == 'finished'), state, reason,
+                outcome=outcome(completed, state, reason,
                                 state == 'stopped_unrecoverable', state if state.startswith('failed:') else None),
                 frontier_count=metrics.get('frontier_count'),
                 admissible_frontier_count=metrics.get('admissible_frontier_count', 0),
-                frontier_complete=bool(metrics.get('frontier_complete') and state == 'finished'),
+                frontier_complete=completed,
+                frontier_blocked_counts=metrics.get('frontier_blocked_counts',{}),
+                radiation_exclusion=metrics.get('radiation_exclusion'),
+                unproductive_frontier_count=metrics.get('unproductive_frontier_count',0),
+                uncertainty_probe_count=metrics.get('uncertainty_probe_count',0),
                 reason=reason, explored_percent=self.coverage.percent,
                 reference_cells=len(self.coverage.points), explored_cells=int(self.coverage.seen.sum()),
                 coverage_metric=self.coverage.metric,
@@ -257,12 +298,25 @@ class ComparisonStream:
                        goal_switches=metrics.get('goal_switches', 0),
                        frontier_count=metrics.get('frontier_count'),
                        admissible_frontier_count=metrics.get('admissible_frontier_count', 0),
-                       frontier_complete=self.survey_report['frontier_complete'],
+                       connection_probe_count=metrics.get('connection_probe_count',0),
+                        frontier_complete=self.survey_report['frontier_complete'],
+                        frontier_blocked_counts=metrics.get('frontier_blocked_counts',{}),
+                        radiation_exclusion=metrics.get('radiation_exclusion'),
+                        unproductive_frontier_count=metrics.get('unproductive_frontier_count',0),
+                        uncertainty_probe_count=metrics.get('uncertainty_probe_count',0),
                        rate_usv_h=float(rate), explored_percent=self.coverage.percent, state=state,
-                       survey_outcome=self.survey_report['outcome'], survey_reason=reason)
+                        survey_outcome=self.survey_report['outcome'], survey_reason=reason)
+            row['robot_lifetime']=metrics.get('robot_lifetime')
+            if campaign:
+                row.update(campaign_id=campaign['campaign_id'],sortie=campaign['sortie'],
+                    campaign_time_s=campaign['prior_time_s']+float(sim.data.time),
+                    campaign_dose_usv=campaign['prior_dose_usv']+float(dose),
+                    campaign_distance_m=campaign['prior_distance_m']+self.distance_m)
             self.log.write(json.dumps(row)+'\n')
             self.log.flush()
         now = time.monotonic()
+        if not getattr(self, 'render_video', True):
+            return
         if not force and now < self.next_frame:
             return
         self.next_frame = now+self.frame_interval
@@ -289,6 +343,8 @@ class ComparisonStream:
                             slice_heights_m=self.minimap.heights, coverage_metric=self.coverage.metric,
                             reached_levels=self.coverage.reached_levels, level_heights_m=self.coverage.level_heights)
         self.log.close()
+        if self.process is None:
+            return
         self.stop.set()
         self.process.join(timeout=30.)
         if self.process.is_alive():

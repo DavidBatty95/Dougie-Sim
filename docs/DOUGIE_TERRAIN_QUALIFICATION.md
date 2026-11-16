@@ -1,6 +1,6 @@
 # Go2 terrain qualification
 
-[Project home](../README.md) · [Initial development evidence](DOUGIE_VALIDATION.md)
+[Project home](../README.md) · [Development history](DOUGIE_HISTORY.md#go2-development-archive)
 · [Portable qualification data](results/dougie_terrain_qualification_20261007.json)
 
 ## Verdict
@@ -20,7 +20,7 @@ The four earlier pilot runs remain locally available outside these cohorts.
 
 **25 October fixture follow-up:** generated terrain friction parameters are now
 set explicitly alongside feet and floor. The pinned feet have higher contact
-priority; a [contact-level probe](DOUGIE_TRACTION_SCREEN.md#terrain-parameter-correction-and-contact-priority)
+priority; a [contact-level probe](https://github.com/DavidBatty95/Dougie-Sim/blob/db22a5ff01f92c74482072de9e03ac26e1416d87/docs/DOUGIE_TRACTION_SCREEN.md#terrain-parameter-correction-and-contact-priority)
 confirms that the previous terrain parameter default did not override requested
 foot friction. Historical results and hashes remain unchanged. The new production
 stance screen measures effective contact friction in every trial.

@@ -22,6 +22,18 @@ services:
       - '${DOUGIE_COMPARE_LOCALIZATION:-ground-truth}'
       - --radiation-policy
       - '${DOUGIE_COMPARE_RADIATION_POLICY:-minimize-dose}'
+      - --exposure-policy
+      - '${DOUGIE_COMPARE_EXPOSURE_POLICY:-responsive}'
+      - --route-dose-weight
+      - '${DOUGIE_COMPARE_ROUTE_DOSE_WEIGHT:-1}'
+      - --frontier-dose-weight
+      - '${DOUGIE_COMPARE_FRONTIER_DOSE_WEIGHT:-2}'
+      - --frontier-rate-limit
+      - '${DOUGIE_COMPARE_FRONTIER_RATE_LIMIT:-100}'
+      - --frontier-confidence
+      - '${DOUGIE_COMPARE_FRONTIER_CONFIDENCE:-0.95}'
+      - --frontier-view-policy
+      - '${DOUGIE_COMPARE_FRONTIER_VIEW_POLICY:-raw}'
       - --world
       - '${DOUGIE_COMPARE_WORLD:-reactor}'
       - --seed
@@ -36,6 +48,11 @@ services:
       LIBGL_ALWAYS_SOFTWARE: '1'
       OMP_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
+      DOUGIE_COMPARE_LEARNING: '${DOUGIE_COMPARE_LEARNING:-0}'
+      DOUGIE_COMPARE_CAMPAIGN: '${DOUGIE_COMPARE_CAMPAIGN:-0}'
+      DOUGIE_COMPARE_CAMPAIGN_STRATEGY: '${DOUGIE_COMPARE_CAMPAIGN_STRATEGY:-baseline}'
+      DOUGIE_COMPARE_LIFETIME_DOSE: '${DOUGIE_COMPARE_LIFETIME_DOSE:-}'
+      DOUGIE_COMPARE_CAMPAIGN_SORTIES: '${DOUGIE_COMPARE_CAMPAIGN_SORTIES:-6}'
       DOUGIE_COMPARE_REPLAY: '${DOUGIE_COMPARE_REPLAY:-}'
     volumes:
       - .:/workspace

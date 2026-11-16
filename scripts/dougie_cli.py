@@ -74,7 +74,22 @@ def main():
     comparison.add_argument('--dose-budget', type=float, help='optional cumulative cap; omitted by default')
     comparison.add_argument('--localization', choices=('ground-truth', 'fused'), default='ground-truth')
     comparison.add_argument('--radiation-policy', choices=('minimize-dose', 'rate-limited'), default='minimize-dose')
+    comparison.add_argument('--exposure-policy',choices=('standard','responsive','pathwise'),default='responsive')
+    comparison.add_argument('--gp-mode', choices=('windowed', 'geometry', 'spatial', 'global'), default='windowed')
+    comparison.add_argument('--gp-expert-capacity', type=int, default=32)
+    comparison.add_argument('--gp-max-experts', type=int, default=16)
     comparison.add_argument('--rate-limit', type=float, default=100.)
+    comparison.add_argument('--route-dose-weight',type=float,default=1.)
+    comparison.add_argument('--frontier-dose-weight',type=float,default=2.)
+    comparison.add_argument('--learn-planning',action='store_true')
+    comparison.add_argument('--learning-milestone',type=float,default=75.)
+    comparison.add_argument('--learning-seeds',type=int,default=3)
+    comparison.add_argument('--continuous',action='store_true')
+    comparison.add_argument('--campaign',action='store_true')
+    comparison.add_argument('--campaign-strategy',choices=('baseline','agenda'),default='baseline')
+    comparison.add_argument('--lifetime-dose',type=float)
+    comparison.add_argument('--campaign-sorties',type=int,default=6)
+    comparison.add_argument('--survival-fraction',type=float,default=.8)
     comparison.add_argument('--port', type=int, default=8765)
     comparison.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60', help='target video frames per wall-clock second (default: 15)')
     comparison.add_argument('--exit-on-complete', action='store_true')
@@ -83,6 +98,7 @@ def main():
     radiation.add_argument('--duration', type=float, default=600.)
     radiation.add_argument('--dose-budget', type=float, default=2., help='micro-sieverts')
     radiation.add_argument('--no-dose-budget', action='store_true')
+    radiation.add_argument('--exposure-policy',choices=('standard','responsive','pathwise'),default='standard')
     radiation.add_argument('--radiation-policy', choices=('minimize-dose', 'rate-limited'), default='rate-limited')
     radiation.add_argument('--rate-limit', type=float, default=100., help='micro-sieverts/hour')
     radiation.add_argument('--seed', type=int, default=1)
@@ -116,7 +132,7 @@ def main():
     radiation.add_argument('--require-clean', action='store_true')
     radiation.add_argument('--require-round-trip', action='store_true')
     radiation.add_argument('--gp-capacity', type=int, default=128)
-    radiation.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry'), default='geometry')
+    radiation.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry', 'windowed'), default='geometry')
     radiation.add_argument('--detector-likelihood', choices=('window', 'point'), default='window')
     radiation.add_argument('--gp-expert-capacity', type=int, default=32)
     radiation.add_argument('--gp-max-experts', type=int, default=128)
@@ -205,11 +221,18 @@ def main():
         command = ['bash']
     elif args.command == 'compare':
         command = ['python3', '-m', 'dougie_sim.comparison']
-        for flag in ('world', 'duration', 'seed', 'sensor_seed', 'layout_seed', 'dose_budget', 'rate_limit', 'port', 'feed_fps', 'localization', 'radiation_policy'):
+        for flag in ('world', 'duration', 'seed', 'sensor_seed', 'layout_seed', 'dose_budget', 'rate_limit', 'port', 'feed_fps', 'localization', 'radiation_policy', 'gp_mode', 'gp_expert_capacity', 'gp_max_experts','exposure_policy',
+                     'route_dose_weight','frontier_dose_weight','learning_milestone','learning_seeds','lifetime_dose','campaign_sorties','survival_fraction','campaign_strategy'):
             if getattr(args, flag) is not None:
                 command += ['--'+flag.replace('_', '-'), str(getattr(args, flag))]
         if args.exit_on_complete:
             command.append('--exit-on-complete')
+        if args.learn_planning:
+            command.append('--learn-planning')
+        if args.continuous:
+            command.append('--continuous')
+        if args.campaign:
+            command.append('--campaign')
     elif args.command == 'radiation':
         command = ['python3', '-m', 'dougie_sim.radiation_run', '--duration', str(args.duration),
             '--dose-budget', str(args.dose_budget), '--rate-limit', str(args.rate_limit),
@@ -227,6 +250,7 @@ def main():
             '--field-display', args.field_display,
             '--visualizer', args.visualizer]
         command += ['--radiation-policy', args.radiation_policy]
+        command += ['--exposure-policy',args.exposure_policy]
         if args.no_dose_budget:
             command.append('--no-dose-budget')
         if args.lidar_dropout_after is not None:

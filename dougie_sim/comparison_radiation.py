@@ -2,7 +2,7 @@
 import json
 
 import numpy as np
-from scipy.spatial import cKDTree
+from .gp_field import interpolate_field
 
 
 class RadiationMapComparison:
@@ -18,23 +18,24 @@ class RadiationMapComparison:
         self.mean = np.full(len(points), np.nan)
         self.std = self.mean.copy()
         self.upper = self.mean.copy()
+        self.neighbours = np.zeros(len(points),dtype=int)
+        self.source_queries = 0
         self.stamp = 0.
         self.minimum = float(field.background)
         self.maximum = max(100., float(self.truth.max()))
 
     def update(self, volume, rotation, translation, stamp):
         self.mean[:] = self.std[:] = self.upper[:] = np.nan
+        self.neighbours[:] = 0
+        self.source_queries = 0
         self.stamp = float(stamp)
         if volume is None or not len(volume[0]):
             return
         xyz, mean, std, upper = volume
+        self.source_queries = len(xyz)
         world = np.asarray(xyz)@rotation.T+translation
-        distances, indices = cKDTree(world).query(self.query)
-        # Nearest exported GP query, within 35 cm in XYZ. Do not interpolate
-        # unknown rooms or other floors, and never fill missing predictions with truth.
-        valid = (distances <= .35) & (np.abs(world[indices, 2]-self.query[:, 2]) <= .18)
-        for destination, source in ((self.mean, mean), (self.std, std), (self.upper, upper)):
-            destination[valid] = np.asarray(source)[indices[valid]]
+        self.mean[:],self.std[:],self.upper[:],_,self.neighbours[:] = interpolate_field(
+            self.query,world,mean,std,upper)
 
     def payload(self, seen):
         def values(array):
@@ -49,8 +50,11 @@ class RadiationMapComparison:
             color_min_usv_h=self.minimum, color_max_usv_h=self.maximum,
             predicted_cells=int(valid.sum()), reference_cells=len(self.points),
             matched_log1p_rmse=float(np.sqrt(np.mean(log_error**2))) if len(log_error) else None,
-            sensor_height_m=self.sensor_height,
-            scope='Evaluator-only true field versus nearest exported aware GP query within 35 cm, height difference <=18 cm; missing predictions are null. Identical fixed floor samples at +44 cm. No evaluator data is sent to the planner.')
+             sensor_height_m=self.sensor_height,
+            interpolation='compact_wendland_shepard',interpolation_radius_m=[.35,.35,.18],
+            gp_neighbours=self.neighbours.tolist(),
+            exported_gp_queries=self.source_queries,
+            scope='Evaluator-only true field versus continuous local interpolation of exported aware GP predictions. Compact support: 35 cm XY and 18 cm Z; uncertainty includes between-prediction disagreement, not precision multiplication. Missing predictions are null. Identical fixed floor samples at +44 cm. No evaluator data is sent to the planner.')
 
     def save(self, output, seen):
         temporary = output/'radiation_map.tmp'

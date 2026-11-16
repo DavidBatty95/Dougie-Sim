@@ -150,11 +150,12 @@ class MotionRoute:
     metrics: dict
 
 
-def route_risk(points, gp, terrain):
+def route_risk(points, gp, terrain, prediction='upper'):
     points = sample_polyline(points, .1)
     if len(points) < 2:
         return 0., 0.
-    _, _, rates = gp.predict(points+[0., 0., .44])
+    mean, _, upper = gp.predict(points+[0., 0., .44])
+    rates = mean if prediction == 'mean' else upper
     _, dose = forecast_polyline(points, rates)
     return dose, float(rates.max())
 
@@ -164,11 +165,15 @@ class RouteSmoother:
 
     Construct after graph edits and GP updates. Never carry into the next scan.
     """
-    def __init__(self, terrain, gp, rate_limit):
+    def __init__(self, terrain, gp, rate_limit, prediction='upper', admission=None):
         self.terrain, self.gp, self.rate_limit = terrain, gp, rate_limit
+        if prediction not in ('mean', 'upper'):
+            raise ValueError('unknown route exposure prediction')
+        self.prediction = prediction
         self.geometry = RouteGeometry(terrain)
         self.cache = {}
         self.hits = 0
+        self.admission = admission
 
     def __call__(self, points, returning=False):
         raw = np.asarray(points, dtype=float).reshape(-1, 3)
@@ -177,13 +182,23 @@ class RouteSmoother:
         key = returning, raw.tobytes()
         if key not in self.cache:
             self.cache[key] = smooth_route(raw, self.terrain, self.gp, self.rate_limit,
-                                          returning, geometry=self.geometry)
+                                          returning, geometry=self.geometry, prediction=self.prediction)
+            checked = self.cache[key]
+            if self.admission is not None and not returning and not self.admission(checked.points):
+                if self.admission(raw):
+                    self.cache[key] = MotionRoute(list(raw),[[i,i+1] for i in range(len(raw)-1)],
+                        dict(checked.metrics,mode='grid_fallback',fallback_reason='confident_radiation_exclusion',
+                            execution_waypoints=len(raw),execution_length_m=path_length(raw),
+                            execution_turn_rad=turn_sum(raw),rounded_corners=0))
+                else:
+                    self.cache[key] = MotionRoute([],[],dict(mode='radiation_blocked',
+                        fallback_reason='confident_radiation_exclusion'))
         else:
             self.hits += 1
         return self.cache[key]
 
 
-def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False, *, geometry=None):
+def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False, *, geometry=None, prediction='upper'):
     started = time.perf_counter()
     raw = np.asarray(raw_points, dtype=float).reshape(-1, 3)
     if len(raw):
@@ -191,7 +206,7 @@ def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False, *, g
     if len(raw) < 2:
         return MotionRoute([], [], dict(mode='empty', smoothing_ms=0.))
     geometry = geometry if geometry is not None else RouteGeometry(terrain)
-    raw_dose, raw_peak = route_risk(raw, gp, terrain)
+    raw_dose, raw_peak = route_risk(raw, gp, terrain, prediction)
     anchors = [raw[0]]
     certified = []
     i, checks = 0, 0
@@ -230,20 +245,23 @@ def smooth_route(raw_points, terrain, gp, rate_limit=100., returning=False, *, g
         append(piece if piece is not None else [result[-1], end])
         if i+1 in corners:
             append(corners[i+1])
-    dose, peak = route_risk(result, gp, terrain)
+    dose, peak = route_risk(result, gp, terrain, prediction)
     fallback = None
     if geometry_failed or dose > raw_dose+1e-9 or peak > (max(rate_limit, raw_peak) if returning else rate_limit)+1e-9:
         fallback = 'geometry_revalidation_failed' if geometry_failed else 'predicted_exposure_or_rate_increase'
         result = [p.copy() for p in raw]
         spans = [[i, i+1] for i in range(len(result)-1)]
         dose = raw_dose
-    return MotionRoute(result, spans, dict(mode='grid_fallback' if fallback else 'support_checked',
+    metrics = dict(mode='grid_fallback' if fallback else 'support_checked',
         fallback_reason=fallback, raw_waypoints=len(raw), execution_waypoints=len(result),
         raw_length_m=path_length(raw), execution_length_m=path_length(result),
         raw_turn_rad=turn_sum(raw), execution_turn_rad=turn_sum(result),
-        raw_upper_dose_usv=raw_dose, execution_upper_dose_usv=dose,
+        risk_prediction=prediction,
         rounded_corners=len(corners) if not fallback else 0, geometry_checks=checks,
-        smoothing_ms=(time.perf_counter()-started)*1000.))
+        smoothing_ms=(time.perf_counter()-started)*1000.)
+    suffix = 'expected' if prediction == 'mean' else 'upper'
+    metrics[f'raw_{suffix}_dose_usv'], metrics[f'execution_{suffix}_dose_usv'] = raw_dose, dose
+    return MotionRoute(result, spans, metrics)
 
 
 class RouteFollower:

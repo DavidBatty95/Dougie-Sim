@@ -1,12 +1,12 @@
-# Dougie-Sim architecture and migration
+# Dougie-Sim architecture
 
-[Project home](../README.md) · [Radiation methods](DOUGIE_RADIATION.md) · [Validation](DOUGIE_VALIDATION.md)
+[Project home](../README.md) · [Radiation methods](DOUGIE_RADIATION.md) · [Campaign evidence](DOUGIE_CAMPAIGN_AGENDA.md)
 
 ## Independent quadruped profile
 
-Dougie starts from Geoff-Sim commit `d1d54ff974e44546e260d3ccf6e3cb1f8f3a7568`.
-Git history, package notices, research and prior results are retained.
-The active entry point is `dougie`; `install.sh` delegates to `dougie setup`.
+The active Linux entry point is `dougie`; `install.sh` delegates to `dougie setup`.
+On Apple Silicon, `./demo` starts the browser campaign and `./dougie-mac` manages
+its lifecycle. Earlier development records are linked in [history](DOUGIE_HISTORY.md).
 The default Compose service/image is `dougie-sim` / `dougie-sim:humble`.
 Loopback-only DDS defaults to domain **43**, separate from Geoff's 42.
 
@@ -49,11 +49,12 @@ real-time guarantee.
   goals. Initial planar runs exposed slow frontier admission. Startup success
   is not completed coverage or evidence of 3-D radiation exploration.
 
-Default radiation missions use `odometry.py` and detached observations from
-`onboard_sensors.py`. IMU prediction and stance-leg updates are corrected by
+The browser comparison defaults to **simulator ground-truth pose for both
+workers** to isolate radiation planning. Raw radiation missions can instead use
+`odometry.py` and detached observations from `onboard_sensors.py`. IMU prediction and stance-leg updates are corrected by
 observed-cloud registration. The policy uses measured joints/gyro and estimated
 gravity. Scans retain capture-time transforms; no true base pose or field metadata
-enters the planner. `--localization ground-truth` retains the historical comparator,
+enters a fused-pose planner. `--localization ground-truth` selects ideal pose,
 and the ordinary planar profile still has simulator-truth odometry. RViz/world
 geometry and physics summaries remain diagnostic. The virtual scanner is not a
 calibrated Go2 L1 model. Robust navigation uses quality-gated keyframes and
@@ -66,7 +67,8 @@ retreats and exposure accounting. Unrecoverable stops retain dose integration to
 the original mission deadline. Robust smooth routing also reserves the follower's
 tracking-error allowance in its planned clearance. The information/cost scorer is
 available as an experimental alternative; legacy utility remains the default
-after mixed matched-task dose results. [Implementation and evidence](DOUGIE_ROBUST_MISSIONS.md).
+after mixed matched-task dose results. See the [campaign agenda](DOUGIE_CAMPAIGN_AGENDA.md)
+for current development outcomes and limitations.
 
 Terrain retains multiple support heights per XY cell and cannot connect floors
 by vertical teleportation. The layered mapper supports observed shallow slopes;

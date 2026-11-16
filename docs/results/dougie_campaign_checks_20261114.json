@@ -1,0 +1,201 @@
+{
+  "scope": "Functional physics, hand-off and display checks plus one illustrative sortie. Not a multi-seed, equal-work or hardware-tolerance validation.",
+  "failure_check": {
+    "directory": "results/dougie/dashboard_campaign_death_validation",
+    "limit_usv": 1e-06,
+    "status": "halted",
+    "reason": "blind, aware origin clearance blocked by a wreck",
+    "outcomes": {
+      "blind": {
+        "total_dose_usv": 1.2204128410492694e-05,
+        "total_time_s": 0.005,
+        "total_distance_m": 5.0451851554351395e-05,
+        "robots_lost": 1,
+        "robots_recovered": 0,
+        "sorties": 1,
+        "explored_percent": 0.0,
+        "last_outcome": "destroyed_radiation",
+        "gp_updates": 0,
+        "mapped_support_nodes": 0
+      },
+      "aware": {
+        "total_dose_usv": 1.2204128410492694e-05,
+        "total_time_s": 0.005,
+        "total_distance_m": 5.0451851554351395e-05,
+        "robots_lost": 1,
+        "robots_recovered": 0,
+        "sorties": 1,
+        "explored_percent": 0.0,
+        "last_outcome": "destroyed_radiation",
+        "gp_updates": 0,
+        "mapped_support_nodes": 0
+      }
+    }
+  },
+  "recovery_check": {
+    "directory": "results/dougie/dashboard_campaign_recovery_validation",
+    "status": "sortie_limit",
+    "sorties": 2,
+    "outcomes": [
+      {
+        "run_id": 1,
+        "sortie": 1,
+        "results": {
+          "blind": {
+            "outcome": "recovered_for_swap",
+            "recovered": true,
+            "robot_lifetime": {
+              "robot_id": 1,
+              "limit_usv": 100.0,
+              "absorbed_usv": 0.007352130232378079,
+              "remaining_usv": 99.99264786976762,
+              "remaining_fraction": 0.9999264786976763,
+              "alive": true,
+              "death": null,
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 40.68226670425712,
+            "total_dose_usv": 0.007352130232378079,
+            "wrecks": 0,
+            "gp_updates": 0,
+            "mapped_support_nodes": 1049
+          },
+          "aware": {
+            "outcome": "recovered_for_swap",
+            "recovered": true,
+            "robot_lifetime": {
+              "robot_id": 1,
+              "limit_usv": 100.0,
+              "absorbed_usv": 0.007352130232378079,
+              "remaining_usv": 99.99264786976762,
+              "remaining_fraction": 0.9999264786976763,
+              "alive": true,
+              "death": null,
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 40.68226670425712,
+            "total_dose_usv": 0.007352130232378079,
+            "wrecks": 0,
+            "gp_updates": 6,
+            "mapped_support_nodes": 1049
+          }
+        }
+      },
+      {
+        "run_id": 2,
+        "sortie": 2,
+        "results": {
+          "blind": {
+            "outcome": "recovered_for_swap",
+            "recovered": true,
+            "robot_lifetime": {
+              "robot_id": 2,
+              "limit_usv": 100.0,
+              "absorbed_usv": 0.007352130232378079,
+              "remaining_usv": 99.99264786976762,
+              "remaining_fraction": 0.9999264786976763,
+              "alive": true,
+              "death": null,
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 40.68226670425712,
+            "total_dose_usv": 0.014704260464756157,
+            "wrecks": 0,
+            "gp_updates": 0,
+            "mapped_support_nodes": 1049
+          },
+          "aware": {
+            "outcome": "recovered_for_swap",
+            "recovered": true,
+            "robot_lifetime": {
+              "robot_id": 2,
+              "limit_usv": 100.0,
+              "absorbed_usv": 0.007352130232378079,
+              "remaining_usv": 99.99264786976762,
+              "remaining_fraction": 0.9999264786976763,
+              "alive": true,
+              "death": null,
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 40.68226670425712,
+            "total_dose_usv": 0.014704260464756157,
+            "wrecks": 0,
+            "gp_updates": 12,
+            "mapped_support_nodes": 1049
+          }
+        }
+      }
+    ]
+  },
+  "collision_import_check": {
+    "directory": "results/dougie/campaign_survival_validation/reruns/run_00002/blind",
+    "retained_wreck_bodies": [
+      "wreck_c1_r1_base_link"
+    ],
+    "scope": "Earlier tight-budget development run used only to verify that actual failure geometry appears in the following physical scene."
+  },
+  "indicative_default_budget_sortie": {
+    "directory": "results/dougie/campaign_final_reserve_validation",
+    "limit_usv": 2.0,
+    "outcomes": [
+      {
+        "run_id": 1,
+        "sortie": 1,
+        "results": {
+          "blind": {
+            "outcome": "destroyed_radiation",
+            "recovered": false,
+            "robot_lifetime": {
+              "robot_id": 1,
+              "limit_usv": 2.0,
+              "absorbed_usv": 2.000047560005732,
+              "remaining_usv": 0.0,
+              "remaining_fraction": 0.0,
+              "alive": false,
+              "death": {
+                "time_s": 217.18999999987497,
+                "position": [
+                  7.444700255595445,
+                  4.71107201363664,
+                  0.30859156808042365
+                ]
+              },
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 65.12545813363406,
+            "total_dose_usv": 2.000047560005732,
+            "wrecks": 1,
+            "gp_updates": 0,
+            "mapped_support_nodes": 1615
+          },
+          "aware": {
+            "outcome": "recovered_for_swap",
+            "recovered": true,
+            "robot_lifetime": {
+              "robot_id": 1,
+              "limit_usv": 2.0,
+              "absorbed_usv": 0.8401529519499763,
+              "remaining_usv": 1.1598470480500236,
+              "remaining_fraction": 0.5799235240250118,
+              "alive": true,
+              "death": null,
+              "interpretation": "Indicative simulation lifetime budget; not a measured Go2 electronics tolerance"
+            },
+            "explored_percent": 46.9974626444883,
+            "total_dose_usv": 0.8401529519499763,
+            "wrecks": 0,
+            "gp_updates": 992,
+            "mapped_support_nodes": 1204
+          }
+        }
+      }
+    ],
+    "interpretation": "Aware survival and blind loss occurred with unequal exploration. This is not proof of equal-work dose improvement."
+  },
+  "input_sha256": {
+    "results/dougie/dashboard_campaign_death_validation/comparison_session.json": "5240b661f8eee79de620d2ba39ce27bd8ef7b1e9702c163eec2346ec40fad6ad",
+    "results/dougie/dashboard_campaign_recovery_validation/comparison_session.json": "3ad58c7592ac6609e5cc253e770fe2e689c6d983a2f7461c2df890eeba98d588",
+    "results/dougie/campaign_final_reserve_validation/comparison_session.json": "c0f4bb7160dfbe707b210d4275190be4398c4c6338acc515fff4e4fb874d6575",
+    "results/dougie/campaign_survival_validation/reruns/run_00002/blind/scene.xml": "aad612c2d7cd9590d868382a83bf7927d01d32715dfc0219a7f41ba66bf8e5b0"
+  }
+}

@@ -52,9 +52,19 @@ def main():
     parser.add_argument('--duration', type=float, default=600.)
     parser.add_argument('--dose-budget', type=float, default=2., help='mission budget in micro-sieverts')
     parser.add_argument('--no-dose-budget', action='store_true', help='monitor and penalize dose without a cumulative exposure cutoff')
+    parser.add_argument('--exposure-policy',choices=('standard','responsive','pathwise'),default='standard')
     parser.add_argument('--radiation-policy', choices=('rate-limited', 'minimize-dose'), default='rate-limited',
                         help='hard rate exclusion or soft dose-weighted routing without radiation-triggered mission return')
     parser.add_argument('--rate-limit', type=float, default=100., help='planning threshold in micro-sieverts/hour')
+    parser.add_argument('--frontier-rate-limit',type=float,help='confidence-qualified survey hotspot exclusion in µSv/h; defaults to rate-limit, 0 disables')
+    parser.add_argument('--frontier-confidence',type=float,default=.95,help='pointwise GP model confidence for hotspot exclusion, default .95')
+    parser.add_argument('--frontier-view-policy',choices=('raw','marginal'),default='raw',help='experimental marginal reward for already attempted unknown-support views')
+    parser.add_argument('--route-dose-weight',type=float,default=1.)
+    parser.add_argument('--frontier-dose-weight',type=float,default=2.)
+    parser.add_argument('--lifetime-dose',type=float,help='indicative physical robot failure dose in µSv-equivalent; independent of planning reserve')
+    parser.add_argument('--survival-fraction',type=float,default=.8,help='aware planning budget as a fraction of physical lifetime')
+    parser.add_argument('--campaign-state',type=Path,help='supervisor-provided retained mission package')
+    parser.add_argument('--campaign-strategy',choices=('baseline','agenda'),default='baseline')
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--localization', choices=('fused', 'ground-truth'), default='fused')
     parser.add_argument('--sensor-seed', type=int, default=0)
@@ -90,7 +100,7 @@ def main():
     parser.add_argument('--region-scheduling', choices=('local', 'hierarchical'), default='hierarchical')
     parser.add_argument('--policy-config', type=Path, help='versioned TorchScript deployment manifest')
     parser.add_argument('--gp-capacity', type=int, default=128)
-    parser.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry'), default='geometry')
+    parser.add_argument('--gp-mode', choices=('global', 'spatial', 'geometry', 'windowed'), default='geometry')
     parser.add_argument('--detector-likelihood', choices=('window', 'point'), default='window')
     parser.add_argument('--gp-expert-capacity', type=int, default=32, help='inducing points per spatial expert')
     parser.add_argument('--gp-max-experts', type=int, default=128, help='bounded spatial model count')
@@ -121,11 +131,45 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--radiation-awareness', choices=('aware', 'blind'), default='aware')
     parser.add_argument('--comparison-stream', action='store_true', help='export live evaluator metrics and offscreen frames')
+    parser.add_argument('--no-video', action='store_true', help='comparison metrics and coverage without rendering processes (batch experiments)')
     parser.add_argument('--feed-fps', type=int, choices=range(1, 61), default=15, metavar='1..60')
     parser.add_argument('--survey-until-complete', action='store_true', help='comparison: finish after confirmed observed-map frontier exhaustion; duration 0 removes the time cap')
     args = parser.parse_args()
+    campaign=None
+    if args.campaign_state:
+        try:
+            campaign=json.loads(args.campaign_state.read_text())
+        except (OSError,ValueError) as exc:
+            parser.error(str(exc))
+        if args.localization!='ground-truth' or not args.survey_until_complete:
+            parser.error('retained campaigns currently require ground-truth comparison surveys')
+        if args.lifetime_dose is not None and args.lifetime_dose!=campaign['lifetime_dose_usv']:
+            parser.error('campaign lifetime configuration changed')
+        args.lifetime_dose=campaign['lifetime_dose_usv']
+        args.survival_fraction=campaign['reserve_fraction']
+    if (args.lifetime_dose is not None and (not math.isfinite(args.lifetime_dose) or args.lifetime_dose<=0)) or not math.isfinite(args.survival_fraction) or not 0<args.survival_fraction<1:
+        parser.error('invalid physical lifetime or survival fraction')
+    if args.lifetime_dose is not None and args.radiation_awareness=='aware':
+        explicit=args.dose_budget if not args.no_dose_budget else math.inf
+        args.dose_budget=min(explicit,args.lifetime_dose*args.survival_fraction)
+        args.no_dose_budget=False
+    from .planning_learning import planning_weights
+    try:
+        planning_weights(args.route_dose_weight,args.frontier_dose_weight)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.frontier_rate_limit is None:
+        args.frontier_rate_limit = args.rate_limit if args.survey_until_complete else 0.
+    if not math.isfinite(args.frontier_rate_limit) or args.frontier_rate_limit < 0 or not math.isfinite(args.frontier_confidence) or not .5 < args.frontier_confidence < 1.:
+        parser.error('frontier threshold must be finite and nonnegative; confidence must be between .5 and 1')
     if args.comparison_stream and not args.headless:
         parser.error('--comparison-stream requires --headless')
+    if args.no_video and not args.comparison_stream:
+        parser.error('--no-video requires --comparison-stream')
+    if args.exposure_policy == 'pathwise' and args.path_mode != 'smooth':
+        parser.error('--exposure-policy pathwise requires --path-mode smooth')
+    if args.exposure_policy == 'pathwise' and (not args.no_dose_budget or args.radiation_policy != 'minimize-dose'):
+        parser.error('--exposure-policy pathwise requires uncapped --no-dose-budget --radiation-policy minimize-dose')
     if args.survey_until_complete and (not args.comparison_stream or args.planner == 'baseline' or args.mission_objective != 'survey'):
         parser.error('--survey-until-complete requires a comparison stream, clustered planner and survey objective')
     if args.mezzanine_angle is not None and (args.world != 'mezzanine' or not math.isfinite(args.mezzanine_angle) or not 6. <= args.mezzanine_angle <= 10.):
@@ -160,7 +204,7 @@ def main():
         parser.error('observed circuit requires a clustered planner')
     if args.lidar_dropout_after is not None and (args.localization != 'fused' or not math.isfinite(args.lidar_dropout_after) or args.lidar_dropout_after < 0):
         parser.error('--lidar-dropout-after requires fused localization and a nonnegative finite time')
-    if args.gp_mode == 'geometry' and args.gp_likelihood != 'poisson':
+    if args.gp_mode in ('geometry', 'windowed') and args.gp_likelihood != 'poisson':
         parser.error('--gp-mode geometry requires --gp-likelihood poisson')
     if args.localization == 'fused' and args.landmark_count:
         parser.error('onboard fused missions exclude ideal semantic landmarks; use --localization ground-truth for that diagnostic comparator')
@@ -222,7 +266,8 @@ def main():
         parser.error(str(exc))
     ensure_assets()
     sim = Simulation(args.world, radiation_sources=description, policy_config=args.policy_config, layout_seed=args.layout_seed,
-                     landmark_count=args.landmark_count, landmark_seed=args.landmark_seed, mezzanine_angle=args.mezzanine_angle or 10.)
+                     landmark_count=args.landmark_count, landmark_seed=args.landmark_seed, mezzanine_angle=args.mezzanine_angle or 10.,
+                     wrecks=campaign['wrecks'] if campaign else ())
     odometry = sensors = None
     if args.localization == 'fused':
         if sim.policy_contract.perceptive:
@@ -278,14 +323,26 @@ def main():
     planning_options = {name: getattr(args, name) for name in
                         ('gp_mode', 'gp_expert_capacity', 'gp_max_experts', 'gp_cell_size', 'path_mode', 'mission_objective', 'region_scheduling', 'detector_likelihood', 'navigation_profile', 'utility_mode', 'circuit_radius', 'support_fusion', 'localization_checkpoints')}
     planning_options['smooth_return_overlay'] = not args.headless or args.record_demo or args.ros
-    planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros or args.comparison_stream
+    planning_options['display_prediction'] = not args.headless or args.record_demo or args.ros or (args.comparison_stream and not args.no_video)
     planning_options['no_dose_budget'] = args.no_dose_budget
     planning_options['radiation_policy'] = args.radiation_policy
+    planning_options['exposure_policy'] = args.exposure_policy
     planning_options['comparison_map'] = args.comparison_stream
+    planning_options['gp_store_dir'] = str(output/'.gp_windows')
     planning_options['consistent_mapping'] = bool(odometry and odometry.robust)
     planning_options['recovery_enabled'] = args.navigation_profile == 'robust'
     planning_options['radiation_awareness'] = args.radiation_awareness
     planning_options['survey_until_complete'] = args.survey_until_complete
+    planning_options['frontier_rate_limit'] = args.frontier_rate_limit or None
+    planning_options['frontier_confidence'] = args.frontier_confidence
+    planning_options['frontier_view_policy'] = args.frontier_view_policy
+    planning_options['route_dose_weight'] = args.route_dose_weight
+    planning_options['frontier_dose_weight'] = args.frontier_dose_weight
+    planning_options['survival_mode']=args.lifetime_dose is not None
+    planning_options['campaign_strategy']=args.campaign_strategy if campaign else 'baseline'
+    if campaign:
+        planning_options['campaign_previous']=campaign['previous_directory']
+        planning_options['campaign_origin']=campaign['origin']
     if args.record_support:
         planning_options['support_capture_path'] = str(output/'support_failure.npz')
     explorer = planning_worker.create_explorer(parameters, args.planner, args.terrain_profile, planning_options)
@@ -329,6 +386,11 @@ def main():
     turning_time = 0.
     latest_sample = None
     true_dose = 0.
+    from .campaign import RadiationLifetime
+    lifetime=RadiationLifetime(args.lifetime_dose) if args.lifetime_dose is not None else None
+    robot_id=campaign['robot_id'] if campaign else 1
+    death_record=None
+    end_requested=False
     error = None
     live_metrics = dict(state='initial_survey', planner=args.planner)
     trail = []
@@ -339,7 +401,7 @@ def main():
     last_target = None
     target_switches = 0
     foot_geoms = {sim.model.geom(name).id for name in ('FR', 'FL', 'RR', 'RL')}
-    robot_geoms = {i for i in range(sim.model.ngeom) if sim.model.geom_bodyid[i] != 0}
+    robot_geoms = sim.robot_geoms
     nonfoot_impulse, nonfoot_peak = 0., 0.
     nonfoot_contacts = Counter()
     contact_force = np.empty(6)
@@ -352,7 +414,8 @@ def main():
     comparison = None
     if args.comparison_stream:
         from .comparison_stream import ComparisonStream
-        comparison = ComparisonStream(sim, output, args.world, args.feed_fps, args.radiation_awareness)
+        comparison = ComparisonStream(sim, output, args.world, args.feed_fps, args.radiation_awareness,
+                                       render_video=not args.no_video,campaign=campaign)
     if args.record_demo:
         from .demo_recording import DemoRecorder
         recorder = DemoRecorder(sim.model, output, args.duration, args.record_view)
@@ -530,6 +593,8 @@ def main():
                     metrics['route_replan_rejections'] = follower.replan_rejections
                     metrics['follower_status'] = follower.status
                 live_metrics = metrics
+                if lifetime:
+                    live_metrics['robot_lifetime']=lifetime.payload(robot_id)
                 if comparison:
                     R_score = rotation(sim.data.qpos[3:7])@odometry.rotation.T if odometry else np.eye(3)
                     t_score = sim.data.qpos[:3]-R_score@odometry.position if odometry else np.zeros(3)
@@ -561,7 +626,9 @@ def main():
                     visualization.update(map_view, metrics, trail)
                     visualization.update_dashboard(metrics, latest_sample, args.dose_budget, args.rate_limit)
                 if state in ('returned', 'finished'):
-                    break
+                    if lifetime is None:
+                        break
+                    end_requested=True
             if math.dist(position, last_path_position) > .15:
                 last_path_position, last_progress_stamp = position.copy(), stamp
             if state in ('returning_checkpoint', 'checkpoint_revalidated'):
@@ -665,6 +732,22 @@ def main():
                         nonfoot_peak = max(nonfoot_peak, force)
                         environment = b if robot == a else a
                         nonfoot_contacts[sim.model.body(int(sim.model.geom_bodyid[robot])).name+' / '+sim.model.geom(environment).name] += 1
+            if lifetime:
+                lifetime.update(true_dose,float(sim.data.time),sim.data.qpos[:3])
+                live_metrics['robot_lifetime']=lifetime.payload(robot_id)
+                if lifetime.death is not None:
+                    sim.disable_in_place()
+                    from .wrecks import freeze_robot
+                    death_record=freeze_robot(sim,f"c{campaign['campaign_id'] if campaign else 0}_r{robot_id}")
+                    death_record.update(robot_lifetime=lifetime.payload(robot_id),death_time_s=float(sim.data.time))
+                    (output/'dead_robot.json').write_text(json.dumps(death_record,allow_nan=False)+'\n')
+                    state,path='dead_radiation',[]
+                    follower.stop()
+                    live_metrics.update(state=state,decision_reason='radiation_lifetime_exhausted',
+                        planned_path=[],return_path=[],selected_target=None,frontier_complete=False)
+                    break
+                if end_requested:
+                    break
             if args.require_clean and (nonfoot_impulse > .1 or nonfoot_peak > 25.):
                 raise RuntimeError('independent contact qualification failed; aborting trial')
             if recorder:
@@ -689,6 +772,18 @@ def main():
         error = str(exc)
     finally:
         loop_wall_time = time.monotonic()-started
+        if lifetime:
+            lifetime.update(true_dose,float(sim.data.time),sim.data.qpos[:3])
+            live_metrics['robot_lifetime']=lifetime.payload(robot_id)
+            if lifetime.death is not None:
+                state='dead_radiation'
+                sim.disable_in_place()
+                if death_record is None and np.isfinite(sim.data.qpos).all():
+                    from .wrecks import freeze_robot
+                    death_record=freeze_robot(sim,f"c{campaign['campaign_id'] if campaign else 0}_r{robot_id}")
+                    death_record.update(robot_lifetime=lifetime.payload(robot_id),death_time_s=float(sim.data.time))
+                    (output/'dead_robot.json').write_text(json.dumps(death_record,allow_nan=False)+'\n')
+                live_metrics.update(state=state,decision_reason='radiation_lifetime_exhausted',planned_path=[],return_path=[],selected_target=None,frontier_complete=False)
         if comparison:
             try:
                 if args.survey_until_complete and sim.data.time >= mission_duration and state not in ('returned', 'finished'):
@@ -733,6 +828,11 @@ def main():
             np.savez_compressed(output/'radiation_map_3d.npz', xyz=query, mean_usv_h=mean, std_log_rate=std, upper_usv_h=upper)
         gp = explorer.gp
         gp.save(output/'gp_posterior.npz')
+        if campaign:
+            from .campaign_memory import save_memory
+            recovered=(state in ('returned','finished') and lifetime.death is None and error is None
+                and np.linalg.norm(sim.data.qpos[:3]-true_home)<=.4)
+            save_memory(explorer,output/'campaign_memory.npz',trail if recovered else None)
         np.savez_compressed(output/'observed_geometry.npz',
             points=np.asarray(list(explorer.terrain.hits.values())).reshape(-1, 3),
             free_voxels=np.asarray(list(explorer.terrain.free_voxels)).reshape(-1, 3), voxel_size_m=.2)
@@ -761,6 +861,16 @@ def main():
                                   +(', and visible landmark observations only' if args.landmark_count else ' only')))
         metrics['localization'] = odometry.metrics() if odometry else dict(source='mujoco_ground_truth')
         metrics['state'] = state
+        metrics['robot_lifetime']=lifetime.payload(robot_id) if lifetime else None
+        metrics['distance_3d_m']=comparison.distance_m if comparison else distance_travelled
+        if campaign:
+            metrics['campaign']=dict(id=campaign['campaign_id'],sortie=campaign['sortie'],robot_id=robot_id,
+                prior_directory=campaign['previous_directory'],retained_wrecks=len(campaign['wrecks']),
+                origin=campaign['origin'],planning_budget_usv=args.lifetime_dose*args.survival_fraction)
+            metrics['mission_completed']=bool(state=='returned' and explorer.frontier_complete and lifetime.death is None)
+        if lifetime and lifetime.death is not None:
+            metrics['decision_reason']='radiation_lifetime_exhausted'
+            metrics['mission_completed']=False
         metrics['terminal_stop'] = terminal_stop
         if terminal_stop:
             recovery_metrics = metrics.setdefault('recovery', {})
@@ -773,7 +883,11 @@ def main():
             true_home_distance_m=float(np.linalg.norm(sim.data.qpos[:3]-true_home)),
             episode_max_three_sigma_ratio=evaluation_envelope_max if evaluation_envelope_samples else None,
             episode_control_tick_samples=evaluation_envelope_samples,
-            envelope_scope='initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only')
+             envelope_scope='initial-translation-aligned position error at every active control tick, including degraded periods; evaluator only')
+        if lifetime:
+            metrics['robot_recovered']=bool(lifetime.death is None and state in ('returned','finished') and error is None
+                and metrics['localization_evaluation']['true_home_distance_m']<=.4)
+            metrics['mission_completed']=bool(metrics['robot_recovered'] and explorer.frontier_complete)
         metrics.update(planner=args.planner, path_length_m=distance_travelled, target_switches=target_switches,
                         world=args.world, exploration_complete=bool(args.survey_until_complete and state == 'finished' and explorer.frontier_complete),
                         evaluator_floor_complete=bool(comparison and comparison.coverage.seen.all()),

@@ -24,7 +24,7 @@ def rotation(quaternion):
     return matrix.reshape(3, 3)
 
 
-def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.):
+def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.,wrecks=()):
     if world not in WORLDS or not 0 <= people <= 8:
         raise ValueError('invalid world or people count')
     root = ET.parse(ASSETS / 'go2/go2.xml').getroot()
@@ -95,16 +95,21 @@ def scene_xml(world='flat', people=0, radiation_sources=None, layout_seed=0, lan
             raise ValueError('discovery landmarks currently require the facility world')
         from .landmarks import add_facility_landmarks
         add_facility_landmarks(root, landmark_count, landmark_seed)
+    if wrecks:
+        from .wrecks import add_wrecks
+        add_wrecks(body,wrecks)
     return ET.tostring(root, encoding='unicode')
 
 
 class Simulation:
-    def __init__(self, world='flat', people=0, controller='policy', *, model_xml=None, radiation_sources=None, policy_config=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.):
+    def __init__(self, world='flat', people=0, controller='policy', *, model_xml=None, radiation_sources=None, policy_config=None, layout_seed=0, landmark_count=0, landmark_seed=0, mezzanine_angle=10.,wrecks=()):
         if controller not in ('policy', 'stand'):
             raise ValueError('unknown controller')
         self.policy_contract = PolicyContract(policy_config)
         self.default = self.policy_contract.default
-        self.scene_xml = model_xml if model_xml is not None else scene_xml(world, people, radiation_sources, layout_seed, landmark_count, landmark_seed, mezzanine_angle)
+        self.wrecks=list(wrecks)
+        self.powered_off=False
+        self.scene_xml = model_xml if model_xml is not None else scene_xml(world, people, radiation_sources, layout_seed, landmark_count, landmark_seed, mezzanine_angle,wrecks)
         self.model = mujoco.MjModel.from_xml_string(self.scene_xml)
         self.control_decimation = round(.02 / self.model.opt.timestep)
         if self.control_decimation < 1 or not math.isclose(self.control_decimation*self.model.opt.timestep, .02):
@@ -116,13 +121,16 @@ class Simulation:
         self.vadr = self.model.jnt_dofadr[self.joint_ids]
         self.actuators = np.array([self.model.actuator(name.removesuffix('_joint')).id for name in JOINTS])
         self.base = self.model.body('base_link').id
+        self.robot_geoms=set()
         # Exclude the whole robot (not just the base body) from virtual LiDAR.
         for geom in range(self.model.ngeom):
             body_id = int(self.model.geom_bodyid[geom])
             while body_id and body_id != self.base:
                 body_id = int(self.model.body_parentid[body_id])
-            if body_id == self.base and self.model.geom_group[geom] != 2:
-                self.model.geom_group[geom] = 4
+            if body_id == self.base:
+                self.robot_geoms.add(geom)
+                if self.model.geom_group[geom] != 2:
+                    self.model.geom_group[geom] = 4
         self.data.qpos[:7] = [0, 0, .32, 1, 0, 0, 0]
         self.data.qpos[self.qadr] = self.default
         self.action = np.zeros(12)
@@ -168,6 +176,8 @@ class Simulation:
                 self.policy_contract.action_scale, self.policy_contract.config['kp'])
 
     def step(self, command=(0., 0., 0.)):
+        if self.powered_off:
+            return  # A failed robot is frozen in situ; no further locomotion.
         command = np.asarray(command, dtype=float)
         if command.shape != (3,) or not np.isfinite(command).all():
             raise ValueError('command must contain three finite velocities')
@@ -207,6 +217,13 @@ class Simulation:
         self.counter += 1
         if not np.isfinite(self.data.qpos).all() or self.data.qpos[2] < .13 or rotation(self.data.qpos[3:7])[2, 2] < .45:
             raise RuntimeError('Go2 fell or physics state became invalid')
+
+    def disable_in_place(self):
+        self.powered_off=True
+        self.last_command[:]=0.
+        self.data.ctrl[:]=0.
+        self.data.qvel[:]=0.
+        mujoco.mj_forward(self.model,self.data)
 
     def scan(self, rays=180, max_range=8.):
         """Ideal, horizontal virtual range scanner; not a Go2 L1 sensor model."""
@@ -269,7 +286,8 @@ class Simulation:
     def metrics(self):
         return dict(simulation_time_s=float(self.data.time), base_position=self.data.qpos[:3].tolist(),
                     upright=float(rotation(self.data.qpos[3:7])[2, 2]), controller=self.controller,
-                    command=self.last_command.tolist(), joints=len(JOINTS),
+                     command=self.last_command.tolist(), joints=len(JOINTS),
+                     powered_off=self.powered_off,wrecks=len(self.wrecks),
                     odometry_source='imu_leg_lidar_fusion' if getattr(self, 'onboard_proprioception', None) else 'mujoco_ground_truth',
                     scan_source='noisy_body_frame_raycast' if getattr(self, 'onboard_proprioception', None) else 'ideal_mujoco_raycast',
                     base_position_scope='evaluator-only physics state',

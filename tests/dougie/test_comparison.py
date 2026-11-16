@@ -150,6 +150,26 @@ def test_reference_percentage_never_decides_mission_completion():
     assert stream.survey_report['explored_percent'] == 40.
 
 
+def test_no_video_keeps_coverage_distance_and_outcomes_without_renderer(tmp_path):
+    from dougie_sim.simulation import Simulation
+    sim = Simulation('reactor')
+    stream = ComparisonStream(sim, tmp_path, 'reactor', render_video=False)
+    try:
+        assert stream.process is None and stream.radiation_map is None
+        stream.capture(sim, .01, 10., 'exploring', metrics=dict(frontier_count=4))
+        sim.data.qpos[0] += 1.
+        sim.data.time += .5
+        stream.capture(sim, .02, 10., 'exploring', metrics=dict(frontier_count=3))
+    finally:
+        stream.close()
+    rows = read_rows(tmp_path/'comparison.jsonl')
+    assert len(rows) == 2 and rows[-1]['distance_m'] == 1.
+    assert rows[-1]['frontier_count'] == 3
+    assert (tmp_path/'coverage_reference.npz').is_file()
+    assert (tmp_path/'minimap_final.npz').is_file()
+    assert not (tmp_path/'frame.jpg').exists()
+
+
 def test_live_api_reads_complete_samples_and_serves_two_views(tmp_path):
     row = dict(time_s=1., true_dose_usv=.1, explored_percent=20., rate_usv_h=360., state='exploring')
     for mode in ('blind', 'aware'):

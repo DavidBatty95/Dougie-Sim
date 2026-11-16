@@ -21,6 +21,15 @@ _support_captured = False
 _checkpoints = None
 
 
+def matching_execution_route(explorer,path):
+    route = getattr(explorer,'execution_route',None)
+    raw = getattr(explorer,'execution_route_raw',[])
+    if route is None or not path:
+        return None
+    current,certified = np.asarray(path),np.asarray(raw)
+    return route if current.shape == certified.shape and np.array_equal(current,certified) else None
+
+
 def create_explorer(parameters, planner, terrain_profile, options=None):
     options = options or {}
     explorer = (DoseExplorer(*parameters) if planner == 'baseline' else
@@ -28,10 +37,24 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     explorer.detector_likelihood = options.get('detector_likelihood', 'window')
     explorer.budget_enabled = not options.get('no_dose_budget', False)
     explorer.rate_limited = options.get('radiation_policy', 'rate-limited') == 'rate-limited'
+    explorer.exposure_policy = options.get('exposure_policy','standard')
     explorer.home_tolerance = .2 if options.get('consistent_mapping') else .4
     explorer.recovery_reserve_s = 3. if options.get('recovery_enabled') else 0.
     explorer.survey_until_complete = options.get('survey_until_complete', False)
+    explorer.radiation_awareness=options.get('radiation_awareness','aware')
+    explorer.survival_mode=options.get('survival_mode',False)
     explorer.calibration_enabled = options.get('navigation_profile') == 'robust'
+    from .planning_learning import planning_weights
+    weights = planning_weights(options.get('route_dose_weight',1.),options.get('frontier_dose_weight',2.))
+    explorer.route_dose_weight,explorer.frontier_dose_weight = weights['route_dose_weight'],weights['frontier_dose_weight']
+    if options.get('frontier_view_policy') == 'marginal':
+        from .frontier_views import FrontierViews
+        explorer.frontier_views = FrontierViews(.2 if terrain_profile=='layered' else explorer.terrain.resolution)
+    if options.get('campaign_strategy')=='agenda':
+        from .campaign_agenda import CampaignAgenda
+        from .frontier_views import FrontierViews
+        explorer.campaign_agenda=CampaignAgenda()
+        explorer.frontier_views=FrontierViews(.2 if terrain_profile=='layered' else explorer.terrain.resolution)
     if hasattr(explorer, 'objective'):
         explorer.objective = options.get('mission_objective', 'survey')
         explorer.smooth_execution = options.get('path_mode') == 'smooth'
@@ -45,6 +68,9 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
     elif terrain_profile == 'layered':
         from .layered_terrain import LayeredSurfaceMap
         explorer.terrain = LayeredSurfaceMap(support_fusion=options.get('support_fusion', 'maximum'))
+    if options.get('campaign_strategy')=='agenda':
+        from .route_experience import RouteExperience
+        explorer.terrain.route_experience=RouteExperience()
     if options.get('consistent_mapping') and options.get('path_mode') == 'smooth':
         from .path_motion import TRACKING_ERROR_LIMIT
         # The planned clearance must cover permitted execution error, not just
@@ -52,7 +78,14 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         explorer.terrain.tracking_margin = TRACKING_ERROR_LIMIT
         explorer.terrain.base_radius += TRACKING_ERROR_LIMIT
         explorer.terrain.radius = explorer.terrain.base_radius
-    if options.get('gp_mode') == 'spatial':
+    if options.get('gp_mode') == 'windowed':
+        from .windowed_gp import WindowedGP
+        if parameters[4] != 'poisson':
+            raise ValueError('windowed geometry GP requires Poisson counts')
+        explorer.gp = WindowedGP(capacity=options.get('gp_expert_capacity', 32),
+            max_experts=options.get('gp_max_experts', 16), cell_size=options.get('gp_cell_size', (4.,4.,1.5)),
+            store_dir=options.get('gp_store_dir'))
+    elif options.get('gp_mode') == 'spatial':
         from .spatial_gp import SpatialGP
         explorer.gp = SpatialGP(capacity=options.get('gp_expert_capacity', 32),
             max_experts=options.get('gp_max_experts', 128), cell_size=options.get('gp_cell_size', (4., 4., 1.5)),
@@ -66,6 +99,27 @@ def create_explorer(parameters, planner, terrain_profile, options=None):
         from .radiation_blind import BlindGP
         explorer.gp = BlindGP(parameters[2])
         explorer.calibration_enabled = False
+        explorer.route_dose_weight,explorer.frontier_dose_weight = 1.,2.
+    elif options.get('frontier_rate_limit') is not None:
+        from .radiation_exclusion import RadiationExclusion
+        explorer.radiation_exclusion = RadiationExclusion(options['frontier_rate_limit'],
+            options.get('frontier_confidence',.95))
+    if options.get('campaign_previous'):
+        from pathlib import Path
+        from .campaign_memory import restore_memory
+        restore_memory(explorer,options['campaign_previous'],options.get('campaign_origin',[0.,0.,0.]))
+        if options.get('radiation_awareness')!='blind':
+            from .spatial_gp import load_gp
+            previous=load_gp(Path(options['campaign_previous'])/'gp_posterior.npz')
+            if type(previous) is not type(explorer.gp):
+                raise ValueError('campaign GP mode changed')
+            explorer.gp=previous
+            if hasattr(previous,'start_new_mission'):
+                previous.start_new_mission()
+            elif hasattr(previous,'last_geometry_stamp'):
+                previous.last_geometry_stamp=-math.inf
+    elif options.get('campaign_origin') is not None:
+        explorer.home=np.asarray(options['campaign_origin'],dtype=float)
     return explorer
 
 
@@ -140,6 +194,8 @@ def rebuild_explorer(old, new_events):
     if hasattr(old, 'goal_switches'):
         fresh.goal_switches = old.goal_switches
     fresh.returning |= old.returning
+    if hasattr(old,'survey_stop_reason'):
+        fresh.survey_stop_reason = old.survey_stop_reason
     fresh.events = old.events
     fresh.worker_ms = old.worker_ms
     fresh.worker_phase_history = getattr(old, 'worker_phase_history', {})
@@ -266,11 +322,15 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
         apply_recovery(explorer, packet, position, stamp, stalled, execution_status, localization or {})
     planned = time.perf_counter()
     execution_path = [p.copy() for p in explorer.path]
-    motion = None
+    motion = matching_execution_route(explorer,execution_path)
     smoother = getattr(explorer, 'smoother', None)
-    if _options.get('path_mode') == 'smooth' and execution_path:
+    if motion is not None and _options.get('path_mode') == 'smooth':
+        execution_path = motion.points
+    elif _options.get('path_mode') == 'smooth' and execution_path:
         from .path_motion import RouteSmoother
-        smoother = smoother or RouteSmoother(explorer.terrain, explorer.gp, explorer.smoothing_rate_limit)
+        smoother = smoother or RouteSmoother(explorer.terrain, explorer.planning_gp, explorer.smoothing_rate_limit,
+                                            prediction='mean' if explorer.expected_dose_objective else 'upper',
+                                            admission=explorer.radiation_exclusion.allows_route if explorer.radiation_exclusion else None)
         motion = smoother([position, *execution_path], explorer.state.startswith('return'))
         execution_path = motion.points
     smoothed = time.perf_counter()
@@ -289,6 +349,10 @@ def plan(batch, packet, position, stamp, stalled, landmarks=(), plan_delay_s=0.,
             spread = [samples[i][0] for i in np.linspace(0, len(samples)-1, min(75, len(samples))).astype(int)]
             queries.append(np.asarray(strongest+spread).reshape(-1, 3))
         query = np.unique(np.concatenate(queries), axis=0)
+        if _options.get('comparison_map'):
+            from .gp_field import observed_field_queries
+            priority = strongest+spread if samples else []
+            query = observed_field_queries(explorer.terrain,priority)
         volume = (query, *explorer.gp.predict(query))
     displayed = time.perf_counter()
     metrics = explorer.metrics()

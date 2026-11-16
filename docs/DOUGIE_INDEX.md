@@ -1,53 +1,42 @@
 # Dougie-Sim documentation
 
-[Project home](../README.md) · [Research](DOUGIE_RESEARCH.md) · [Validation](DOUGIE_VALIDATION.md)
+[Project home](../README.md) · [Architecture](DOUGIE_SIM.md) · [History](DOUGIE_HISTORY.md)
 
-The active project is the Unitree **Go2 quadruped**. Start here for its runtime,
-research and evidence. Retired humanoid material is accessible through the
-[repository history](DOUGIE_HISTORY.md).
+## Run and operate
 
-| I want to… | Start here |
+| Task | Guide |
 |---|---|
-| Install and run a first mission | [Reproduction and demo](../README.md#6-reproduction-and-demo) |
-| Launch the Apple Silicon browser demo or Ubuntu desktop | [One-command Mac guide](DOUGIE_MAC.md) |
-| See the robot and recorded mission | [Media catalogue](DOUGIE_MEDIA.md) |
-| Set budgets, likelihood and mission duration | [Comparison runbook](DOUGIE_COMPARISON.md) |
-| Compare radiation-blind and aware Dougie side by side | [Live simulation views, dose and exploration graphs](DOUGIE_COMPARISON.md) |
-| Inspect the latest comparison results and graphs | [Uncapped frontier pair, matched progress and retained incomplete outcomes](DOUGIE_COMPARISON_RESULTS.md) |
-| Configure point-source hotspots and leaks | [Source presets, markers and configuration](DOUGIE_SOURCES.md) |
-| Keep the robot visible through the radiation estimate | [Low-opacity haze, smooth fading and before/after views](DOUGIE_RADIATION_DISPLAY.md) |
-| Drive Go2 or inspect ROS | [Go2 runtime guide](DOUGIE_SIM.md) |
-| Understand autonomy and simulator truth | [Architecture](DOUGIE_SIM.md) |
-| Run current onboard-only radiation missions | [Fusion, geometry kernels, moving windows and evidence](DOUGIE_ONBOARD_MISSION.md) |
-| See implemented work and next acceptance gates | [Active onboard mission plan](DOUGIE_ONBOARD_PLAN.md) |
-| Inspect robust localization, recovery and matched-work planning | [Staged robust-mission implementation and evidence](DOUGIE_ROBUST_MISSIONS.md) |
-| Inspect pose-graph SLAM and sensor-only vertical qualification | [Graph backend, uncertainty protocol and retained vertical outcomes](DOUGIE_SLAM_QUALIFICATION.md) |
-| Inspect support replay, home checkpoints and LiDAR sampling | [Navigation recovery development and retained failed vertical trials](DOUGIE_NAVIGATION_RECOVERY.md) |
-| Inspect slope stopping, range-loss fallback and terminal stance | [Gravity-supported stance, matched facility trial and remaining recovery limits](DOUGIE_STANCE_RECOVERY.md) |
-| Inspect low-traction stopping and lateral disturbances | [Production stance screen, actual contact friction and retained failures](DOUGIE_TRACTION_SCREEN.md) |
-| Inspect planned-stop deceleration and fresh-seed regressions | [Matched command-taper experiments](DOUGIE_PLANNED_STOP.md) |
-| Test five times the dose allowance on longer missions | [Paired 2/10 µSv experiment](DOUGIE_LONG_MISSIONS.md) |
-| Understand detector, GP and route-dose assumptions | [Radiation methods](DOUGIE_RADIATION.md) |
-| Read the papers and plan comparisons | [Research reading guide](DOUGIE_RESEARCH.md) |
-| Inspect measured outcomes and limitations | [Validation](DOUGIE_VALIDATION.md) · [Portable report](results/dougie_initial_20261007.json) |
-| Check stair and uneven-ground capability | [680-trial terrain qualification](DOUGIE_TERRAIN_QUALIFICATION.md) · [Per-run data](results/dougie_terrain_qualification_20261007.json) |
-| Plan stair training and multi-floor radiation missions | [Capability assessment and implementation roadmap](DOUGIE_MULTILEVEL_ROADMAP.md) |
-| Implement multi-floor exploration | [Complete TXT plan](DOUGIE_MULTIFLOOR_PLAN.txt) · [Runnable milestone and training results](DOUGIE_MULTIFLOOR_PROGRESS.md) |
-| Run the full-height facility and inspect Go2 in RViz | [Facility, perceptive training, model verification and results](DOUGIE_FACILITY.md) |
-| Inspect historical ideal-pose full-height runs or targets | [Round-trip results, landmark sensing and graphics](DOUGIE_FULLHEIGHT_RESULTS.md) · [Portable evidence](results/dougie_fullheight_20261014.json) |
-| Fix slow RViz rendering or measure real FPS | [GPU graphics setup and frame-delivery benchmark](DOUGIE_PERFORMANCE.md) |
-| Smooth routes, scale the GP, or highlight detected radiation | [Motion, spatial mapping, incline training and display update](DOUGIE_SMOOTH_MAPPING.md) |
-| Inspect the detailed reactor and improved cloud rendering | [Reactor update, prediction replay and physical checks](DOUGIE_REACTOR_UPDATE.md) |
-| Improve mission completion, return prediction and map capacity | [Planning priorities, inspection mode and measured tradeoffs](DOUGIE_PLANNING_PRIORITIES.md) |
-| Review staged navigation optimizations and their tests | [Navigation efficiency and retained regressions](DOUGIE_NAVIGATION_EFFICIENCY.md) |
-| Rebuild or inspect the GIFs | [Media provenance](DOUGIE_MEDIA.md) |
-| Find implementation files | [Software and documentation](../README.md#8-software-attribution-and-documentation) |
-| Diagnose setup problems | [Mac setup and graphics](DOUGIE_MAC.md) · [Performance](DOUGIE_PERFORMANCE.md) |
-| Inspect upstream asset identities | [Asset manifest](../config/dougie_assets.json) · [Attribution](DOUGIE_SIM.md#attribution) |
+| Start the Apple Silicon demo | [Mac setup and lifecycle](DOUGIE_MAC.md) |
+| Read the blind/aware dashboard and configure missions | [Comparison runbook](DOUGIE_COMPARISON.md) |
+| Configure robot lifetimes, swaps and wrecks | [Multi-sortie campaigns](DOUGIE_CAMPAIGNS.md) |
+| Run resumable paired-seed studies | [Seed-study protocol and reports](DOUGIE_SEED_STUDY.md) |
+| Diagnose graphics and rendering | [Performance and graphics](DOUGIE_PERFORMANCE.md) |
 
-## Historical resources
+## Methods and active development
 
-- [Repository history and cleanup reference](DOUGIE_HISTORY.md): immutable links
-  to the retired G1 workspace, guides, literature and experiment versions.
-- [Retained Dougie evidence](results/README.md): current and dated Go2 inputs used
-  by published results, reproduction scripts and regression tests.
+| Topic | Guide |
+|---|---|
+| Simulator, sensors and autonomy boundaries | [Architecture](DOUGIE_SIM.md) |
+| Radiation field and detector | [Radiation methods](DOUGIE_RADIATION.md) · [Source presets](DOUGIE_SOURCES.md) |
+| Online inference and continuous fields | [Windowed GP](DOUGIE_WINDOWED_GP.md) · [Radiation display](DOUGIE_RADIATION_DISPLAY.md) |
+| Multilevel support and constraints | [Facility](DOUGIE_FACILITY.md) · [Terrain qualification](DOUGIE_TERRAIN_QUALIFICATION.md) |
+| Occupancy lookup | [Exact compact lookup and benchmarks](DOUGIE_OCCUPANCY_EFFICIENCY.md) |
+| Experimental frontier scheduling | [Campaign agenda and retained negative results](DOUGIE_CAMPAIGN_AGENDA.md) |
+| Experimental route choice | [Pathwise exposure policy](DOUGIE_PATHWISE_POLICY.md) |
+| Tune aware planning weights | [Run-to-run learning](DOUGIE_PLANNING_LEARNING.md) |
+| Research context | [Reading guide](DOUGIE_RESEARCH.md) |
+
+## Evidence and reproduction
+
+| Resource | Scope |
+|---|---|
+| [Retained reactor comparison](DOUGIE_COMPARISON_RESULTS.md) | Earlier single-pair, ideal-pose, global-GP result; not validation of the current campaign |
+| [Recent policy pilots](results/dougie_policy_pilots_20261110.md) | Matched dose, censored outcomes and invalid revisions |
+| [Portable results](results/README.md) | Evidence, inputs and source identities |
+| [Media and regeneration](DOUGIE_MEDIA.md) | Current figures and retained comparison provenance |
+| [History](DOUGIE_HISTORY.md) | Removed dated plans, reports and tools in the pinned prior Git tree |
+
+The current browser demo is a finite-lifetime reactor campaign. Reference-floor
+observation is evaluation-only; completion requires the planner's three fresh
+zero-frontier confirmations. Incomplete returns, blocked frontiers and robot
+losses remain explicit. The multilevel facility remains experimental.

@@ -5,6 +5,7 @@ not an implementation of SafeEstMDP or a formal probabilistic guarantee.
 """
 import math
 import time
+from collections import deque
 
 import numpy as np
 
@@ -21,6 +22,10 @@ class DoseExplorer:
         self.budget, self.rate_limit = budget, rate_limit
         self.budget_enabled = True
         self.rate_limited = True
+        self.observed_rates = deque(maxlen=256)
+        from .exposure_trend import ExposureTrend
+        self.exposure_trend = ExposureTrend()
+        self.exposure_policy = 'standard'
         self.mission_duration = mission_duration
         self.home = None
         self.home_stamp = 0.
@@ -46,10 +51,17 @@ class DoseExplorer:
         self.utility = ExposureUtility()
         self.calibration = CountCalibration()
         self.calibration_enabled = False
+        self.radiation_exclusion = None
+        self.route_dose_weight,self.frontier_dose_weight = 1.,2.
+        self.survival_mode=False
 
     def observe_radiation(self, sample, replay=False):
         self.sample = sample
+        self.observed_rates.append(float(sample.rate_usv_h))
+        self.exposure_trend.observe(sample)
         self.utility.observe(sample)
+        if getattr(self.terrain,'route_experience',None) is not None:
+            self.terrain.route_experience.observe(sample)
         if self.calibration_enabled and not replay:
             self.calibration.observe(self.gp, sample)
         if not sample.position_valid:
@@ -79,6 +91,32 @@ class DoseExplorer:
     @property
     def smoothing_rate_limit(self):
         return self.rate_limit if self.rate_limited else math.inf
+
+    @property
+    def expected_dose_objective(self):
+        return (not self.budget_enabled or self.survival_mode) and not self.rate_limited
+
+    @property
+    def route_rate_scale(self):
+        # A fixed 50 µSv/h scale effectively erases route-rate differences in
+        # low-rate worlds. Normalize soft costs using observed counts only.
+        positive = [rate for rate in self.observed_rates if rate > 0]
+        return max(.05, float(np.median(positive))) if self.expected_dose_objective and positive else 50.
+
+    def exposure_cost(self,points,mean):
+        return (self.exposure_trend.adjust(points,mean) if self.expected_dose_objective and self.exposure_policy != 'standard'
+                 else np.asarray(mean))
+
+    @property
+    def effective_route_rate_scale(self):
+        return self.route_rate_scale/self.route_dose_weight
+
+    @property
+    def planning_gp(self):
+        if self.expected_dose_objective and self.exposure_policy != 'standard':
+            from .exposure_trend import ExposureCostView
+            return ExposureCostView(self.gp,self.exposure_trend)
+        return self.gp
 
     def observe_geometry(self, points, supports, origin=None):
         self.terrain.update(points, supports, origin)
@@ -181,8 +219,13 @@ class DoseExplorer:
     def metrics(self):
         cells = getattr(self.terrain, 'observed_surface_cells', len(self.terrain.surfaces))
         return dict(state=self.state, budget_usv=self.budget if self.budget_enabled else None,
+            survival_mode=self.survival_mode,
             dose_budget_enabled=self.budget_enabled, rate_limit_usv_h=self.rate_limit if self.rate_limited else None,
             radiation_policy='rate-limited' if self.rate_limited else 'minimize-dose',
+            exposure_objective=('posterior_mean_plus_near_field' if self.exposure_policy != 'standard' else 'posterior_mean') if self.expected_dose_objective else 'upper_bound',
+            route_rate_scale_usv_h=self.route_rate_scale,
+            exposure_policy=self.exposure_policy,near_field_exposure=self.exposure_trend.metrics(),
+            planning_weights=dict(route_dose_weight=self.route_dose_weight,frontier_dose_weight=self.frontier_dose_weight),
             return_reserve_usv=self.return_reserve, mapped_surface_cells=cells,
             mapped_surface_area_m2=cells*self.terrain.resolution**2,
             observed_voxels=len(self.terrain.hits), visited_cells=len(self.visited),

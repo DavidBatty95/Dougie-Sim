@@ -189,7 +189,7 @@ def main():
     report = ROOT/'docs/DOUGIE_TERRAIN_QUALIFICATION.md'
     report.write_text('''# Go2 terrain qualification
 
-[Project home](../README.md) · [Initial development evidence](DOUGIE_VALIDATION.md)
+[Project home](../README.md) · [Development history](DOUGIE_HISTORY.md#go2-development-archive)
 · [Portable qualification data](results/dougie_terrain_qualification_20261007.json)
 
 ## Verdict

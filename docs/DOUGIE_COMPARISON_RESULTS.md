@@ -1,4 +1,6 @@
-# Current frontier comparison results
+# Retained frontier comparison results
+
+This historical global-GP pair predates the current windowed-GP robot-lifetime campaign; see [current campaigns](DOUGIE_CAMPAIGNS.md).
 
 One retained paired reactor development experiment; ideal-pose planning comparison, not a multi-seed or hardware validation. Both incomplete outcomes are retained.
 

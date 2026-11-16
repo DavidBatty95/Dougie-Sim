@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dougie-Sim · The cost of exploration</title>
+<title>Dougie-Sim</title>
 <meta name="description" content="A paired physical quadruped experiment: compare radiation-aware exploration, measured exposure and frontier completion.">
 <style>
 :root{color-scheme:dark;--bg:#0a1219;--surface:#111f2a;--border:#253641;--text:#edf4f6;--muted:#a4b6c1;--aware:#48daca;--blind:#ffb454}
@@ -10,39 +10,60 @@
 @media(max-width:1000px){.hero{gap:30px}.stats{grid-template-columns:repeat(2,1fr)}.insights{grid-template-columns:1fr 1fr}.insight.featured{grid-column:1/-1}.topbar nav{display:none}}
 @media(max-width:700px){main,.topbar{padding-left:20px;padding-right:20px}.hero{grid-template-columns:1fr;padding-top:35px;gap:25px}.hero h1{font-size:43px}.grid,.method-grid,.insights{grid-template-columns:1fr}.section-title{display:block}.section-title p,.section-title .legend{margin-top:12px}.insight .value{font-size:36px}.stats{grid-template-columns:repeat(4,1fr);gap:7px}.stat strong{font-size:17px}.connection{font-size:10px}.maps canvas{height:260px}.panel{padding:16px}.feed{padding:0}footer{display:block}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.run-controls{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin:0 0 24px;padding:18px 22px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.run-controls button{background:var(--aware);color:#081b19;border:0;border-radius:6px;padding:9px 18px;font-weight:700;cursor:pointer}.run-controls button:disabled{opacity:.5;cursor:wait}.run-controls label{display:flex;align-items:center;gap:9px}.run-controls input{accent-color:var(--aware);width:18px;height:18px}.run-controls .small{flex-basis:100%}.history-scroll{max-height:320px;overflow:auto}.average-readout{min-height:26px;color:var(--muted);font-size:13px}
+[hidden]{display:none!important}.lifetime{margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:6px}.lifetime.dead{border-color:#a74537;color:#ff8070}.campaign-fleet .stats{grid-template-columns:repeat(2,1fr)}.campaign-settings{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.campaign-settings input{width:95px;padding:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px}
 </style>
-<header class="topbar"><a class="brand" href="#">DOUGIE<span> / SIM</span></a><nav aria-label="Demo sections"><a href="#evidence">Evidence</a><a href="#missions">Missions</a><a href="#field">Radiation field</a><a href="#method">Method</a></nav><div class="connection" id="connection" role="status">Connecting…</div></header>
+<header class="topbar"><a class="brand" href="#">DOUGIE<span> / SIM</span></a><nav aria-label="Demo sections"><a href="#evidence">Evidence</a><a href="#missions">Missions</a><a href="#learning" id="learning-link">Learning</a><a href="#field">Radiation field</a><a href="#method">Method</a></nav><div class="connection" id="connection" role="status">Connecting…</div></header>
 <main>
-<div class="hero"><div><div class="eyebrow">Physical quadruped · paired experiment</div><h1>The cost of<br><em>exploration.</em></h1><p>Two robots. The same unknown environment. One learns radiation and chooses lower-exposure routes. Compare what they discover—and the dose they accumulate along the way.</p><div class="tags"><span class="tag">Unitree Go2</span><span class="tag">MuJoCo physics</span><span class="tag">Gaussian-process mapping</span><span class="tag" id="world-tag">Matched world & seeds</span></div></div><aside class="protocol-card"><div class="eyebrow">Mission objective</div><strong>No frontiers left behind.</strong><p>Completion is the planner’s decision: zero frontier nodes, confirmed on three fresh scans. A map percentage never ends a mission.</p><div class="tags"><span class="tag" id="cap-tag">Loading protocol</span><span class="tag" id="pose-tag">Pose source</span></div><details><summary>Experiment configuration</summary><p id="protocol">Loading mission settings…</p></details></aside></div>
+<div class="hero"><div><div class="eyebrow">Physical quadruped · paired experiment</div><h1>Dougie<em>-Sim</em></h1><p>Two robots. The same unknown environment. One learns radiation and uses it to plan its routes. Compare what they discover—and the dose they accumulate along the way.</p><div class="tags"><span class="tag">Unitree Go2</span><span class="tag">MuJoCo physics</span><span class="tag">Gaussian-process mapping</span><span class="tag" id="world-tag">Matched world & seeds</span></div></div><aside class="protocol-card"><div class="eyebrow">Mission objective</div><strong>Explore reachable frontiers.</strong><p>Completion is the planner’s decision: zero frontier nodes, confirmed on three fresh scans. Radiation-blocked frontiers stay recorded; a radiation-limited return is incomplete.</p><div class="tags"><span class="tag" id="cap-tag">Loading protocol</span><span class="tag" id="pose-tag">Pose source</span></div><details><summary>Experiment configuration</summary><p id="protocol">Loading mission settings…</p></details></aside></div>
 
 <section class="block" id="evidence"><div class="section-title"><div><div class="eyebrow">01 / The measured difference</div><h2>Compare equal progress, not just endpoints.</h2></div><p>Descriptive evidence from this paired run. Exposure is integrated from the true simulated field; the robot’s GP is not used to score it.</p></div><div class="insights">
-<article class="insight featured"><div class="label">DOSE AT THE SAME REFERENCE MILESTONE <select id="benchmark-level" aria-label="Matched reference floor milestone"><option value="50">50%</option><option value="75">75%</option><option value="85">85%</option><option value="90" selected>90%</option></select></div><div class="value positive" id="progress-effect">—</div><div id="progress-label">Waiting for both robots to reach the milestone.</div><p id="progress-detail">Milestones are evaluation thresholds, not mission completion.</p></article>
+<article class="insight featured"><div class="label"><span id="progress-title">DOSE AT THE SAME REFERENCE MILESTONE</span> <select id="benchmark-level" aria-label="Matched reference floor milestone"><option value="auto" selected>Shared progress</option><option value="50">50%</option><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option></select></div><div class="value positive" id="progress-effect">—</div><div id="progress-label">Waiting for both robots to reach the milestone.</div><p id="progress-detail">Milestones are evaluation thresholds, not mission completion.</p></article>
 <article class="insight"><div class="label">AT THE SAME SIMULATION TIME</div><div class="value" id="time-effect">—</div><div id="time-label">Synchronizing telemetry.</div><p id="time-detail">Curves use each robot’s own simulation clock.</p></article>
 <article class="insight"><div class="label">MISSION COMPLETION</div><div class="value" id="completion-value">—</div><div id="completion-label">Confirmed frontier exhaustion</div><p id="completion-detail">A safe return and a completed survey are distinct outcomes.</p></article>
 </div><div class="caution"><span>↳</span><span><strong>One pair, one scenario.</strong> Lower dose at a reference milestone is a within-run observation—not a multi-seed performance estimate or proof of an optimal tour.</span></div></section>
 
-<section class="block" id="missions"><div class="section-title"><div><div class="eyebrow">02 / Independent physical missions</div><h2>Watch the decisions unfold.</h2></div><div class="legend"><span class="blind">Radiation-blind</span><span class="aware">Radiation-aware</span></div></div><div class="grid">
-<article class="panel feed blind-feed"><div class="feed-header"><h3 class="blind">Radiation-blind</h3><span class="status-pill" id="blind-badge">Starting</span></div><img id="blind-frame" alt="Actual radiation-blind Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="blind-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="blind-coverage">—</strong></div><div class="progress"><div id="blind-progress" style="width:0"></div></div><div class="readout" id="blind-status">Waiting for telemetry…</div></div></article>
-<article class="panel feed"><div class="feed-header"><h3 class="aware">Radiation-aware</h3><span class="status-pill" id="aware-badge">Starting</span></div><img id="aware-frame" alt="Actual radiation-aware Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="aware-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="aware-coverage">—</strong></div><div class="progress"><div id="aware-progress" style="width:0"></div></div><div class="readout" id="aware-status">Waiting for telemetry…</div></div></article>
+<section class="block" id="missions"><div class="section-title"><div><div class="eyebrow">02 / Independent physical missions</div><h2>Watch the decisions unfold.</h2></div><div class="legend"><span class="blind">Radiation-blind</span><span class="aware">Radiation-aware</span></div></div>
+<div class="run-controls"><button type="button" id="rerun" disabled>Rerun now</button><label><input type="checkbox" id="continuous" disabled>Continuously rerun</label><label><input type="checkbox" id="learn-planning" disabled>Learn planning between runs</label><span id="session-status" role="status" aria-live="polite">Loading run controls…</span><div class="small">Rerun now interrupts and retains the current pair. Continuous mode waits for both workers to end. Learning tests retained and challenger weights on the same detector seeds before advancing the seed panel; fixed mode advances one seed per pair. Enabling learning also enables continuous reruns and takes effect on the next pair. Stopping learning retains the chosen weights. Uncapped missions may take a long time to end.</div></div><div class="grid">
+<article class="panel feed blind-feed"><div class="feed-header"><h3 class="blind">Radiation-blind</h3><span class="status-pill" id="blind-badge">Starting</span></div><img id="blind-frame" alt="Actual radiation-blind Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="blind-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="blind-coverage">—</strong></div><div class="progress"><div id="blind-progress" style="width:0"></div></div><div class="readout" id="blind-status">Waiting for telemetry…</div><p class="small" id="blind-blocked"></p></div></article>
+<article class="panel feed"><div class="feed-header"><h3 class="aware">Radiation-aware</h3><span class="status-pill" id="aware-badge">Starting</span></div><img id="aware-frame" alt="Actual radiation-aware Go2 simulation with route minimap"><div class="feed-body"><div class="stats" id="aware-stats"></div><div class="progress-row"><span>Reference floor observed · evaluation only</span><strong id="aware-coverage">—</strong></div><div class="progress"><div id="aware-progress" style="width:0"></div></div><div class="readout" id="aware-status">Waiting for telemetry…</div><p class="small" id="aware-blocked"></p></div></article>
 </div><p class="small">Green arrows: planned route · green ring: current goal · amber: estimated return route. Each minimap retains the actual travelled path and physically observed floor slices.</p></section>
 
 <section class="block" id="plots"><div class="section-title"><div><div class="eyebrow">03 / Exposure, progress & motion</div><h2>The full trajectory behind the headline.</h2></div><div class="legend"><span class="blind">Blind / dashed</span><span class="aware">Aware / solid</span></div></div><div class="grid graphs">
-<article class="panel"><h3>Dose versus observed reference floor</h3><p>Progress-normalized view. Repeated work can add dose without adding coverage.</p><canvas id="dose-progress" aria-label="Actual dose versus independent observed floor percentage" role="img"></canvas></article>
 <article class="panel"><h3>Cumulative radiation dose <span class="small">/ µSv</span></h3><p>True-field exposure integrated along each physical trajectory.</p><canvas id="dose" aria-label="Cumulative radiation dose versus simulation time" role="img"></canvas></article>
 <article class="panel"><h3>Reference floor observed <span class="small">/ %</span></h3><p>Fixed 3D reference; independent of the finish condition.</p><canvas id="coverage" aria-label="Independent floor observation percentage; not a completion condition" role="img"></canvas></article>
 <article class="panel"><h3>Distance travelled <span class="small">/ m</span></h3><p>Actual 3D displacement integrated on every physics tick.</p><canvas id="distance" aria-label="Actual three-dimensional distance travelled versus simulation time" role="img"></canvas></article>
 <article class="panel wide"><h3>Frontier nodes remaining</h3><p>Zero is necessary for completion. A blocked frontier still counts.</p><canvas id="frontiers" aria-label="Observed-map frontier nodes remaining versus simulation time" role="img"></canvas></article>
 </div><div class="panel table-wrap"><h3>Paired reference milestones</h3><table><thead><tr><th>Threshold</th><th>Blind dose</th><th>Aware dose</th><th>Aware reduction</th><th>Crossing times · blind / aware</th></tr></thead><tbody id="milestone-table"></tbody></table><p>First recorded sample at or above each threshold (0.5 s telemetry cadence). Actual percentages are shown below each dose. Curves and milestone values end with the recorded trajectory; nothing is extrapolated.</p></div></section>
 
-<section class="block" id="field"><div class="section-title"><div><div class="eyebrow">04 / What the robot has learned</div><h2>Ground truth. Learned radiation.</h2></div><label class="small">Floor slice <select id="radiation-level" aria-label="Radiation map floor slice"></select></label></div><p class="small">Same world coordinates, shared logarithmic colour scale, sampled 0.44 m above the floor. Hover to compare the true rate with the aware robot’s GP mean, upper bound and uncertainty.</p><div class="scale"></div><div class="small" id="scale-label"></div><div class="grid maps" style="margin-top:18px"><article class="panel"><h3>Ground-truth radiation <span class="small">/ µSv/h</span></h3><p>Evaluator-only field. Never supplied to navigation or GP training.</p><canvas id="truth-map" role="img" aria-label="Evaluator-only true simulated radiation field"></canvas></article><article class="panel"><h3>GP posterior mean <span class="small">/ µSv/h</span></h3><p>Grey is an unavailable estimate, not a prediction of zero radiation.</p><canvas id="gp-map" role="img" aria-label="Radiation-aware robot GP prediction on the matching floor slice"></canvas></article></div><div id="radiation-status" role="status">Waiting for radiation predictions…</div><p class="small">Outlines mark independently observed reference cells. Nearest exported GP queries are matched within 35 cm in XYZ and 18 cm vertically. The reported error covers matched queries only, not the entire true field.</p></section>
+<section class="block" id="learning"><div class="section-title"><div><div class="eyebrow">Planning / Run-to-run learning</div><h2>Learn to spend less dose.</h2></div><div class="legend"><span class="blind">Fixed blind baseline</span><span class="aware">Aware policy trials</span></div></div><p id="learning-status">Loading planning progression…</p><div class="panel"><div class="stats"><div class="stat"><strong id="learning-route">1</strong><span>Retained route dose weight</span></div><div class="stat"><strong id="learning-frontier">2</strong><span>Retained frontier dose weight</span></div><div class="stat"><strong id="learning-promotions">0</strong><span>Accepted challengers</span></div><div class="stat"><strong id="learning-round">—</strong><span>Current learning round</span></div></div><p id="learning-rule" class="small">Only ended, comparable-progress trials can teach the tuner. Interrupted and failed attempts remain visible.</p></div><div class="grid graphs">
+<article class="panel"><h3>Learning progression: total actual dose <span class="small">/ µSv</span></h3><p>Includes exploration and return. Only comparable-progress ended attempts are plotted; excluded trials leave gaps.</p><canvas id="learning-dose" role="img" aria-label="Actual total dose across comparable-progress paired attempts"></canvas></article>
+<article class="panel"><h3>Learning progression: total distance <span class="small">/ m</span></h3><p>Physical travel for those same attempts. Earlier reference runs are labelled separately from tuning trials.</p><canvas id="learning-distance" role="img" aria-label="Actual distance across comparable-progress paired attempts"></canvas></article>
+</div><div class="panel table-wrap"><h3>Planning trials & exclusions</h3><div class="history-scroll"><table><thead><tr><th>Pair / seed</th><th>Aware settings / role</th><th>Total dose · blind / aware</th><th>Final floor · blind / aware</th><th>Assessment</th></tr></thead><tbody id="learning-history"></tbody></table></div></div><div class="panel table-wrap"><h3>Matched-seed tuning decisions</h3><div class="history-scroll"><table><thead><tr><th>Round / seeds</th><th>Retained → challenger</th><th>Mean aware total dose · retained / challenger</th><th>Decision</th></tr></thead><tbody id="learning-rounds"></tbody></table></div><p>Retained settings are provisional simulation-development results. The tuner receives end-of-run evaluator outcomes; each mission plans from its own onboard observations. Parameter changes do not alter clearance, physics, radiation exclusions or the blind baseline.</p></div></section>
+
+<section class="block" id="averages"><div class="section-title"><div><div class="eyebrow">Session / Repeated paired runs</div><h2>Average dose & distance.</h2></div><div class="legend"><span class="blind">Blind / dashed</span><span class="aware">Aware / solid</span></div></div><p id="average-summary">Averages appear when the first pair ends.</p><p class="small">Means use ended pairs, including interrupted and failed attempts with usable observations. At each simulation time, a pair contributes only if both robots have data there. No endpoint padding or extrapolation. The current active pair is excluded. When learning changes settings, these are mixed-policy session averages; use the learning tables for per-setting comparisons. Hover or tap a graph for its contributing pair count and sample standard deviation. Shared time does not imply equal exploration.</p><div class="grid graphs">
+<article class="panel"><h3>Mean cumulative radiation dose <span class="small">/ µSv</span></h3><canvas id="average-dose" aria-label="Mean true dose versus simulation time across ended paired runs" role="img"></canvas><div class="average-readout" id="average-dose-detail">No ended pairs yet.</div></article>
+<article class="panel"><h3>Mean distance travelled <span class="small">/ m</span></h3><canvas id="average-distance" aria-label="Mean physical distance versus simulation time across ended paired runs" role="img"></canvas><div class="average-readout" id="average-distance-detail">No ended pairs yet.</div></article>
+</div><div class="panel table-wrap"><h3>Retained run history</h3><div class="history-scroll"><table><thead><tr><th>Pair</th><th>Detector seed</th><th>Attempt status</th><th>Blind outcome</th><th>Aware outcome</th></tr></thead><tbody id="run-history"></tbody></table></div><p>Ended means the processes stopped, not that exploration completed. All raw results remain in the session’s output directory and its reruns subdirectory.</p></div></section>
+
+<section class="block" id="field"><div class="section-title"><div><div class="eyebrow">04 / What the robot has learned</div><h2>Ground truth. Learned radiation.</h2></div><label class="small">Floor slice <select id="radiation-level" aria-label="Radiation map floor slice"></select></label></div><p class="small">Same world coordinates, shared logarithmic colour scale, sampled 0.44 m above the floor. Hover to compare the true rate with the aware robot’s GP mean, upper estimate and uncertainty.</p><div class="scale"></div><div class="small" id="scale-label"></div><div class="grid maps" style="margin-top:18px"><article class="panel"><h3>Ground-truth radiation <span class="small">/ µSv/h</span></h3><p>Evaluator-only field. Never supplied to navigation or GP training.</p><canvas id="truth-map" role="img" aria-label="Evaluator-only true simulated radiation field"></canvas></article><article class="panel"><h3>GP posterior mean <span class="small">/ µSv/h</span></h3><p>Grey is an unavailable estimate, not a prediction of zero radiation.</p><canvas id="gp-map" role="img" aria-label="Radiation-aware robot GP field on the matching floor slice"></canvas></article></div><div id="radiation-status" role="status">Waiting for radiation predictions…</div><p class="small" id="field-method">Outlines mark independently observed reference cells. The reported error covers available field estimates only, not the entire true field.</p></section>
 
 <section class="block" id="method"><div class="section-title"><div><div class="eyebrow">05 / Reading the experiment</div><h2>What this comparison means.</h2></div></div><div class="method-grid"><article><div class="index">01 / THE ABLATION</div><h3>One changed information channel.</h3><p>The two workers share world, initial state, policy and seeds. The blind planner receives zero radiation costs; its real dose is still measured. Paths and subsequent observations can diverge.</p></article><article><div class="index">02 / THE OBJECTIVE</div><h3>Finish by exhausting frontiers.</h3><p>A frontier is an observed support viewpoint with a view of unknown support. Visiting it does not remove unresolved unknown space. Blocked, tracking-limited and interrupted missions stay incomplete.</p></article><article><div class="index">03 / THE SCOPE</div><h3>Simulation evidence, not a guarantee.</h3><p>Reference-floor observation is a fixed physical-arrival-gated 3D measure. Dose is a synthetic µSv-equivalent proxy. Compare matched progress and stop reasons; multiple seeds and layouts are needed for broader conclusions.</p></article></div></section>
+<section class="block" id="campaign" hidden><div class="section-title"><div><div class="eyebrow">Mission package / Robot survival</div><h2>Explore, recover, replace.</h2></div></div><p id="campaign-status" role="status"></p><div class="panel campaign-settings"><label>Indicative failure dose <input id="campaign-limit" type="number" min="0.001" step="0.001" value="2" aria-label="New campaign robot lifetime dose"> µSv-equivalent</label><label>Sorties <input id="campaign-sorties" type="number" min="1" max="100" step="1" value="6" aria-label="New campaign sortie limit"></label><button type="button" id="new-campaign">New campaign</button><p class="small">A new campaign starts a fresh experiment, clearing its wrecks and mission memory; prior campaign results remain retained. This is an illustrative radiation-failure budget, not a measured Go2 electronics tolerance.</p></div><div class="grid"><article class="panel campaign-fleet"><h3 class="blind">Blind fleet</h3><div class="stats" id="blind-fleet"></div></article><article class="panel campaign-fleet"><h3 class="aware">Aware fleet</h3><div class="stats" id="aware-fleet"></div></article></div><p class="small">Each replacement starts at the origin with a fresh dose allowance. GP/map knowledge and fixed-denominator observation progress persist. Failed robots remain frozen collision obstacles. A surviving robot stranded away from the origin cannot be automatically reset. Active-sortie time/exposure is accumulated; standby between sorties is not simulated.</p><div class="grid graphs"><article class="panel"><h3>Campaign cumulative dose <span class="small">/ µSv</span></h3><canvas id="campaign-dose" role="img" aria-label="Cumulative campaign exposure across all robots"></canvas></article><article class="panel"><h3>Campaign floor observed <span class="small">/ %</span></h3><canvas id="campaign-coverage" role="img" aria-label="Cumulative fixed-reference campaign exploration"></canvas></article><article class="panel wide"><h3>Robots lost / persistent wrecks</h3><canvas id="campaign-losses" role="img" aria-label="Robot losses across campaign sorties"></canvas></article></div><div class="panel table-wrap"><h3>Sortie outcomes</h3><table><thead><tr><th>Sortie</th><th>Blind / aware outcome</th><th>Campaign dose · blind / aware</th><th>Floor · blind / aware</th><th>Wrecks · blind / aware</th></tr></thead><tbody id="campaign-history"></tbody></table><p>Blind and aware worlds evolve independently as wrecks accumulate. Campaign knowledge learning is active; fixed-world planning-weight tuning is paused.</p></div></section>
 <footer><span>DOUGIE / SIM · Measured motion. Explicit outcomes.</span><a href="https://github.com/DavidBatty95/Dougie-Sim/tree/improve-navigation-efficiency" target="_blank" rel="noopener">Source, methods & reproducible evidence ↗</a></footer></main>
 <script src="/comparison-metrics.js"></script>
 <script>
 const modes = ['blind', 'aware'], colors = {blind:'#ffb454', aware:'#48daca'};
 let latest;
 let radiation, hovered;
+let sessionState, currentRun, historyRevision=-1, averageData, controlsBusy=false, learningData,controlError,campaignFormId;
+document.getElementById('learning').before(document.getElementById('campaign'));
+const campaignAverageNote=document.createElement('p');campaignAverageNote.className='small';campaignAverageNote.hidden=true;campaignAverageNote.textContent='Campaign averages are correlated sortie summaries: maps and wrecks evolve between deployments. They are not independent fixed-world trials. Cumulative campaign graphs retain every robot’s exposure.';document.getElementById('average-summary').after(campaignAverageNote);
+for(const mode of modes){
+ const panel=document.createElement('div');panel.className='lifetime';panel.id=mode+'-life-panel';panel.hidden=true;
+ panel.innerHTML=`<div class="progress-row"><span id="${mode}-life-label">Robot lifetime</span><strong id="${mode}-life-value">—</strong></div><div class="progress" role="progressbar" aria-label="${mode} robot remaining radiation life" aria-valuemin="0" aria-valuemax="100"><div id="${mode}-life-progress" style="width:100%"></div></div><p class="small" id="${mode}-life-detail"></p>`;
+ document.getElementById(mode+'-stats').after(panel);
+}
 const stops=[[32,64,208],[0,200,220],[160,224,60],[255,224,32],[255,80,32],[192,16,48]];
 function radiationColor(rate) {
  if(rate===null || !Number.isFinite(rate))return '#364555';
@@ -73,9 +94,12 @@ function drawRadiation() {
   ctx.fillStyle='#b8c8d8';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText('X (m) · same world coordinates',width/2,height-8);
  }
  document.getElementById('scale-label').textContent=`Shared logarithmic rate scale: ${radiation.color_min_usv_h.toFixed(2)} → ${radiation.color_max_usv_h.toFixed(1)} µSv/h (blue → red). Values above the scale maximum clip to red.`;
- let detail=`GP update t = ${radiation.time_s.toFixed(1)} s · ${radiation.predicted_cells}/${radiation.reference_cells} reference cells have a nearby GP estimate`;
+ const continuous=radiation.interpolation==='compact_wendland_shepard';
+ document.getElementById('field-method').textContent='Outlines mark independently observed reference cells. '+(continuous?'Continuous compact-kernel interpolation of densely exported GP predictions, bounded to 35 cm horizontally and 18 cm vertically. Uncertainty retains sample disagreement; unknown gaps and other floors are not filled.':'Recorded profile: nearest exported GP query within 35 cm in XYZ and 18 cm vertically.')+' The reported error covers available estimates only, not the entire true field.';
+ let detail=`GP update t = ${radiation.time_s.toFixed(1)} s · ${radiation.predicted_cells}/${radiation.reference_cells} reference cells have a GP field estimate`;
+ if(continuous)detail+=` · ${radiation.exported_gp_queries} direct GP queries · continuous local interpolation`;
  if(radiation.matched_log1p_rmse!==null)detail+=` · matched-cell log1p RMSE ${radiation.matched_log1p_rmse.toFixed(3)}`;
- if(hovered!==undefined){const i=hovered,fmt=v=>v===null?'no estimate':v.toFixed(3);detail+=` | (${pts[i].map(v=>v.toFixed(2)).join(', ')}) m: truth ${fmt(radiation.truth_usv_h[i])}, GP ${fmt(radiation.gp_mean_usv_h[i])}, upper ${fmt(radiation.gp_upper_usv_h[i])} µSv/h; σ(log rate) ${fmt(radiation.gp_std_log_rate[i])}`;}
+ if(hovered!==undefined){const i=hovered,fmt=v=>v===null?'no estimate':v.toFixed(3);detail+=` | (${pts[i].map(v=>v.toFixed(2)).join(', ')}) m: truth ${fmt(radiation.truth_usv_h[i])}, GP ${fmt(radiation.gp_mean_usv_h[i])}, upper estimate ${fmt(radiation.gp_upper_usv_h[i])} µSv/h; σ(log rate) ${fmt(radiation.gp_std_log_rate[i])}`;if(continuous)detail+=` · ${radiation.gp_neighbours[i]} interpolation neighbours`;}
  document.getElementById('radiation-status').textContent=detail;
 }
 for(const id of ['truth-map','gp-map'])document.getElementById(id).addEventListener('mousemove',event=>{
@@ -86,27 +110,153 @@ for(const id of ['truth-map','gp-map'])document.getElementById(id).addEventListe
 });
 document.getElementById('radiation-level').addEventListener('change',()=>{hovered=undefined;drawRadiation();});
 async function refreshRadiation() {
+ const run=currentRun;
  try {
-  const response=await fetch('/radiation');if(!response.ok)throw Error(response.status);radiation=await response.json();
+  const response=await fetch('/radiation');if(!response.ok)throw Error(response.status);const result=await response.json();if(run!==currentRun)return;radiation=result;
   const select=document.getElementById('radiation-level');
   if(select.options.length!==radiation.heights.length){select.replaceChildren(...radiation.heights.map((z,i)=>new Option(`Z ${z.toFixed(2)} m`,i)));}
   drawRadiation();
- } catch(error) { document.getElementById('radiation-status').textContent='Waiting for radiation map…'; }
- setTimeout(refreshRadiation,1500);
+ } catch(error) { if(run===currentRun)document.getElementById('radiation-status').textContent='Waiting for radiation map…'; }
+ finally{setTimeout(refreshRadiation,1500);}
 }
-fetch('/config').then(r=>r.json()).then(c=>{
+function refreshConfig(){const run=currentRun;return fetch('/config').then(r=>r.json()).then(c=>{
+ if(run!==currentRun)return;
  document.getElementById('world-tag').textContent=`${c.world} · seed ${c.seed}`;
- document.getElementById('cap-tag').textContent=c.dose_budget===null?'NO CUMULATIVE DOSE CAP':`${c.dose_budget} µSv cap`;
+  document.getElementById('cap-tag').textContent=c.lifetime_dose>0?`ROBOT LIFETIME ${c.lifetime_dose} µSv (INDICATIVE)`:c.dose_budget===null?'NO CUMULATIVE DOSE CAP':`${c.dose_budget} µSv cap`;
  document.getElementById('pose-tag').textContent=c.localization==='ground-truth'?'IDEAL POSE / DIAGNOSTIC':'FUSED ONBOARD POSE';
- document.getElementById('protocol').textContent=`Objective: exhaust observed-map frontiers with dose-weighted route selection · cumulative dose cap: ${c.dose_budget===null?'NONE':c.dose_budget+' µSv'} · time cap: ${c.duration===0?'NONE':c.duration+' s'} · pose: ${c.localization==='ground-truth'?'SIMULATOR GROUND TRUTH (planning comparison)':'fused onboard estimate'} · radiation policy: ${c.radiation_policy==='minimize-dose'?'DOSE-WEIGHTED AVOIDANCE (no rate-triggered return)':c.rate_limit+' µSv/h hard rate threshold'}`;
-}).catch(()=>{document.getElementById('protocol').textContent='Configuration temporarily unavailable.';});
+ document.getElementById('protocol').textContent=`Objective: exhaust observed-map frontiers with dose-weighted route selection · dose limit: ${c.lifetime_dose>0?c.lifetime_dose+' µSv-equivalent physical robot lifetime':c.dose_budget===null?'NONE':c.dose_budget+' µSv planning cap'} · time cap: ${c.duration===0?'NONE':c.duration+' s'} · pose: ${c.localization==='ground-truth'?'SIMULATOR GROUND TRUTH (planning comparison)':'fused onboard estimate'} · radiation policy: ${c.radiation_policy==='minimize-dose'?'DOSE-WEIGHTED AVOIDANCE':c.rate_limit+' µSv/h hard rate threshold'}`;
+ document.getElementById('protocol').textContent+=c.gp_mode==='windowed'?` · GP: online spatial windows, ${c.gp_expert_capacity} inducing points/window, at most ${c.gp_max_experts} resident; inactive models retained on disk`:` · GP: ${c.gp_mode||'geometry'} (recorded profile)`;
+  document.getElementById('protocol').textContent+=` · exposure policy: ${c.exposure_policy||'standard'} (raw GP map is unchanged by planning guards)`;
+  document.getElementById('protocol').textContent+=c.frontier_rate_limit>0?` · hotspot exclusion: lower-confidence rate > ${c.frontier_rate_limit} µSv/h at ${(100*c.frontier_confidence).toFixed(1)}% pointwise model confidence, with nearby measurements; disabled in the blind ablation. Return escape is permitted. Model confidence is not a measured accuracy guarantee.`:' · confidence-qualified hotspot exclusion: disabled in this recorded configuration';
+  document.getElementById('protocol').textContent+=` · aware planning dose weights: route ${c.route_dose_weight??1}, frontier ${c.frontier_dose_weight??2}; blind baseline fixed at 1 / 2`;
+  if(c.lifetime_dose>0)document.getElementById('protocol').textContent+=` · physical robot failure at ${c.lifetime_dose} µSv-equivalent; aware planning ceiling ${((c.survival_fraction??.8)*c.lifetime_dose).toFixed(3)} µSv includes return reserve. Failure freezes the robot in situ. This is an illustrative simulation budget.`;
+}).catch(()=>{document.getElementById('protocol').textContent='Configuration temporarily unavailable.';});}
+refreshConfig();
+function renderControls(){
+ const supported=Boolean(sessionState);
+ const campaign=sessionState?.campaign;
+ document.getElementById('rerun').textContent=campaign?'Next sortie':'Rerun now';
+ document.getElementById('rerun').disabled=!supported||controlsBusy||sessionState.rerun_pending||Boolean(campaign&&(sessionState.running||campaign.status!=='active'));
+ document.getElementById('continuous').disabled=!supported||controlsBusy||Boolean(campaign&&campaign.status!=='active');
+ document.getElementById('learn-planning').disabled=!supported||typeof sessionState?.learning_enabled!=='boolean'||controlsBusy||Boolean(campaign);
+ document.getElementById('new-campaign').disabled=!campaign||controlsBusy||sessionState?.rerun_pending;
+ if(supported){
+  if(!controlsBusy)document.getElementById('continuous').checked=sessionState.continuous;
+  if(!controlsBusy)document.getElementById('learn-planning').checked=Boolean(sessionState.learning_enabled);
+  document.getElementById('session-status').textContent=sessionState.error?`Run control error: ${sessionState.error}`:`Pair ${sessionState.run_id} · detector seed ${sessionState.seed} · ${sessionState.rerun_pending?'Restarting—retaining current results…':sessionState.running?'running':sessionState.continuous?'ended · next pair starts shortly':'ended'} · ${sessionState.ended_pairs} ended pairs`;
+ }else document.getElementById('session-status').textContent='Run controls require a restarted dashboard server.';
+ if(controlError)document.getElementById('session-status').textContent=`Run control failed: ${controlError}`;
+}
+async function control(path,body){
+ controlsBusy=true;controlError=undefined;renderControls();
+ try{
+  const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),result=await response.json();
+  if(!response.ok)throw Error(result.error||response.status);
+  sessionState=result;
+ }catch(error){controlError=error.message;}
+ finally{controlsBusy=false;renderControls();}
+}
+document.getElementById('rerun').addEventListener('click',()=>control('/rerun',{}));
+document.getElementById('continuous').addEventListener('change',event=>control('/continuous',{enabled:event.target.checked}));
+document.getElementById('learn-planning').addEventListener('change',event=>control('/learning',{enabled:event.target.checked}));
+document.getElementById('new-campaign').addEventListener('click',()=>{
+ const limit=document.getElementById('campaign-limit'),sorties=document.getElementById('campaign-sorties');
+ if(limit.reportValidity()&&sorties.reportValidity())control('/campaign/new',{lifetime_dose:Number(limit.value),sorties:Number(sorties.value)});
+});
+async function refreshHistory(){
+ if(!sessionState||sessionState.revision===historyRevision)return;
+ const run=currentRun;
+ const response=await fetch('/history');if(!response.ok)throw Error(response.status);
+ const history=await response.json();if(run!==currentRun||history.revision<historyRevision)return;historyRevision=history.revision;averageData=history.averages;learningData=history;
+ const a=averageData,counts=a.curves.map(row=>row.paired_n).filter(n=>n>0);
+ document.getElementById('average-summary').textContent=`${a.ended_pairs} ended pairs · ${a.paired_observations} with usable paired trajectories`+(counts.length?` · contributing pairs across time: ${Math.min(...counts)}–${Math.max(...counts)}.`:'. Waiting for overlapping observations.');
+ const tbody=document.getElementById('run-history');tbody.replaceChildren();
+ for(const run of history.runs){
+  const tr=document.createElement('tr'),values=[run.id,run.seed,run.status.replaceAll('_',' '),...modes.map(mode=>{
+   const outcome=run.outcomes?.[mode],code=run.exit_codes[mode];
+   if(run.status==='running')return 'Running';
+   return `${outcome?.frontier_complete?'Frontiers exhausted':outcome?.state?.replaceAll('_',' ')||'No usable outcome'}${code!==null&&code!==0?' · exit '+code:''}`;
+  })];
+  for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}tbody.append(tr);
+ }
+ drawAverages();
+ drawLearning();
+}
+function drawLearning(){
+ const learning=learningData?.learning,records=learningData?.runs||[],series=Object.fromEntries(modes.map(mode=>[mode,{rows:records.map(record=>({time_s:record.id,true_dose_usv:record.learning_result?.eligible?record.learning_result.runs[mode].endpoint.true_dose_usv:null,distance_m:record.learning_result?.eligible?record.learning_result.runs[mode].endpoint.distance_m:null}))}]));
+ plot('learning-dose','true_dose_usv',null,series,'Paired attempt',true);plot('learning-distance','distance_m',null,series,'Paired attempt',true);
+ if(!learning)return;
+ const trial=sessionState?.learning_trial,settings=value=>`route ${value.route_dose_weight} / frontier ${value.frontier_dose_weight}`;
+ document.getElementById('learning-route').textContent=learning.best.route_dose_weight;
+ document.getElementById('learning-frontier').textContent=learning.best.frontier_dose_weight;
+ document.getElementById('learning-promotions').textContent=learning.rounds.filter(r=>r.promoted).length;
+ document.getElementById('learning-round').textContent=learning.generation+1;
+ document.getElementById('learning-status').textContent=(learning.enabled?`Learning enabled${sessionState?.continuous?'':' · continuous reruns paused'}`:'Learning paused · retained settings remain available')+` · ${learning.entries.length} tracked attempts · ${trial?`${trial.role} on seed ${trial.seed}: ${settings(trial.weights)}`:learning.enabled?'next pair starts a matched-seed trial':'fixed-policy run'}.`;
+ document.getElementById('learning-rule').textContent=`Each challenger is tested against retained weights on the same ${learning.seeds_per_round} detector seeds (${learning.seeds_per_round*2} paired attempts per round). Acceptance requires lower total dose on every seed, ≥2% mean improvement, no final-progress/completion regression, and no >2% mean dose regression at the fixed ≥${learning.milestone}% milestone. Interrupted, failed, unclean or lower-progress attempts cannot win. Bounds: ${learning.bounds[0]}–${learning.bounds[1]}. No artificial monotonic best-dose curve is drawn.`;
+ const fill=(id,rows)=>{const tbody=document.getElementById(id);tbody.replaceChildren();for(const values of rows){const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}tbody.append(tr);}};
+ const fmt=(value,digits=3)=>Number.isFinite(value)?value.toFixed(digits):'—';
+ fill('learning-history',records.map(record=>{const result=record.learning_result,weights=record.planning_weights?.aware,runs=result?.runs,role=record.learning_trial?.role||'reference (not used for tuning)';return [
+  `${record.id} / ${record.seed}`,`${weights?settings(weights):'Untracked settings'} · ${role}`,
+  runs?.blind&&runs?.aware?`${fmt(runs.blind.endpoint.true_dose_usv)} / ${fmt(runs.aware.endpoint.true_dose_usv)} µSv`:'—',
+  runs?.blind&&runs?.aware?`${fmt(runs.blind.endpoint.explored_percent,2)} / ${fmt(runs.aware.endpoint.explored_percent,2)}%`:'—',
+  record.status==='running'?'Running':result?.eligible?`Comparable progress${result.reference_only?' · reference only':''}`:result?.reason||'No learning assessment'];}));
+ fill('learning-rounds',learning.rounds.map(round=>[`${round.round} / ${round.seeds.join(', ')}`,`${settings(round.incumbent)} → ${settings(round.challenger)}`,
+  round.statistics?`${fmt(round.statistics.incumbent_total_aware_dose_usv)} / ${fmt(round.statistics.challenger_total_aware_dose_usv)} µSv`:'Ineligible panel',
+  `${round.promoted?'Challenger retained (provisional)':'Previous settings retained'} · ${round.reason}`]));
+}
+function drawCampaign(){
+ const c=sessionState?.campaign,enabled=Boolean(c);
+ document.getElementById('campaign').hidden=!enabled;document.getElementById('learning').hidden=enabled;
+ campaignAverageNote.hidden=!enabled;
+ document.getElementById('learning-link').href=enabled?'#campaign':'#learning';document.getElementById('learning-link').textContent=enabled?'Campaign':'Learning';
+ document.getElementById('progress-title').textContent=enabled?'CAMPAIGN DOSE AT THE SAME REFERENCE MILESTONE':'DOSE AT THE SAME REFERENCE MILESTONE';
+ document.querySelector('#plots .section-title h2').textContent=enabled?'Current robot sortie.':'The full trajectory behind the headline.';
+ document.querySelector('#dose').closest('article').querySelector('h3').firstChild.textContent=enabled?'Current robot absorbed dose ':'Cumulative radiation dose ';
+ document.querySelector('#time-effect').previousElementSibling.textContent=enabled?'AT THE SAME ACTIVE CAMPAIGN TIME':'AT THE SAME SIMULATION TIME';
+ if(!enabled)return;
+ const formId=sessionState.output.split('/reruns/')[0]+':'+c.id;
+ if(campaignFormId!==formId){campaignFormId=formId;document.getElementById('campaign-limit').value=c.limit_usv;document.getElementById('campaign-sorties').value=c.max_sorties;}
+ document.getElementById('campaign-status').textContent=`Campaign ${c.id} · ${c.sorties_finished}/${c.max_sorties} paired sorties ended · ${c.status.replaceAll('_',' ')}${c.reason?' · '+c.reason:''}. Robot failure budget ${c.limit_usv} µSv-equivalent; aware planning ceiling ${c.planning_budget_usv.toFixed(3)} µSv with return reserve.`;
+ const series=Object.fromEntries(modes.map(mode=>[mode,{rows:latest?.[mode]?.campaign_rows||[]}]));
+ plot('campaign-dose','true_dose_usv',null,series,'Active campaign time (s)');plot('campaign-coverage','explored_percent',100,series,'Active campaign time (s)');
+ const losses={};let maxLoss=1;
+ for(const mode of modes){
+  const state=c.modes[mode],row=latest?.[mode]?.rows.at(-1),pending=sessionState.run_status==='running'&&row?.campaign_id===c.id;
+  const dead=pending&&row?.robot_lifetime?.alive===false,lost=state.robots_lost+(dead?1:0),dose=state.total_dose_usv+(pending?(row?.true_dose_usv||0):0);
+  const recovered=pending&&latest[mode].exit_code===0&&['returned','finished'].includes(row?.state)&&row.robot_lifetime?.alive&&latest[mode].summary?.localization_evaluation?.true_home_distance_m<=.4;
+  document.getElementById(mode+'-fleet').innerHTML=[[lost,'Robots lost / wrecks'],[state.robots_recovered+(recovered?1:0),'Robots recovered'],[dose.toFixed(3),'Campaign dose / µSv'],[(row?.explored_percent??state.explored_percent).toFixed(2)+'%','Fixed floor observed'],[state.gp_updates??0,'Retained GP count windows'],[state.shared_recovered_routes??0,'Shared recovered robot paths'],[state.shared_route_edges??0,'Usable shared route edges'],[state.mapped_support_nodes??0,'Navigable support nodes'],[state.campaign_agenda?.attempts??'—','Recorded region attempts'],[state.campaign_agenda?.connector_transitions??'—','Observed connector transitions'],[(state.total_time_s+(pending?(row?.time_s||0):0)).toFixed(1),'Active campaign time / s'],[(state.total_distance_m+(pending?(row?.distance_m||0):0)).toFixed(1),'Campaign distance / m']].map(([value,label])=>`<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join('');
+  if(state.route_experience){const note=document.createElement('p');note.className='small';note.textContent=`Recovered directional edge experience: ${state.route_experience.directed_edges} edges / ${state.route_experience.observations} detector-window transitions. Current uncertainty-probe candidates: ${row?.uncertainty_probe_count??0}.`;document.getElementById(mode+'-fleet').append(note);}
+  losses[mode]={rows:[{time_s:0,losses:0},...c.history.map(h=>({time_s:h.sortie,losses:h.results[mode].wrecks}))]};
+  if(pending)losses[mode].rows.push({time_s:c.sorties_finished+1,losses:lost});maxLoss=Math.max(maxLoss,lost);
+ }
+ plot('campaign-losses','losses',maxLoss,losses,'Sortie',true);
+ const tbody=document.getElementById('campaign-history');tbody.replaceChildren();
+ for(const h of c.history){const b=h.results.blind,a=h.results.aware,tr=document.createElement('tr');for(const value of [h.sortie,`${b.outcome.replaceAll('_',' ')} / ${a.outcome.replaceAll('_',' ')}`,`${b.total_dose_usv.toFixed(3)} / ${a.total_dose_usv.toFixed(3)} µSv`,`${b.explored_percent.toFixed(2)} / ${a.explored_percent.toFixed(2)}%`,`${b.wrecks} / ${a.wrecks}`]){const td=document.createElement('td');td.textContent=value;tr.append(td);}tbody.append(tr);}
+}
+function drawAverages(){
+ const curves=averageData?.curves||[],data=Object.fromEntries(modes.map(mode=>[mode,{rows:curves.map(row=>({time_s:row.time_s,...Object.fromEntries(['true_dose_usv','distance_m'].map(key=>[key,row[mode][key].mean]))}))}]));
+ plot('average-dose','true_dose_usv',null,data);plot('average-distance','distance_m',null,data);
+ for(const id of ['average-dose','average-distance'])document.getElementById(id+'-detail').textContent=curves.some(r=>r.paired_n)?'Hover or tap for means, spread and contributing pairs.':'No overlapping ended-pair observations yet.';
+}
+for(const [id,key,unit] of [['average-dose','true_dose_usv','µSv'],['average-distance','distance_m','m']]){
+ const canvas=document.getElementById(id);
+ const inspect=event=>{
+  const curves=averageData?.curves;if(!curves?.length)return;
+  const rect=canvas.getBoundingClientRect(),fraction=Math.max(0,Math.min(1,(event.clientX-rect.left-64)/(rect.width-84))),stamp=fraction*curves.at(-1).time_s;
+  const row=curves.reduce((best,r)=>Math.abs(r.time_s-stamp)<Math.abs(best.time_s-stamp)?r:best);
+  document.getElementById(id+'-detail').textContent=`t = ${row.time_s.toFixed(1)} s · n = ${row.paired_n} pairs · `+modes.map(mode=>{const s=row[mode][key];return `${mode}: ${s.mean===null?'—':s.mean.toFixed(3)}${s.sd===null?'':' ± '+s.sd.toFixed(3)+' SD'} ${unit}`;}).join(' / ');
+ };
+ canvas.addEventListener('mousemove',inspect);canvas.addEventListener('pointerdown',inspect);
+}
 function renderEvidence() {
  if(!latest || !globalThis.DougieMetrics)return;
- const level=Number(document.getElementById('benchmark-level').value), metrics=globalThis.DougieMetrics;
- const progress=metrics.atCoverage(latest,level), common=metrics.atCommonTime(latest);
+ const selected=document.getElementById('benchmark-level').value, metrics=globalThis.DougieMetrics;
+ const evidence=sessionState?.campaign?Object.fromEntries(modes.map(mode=>[mode,{rows:latest[mode].campaign_rows||[]}])):latest;
+ const level=selected==='auto'?([90,85,75,50].find(value=>metrics.atCoverage(evidence,value))||50):Number(selected);
+ const progress=metrics.atCoverage(evidence,level), common=metrics.atCommonTime(evidence);
  const showEffect=(id,value)=>{const node=document.getElementById(id);node.textContent=value===null?'—':Math.abs(value).toFixed(1)+'%';node.classList.toggle('negative',value!==null&&value<0);node.classList.toggle('positive',value!==null&&value>=0);};
  showEffect('progress-effect',progress?.reduction??null);
- document.getElementById('progress-label').textContent=progress&&progress.reduction!==null?`${progress.reduction>=0?'Less':'More'} aware dose at the ≥${level}% reference milestone`:'Waiting for both robots to reach this milestone.';
+ document.getElementById('progress-label').textContent=progress&&progress.reduction!==null?`${progress.reduction>=0?'Less':'More'} aware dose at the ≥${level}% reference milestone`:`Waiting for both robots to reach the ≥${level}% reference milestone.`;
  document.getElementById('progress-detail').textContent=progress?`Blind ${progress.blind.true_dose_usv.toFixed(3)} µSv → aware ${progress.aware.true_dose_usv.toFixed(3)} µSv. Actual floor: ${progress.blind.explored_percent.toFixed(2)}% / ${progress.aware.explored_percent.toFixed(2)}%.`:'Evaluation thresholds are not mission completion.';
  showEffect('time-effect',common?.reduction??null);
  document.getElementById('time-label').textContent=common&&common.reduction!==null?`${common.reduction>=0?'Less':'More'} aware dose at t = ${common.time.toFixed(1)} s`:'Synchronizing telemetry.';
@@ -114,45 +264,63 @@ function renderEvidence() {
  const finished=modes.filter(m=>latest[m].rows.at(-1)?.frontier_complete).length,ended=modes.every(m=>latest[m].exit_code!==null);
  document.getElementById('completion-value').textContent=`${finished} / 2`;
  document.getElementById('completion-label').textContent='Planner-confirmed frontier completion';
- document.getElementById('completion-detail').textContent=ended&&!finished?'Both runs ended with unresolved frontiers. A return is not a finished survey.':'Completion requires zero frontiers on three fresh scans; physical and navigation limits remain visible.';
+  document.getElementById('completion-detail').textContent=modes.map(mode=>{const run=latest[mode],row=run.rows.at(-1);return `${mode}: ${run.exit_code!==null?(row?.frontier_complete?'finished':'stopped incomplete'):'active'}${row?.survey_reason?' · '+row.survey_reason.replaceAll('_',' '):''}`;}).join(' / ')+(modes.some(m=>latest[m].exit_code!==null)&&!ended?' · Endpoint totals currently cover different mission durations.':'');
  document.getElementById('milestone-table').innerHTML=[50,75,85,90].map(threshold=>{
-  const pair=metrics.atCoverage(latest,threshold);
+  const pair=metrics.atCoverage(evidence,threshold);
   if(!pair)return `<tr><td>≥${threshold}%</td><td colspan="4" class="small">Waiting for both trajectories…</td></tr>`;
   return `<tr><td>≥${threshold}%</td><td class="blind">${pair.blind.true_dose_usv.toFixed(4)} µSv<small>${pair.blind.explored_percent.toFixed(2)}% actually observed</small></td><td class="aware">${pair.aware.true_dose_usv.toFixed(4)} µSv<small>${pair.aware.explored_percent.toFixed(2)}% actually observed</small></td><td class="${pair.reduction>=0?'positive':'negative'}">${pair.reduction===null?'—':pair.reduction.toFixed(1)+'%'}</td><td>${pair.blind.time_s.toFixed(1)} / ${pair.aware.time_s.toFixed(1)} s</td></tr>`;
  }).join('');
 }
 document.getElementById('benchmark-level').addEventListener('change',renderEvidence);
-function plot(id, key, fixedMax, xKey='time_s') {
+function plot(id, key, fixedMax, data=latest,axisLabel='Simulation time (s)',markers=false,referenceLimit=null) {
  const canvas = document.getElementById(id), ratio = window.devicePixelRatio || 1;
  const width = canvas.clientWidth, height = canvas.clientHeight;
  canvas.width = width*ratio; canvas.height = height*ratio;
  const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
  const l=64, r=20, t=15, b=45, w=width-l-r, h=height-t-b;
-  let xmax=xKey==='explored_percent'?100:1, ymax=fixedMax || 0.001;
-  for (const mode of modes) for (const row of latest[mode].rows) {
-   xmax=Math.max(xmax,row[xKey]); if (!fixedMax && Number.isFinite(row[key])) ymax=Math.max(ymax,row[key]*1.1);
+  let xmax=1, ymax=fixedMax || 0.001;
+  for (const mode of modes) for (const row of data[mode].rows) {
+   xmax=Math.max(xmax,row.time_s); if (!fixedMax && Number.isFinite(row[key])) ymax=Math.max(ymax,row[key]*1.1);
  }
+ if(referenceLimit)ymax=Math.max(ymax,referenceLimit*1.05);
  ctx.font='12px system-ui'; ctx.lineWidth=1;
  for (let i=0;i<=4;i++) {
   const y=t+h-i*h/4; ctx.strokeStyle='#34485b'; ctx.beginPath(); ctx.moveTo(l,y); ctx.lineTo(l+w,y); ctx.stroke();
    ctx.fillStyle='#a4b6c1'; ctx.textAlign='right'; ctx.fillText((ymax*i/4).toFixed(key==='true_dose_usv'?2:0),l-8,y+4);
   ctx.textAlign='center'; ctx.fillText((xmax*i/4).toFixed(0),l+w*i/4,t+h+20);
  }
-  ctx.fillText(xKey==='time_s'?'Simulation time (s)':'Reference floor observed (%)',l+w/2,height-5);
+  ctx.fillText(axisLabel,l+w/2,height-5);
+  if(referenceLimit){const y=t+h-h*referenceLimit/ymax;ctx.strokeStyle='#ff7066';ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(l+w,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ff8c80';ctx.textAlign='right';ctx.fillText('Indicative robot failure dose',l+w,y-5);}
  for (const mode of modes) {
    ctx.strokeStyle=colors[mode]; ctx.lineWidth=2.5;ctx.setLineDash(mode==='blind'?[7,4]:[]);ctx.beginPath();
-   latest[mode].rows.filter(row=>Number.isFinite(row[key])).forEach((row,i)=> { const x=l+w*row[xKey]/xmax,y=t+h-h*row[key]/ymax; if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y); }); ctx.stroke();ctx.setLineDash([]);
+   let drawing=false;const dots=[];for(const row of data[mode].rows){if(!Number.isFinite(row[key])){drawing=false;continue;}const x=l+w*row.time_s/xmax,y=t+h-h*row[key]/ymax;if(drawing)ctx.lineTo(x,y);else ctx.moveTo(x,y);drawing=true;if(markers)dots.push([x,y]);} ctx.stroke();ctx.setLineDash([]);
+   if(markers){ctx.fillStyle=colors[mode];for(const [x,y] of dots){ctx.beginPath();ctx.arc(x,y,3,0,2*Math.PI);ctx.fill();}}
  }
 }
-function redraw() { if(latest) { plot('dose-progress','true_dose_usv',null,'explored_percent');plot('dose','true_dose_usv'); plot('coverage','explored_percent',100); plot('distance','distance_m');plot('frontiers','frontier_count'); } }
+function redraw() { if(latest) { const limit=latest.aware.rows.at(-1)?.robot_lifetime?.limit_usv||latest.blind.rows.at(-1)?.robot_lifetime?.limit_usv;plot('dose','true_dose_usv',null,latest,'Simulation time (s)',false,limit); plot('coverage','explored_percent',100); plot('distance','distance_m');plot('frontiers','frontier_count'); } }
 async function refresh() {
  try {
   const response=await fetch('/api'); if(!response.ok)throw Error(response.status);
-  latest=await response.json();
+   latest=await response.json();
+   const incoming=latest._session,changed=incoming&&incoming.output!==sessionState?.output;
+   if(!controlsBusy&&(!sessionState||changed||incoming?.revision>=sessionState.revision)){
+    if(changed){historyRevision=-1;averageData=undefined;learningData=undefined;document.getElementById('run-history').replaceChildren();drawAverages();drawLearning();}
+    sessionState=incoming;
+   }
+   renderControls();
+   if(sessionState&&currentRun!==sessionState.output){
+    currentRun=sessionState.output;radiation=undefined;hovered=undefined;
+    for(const id of ['truth-map','gp-map']){const canvas=document.getElementById(id);canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);}
+    document.getElementById('radiation-status').textContent='Waiting for this run’s radiation map…';document.getElementById('scale-label').textContent='';
+    document.getElementById('radiation-level').replaceChildren();
+    for(const mode of modes){const image=document.getElementById(mode+'-frame');delete image.dataset.finished;image.src='/'+mode+'/stream.mjpg?run='+encodeURIComponent(currentRun);}
+    refreshConfig();
+   }
+   refreshHistory().catch(()=>{document.getElementById('average-summary').textContent='Run history temporarily unavailable—retrying…';});
    document.getElementById('connection').textContent=(modes.every(m=>latest[m].exit_code!==null)?'Retained results':'Live experiment')+' · connected';
   for(const mode of modes) {
    const run=latest[mode], row=run.rows.at(-1), ended=run.exit_code!==null;
-    const status=ended?(run.exit_code===0?(row?.frontier_complete?'Finished':'Stopped · incomplete'):'Worker error'):'Exploring';
+    const status=row?.robot_lifetime?.alive===false?'Destroyed · in situ':sessionState?.campaign&&ended&&run.summary?.robot_recovered?'Recovered · swap ready':ended?(run.exit_code===0?(row?.frontier_complete?'Finished':row?.survey_outcome==='radiation_limited'?'Radiation-limited · incomplete':'Stopped · incomplete'):'Worker error'):'Exploring';
     const badge=document.getElementById(mode+'-badge');badge.textContent=status;badge.classList.toggle('complete',Boolean(row?.frontier_complete));
     if(row){
      const fields=[[row.true_dose_usv.toFixed(3),'Dose / µSv'],[(row.distance_m||0).toFixed(1),'3D travel / m'],[row.frontier_count??'—','Frontiers left'],[row.time_s.toFixed(1),'Simulated / s']];
@@ -160,16 +328,25 @@ async function refresh() {
      document.getElementById(mode+'-coverage').textContent=row.explored_percent.toFixed(2)+'%';
      document.getElementById(mode+'-progress').style.width=Math.max(0,Math.min(100,row.explored_percent))+'%';
     }
-   document.getElementById(mode+'-status').textContent=row
+    document.getElementById(mode+'-status').textContent=row
     ? `${(row.survey_reason || row.state).replaceAll('_',' ')} · ${row.admissible_frontier_count||0} admissible frontier targets · ${row.rate_usv_h.toFixed(2)} µSv/h current rate`
-    : status+' · waiting for first frame';
+     : status+' · waiting for first frame';
+    const blocked=row?.frontier_blocked_counts||{},rule=row?.radiation_exclusion;
+    document.getElementById(mode+'-blocked').textContent=`Blocked frontiers: ${blocked.radiation_blocked??0} radiation · ${blocked.geometrically_unreachable??0} geometry · ${blocked.temporary_blocked??0} temporary.`+(rule?` ${blocked.confident_hot??0} confidently hot viewpoints · ${blocked.execution_radiation_blocked??0} candidates with radiation-rejected execution routes. Threshold ${rule.rate_limit_usv_h} µSv/h at ${(rule.confidence*100).toFixed(0)}% model confidence. Nearby measurements required.`:mode==='blind'?' Radiation exclusions are disabled for the blind ablation.':' Confidence-qualified hotspot exclusion is not enabled in this recorded run.');
+    const life=row?.robot_lifetime,panel=document.getElementById(mode+'-life-panel');panel.hidden=!life;
+    if(life){panel.classList.toggle('dead',!life.alive);document.getElementById(mode+'-life-label').textContent=`Robot ${life.robot_id} · indicative radiation life`;
+     document.getElementById(mode+'-life-value').textContent=life.alive?`${(100*life.remaining_fraction).toFixed(1)}% remaining`:'Destroyed in situ';
+     const bar=document.getElementById(mode+'-life-progress');bar.style.width=(100*life.remaining_fraction)+'%';bar.parentElement.setAttribute('aria-valuenow',100*life.remaining_fraction);
+     document.getElementById(mode+'-life-detail').textContent=`Absorbed ${life.absorbed_usv.toFixed(3)} / ${life.limit_usv.toFixed(3)} µSv-equivalent. ${life.alive?'Dose resets only on a new deployment after recovery or loss.':'Frozen at its failure pose; retained as a collision obstacle in the next sortie.'}`;
+    }
    if(ended && row) {
-    const image=document.getElementById(mode+'-frame');
+  const image=document.getElementById(mode+'-frame');
     if(!image.dataset.finished) { image.dataset.finished='true'; image.src='/'+mode+'/frame.jpg?t='+Date.now(); }
    }
   }
    redraw();
-   renderEvidence();
+    renderEvidence();
+    drawCampaign();
  } catch(error) { document.getElementById('connection').textContent='Dashboard disconnected — retrying…'; }
  setTimeout(refresh,1000);
 }
@@ -179,6 +356,6 @@ for(const mode of modes) {
  image.onerror=()=> { if(!image.dataset.finished)setTimeout(connect,2000); };
  connect();
 }
-window.addEventListener('resize',()=>{redraw();drawRadiation();}); refresh(); refreshRadiation();
+window.addEventListener('resize',()=>{redraw();drawAverages();drawLearning();drawCampaign();drawRadiation();}); drawAverages();drawLearning();drawCampaign();refresh(); refreshRadiation();
 </script>
 </html>

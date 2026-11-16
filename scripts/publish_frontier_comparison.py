@@ -207,7 +207,8 @@ def radiation_figure(inputs):
 
 
 def report(data):
-    lines = ['# Current frontier comparison results', '', data['scope'], '',
+    lines = ['# Retained frontier comparison results', '',
+        'This historical global-GP pair predates the current windowed-GP robot-lifetime campaign; see [current campaigns](DOUGIE_CAMPAIGNS.md).', '', data['scope'], '',
         f'Retained run: `{data["run"]}`. [Portable data](results/dougie_frontier_comparison.json) · [Raw inputs](results/frontier_comparison_inputs.tar.gz).', '',
         '## Protocol', '', 'Reactor; detector seed 1, sensor seed 0, layout seed 0; 0.5 s fixed simulated planning latency; simulator ground-truth pose; geometry-aware Poisson GP; no cumulative dose cap, no fixed time cap, and soft dose-weighted avoidance. CPU-rendered feeds target 5 FPS.', '',
         'Finished means zero observed-map frontier nodes confirmed on three fresh scans. A return with unresolved frontiers is incomplete. The reference floor percentage is evaluation-only.', '',

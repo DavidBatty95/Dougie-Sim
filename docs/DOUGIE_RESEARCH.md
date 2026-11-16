@@ -1,6 +1,6 @@
 # Dougie-Sim research reading guide
 
-[Project home](../README.md) · [Methods](DOUGIE_RADIATION.md) · [Evidence](DOUGIE_VALIDATION.md) · [Documentation](DOUGIE_INDEX.md)
+[Project home](../README.md) · [Methods](DOUGIE_RADIATION.md) · [Evidence](DOUGIE_CAMPAIGN_AGENDA.md) · [Documentation](DOUGIE_INDEX.md)
 
 ## Research question
 
@@ -10,8 +10,9 @@ information in an unknown facility while retaining an exposure-aware route home?
 The current contribution is an inspectable simulation integration: counting
 observations, a bounded XYZ GP, observed-surface routes and cumulative-exposure
 reasoning all run in one closed loop. Novel algorithmic superiority has not been
-established. The strongest current evidence is the small initial cohort and
-its retained artifacts, rather than a demonstration image.
+established. Current campaign and policy-pilot reports retain their scope,
+incomplete outcomes and adverse results; demonstration images are not efficacy
+evidence.
 
 ## Concepts before papers
 
@@ -197,4 +198,4 @@ benchmarks from the measurements collected by the robot's policy.
 - [Gaussian Processes for Machine Learning](https://gaussianprocess.org/gpml/): background on kernels, inference and likelihoods.
 
 For implemented equations and settings, use [Dougie's methods](DOUGIE_RADIATION.md).
-For claims supported by measurements, use [Dougie's validation](DOUGIE_VALIDATION.md).
+For current measured outcomes and limits, use the [campaign development evidence](DOUGIE_CAMPAIGN_AGENDA.md).

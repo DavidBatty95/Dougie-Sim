@@ -2,6 +2,7 @@
 import math
 
 import numpy as np
+from scipy.spatial import cKDTree
 from scipy.stats import poisson
 
 
@@ -9,6 +10,8 @@ class ExposureUtility:
     def __init__(self, capacity=8192):
         self.exposure = {}
         self.capacity = capacity
+        self._visit_tree = None
+        self._visit_seconds = None
 
     @staticmethod
     def cell(point):
@@ -17,12 +20,27 @@ class ExposureUtility:
     def observe(self, sample):
         if not sample.position_valid:
             return
+        self._visit_tree = None
         points = sample.window_positions or (sample.position,)
         durations = sample.window_durations_s or (sample.integration_s,)
         for point, duration in zip(points, durations):
             key = self.cell(point)
             if key in self.exposure or len(self.exposure) < self.capacity:
                 self.exposure[key] = self.exposure.get(key, 0.)+duration
+
+    def neighbourhood_seconds(self,point,radius=.75):
+        if not self.exposure:
+            return 0.
+        if self._visit_tree is None:
+            centres = (np.asarray(list(self.exposure),dtype=float)+.5)*[.5,.5,.25]
+            self._visit_tree = cKDTree(centres)
+            self._visit_seconds = np.asarray(list(self.exposure.values()),dtype=float)
+        indices = self._visit_tree.query_ball_point(point,radius)
+        if not indices:
+            return 0.
+        distance = np.linalg.norm(self._visit_tree.data[indices]-np.asarray(point),axis=1)
+        weight = np.maximum(0.,1.-(distance/radius)**2)**2
+        return float(weight@self._visit_seconds[indices])
 
     def score(self, point, novelty, fresh_fraction, mean_rate, sigma, outbound_s, return_s,
               outbound_dose, return_dose, goal_upper, current_upper, wait_s, recovery_s,
@@ -40,6 +58,26 @@ class ExposureUtility:
             observed_seconds=observed_seconds, upper_round_trip_dose_usv=dose,
             round_trip_duration_s=duration, normalized_cost=cost, score=useful/cost)
         return result
+
+    def frontier_score(self, point, novelty, fresh_fraction, outbound_s, outbound_dose,
+                       goal_rate, reference_rate, wait_s, connector_bonus=0.,dose_weight=2.):
+        """Useful new views per travel/exposure cost, with no dose-budget scale.
+
+        The same geometric/revisit score applies to blind and aware workers.
+        Only the latter receives nonzero radiation inputs. A 60-s reference is
+        a unit normalization, never a mission deadline or dose allowance.
+        """
+        observed_seconds = self.neighbourhood_seconds(point)
+        repeat_weight = 1./(1.+observed_seconds/3.)
+        useful = repeat_weight*(.1+fresh_fraction*(1.+min(connector_bonus, 8.))+.8*novelty)
+        duration = max(0., outbound_s)+wait_s+3.
+        exposure = max(0., outbound_dose)+max(0., goal_rate)*(wait_s+3.)/3600.
+        dose_reference = max(.05, reference_rate)*60./3600.
+        cost = .1+duration/60.+dose_weight*exposure/dose_reference
+        return dict(score=useful/cost, geometric_gain=novelty, useful_gain=useful,
+            observed_seconds=observed_seconds, revisit_weight=repeat_weight,
+            outbound_and_dwell_dose_usv=exposure, duration_s=duration,
+            dose_reference_usv=dose_reference, normalized_cost=cost,dose_weight=dose_weight)
 
 
 class CountCalibration:

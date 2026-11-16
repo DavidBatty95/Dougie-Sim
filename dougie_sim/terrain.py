@@ -25,6 +25,28 @@ class SurfaceMap:
         self.base_radius = radius
         self.localization_margin = 0.
         self.tracking_margin = 0.
+        self.shared_routes = []
+        self.shared_route_edges = set()
+        self.route_experience = None
+
+    def refresh_shared_route_edges(self):
+        """Match recovered physical traversals to currently admissible graph edges."""
+        self.shared_route_edges = set()
+        keys = list(self.nodes)
+        if not keys or not self.shared_routes:
+            return
+        points = np.asarray([self.nodes[k] for k in keys])
+        tree = cKDTree(points)
+        for route in self.shared_routes:
+            route = np.asarray(route,dtype=float).reshape(-1,3)
+            if len(route)<2:
+                continue
+            distance,index = tree.query(route)
+            for i in range(len(route)-1):
+                a,b=keys[index[i]],keys[index[i+1]]
+                if (distance[i]<=.2 and distance[i+1]<=.2 and np.linalg.norm(route[i+1]-route[i])<=.35
+                        and b in self.graph.get(a,())):
+                    self.shared_route_edges.add(frozenset((a,b)))
 
     def set_localization_margin(self, margin):
         if not math.isfinite(margin) or margin < 0:
@@ -122,7 +144,7 @@ class SurfaceMap:
         edge_speed = min(speed, .06) if abs(self.nodes[end][2]-self.nodes[start][2]) > .025 else speed
         return distance/edge_speed
 
-    def routes(self, start, rates=None, speed=None, rate_scale=50., *, reverse=False, max_rate=None):
+    def routes(self, start, rates=None, speed=None, rate_scale=50., *, reverse=False, max_rate=None, excluded=()):
         from .motion_cost import FORECAST_SPEED
         speed = FORECAST_SPEED if speed is None else speed
         adjacency = self.graph
@@ -138,6 +160,8 @@ class SurfaceMap:
             if cost > costs[key]+1e-10:
                 continue
             for other in adjacency.get(key, []):
+                if other in excluded:
+                    continue
                 if max_rate is not None and rates is not None and max(rates[key], rates[other]) > max_rate:
                     continue
                 distance = self._edge_lengths.get((key, other))
@@ -146,7 +170,15 @@ class SurfaceMap:
                 rate = 0. if rates is None else max(rates[key], rates[other])
                 duration = self.edge_time(other, key, speed) if reverse else self.edge_time(key, other, speed)
                 exposure = rate*duration/3600.
-                candidate = cost+duration*(1.+rate/rate_scale)
+                if self.route_experience is not None:
+                    a,b=(other,key) if reverse else (key,other)
+                    observed_time,observed_dose=self.route_experience.bounds(self.nodes[a],self.nodes[b],distance)
+                    duration=max(duration,observed_time)
+                    exposure=max(exposure,observed_dose,rate*duration/3600.)
+                # A recovered traversal is a modest tie-breaker, never a
+                # radiation discount or a replacement for current admission.
+                travel_factor = .85 if frozenset((key,other)) in self.shared_route_edges else 1.
+                candidate = cost+duration*travel_factor+exposure*3600./rate_scale
                 if candidate < costs.get(other, math.inf):
                     costs[other], dose[other], length[other], parent[other] = candidate, dose[key]+exposure, length[key]+distance, key
                     heapq.heappush(queue, (candidate, other))

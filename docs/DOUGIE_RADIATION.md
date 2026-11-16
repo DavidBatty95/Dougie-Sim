@@ -1,16 +1,13 @@
 # Radiation-aware unknown-environment exploration
 
-[Project home](../README.md) · [Architecture](DOUGIE_SIM.md) · [Validation](DOUGIE_VALIDATION.md)
+[Project home](../README.md) · [Architecture](DOUGIE_SIM.md) · [Campaign evidence](DOUGIE_CAMPAIGN_AGENDA.md)
 
-Research/implementation checkpoint: **7 October 2026**.
-
-**Current implementation — 19 October:** radiation missions now default to fused
-onboard pose, a positive-definite observed-surface feature kernel and integrated
-moving-window Poisson likelihoods. See [current methods/evidence](DOUGIE_ONBOARD_MISSION.md)
-and [the active qualification plan](DOUGIE_ONBOARD_PLAN.md). This page preserves
-the initial model/research rationale; its point-observation, ideal-pose baseline
-is available explicitly through `--localization ground-truth --gp-mode global
---detector-likelihood point`.
+This page preserves the original field model and research rationale. Current
+campaigns use integrated count windows and an online, spatially windowed GP;
+see [current inference](DOUGIE_WINDOWED_GP.md) and [architecture](DOUGIE_SIM.md).
+The browser comparison defaults to simulator ground-truth pose for both robots;
+raw radiation missions also support the fused sensor profile. Historical model
+and pose settings are not interchangeable with the current campaign results.
 
 ## Objective and scope
 

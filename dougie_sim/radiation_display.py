@@ -103,13 +103,14 @@ class RadiationHighlights:
         World-aligned cells avoid duplicated overlapping blobs and swimming as
         query positions change. Interpolation is limited in XYZ, not across floors.
         """
-        xyz, mean, std, _ = volume
+        xyz, mean, std, upper = volume
         selected = self.mask(xyz, mean, mode)
         xyz, mean, std = np.asarray(xyz)[selected], np.asarray(mean)[selected], np.asarray(std)[selected]
+        upper = np.asarray(upper)[selected]
         if not len(xyz):
             return np.empty((0, 3)), np.empty((0, 4))
         xyz, unique = np.unique(xyz, axis=0, return_index=True)
-        mean, std = mean[unique], std[unique]
+        mean, std, upper = mean[unique], std[unique], upper[unique]
         spacing = np.array([.18, .18, .12])
         # Fill the diagonal cells too: a seven-point cross leaves visible lobes
         # even after interpolation. A shared lattice still deduplicates overlap.
@@ -118,20 +119,11 @@ class RadiationHighlights:
         cells = np.unique(np.rint((xyz[:, None, :]+offsets)/spacing).reshape(-1, 3).astype(int), axis=0)
         points = cells*spacing
         scale = np.array([.48, .48, .26])
-        distances, indices = cKDTree(xyz/scale).query(points/scale, k=min(8, len(xyz)))
-        distances, indices = distances.reshape(len(points), -1), indices.reshape(len(points), -1)
-        weights = np.exp(-4.*distances**2)*(distances <= 1.)
-        total = weights.sum(axis=1)
-        supported = total > 0
-        edge_alpha = np.clip(1.-distances.min(axis=1)**2, 0., 1.)**2
-        points, weights, indices, total = points[supported], weights[supported], indices[supported], total[supported]
-        edge_alpha = edge_alpha[supported]
-        weights /= total[:, None]
-        # Interpolate log rates to reduce bright discontinuities between samples.
-        latent = np.log1p(mean[indices])
-        blended = np.sum(weights*latent, axis=1)
-        rates = np.expm1(blended)
-        sigma = np.sqrt(np.sum(weights*(std[indices]**2+(latent-blended[:, None])**2), axis=1))
+        from .gp_field import interpolate_field
+        rates,sigma,_,distance,_ = interpolate_field(points,xyz,mean,std,upper,radius=scale)
+        supported = np.isfinite(rates)
+        edge_alpha = np.clip(1.-distance[supported]**2,0.,1.)**2
+        points,rates,sigma = points[supported],rates[supported],sigma[supported]
         keep = self.mask(points, rates, mode)
         points, rates, sigma = points[keep], rates[keep], sigma[keep]
         edge_alpha = edge_alpha[keep]

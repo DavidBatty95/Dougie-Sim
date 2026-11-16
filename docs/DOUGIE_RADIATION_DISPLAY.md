@@ -1,6 +1,6 @@
 # Continuous, low-opacity radiation display
 
-[Project home](../README.md) · [Onboard methods](DOUGIE_ONBOARD_MISSION.md)
+[Project home](../README.md) · [Current GP methods](DOUGIE_WINDOWED_GP.md)
 
 ## Before and after
 

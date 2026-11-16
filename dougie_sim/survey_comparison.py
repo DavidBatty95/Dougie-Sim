@@ -17,7 +17,8 @@ def survey_admission(explorer, keys, root, home, rates, parent, home_parent,
     for key in keys:
         if key not in physical or key not in physical_home:
             status = DISCONNECTED
-        elif key not in parent or key not in home_parent or (getattr(explorer, 'rate_limited', True) and rates[key] > explorer.rate_limit):
+        elif (key in getattr(explorer,'confident_hot_keys',()) or key not in parent or key not in home_parent
+              or (getattr(explorer, 'rate_limited', True) and rates[key] > explorer.rate_limit)):
             status = RADIATION
         elif any(math.dist(explorer.terrain.nodes[key], point) < .65 for point, _ in explorer.failed):
             status = TEMPORARY
@@ -35,6 +36,8 @@ def survey_admission(explorer, keys, root, home, rates, parent, home_parent,
 def outcome(complete, state, reason, terminal=False, error=None):
     if error:
         return 'failed'
+    if state=='dead_radiation':
+        return 'destroyed_radiation'
     if complete:
         return 'frontiers_exhausted'
     if state == 'interrupted':
@@ -42,12 +45,13 @@ def outcome(complete, state, reason, terminal=False, error=None):
     if reason in ('time_return_reserve', 'time_limit'):
         return 'time_limit'
     if reason in ('radiation_frontiers_blocked', 'no_rate_compliant_return_route',
+                  'no_confidence_admissible_return_route','no_confidence_admissible_execution_route',
                   'dose_return_reserve', 'measured_rate_limit', 'measured_dose_reserve',
                   'measured_radiation_requires_retreat'):
         return 'radiation_limited'
     if terminal:
         return 'navigation_stopped'
-    if reason == 'unresolved_frontiers':
+    if reason in ('unresolved_frontiers', 'frontier_progress_stalled','frontier_views_unproductive'):
         return 'frontiers_blocked'
     if state == 'returned':
         return 'observed_frontiers_exhausted' if reason == 'survey_frontiers_exhausted' else 'incomplete_return'

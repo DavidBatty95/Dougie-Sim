@@ -1,0 +1,23 @@
+{
+  "scope": "Controlled intervention: artificial frontier/status, real measured support, MuJoCo locomotion and Poisson detector. Not an efficacy or safety claim.",
+  "selected_reason": "uncertainty_measurement_probe",
+  "frontier_count": 1,
+  "frontier_complete": false,
+  "goal": [
+    -0.125,
+    0.875,
+    0.0
+  ],
+  "target": [
+    -0.875,
+    0.375,
+    -5.551115123125783e-17
+  ],
+  "reached_within_25cm": true,
+  "minimum_distance_m": 0.2497849445345609,
+  "simulation_time_s": 6.754999999999878,
+  "actual_detector_windows": 10,
+  "initial_sigma_log": 1.0327223293032994,
+  "final_sigma_log": 0.7198255111478316,
+  "follower_status": "tracking"
+}

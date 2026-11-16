@@ -1,0 +1,32 @@
+{
+  "scope": "One illustrative, correlated six-sortie reactor campaign; unequal exploration, not an equal-work or hardware validation.",
+  "directory": "results/dougie/comparison_20261114T013643_666188Z",
+  "session_sha256_at_capture": "ee94de5e16034b3512e577b06c86b8092eca5932766f1dc69ec1c879f148c97b",
+  "campaign_id": 1,
+  "status": "sortie_limit",
+  "lifetime_usv": 2.0,
+  "planning_budget_usv": 1.6,
+  "sorties": 6,
+  "outcomes": {
+    "blind": {
+      "total_dose_usv": 10.948969517609319,
+      "total_time_s": 1991.0249999986245,
+      "total_distance_m": 288.95036461494425,
+      "robots_lost": 5,
+      "robots_recovered": 1,
+      "wrecks": 5,
+      "explored_percent": 90.30166337750212,
+      "gp_updates": 0
+    },
+    "aware": {
+      "total_dose_usv": 1.2070303253010133,
+      "total_time_s": 398.6999999999014,
+      "total_distance_m": 54.04504448970671,
+      "robots_lost": 0,
+      "robots_recovered": 6,
+      "wrecks": 0,
+      "explored_percent": 51.93120947279392,
+      "gp_updates": 796
+    }
+  }
+}
