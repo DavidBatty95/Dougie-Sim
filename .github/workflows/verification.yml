@@ -44,7 +44,7 @@ jobs:
           docker compose run --rm -T dougie-sim python3 -m dougie_sim.radiation_run \
             --headless --fast --duration 180 --dose-budget 0.2 --seed 3 --source-profile baseline --terrain-profile experimental --planner baseline \
             --output results/dougie/radiation-ci
-          python3 scripts/check_dougie_radiation.py results/dougie/radiation-ci --require-return
+          docker compose run --rm -T dougie-sim python3 scripts/check_dougie_radiation.py results/dougie/radiation-ci --require-return
       - name: Terrain smoke tests (completion only)
         run: |
           export DOUGIE_UID="$(id -u)" DOUGIE_GID="$(id -g)"
